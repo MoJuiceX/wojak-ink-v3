@@ -1,0 +1,234 @@
+.bigpulp-content {
+  --background: var(--ion-background-color);
+}
+
+.bigpulp-container {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Search Section */
+.search-section {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.search-section h2 {
+  font-size: 24px;
+  margin: 0 0 4px 0;
+  font-weight: 700;
+}
+
+.search-section .subtitle {
+  color: var(--ion-color-medium);
+  margin: 0 0 16px 0;
+  font-size: 14px;
+}
+
+.search-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.nft-input {
+  --background: var(--ion-color-light);
+  --padding-start: 16px;
+  --padding-end: 16px;
+  border-radius: 8px;
+  flex: 1;
+}
+
+.error-text {
+  color: var(--ion-color-danger);
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+/* Results Section */
+.results-section {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* NFT Preview */
+.nft-preview {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.preview-image {
+  width: 200px;
+  height: 200px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  object-fit: cover;
+}
+
+/* BigPulp Card */
+.pulp-card {
+  background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+  border-radius: 16px;
+  margin: 0 0 16px 0;
+}
+
+.pulp-title {
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.pulp-sentence {
+  color: white;
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: var(--ion-color-light);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* S-Tier Traits Section */
+.traits-section {
+  margin-bottom: 16px;
+}
+
+.traits-section h4 {
+  font-size: 14px;
+  color: var(--ion-color-medium);
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stier-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stier-trait {
+  background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%);
+  color: #333;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stier-trait .trait-count {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+/* Rare Pairings */
+.rare-pairings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pairing-item {
+  background: var(--ion-color-light);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.pairing-traits {
+  font-weight: 500;
+}
+
+.pairing-count {
+  color: var(--ion-color-primary);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  text-align: center;
+  color: var(--ion-color-medium);
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  max-width: 250px;
+}
+
+/* Percentile Bar */
+.percentile-wrapper {
+  grid-column: span 2;
+  background: var(--ion-color-light);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.percentile-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.percentile-bar {
+  height: 8px;
+  background: var(--ion-color-light-shade);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.percentile-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff8c00, #ffd700);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}

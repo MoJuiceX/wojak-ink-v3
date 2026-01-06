@@ -1,0 +1,175 @@
+.generator-content {
+  --background: var(--ion-background-color);
+}
+
+.generator-container {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Preview Section */
+.preview-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.wojak-preview {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  background: var(--ion-color-light);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.layer-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.empty-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ion-color-medium);
+  gap: 8px;
+}
+
+.empty-preview ion-icon {
+  font-size: 32px;
+}
+
+/* Layer Tabs */
+.layer-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 16px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.layer-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.layer-tab {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 20px;
+  background: var(--ion-color-light);
+  color: var(--ion-text-color);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.layer-tab.active {
+  background: var(--ion-color-primary);
+  color: white;
+}
+
+.layer-tab.has-selection:not(.active)::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--ion-color-success);
+  border-radius: 50%;
+  margin-left: 6px;
+}
+
+/* Trait Selector */
+.trait-selector {
+  background: var(--ion-color-light);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.trait-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.trait-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  color: var(--ion-color-danger);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Trait Grid */
+.trait-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+@media (min-width: 480px) {
+  .trait-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.trait-option {
+  background: var(--ion-background-color);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.trait-option:active {
+  transform: scale(0.95);
+}
+
+.trait-option.selected {
+  border-color: var(--ion-color-primary);
+  box-shadow: 0 0 0 2px var(--ion-color-primary-tint);
+}
+
+.trait-option img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: #333;
+}
+
+.trait-name {
+  display: block;
+  padding: 6px 4px;
+  font-size: 10px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.no-traits {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--ion-color-medium);
+  padding: 20px;
+}

@@ -1,0 +1,202 @@
+.game-content {
+  --background: #1a1a2e;
+}
+
+.game-area {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+/* HUD */
+.game-hud {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.hud-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hud-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 1px;
+}
+
+.hud-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+}
+
+.combo-text {
+  font-size: 28px;
+  font-weight: 800;
+  color: #ff8c00;
+  animation: pulse 0.3s ease;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* Menu Screens */
+.game-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+}
+
+.game-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 16px;
+}
+
+.game-emoji {
+  font-size: 80px;
+  margin-bottom: 24px;
+  animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.game-desc {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  margin: 4px 0;
+}
+
+.high-score {
+  color: #ff8c00;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 16px;
+}
+
+.play-btn {
+  margin-top: 24px;
+  --background: #ff8c00;
+  --background-hover: #ff6b00;
+  --border-radius: 24px;
+  --padding-start: 32px;
+  --padding-end: 32px;
+  font-weight: 600;
+}
+
+/* Game Over */
+.final-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.score-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+}
+
+.score-value {
+  font-size: 56px;
+  font-weight: 800;
+  color: #ff8c00;
+}
+
+.new-record {
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 24px;
+  font-weight: 800;
+  animation: glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from { filter: drop-shadow(0 0 5px #ff8c00); }
+  to { filter: drop-shadow(0 0 15px #ff8c00); }
+}
+
+.high-score-display {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+/* Oranges */
+.orange {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.orange::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3) 0%, transparent 60%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.orange:active {
+  transform: scale(0.8);
+}
+
+/* Make the emoji fit the size */
+.orange {
+  font-size: inherit;
+  line-height: 1;
+}
+
+.orange {
+  font-size: 0; /* Hide default text */
+}
+
+.orange::before {
+  content: '\1F34A';
+  font-size: calc(var(--size, 60px) * 0.9);
+  position: absolute;
+}
+
+/* Size CSS variable */
+.orange {
+  --size: 60px;
+  font-size: calc(var(--size) * 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

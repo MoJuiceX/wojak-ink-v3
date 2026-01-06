@@ -1,0 +1,244 @@
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  gap: 16px;
+}
+
+.loading-container p {
+  color: var(--ion-color-medium);
+}
+
+.gallery-container {
+  padding: 16px;
+}
+
+.gallery-intro {
+  text-align: center;
+  color: var(--ion-color-medium);
+  margin: 0 0 16px 0;
+  font-size: 14px;
+}
+
+/* Base Character Grid */
+.base-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 480px) {
+  .base-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .base-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
+.base-card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--ion-color-light);
+  aspect-ratio: 1;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.base-card:active {
+  transform: scale(0.95);
+}
+
+.base-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.base-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--ion-color-medium);
+}
+
+.base-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.base-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.base-count {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+/* Explorer Modal */
+.explorer-content {
+  --background: var(--ion-background-color);
+}
+
+.explorer-container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.explorer-hint {
+  text-align: center;
+  color: var(--ion-color-medium);
+  margin: 0 0 16px 0;
+  font-size: 13px;
+}
+
+/* Interactive Character */
+.character-wrapper {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  max-width: 80vw;
+  max-height: 80vw;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.character-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Tap Zones */
+.tap-zones {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.tap-zone {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  border: 2px dashed transparent;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.tap-zone:active,
+.tap-zone.tapped {
+  background: rgba(var(--ion-color-primary-rgb), 0.3);
+  border-color: var(--ion-color-primary);
+}
+
+.zone-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px 8px;
+  border-radius: 10px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.tap-zone:active .zone-label,
+.tap-zone.tapped .zone-label {
+  opacity: 1;
+}
+
+/* Background zone - covers edges */
+.background-zone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 8px solid transparent;
+  border-radius: 16px;
+  z-index: -1;
+}
+
+.background-zone:active,
+.background-zone.tapped {
+  border-color: var(--ion-color-primary);
+  background: transparent;
+}
+
+/* Traits Display */
+.traits-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+.trait-chip {
+  background: var(--ion-color-light);
+  border-radius: 20px;
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.trait-label {
+  font-size: 10px;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+}
+
+.trait-value {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* NFT Details */
+.nft-details {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nft-name {
+  font-size: 16px;
+  font-weight: 600;
+}
