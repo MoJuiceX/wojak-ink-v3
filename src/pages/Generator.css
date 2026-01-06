@@ -2,6 +2,18 @@
   --background: var(--ion-background-color);
 }
 
+/* Toolbar button spacing */
+.toolbar-btn {
+  margin-left: 8px;
+  --padding-start: 8px;
+  --padding-end: 8px;
+}
+
+/* X logo styling */
+.x-logo {
+  display: block;
+}
+
 .generator-container {
   padding: 16px;
   max-width: 600px;
@@ -11,14 +23,16 @@
 /* Preview Section */
 .preview-section {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   margin-bottom: 16px;
 }
 
 .wojak-preview {
   position: relative;
-  width: 220px;
-  height: 220px;
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 1;
   background: var(--ion-color-light);
   border-radius: 16px;
   overflow: hidden;
@@ -32,6 +46,37 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.15s ease;
+}
+
+/* Combined preview overlay for long-press saving */
+.preview-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 100;
+}
+
+
+/* Animation for individual layer when selected */
+.layer-image.layer-pop,
+.mini-layer.layer-pop {
+  animation: layerPop 0.2s ease-out;
+}
+
+@keyframes layerPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .empty-preview {
@@ -49,6 +94,10 @@
 }
 
 /* Layer Tabs */
+.layer-tabs-container {
+  position: relative;
+}
+
 .layer-tabs {
   display: flex;
   gap: 8px;
@@ -60,6 +109,7 @@
 .layer-tabs::-webkit-scrollbar {
   display: none;
 }
+
 
 .layer-tab {
   flex-shrink: 0;
@@ -79,15 +129,6 @@
   color: white;
 }
 
-.layer-tab.has-selection:not(.active)::after {
-  content: '';
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: var(--ion-color-success);
-  border-radius: 50%;
-  margin-left: 6px;
-}
 
 /* Trait Selector */
 .trait-selector {
@@ -108,22 +149,13 @@
   font-weight: 600;
 }
 
-.clear-btn {
-  background: none;
-  border: none;
-  color: var(--ion-color-danger);
-  font-size: 13px;
-  cursor: pointer;
-}
 
 /* Trait Grid */
 .trait-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  max-height: 50vh;
-  overflow-y: auto;
-  padding-right: 4px;
+  padding-bottom: 20px;
 }
 
 @media (min-width: 480px) {
@@ -151,10 +183,11 @@
 }
 
 .trait-option img {
+  display: block;
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
-  background: #333;
+  background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 100%);
 }
 
 .trait-name {
@@ -172,4 +205,208 @@
   text-align: center;
   color: var(--ion-color-medium);
   padding: 20px;
+}
+
+/* None option (first in grid) */
+.none-option .none-icon {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 100%);
+  color: var(--ion-color-medium);
+}
+
+.none-option .none-icon ion-icon {
+  font-size: 40px;
+}
+
+.none-option.selected .none-icon {
+  color: var(--ion-color-primary);
+}
+
+
+/* Blocked traits (when Astronaut is selected) */
+.trait-option.blocked {
+  opacity: 0.4;
+  pointer-events: none;
+  position: relative;
+}
+
+.trait-option.blocked::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+}
+
+/* Multi-select hint */
+.multi-select-hint {
+  font-size: 11px;
+  color: var(--ion-color-primary);
+  font-weight: 400;
+}
+
+/* Blocked notice in header */
+.blocked-notice {
+  font-size: 11px;
+  color: var(--ion-color-warning);
+  font-weight: 400;
+}
+
+/* Mini Preview - floating preview when main scrolls out of view */
+.mini-preview {
+  position: fixed;
+  top: 60px;
+  left: 12px;
+  width: 160px;
+  height: 160px;
+  border-radius: 16px;
+  background: var(--ion-color-light);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  z-index: 1000;
+  opacity: 0;
+  transform: scale(0.8) translateY(-10px);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.mini-preview.visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.mini-preview:active {
+  transform: scale(0.95) translateY(0);
+}
+
+.mini-preview-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.mini-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Favorites Badge */
+.favorites-badge {
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 20px;
+}
+
+/* Favorites Modal */
+.favorites-modal-content {
+  --background: var(--ion-background-color);
+}
+
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+@media (min-width: 480px) {
+  .favorites-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.favorite-card {
+  background: var(--ion-color-light);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.favorite-preview {
+  position: relative;
+  aspect-ratio: 1;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.favorite-preview:active {
+  transform: scale(0.95);
+}
+
+.favorite-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.favorite-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+}
+
+.favorite-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ion-text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favorite-delete {
+  background: none;
+  border: none;
+  color: var(--ion-color-danger);
+  font-size: 18px;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.no-favorites {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  color: var(--ion-color-medium);
+  gap: 8px;
+  text-align: center;
+}
+
+.no-favorites ion-icon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.no-favorites p {
+  margin: 0;
+}
+
+.no-favorites p:first-of-type {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.no-favorites p:last-of-type {
+  font-size: 13px;
 }

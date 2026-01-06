@@ -27,28 +27,18 @@
 .wallet-card {
   background: var(--ion-color-light);
   border-radius: 12px;
-  padding: 16px;
+  padding: 10px 14px;
   margin: 0 auto 16px;
   max-width: 360px;
-}
-
-.wallet-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-}
-
-.wallet-label {
-  font-size: 12px;
-  color: var(--ion-color-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .wallet-actions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .icon-btn {
@@ -62,7 +52,7 @@
 
 .wallet-address {
   font-family: monospace;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--ion-color-primary);
   cursor: pointer;
 }
@@ -245,7 +235,7 @@
   overflow: hidden;
   transform: scale(0.95);
   opacity: 0;
-  animation: videoFadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: videoFadeIn 0.6s ease-out forwards;
 }
 
 .video-box.fading-out {
@@ -503,5 +493,5 @@
   text-align: center;
   font-size: 11px;
   color: var(--ion-color-medium);
-  padding: 16px 0;
+  padding: 8px 0;
 }

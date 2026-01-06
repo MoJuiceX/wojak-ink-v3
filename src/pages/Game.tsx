@@ -33,7 +33,7 @@ const Game: React.FC = () => {
   const [lastTapTime, setLastTapTime] = useState(0);
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const orangeIdRef = useRef(0);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
 
   // Start game
   const startGame = () => {

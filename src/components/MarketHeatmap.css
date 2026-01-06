@@ -1,0 +1,254 @@
+.market-heatmap {
+  padding: 16px;
+}
+
+/* Stats Bar */
+.heatmap-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.heatmap-stats .stat {
+  text-align: center;
+}
+
+.heatmap-stats .stat-label {
+  display: block;
+  font-size: 11px;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.heatmap-stats .stat-value {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Mode Selector */
+.heatmap-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+  justify-content: center;
+}
+
+.mode-btn {
+  background: var(--ion-color-light);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-btn:hover {
+  background: var(--ion-color-light-shade);
+}
+
+.mode-btn.active {
+  background: var(--ion-color-primary);
+  color: white;
+  border-color: var(--ion-color-primary-shade);
+}
+
+/* Heatmap Container */
+.heatmap-container {
+  overflow-x: auto;
+  margin-bottom: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Header Row */
+.heatmap-header {
+  display: flex;
+  min-width: max-content;
+}
+
+.header-spacer {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.header-cell {
+  width: 50px;
+  min-width: 50px;
+  text-align: center;
+  font-size: 9px;
+  color: var(--ion-color-medium);
+  padding: 4px 2px;
+  font-weight: 600;
+}
+
+/* Grid Row */
+.heatmap-row {
+  display: flex;
+  min-width: max-content;
+}
+
+.row-label {
+  width: 80px;
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--ion-color-medium);
+  display: flex;
+  align-items: center;
+  padding-right: 8px;
+  text-align: right;
+  justify-content: flex-end;
+}
+
+/* Grid Cells */
+.heatmap-cell {
+  width: 50px;
+  min-width: 50px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ion-color-light-shade);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.heatmap-cell.clickable {
+  cursor: pointer;
+}
+
+.heatmap-cell.clickable:hover {
+  transform: scale(1.05);
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.heatmap-cell.highlighted {
+  border: 2px solid var(--ion-color-warning);
+}
+
+.heatmap-cell span {
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Legend */
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.legend-label {
+  font-size: 11px;
+  color: var(--ion-color-medium);
+}
+
+.legend-scale {
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.legend-item {
+  width: 24px;
+  height: 12px;
+}
+
+.legend-item.low {
+  background: rgba(99, 102, 241, 0.2);
+}
+
+.legend-item.mid {
+  background: rgba(99, 102, 241, 0.5);
+}
+
+.legend-item.high {
+  background: rgba(99, 102, 241, 0.8);
+}
+
+.legend-labels {
+  display: flex;
+  gap: 16px;
+  font-size: 10px;
+  color: var(--ion-color-medium);
+}
+
+/* Loading / Error States */
+.heatmap-loading,
+.heatmap-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  text-align: center;
+}
+
+.heatmap-loading p,
+.heatmap-error p {
+  margin: 16px 0 0 0;
+  color: var(--ion-color-medium);
+}
+
+/* Cell Detail Modal */
+.cell-detail-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--ion-color-light);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.price-label {
+  text-align: right;
+}
+
+.price-xch {
+  display: block;
+  font-weight: 700;
+  color: var(--ion-color-primary);
+}
+
+.price-usd {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ion-color-success);
+}
+
+.price-multiple {
+  display: block;
+  font-size: 11px;
+  color: var(--ion-color-medium);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .header-cell,
+  .heatmap-cell {
+    width: 42px;
+    min-width: 42px;
+  }
+
+  .header-cell {
+    font-size: 8px;
+  }
+
+  .row-label {
+    width: 70px;
+    font-size: 9px;
+  }
+
+  .heatmap-cell {
+    height: 32px;
+    font-size: 11px;
+  }
+}

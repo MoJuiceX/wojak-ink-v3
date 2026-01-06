@@ -1,0 +1,202 @@
+.bigpulp-character-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  position: relative;
+}
+
+/* Speech Bubble */
+.speech-bubble {
+  background: white;
+  border-radius: 20px;
+  padding: 16px 20px;
+  max-width: 320px;
+  min-height: 80px;
+  margin-bottom: 20px;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transform: scale(0.8) translateY(10px);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.speech-bubble.visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.speech-content {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #333;
+  text-align: center;
+}
+
+.typing-cursor {
+  animation: blink 0.7s infinite;
+  color: var(--ion-color-primary);
+  font-weight: bold;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Speech bubble tail pointing down to character */
+.speech-tail {
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-top: 20px solid white;
+}
+
+/* Character Container */
+.bigpulp-character {
+  position: relative;
+}
+
+.character-wrapper {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Orange Body */
+.orange-body {
+  position: relative;
+  width: 180px;
+  height: 180px;
+}
+
+/* Placeholder Orange (until real image provided) */
+.orange-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(145deg, #ff9500 0%, #ff6b00 50%, #e55a00 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow:
+    inset -10px -10px 30px rgba(0, 0, 0, 0.2),
+    inset 10px 10px 30px rgba(255, 255, 255, 0.2),
+    0 10px 30px rgba(255, 107, 0, 0.4);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.orange-emoji {
+  font-size: 80px;
+  display: none; /* Hidden, using CSS face instead */
+}
+
+/* Orange Face */
+.orange-face {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 80px;
+}
+
+.orange-eyes {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
+  margin-bottom: 15px;
+}
+
+.eye {
+  width: 20px;
+  height: 24px;
+  background: #333;
+  border-radius: 50%;
+  position: relative;
+  animation: blink-eyes 4s infinite;
+}
+
+.eye::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+}
+
+@keyframes blink-eyes {
+  0%, 45%, 55%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.1); }
+}
+
+.orange-mouth {
+  width: 40px;
+  height: 20px;
+  background: #333;
+  border-radius: 0 0 40px 40px;
+  margin: 0 auto;
+  animation: talk 0.3s ease-in-out infinite alternate;
+  animation-play-state: paused;
+}
+
+.bigpulp-character-container:has(.typing-cursor) .orange-mouth {
+  animation-play-state: running;
+}
+
+@keyframes talk {
+  0% { height: 15px; }
+  100% { height: 25px; }
+}
+
+/* Real Character Image */
+.character-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Thinking/Loading State */
+.bigpulp-character-container.thinking .orange-placeholder {
+  animation: think 0.5s ease-in-out infinite;
+}
+
+@keyframes think {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+/* Responsive */
+@media (max-width: 380px) {
+  .speech-bubble {
+    max-width: 280px;
+    padding: 12px 16px;
+  }
+
+  .speech-content {
+    font-size: 14px;
+  }
+
+  .orange-body {
+    width: 150px;
+    height: 150px;
+  }
+}

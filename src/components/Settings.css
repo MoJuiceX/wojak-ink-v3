@@ -1,0 +1,177 @@
+.settings-modal {
+  --border-radius: 16px 16px 0 0;
+}
+
+.settings-content {
+  --background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+}
+
+/* Sections */
+.settings-section {
+  padding: 16px;
+}
+
+.settings-section-title {
+  color: #ff8c00;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 12px 4px;
+}
+
+/* List Items */
+.settings-list {
+  background: transparent;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.settings-item {
+  --background: rgba(255, 255, 255, 0.05);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --inner-padding-end: 0;
+}
+
+.settings-item h2 {
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.settings-item p {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  margin: 2px 0 0 0;
+}
+
+.settings-icon {
+  color: #ff8c00;
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.settings-toggle {
+  --background: rgba(255, 255, 255, 0.2);
+  --background-checked: #ff8c00;
+  --handle-background: white;
+  --handle-background-checked: white;
+}
+
+/* Theme Grid */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.theme-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.theme-option:active {
+  transform: scale(0.95);
+}
+
+.theme-preview {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.theme-preview ion-icon {
+  font-size: 24px;
+  color: white;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.theme-option.selected .theme-preview {
+  border-color: #ff8c00;
+  box-shadow: 0 0 16px rgba(255, 140, 0, 0.4);
+}
+
+.theme-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.theme-option.selected .theme-label {
+  color: #ff8c00;
+  font-weight: 700;
+}
+
+/* App Info */
+.app-info {
+  text-align: center;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 16px;
+}
+
+.app-version {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  margin: 0 0 4px 0;
+}
+
+.app-credit {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 11px;
+  margin: 0;
+}
+
+/* Theme-specific overrides */
+:root.theme-light {
+  --ion-background-color: #f5f5f5;
+  --ion-text-color: #1a1a1a;
+  --ion-toolbar-background: #ffffff;
+}
+
+:root.theme-dark {
+  --ion-background-color: #1a1a2e;
+  --ion-text-color: #ffffff;
+  --ion-toolbar-background: #1a1a2e;
+}
+
+:root.theme-orange {
+  --ion-background-color: #1a1a2e;
+  --ion-text-color: #ffffff;
+  --ion-toolbar-background: #ff8c00;
+  --ion-color-primary: #ff8c00;
+}
+
+:root.theme-green {
+  --ion-background-color: #1a2e1a;
+  --ion-text-color: #ffffff;
+  --ion-toolbar-background: #1a2e1a;
+  --ion-color-primary: #2ecc71;
+}
+
+:root.theme-green .settings-section-title,
+:root.theme-green .settings-icon,
+:root.theme-green .settings-toggle {
+  --background-checked: #2ecc71;
+}
+
+:root.theme-green .theme-option.selected .theme-preview {
+  border-color: #2ecc71;
+  box-shadow: 0 0 16px rgba(46, 204, 113, 0.4);
+}
+
+:root.theme-green .theme-option.selected .theme-label {
+  color: #2ecc71;
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Redirect, Route } from 'react-router-dom';
 import {
   IonApp,
@@ -8,17 +8,25 @@ import {
   IonTabBar,
   IonTabButton,
   IonTabs,
+  IonFab,
+  IonFabButton,
   setupIonicReact
 } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import { images, wallet, bulb, colorPalette, gameController } from 'ionicons/icons';
+import { images, wallet, bulb, colorPalette, musicalNotes, settings as settingsIcon } from 'ionicons/icons';
 
 // Pages
 import Gallery from './pages/Gallery';
 import Treasury from './pages/Treasury';
 import BigPulp from './pages/BigPulp';
 import Generator from './pages/Generator';
-import Game from './pages/Game';
+import Media from './pages/Media';
+
+// Components
+import Settings, { loadSettings, applyTheme, AppSettings } from './components/Settings';
+import FloatingVideoPlayer from './components/FloatingVideoPlayer';
+import { AudioProvider } from './contexts/AudioContext';
+import { VideoPlayerProvider, useVideoPlayer } from './contexts/VideoPlayerContext';
 
 // Boot Sequence
 import StartupSequence from './components/StartupSequence';
@@ -30,6 +38,21 @@ import StartupSequence from './components/StartupSequence';
 import { prefetchWalletData, preloadTokenLogos } from './services/treasuryApi';
 prefetchWalletData();
 preloadTokenLogos();
+
+// Initialize gallery preloader - starts loading NFT images during boot
+import { initGalleryPreloader, startPreloading } from './services/galleryPreloader';
+initGalleryPreloader().then(() => {
+  // Start aggressive preloading once initialized
+  startPreloading();
+});
+
+// Prefetch market listings in background for instant heatmap loading
+import { prefetchListings, preloadListingImages } from './services/marketApi';
+setTimeout(() => {
+  prefetchListings();
+  // Start image preloading after listings are fetched
+  setTimeout(() => preloadListingImages(), 3000);
+}, 2000); // Start after 2s to not block boot
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -63,12 +86,43 @@ import './theme/variables.css';
 
 setupIonicReact();
 
-const App: React.FC = () => {
-  const [isStartupComplete, setIsStartupComplete] = useState(false);
+// Skip boot sequence in development mode for faster testing
+const SKIP_BOOT_IN_DEV = true;
+
+// Floating Video Player that uses context
+const GlobalFloatingPlayer: React.FC = () => {
+  const { currentVideo, isOpen, closeVideo } = useVideoPlayer();
 
   return (
+    <FloatingVideoPlayer
+      isOpen={isOpen}
+      onClose={closeVideo}
+      platform={currentVideo?.platform || 'local'}
+      videoSrc={currentVideo?.videoFile || ''}
+      title={currentVideo?.title}
+    />
+  );
+};
+
+const App: React.FC = () => {
+  // In dev mode, skip boot sequence if SKIP_BOOT_IN_DEV is true
+  const skipBoot = import.meta.env.DEV && SKIP_BOOT_IN_DEV;
+  const [isStartupComplete, setIsStartupComplete] = useState(skipBoot);
+
+  // Settings state
+  const [showSettings, setShowSettings] = useState(false);
+  const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
+
+  // Apply theme on mount and when settings change
+  useEffect(() => {
+    applyTheme(appSettings.theme);
+  }, [appSettings.theme]);
+
+  return (
+    <AudioProvider>
+    <VideoPlayerProvider>
     <IonApp>
-      {/* Boot Sequence - cannot be skipped */}
+      {/* Boot Sequence - skipped in dev mode for faster testing */}
       {!isStartupComplete && (
         <StartupSequence onComplete={() => setIsStartupComplete(true)} />
       )}
@@ -101,8 +155,8 @@ const App: React.FC = () => {
               <Route exact path="/generator">
                 <Generator />
               </Route>
-              <Route exact path="/game">
-                <Game />
+              <Route exact path="/media">
+                <Media />
               </Route>
               <Route exact path="/">
                 <Redirect to="/gallery" />
@@ -125,15 +179,35 @@ const App: React.FC = () => {
                 <IonIcon aria-hidden="true" icon={colorPalette} />
                 <IonLabel>Generator</IonLabel>
               </IonTabButton>
-              <IonTabButton tab="game" href="/game">
-                <IonIcon aria-hidden="true" icon={gameController} />
-                <IonLabel>Game</IonLabel>
+              <IonTabButton tab="media" href="/media">
+                <IonIcon aria-hidden="true" icon={musicalNotes} />
+                <IonLabel>Media</IonLabel>
               </IonTabButton>
             </IonTabBar>
           </IonTabs>
+
+          {/* Settings FAB Button */}
+          <IonFab vertical="top" horizontal="end" slot="fixed" className="settings-fab">
+            <IonFabButton size="small" onClick={() => setShowSettings(true)}>
+              <IonIcon icon={settingsIcon} />
+            </IonFabButton>
+          </IonFab>
         </IonReactRouter>
+
+        {/* Settings Modal */}
+        <Settings
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+          settings={appSettings}
+          onSettingsChange={setAppSettings}
+        />
+
+        {/* Global Floating Video Player - visible on all screens */}
+        <GlobalFloatingPlayer />
       </div>
     </IonApp>
+    </VideoPlayerProvider>
+    </AudioProvider>
   );
 };
 

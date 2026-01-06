@@ -1,2 +1,72 @@
 /* For information on how to create your own theme, please refer to:
 http://ionicframework.com/docs/theming/ */
+
+/* Global compact toolbar styling - matches BigPulp's thinner header */
+ion-toolbar {
+  --min-height: 44px !important;
+  --max-height: 44px;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  height: 44px !important;
+  max-height: 44px !important;
+}
+
+ion-toolbar .toolbar-container {
+  height: 44px !important;
+  max-height: 44px !important;
+}
+
+ion-title {
+  font-size: 17px;
+  font-weight: 600;
+  padding: 0 8px;
+  height: 44px;
+  line-height: 44px;
+}
+
+/* Ensure buttons in toolbar don't expand height and stay centered */
+ion-toolbar ion-button {
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 6px;
+  --padding-end: 6px;
+  height: 36px !important;
+  max-height: 36px !important;
+  margin: 0;
+  margin-top: -4px;
+}
+
+ion-toolbar ion-button ion-icon {
+  font-size: 18px;
+}
+
+ion-header {
+  box-shadow: none;
+}
+
+ion-header::after {
+  display: none;
+}
+
+/* Settings FAB Button */
+.settings-fab {
+  margin-top: 8px;
+  margin-right: 8px;
+  z-index: 999;
+}
+
+.settings-fab ion-fab-button {
+  --background: rgba(255, 140, 0, 0.9);
+  --background-activated: rgba(255, 100, 0, 1);
+  --background-hover: rgba(255, 120, 0, 1);
+  --color: white;
+  --box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
+  width: 40px;
+  height: 40px;
+}
+
+.settings-fab ion-fab-button ion-icon {
+  font-size: 20px;
+}

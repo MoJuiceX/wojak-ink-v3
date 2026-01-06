@@ -1,4 +1,4 @@
-import { fetchWithRetry } from '../utils/apiRetry'
+import { fetchWithRetry, mintgardenQueue, dexieQueue } from '../utils/rateLimiter'
 
 const MINTGARDEN_API_BASE = 'https://api.mintgarden.io'
 const DEXIE_API_BASE = 'https://api.dexie.space/v1'
@@ -182,13 +182,18 @@ export function getIPFSThumbnailUrl(mintGardenData) {
 }
 
 // Search for NFTs by name/collection
+// Uses rate-limited queue to prevent 429 errors
 export async function searchNFTs(query) {
   try {
-    const response = await fetch(`${MINTGARDEN_API_BASE}/search/nfts?query=${encodeURIComponent(query)}`)
-    if (!response.ok) {
-      throw new Error(`MintGarden API error: ${response.status}`)
-    }
-    const data = await response.json()
+    const data = await mintgardenQueue.add(async () => {
+      const response = await fetch(`${MINTGARDEN_API_BASE}/search/nfts?query=${encodeURIComponent(query)}`)
+      if (!response.ok) {
+        const error = new Error(`MintGarden API error: ${response.status}`)
+        error.status = response.status
+        throw error
+      }
+      return response.json()
+    })
     return data.items || []
   } catch (error) {
     console.error('Failed to search NFTs:', error)
@@ -197,6 +202,7 @@ export async function searchNFTs(query) {
 }
 
 // Get collection NFTs (to find NFT by token ID within collection)
+// Uses rate-limited queue to prevent 429 errors
 export async function getCollectionNFTs(collectionId, options = {}) {
   try {
     const params = new URLSearchParams({
@@ -204,11 +210,15 @@ export async function getCollectionNFTs(collectionId, options = {}) {
       ...(options.search && { search: options.search }),
       ...(options.require_price && { require_price: 'true' }),
     })
-    const response = await fetch(`${MINTGARDEN_API_BASE}/collections/${collectionId}/nfts?${params}`)
-    if (!response.ok) {
-      throw new Error(`MintGarden API error: ${response.status}`)
-    }
-    const data = await response.json()
+    const data = await mintgardenQueue.add(async () => {
+      const response = await fetch(`${MINTGARDEN_API_BASE}/collections/${collectionId}/nfts?${params}`)
+      if (!response.ok) {
+        const error = new Error(`MintGarden API error: ${response.status}`)
+        error.status = response.status
+        throw error
+      }
+      return response.json()
+    })
     return data.items || []
   } catch (error) {
     console.error('Failed to fetch collection NFTs:', error)
@@ -219,32 +229,34 @@ export async function getCollectionNFTs(collectionId, options = {}) {
 /**
  * Query Dexie API to get offer details and extract NFT IDs
  * Dexie API accepts POST requests with the offer string
+ * Uses rate-limited queue to prevent 429 errors
  * @param {string} offerFileString - The offer file string
  * @returns {Promise<Object|null>} - Offer details from Dexie or null
  */
 export async function getOfferFromDexie(offerFileString) {
   try {
-    const response = await fetch(`${DEXIE_API_BASE}/offers`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ offer: offerFileString }),
+    const data = await dexieQueue.add(async () => {
+      const response = await fetch(`${DEXIE_API_BASE}/offers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ offer: offerFileString }),
+      })
+
+      if (!response.ok) {
+        const error = new Error(`Dexie API error: ${response.status}`)
+        error.status = response.status
+        throw error
+      }
+
+      return response.json()
     })
-    
-    if (response.status === 429) {
-      throw new Error('429 rate limit - Dexie API')
-    }
-    
-    if (!response.ok) {
-      throw new Error(`Dexie API error: ${response.status}`)
-    }
-    
-    const data = await response.json()
+
     if (data.success && data.offer) {
       return data.offer
     }
-    
+
     return null
   } catch (error) {
     console.error('Failed to query Dexie API:', error)

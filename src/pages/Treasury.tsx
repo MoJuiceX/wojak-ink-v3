@@ -14,7 +14,7 @@ import {
   IonRefresherContent,
   RefresherEventDetail,
 } from '@ionic/react';
-import { close, openOutline, refreshOutline, copyOutline, helpCircleOutline } from 'ionicons/icons';
+import { close, openOutline, copyOutline, helpCircleOutline } from 'ionicons/icons';
 import {
   fetchWalletData,
   getWalletExplorerUrl,
@@ -44,6 +44,7 @@ const Treasury: React.FC = () => {
   const [selectedCollection, setSelectedCollection] = useState<NFTCollection | null>(null);
   const [copied, setCopied] = useState(false);
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
+  const [tooltipTapped, setTooltipTapped] = useState(false);
   const [showInfoVideo, setShowInfoVideo] = useState(false);
   const [videoFadingOut, setVideoFadingOut] = useState(false);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
@@ -55,6 +56,18 @@ const Treasury: React.FC = () => {
     '/assets/Wojaks/goldenPapatang3.mp4',
     '/assets/Wojaks/goldenPapatang4.mp4',
   ];
+
+  const handleInfoTap = () => {
+    if (!tooltipTapped) {
+      // First tap: show tooltip
+      setShowInfoTooltip(true);
+      setTooltipTapped(true);
+    } else {
+      // Second tap: open video
+      openRandomVideo();
+      setShowInfoTooltip(false);
+    }
+  };
 
   const openRandomVideo = () => {
     let newIndex;
@@ -72,6 +85,8 @@ const Treasury: React.FC = () => {
     setTimeout(() => {
       setShowInfoVideo(false);
       setVideoFadingOut(false);
+      setTooltipTapped(false); // Reset so next time shows tooltip first
+      setShowInfoTooltip(false);
     }, 500);
   };
 
@@ -144,10 +159,7 @@ const Treasury: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Treasury</IonTitle>
-          <IonButton slot="end" fill="clear" onClick={() => loadData()}>
-            <IonIcon icon={refreshOutline} />
-          </IonButton>
+          <IonTitle>Treasury Wallet</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen className="treasury-content">
@@ -167,31 +179,11 @@ const Treasury: React.FC = () => {
           </div>
         ) : walletData ? (
           <div className="treasury-container">
-            {/* Wallet Address */}
-            <div className="wallet-card">
-              <div className="wallet-header">
-                <span className="wallet-label">Treasury Wallet</span>
-                <div className="wallet-actions">
-                  <button onClick={copyAddress} className="icon-btn">
-                    <IonIcon icon={copyOutline} />
-                  </button>
-                  <button onClick={openExplorer} className="icon-btn">
-                    <IonIcon icon={openOutline} />
-                  </button>
-                </div>
-              </div>
-              <div className="wallet-address" onClick={copyAddress}>
-                {copied ? 'Copied!' : WALLET_DISPLAY}
-              </div>
-            </div>
-
             {/* Total Portfolio Value - Prominent Display */}
             <div className="total-portfolio-card">
               <div
                 className="treasury-info-btn"
-                onMouseEnter={() => setShowInfoTooltip(true)}
-                onMouseLeave={() => setShowInfoTooltip(false)}
-                onClick={openRandomVideo}
+                onClick={handleInfoTap}
               >
                 <IonIcon icon={helpCircleOutline} />
                 {showInfoTooltip && (
@@ -276,6 +268,21 @@ const Treasury: React.FC = () => {
               )}
             </div>
 
+            {/* Wallet Address */}
+            <div className="wallet-card">
+              <div className="wallet-address" onClick={copyAddress}>
+                {copied ? 'Copied!' : WALLET_DISPLAY}
+              </div>
+              <div className="wallet-actions">
+                <button onClick={copyAddress} className="icon-btn">
+                  <IonIcon icon={copyOutline} />
+                </button>
+                <button onClick={openExplorer} className="icon-btn">
+                  <IonIcon icon={openOutline} />
+                </button>
+              </div>
+            </div>
+
             {/* NFT Collections */}
             {walletData.nft_collections.length > 0 && (
               <div className="section">
@@ -344,6 +351,24 @@ const Treasury: React.FC = () => {
                 autoPlay
                 playsInline
                 className="info-video"
+                ref={(videoEl) => {
+                  if (videoEl && !(videoEl as any)._gainNode) {
+                    // Set up Web Audio API immediately for proper volume control
+                    try {
+                      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                      const source = audioContext.createMediaElementSource(videoEl);
+                      const gainNode = audioContext.createGain();
+                      // Start at 0 and fade in to 0.055 over 0.6s (match visual fade)
+                      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                      gainNode.gain.linearRampToValueAtTime(0.055, audioContext.currentTime + 0.6);
+                      source.connect(gainNode);
+                      gainNode.connect(audioContext.destination);
+                      (videoEl as any)._gainNode = gainNode;
+                    } catch (e) {
+                      console.error('Web Audio API error:', e);
+                    }
+                  }
+                }}
                 onTimeUpdate={(e) => {
                   const video = e.currentTarget;
                   if (video.duration && video.currentTime >= video.duration - 1 && !videoFadingOut) {

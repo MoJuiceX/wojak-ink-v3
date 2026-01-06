@@ -4,26 +4,16 @@
 
 .bigpulp-container {
   padding: 16px;
-  max-width: 600px;
+  max-width: 500px;
   margin: 0 auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Search Section */
 .search-section {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.search-section h2 {
-  font-size: 24px;
-  margin: 0 0 4px 0;
-  font-weight: 700;
-}
-
-.search-section .subtitle {
-  color: var(--ion-color-medium);
-  margin: 0 0 16px 0;
-  font-size: 14px;
+  margin-bottom: 8px;
 }
 
 .search-input-group {
@@ -36,19 +26,22 @@
   --background: var(--ion-color-light);
   --padding-start: 16px;
   --padding-end: 16px;
-  border-radius: 8px;
+  border-radius: 12px;
   flex: 1;
+  font-size: 16px;
 }
 
 .error-text {
   color: var(--ion-color-danger);
   font-size: 13px;
-  margin-top: 8px;
+  margin: 8px 0 0 0;
+  text-align: center;
 }
 
 /* Results Section */
 .results-section {
   animation: fadeIn 0.3s ease;
+  margin-top: 16px;
 }
 
 @keyframes fadeIn {
@@ -56,167 +49,78 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* NFT Preview */
-.nft-preview {
+/* NFT Preview Row */
+.nft-preview-row {
   display: flex;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.preview-image {
-  width: 200px;
-  height: 200px;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  object-fit: cover;
-}
-
-/* BigPulp Card */
-.pulp-card {
-  background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
-  border-radius: 16px;
-  margin: 0 0 16px 0;
-}
-
-.pulp-title {
-  color: white;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.pulp-sentence {
-  color: white;
-  font-size: 16px;
-  line-height: 1.5;
-  margin: 0;
-}
-
-/* Stats Grid */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.stat-card {
+  gap: 16px;
+  align-items: center;
   background: var(--ion-color-light);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 12px;
+  margin-bottom: 12px;
+}
+
+.preview-image-small {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.nft-quick-stats {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.stat-label {
-  font-size: 11px;
-  color: var(--ion-color-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-
-.stat-value {
-  font-size: 16px;
-  font-weight: 700;
-}
-
-/* S-Tier Traits Section */
-.traits-section {
-  margin-bottom: 16px;
-}
-
-.traits-section h4 {
-  font-size: 14px;
-  color: var(--ion-color-medium);
-  margin: 0 0 8px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.stier-traits {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.stier-trait {
-  background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%);
-  color: #333;
-  border-radius: 20px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
   gap: 4px;
 }
 
-.stier-trait .trait-count {
-  font-size: 10px;
-  opacity: 0.8;
-}
-
-/* Rare Pairings */
-.rare-pairings {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.pairing-item {
-  background: var(--ion-color-light);
-  border-radius: 8px;
-  padding: 8px 12px;
+.quick-stat {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 13px;
 }
 
-.pairing-traits {
-  font-weight: 500;
-}
-
-.pairing-count {
-  color: var(--ion-color-primary);
-  font-weight: 700;
+.qs-label {
   font-size: 12px;
-}
-
-/* Empty State */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 50vh;
-  text-align: center;
   color: var(--ion-color-medium);
+  text-transform: uppercase;
 }
 
-.empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
+.qs-value {
+  font-size: 16px;
+  font-weight: 700;
 }
 
-.empty-state p {
-  max-width: 250px;
+.tier-chip {
+  margin: 0;
+  height: 24px;
+  font-size: 11px;
 }
 
 /* Percentile Bar */
-.percentile-wrapper {
-  grid-column: span 2;
+.percentile-bar-container {
   background: var(--ion-color-light);
   border-radius: 12px;
   padding: 12px;
+  margin-bottom: 12px;
 }
 
-.percentile-info {
+.percentile-labels {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.percentile-labels span:first-child {
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+}
+
+.percentile-value {
+  font-weight: 700;
+  color: var(--ion-color-primary);
 }
 
 .percentile-bar {
@@ -231,4 +135,140 @@
   background: linear-gradient(90deg, #ff8c00, #ffd700);
   border-radius: 4px;
   transition: width 0.5s ease;
+}
+
+/* Base Info Row */
+.base-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--ion-color-light);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.base-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.base-rank {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+}
+
+/* Traits Compact */
+.traits-compact {
+  margin-bottom: 10px;
+}
+
+.traits-label {
+  font-size: 11px;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.traits-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.trait-tag {
+  background: var(--ion-color-light);
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.trait-tag.gold {
+  background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%);
+  color: #333;
+  font-weight: 600;
+}
+
+/* Intelligence Button */
+.intelligence-button-container {
+  margin-top: auto;
+  padding-top: 24px;
+  padding-bottom: 16px;
+}
+
+.intelligence-button {
+  --background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+  --border-radius: 16px;
+  height: 56px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.intelligence-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin: 8px 0 0 0;
+}
+
+/* Intelligence Modal */
+.intelligence-content {
+  --background: var(--ion-background-color);
+}
+
+.intelligence-container {
+  padding: 24px 16px;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.coming-soon {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.cs-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.coming-soon h2 {
+  font-size: 24px;
+  margin: 0 0 8px 0;
+}
+
+.coming-soon p {
+  color: var(--ion-color-medium);
+  max-width: 280px;
+  margin: 0 0 24px 0;
+}
+
+.feature-preview {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ion-color-light);
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.feature-item span:first-child {
+  font-size: 20px;
 }

@@ -86,8 +86,7 @@
     "CLOTHES_Wizard-Drip_pink.png",
     "CLOTHES_Wizard-Drip_purple.png",
     "CLOTHES_Wizard-Drip_red.png",
-    "CLOTHES_god-rope.png",
-    "McD.png"
+    "CLOTHES_god-rope.png"
   ],
   "EYE": [
     "EYE_3D-Glasses_.png",
@@ -108,7 +107,6 @@
     "EYE_Shades_neon-green.png",
     "EYE_Shades_red.png",
     "EYE_Tyson-Tattoo_.png",
-    "EYE_Wizard-Glasses_.png",
     "EYE_Wizard-Glasses_NEW.png"
   ],
   "HEAD": [
@@ -122,7 +120,6 @@
     "HEAD_Cap_green.png",
     "HEAD_Cap_orange.png",
     "HEAD_Centurion_.png",
-    "HEAD_Centurion_mask.png",
     "HEAD_Clown_.png",
     "HEAD_Comrade-Cap_.png",
     "HEAD_Construction-Helmet_.png",
@@ -162,7 +159,6 @@
   "MOUTH": [
     "MOUTH_Bandana-Mask_.png",
     "MOUTH_Bubble-Gum_.png",
-    "MOUTH_Bubble-Gum_rekt.png",
     "MOUTH_Gold-Teeth.png",
     "MOUTH_Hannibal-Mask.png",
     "MOUTH_Pipe.png",
@@ -170,13 +166,7 @@
     "MOUTH_Teeth.png",
     "MOUTH_numb.png",
     "MOUTH_screeming.png",
-    "MOUTH_smile.png"
-  ],
-  "EXTRA": [
-    "EXTRA-on-tee,tank-top_CLOTHES_Chia-Farmer_blue.png",
-    "EXTRA-on-tee,tank-top_CLOTHES_Chia-Farmer_brown.png",
-    "EXTRA-on-tee,tank-top_CLOTHES_Chia-Farmer_orange.png",
-    "EXTRA-on-tee,tank-top_CLOTHES_Chia-Farmer_red.png",
+    "MOUTH_smile.png",
     "EXTRA_MOUTH_Cig_.png",
     "EXTRA_MOUTH_Cohiba_.png",
     "EXTRA_MOUTH_Copium-Mask.png",

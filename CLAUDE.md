@@ -20,15 +20,15 @@ Mobile-first web app for Wojak Farmers Plot NFT collection (4200 NFTs on Chia bl
 
 ---
 
-## MVP Features Only
+## MVP Features (All Complete)
 
-1. **Gallery** - Browse 4200 NFTs
-2. **Treasury** - Show wallet holdings + value
-3. **Wojak Generator** - Basic layer preview (no export)
-4. **BigPulp's Take** - NFT ID input → analysis sentence
-5. **Orange Game** - Tap to juggle, score counter
+1. **Gallery** - Browse 4200 NFTs by base, interactive trait explorer
+2. **Treasury** - Live wallet data, crypto bubbles, NFT collections
+3. **Wojak Generator** - Layer selection, favorites, export/save
+4. **BigPulp's Take** - NFT analysis with sentences
+5. **Orange Game** - Tap game with combos, high scores
 
-**Everything else is v2.**
+**See `docs/project-status.md` for detailed status.**
 
 ---
 
@@ -94,8 +94,12 @@ public/assets/
 
 ## Current Status
 
-**Phase**: Project setup
-**Next**: Initialize Ionic project, connect Parse
+**Phase**: MVP Complete - Ready for testing/polish
+**Next**: Device testing, then ship to community
+
+**Docs:**
+- `docs/changelog.md` - Version history
+- `docs/project-status.md` - Current state, next steps, V2 plans
 
 ---
 

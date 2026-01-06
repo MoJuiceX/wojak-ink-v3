@@ -5,6 +5,7 @@
 
 import { WALLET_ADDRESS, XCH_DECIMALS, CAT_DECIMALS } from './treasuryConstants';
 import { TREASURY_TOKENS, TOTAL_TOKEN_VALUE_USD } from './tokenConfig';
+import { spacescanQueue, coingeckoQueue } from '../utils/rateLimiter';
 
 // Use Vite proxy in development to avoid CORS
 const isDev = import.meta.env.DEV;
@@ -58,7 +59,7 @@ const STORAGE_XCH_BALANCE_KEY = 'wojak_xch_balance';
 // Cache for API responses
 let cachedData: WalletData | null = null;
 let cacheTimestamp: number = 0;
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes (Spacescan rate limits are strict)
+const CACHE_DURATION = 60 * 60 * 1000; // 60 minutes (Spacescan rate limits are very strict)
 
 // Rate limit tracking
 let lastApiCall: number = 0;
@@ -133,17 +134,22 @@ function mojosToCat(mojos: number): number {
 /**
  * Fetch XCH price from CoinGecko
  * Always returns a valid price (never 0) - uses cached/default as fallback
+ * Uses rate limiter to prevent 429 errors
  */
 async function fetchXchPrice(): Promise<number> {
   try {
-    const response = await fetch(
-      `${COINGECKO_API}/api/v3/simple/price?ids=chia&vs_currencies=usd`
-    );
-    if (!response.ok) {
-      console.warn('CoinGecko API error, using cached price:', cachedXchPrice);
-      return cachedXchPrice;
-    }
-    const data = await response.json();
+    const data = await coingeckoQueue.add(async () => {
+      const response = await fetch(
+        `${COINGECKO_API}/api/v3/simple/price?ids=chia&vs_currencies=usd`
+      );
+      if (!response.ok) {
+        const error = new Error(`CoinGecko API error: ${response.status}`) as any;
+        error.status = response.status;
+        throw error;
+      }
+      return response.json();
+    });
+
     const price = data.chia?.usd;
 
     // Only update cache if we got a valid price
@@ -166,19 +172,24 @@ async function fetchXchPrice(): Promise<number> {
  * Docs: https://docs.spacescan.io/api/address/xch_balance/
  * Response: { status: "success", xch: 1124.36, mojo: 1124367548806078 }
  * Always returns a valid balance (never 0) - uses cached/default as fallback
+ * Uses rate limiter to prevent 429 errors
  */
 async function fetchXchBalance(): Promise<{ xch: number; mojo: number }> {
   try {
-    const response = await fetch(
-      `${SPACESCAN_API}/address/xch-balance/${WALLET_ADDRESS}`
-    );
+    const data = await spacescanQueue.add(async () => {
+      const response = await fetch(
+        `${SPACESCAN_API}/address/xch-balance/${WALLET_ADDRESS}`
+      );
 
-    if (!response.ok) {
-      console.warn('Spacescan XCH balance API error, using cached balance:', cachedXchBalance);
-      return cachedXchBalance;
-    }
+      if (!response.ok) {
+        const error = new Error(`Spacescan API error: ${response.status}`) as any;
+        error.status = response.status;
+        throw error;
+      }
 
-    const data = await response.json();
+      return response.json();
+    });
+
     const xch = data.xch || 0;
     const mojo = data.mojo || 0;
 
@@ -221,19 +232,24 @@ function getCatBalances(): TokenBalance[] {
  * Fetch NFTs owned by the wallet
  * Docs: https://docs.spacescan.io/api/address/nft_balance/
  * Response: Array of { nft_id, name, collection_id, preview_url }
+ * Uses rate limiter to prevent 429 errors
  */
 async function fetchWalletNfts(): Promise<NFTCollection[]> {
   try {
-    const response = await fetch(
-      `${SPACESCAN_API}/address/nft-balance/${WALLET_ADDRESS}`
-    );
+    const data = await spacescanQueue.add(async () => {
+      const response = await fetch(
+        `${SPACESCAN_API}/address/nft-balance/${WALLET_ADDRESS}`
+      );
 
-    if (!response.ok) {
-      console.warn('NFT balance endpoint error:', response.status);
-      return [];
-    }
+      if (!response.ok) {
+        const error = new Error(`Spacescan NFT API error: ${response.status}`) as any;
+        error.status = response.status;
+        throw error;
+      }
 
-    const data = await response.json();
+      return response.json();
+    });
+
     // Response is array of NFTs directly or nested in data/nfts
     const nfts = Array.isArray(data) ? data : (data.nfts || data.data || []);
 
@@ -311,12 +327,13 @@ export async function fetchWalletData(forceRefresh = false, backgroundRefresh = 
   }
   lastApiCall = now;
 
-  // Fetch API data in parallel, get tokens from config
-  const [xchData, xchPrice, nftCollections] = await Promise.all([
-    fetchXchBalance(),
-    fetchXchPrice(),
-    fetchWalletNfts(),
-  ]);
+  // Fetch API data sequentially to avoid rate limits
+  // Spacescan is very strict - don't run parallel requests
+  const xchPrice = await fetchXchPrice(); // CoinGecko first (different queue)
+  const xchData = await fetchXchBalance(); // Spacescan
+  // Add extra delay before second Spacescan request
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  const nftCollections = await fetchWalletNfts(); // Spacescan
 
   // Get tokens from static config (no public API available)
   const tokens = getCatBalances();
@@ -341,13 +358,21 @@ export async function fetchWalletData(forceRefresh = false, backgroundRefresh = 
 
 /**
  * Prefetch wallet data in background (call on app start)
+ * Delays initial request to avoid rate limiting on startup
  */
 export function prefetchWalletData(): void {
-  if (isCacheStale()) {
+  // Skip if we have valid cached data
+  if (!isCacheStale()) {
+    console.log('[Treasury] Using cached data, skipping prefetch');
+    return;
+  }
+
+  // Delay startup API calls by 5 seconds to avoid rate limits
+  setTimeout(() => {
     fetchWalletData(true, true).catch(err => {
       console.log('Background prefetch skipped:', err.message);
     });
-  }
+  }, 5000);
 }
 
 /**
@@ -369,4 +394,25 @@ export function preloadTokenLogos(): void {
  */
 export function getWalletExplorerUrl(): string {
   return `https://www.spacescan.io/address/${WALLET_ADDRESS}`;
+}
+
+/**
+ * Get current XCH price in USD
+ * Returns cached price instantly, fetches fresh price in background if stale
+ */
+export async function getXchPrice(): Promise<number> {
+  // If we have cached data, use that price
+  if (cachedData && cachedData.xch_price_usd > 0) {
+    return cachedData.xch_price_usd;
+  }
+  // Otherwise fetch fresh
+  return fetchXchPrice();
+}
+
+/**
+ * Get cached XCH price instantly (no API call)
+ * Returns default price if no cache available
+ */
+export function getCachedXchPrice(): number {
+  return cachedXchPrice;
 }

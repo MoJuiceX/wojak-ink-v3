@@ -213,15 +213,15 @@ const CryptoBubbles: React.FC<CryptoBubblesProps> = ({
   height = 320
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>();
-  const particleAnimationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
+  const particleAnimationRef = useRef<number | undefined>(undefined);
   const bubblesRef = useRef<Bubble[]>([]);
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [particles, setParticles] = useState<Particle[]>([]);
   const [confettiParticles, setConfettiParticles] = useState<Particle[]>([]);
   const [ripples, setRipples] = useState<Ripple[]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
-  const confettiAnimationRef = useRef<number>();
+  const confettiAnimationRef = useRef<number | undefined>(undefined);
   const respawnTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const maxValueRef = useRef<number>(100);
 
@@ -648,28 +648,31 @@ const CryptoBubbles: React.FC<CryptoBubblesProps> = ({
           />
         ))}
 
-        {/* Bubbles (Orange emojis) */}
+        {/* Bubbles (Logo-based) */}
         {bubbles.filter(b => !b.hidden).map((bubble) => (
           <div
             key={bubble.id}
-            className={`crypto-bubble ${bubble.popping ? 'popping' : ''} ${bubble.spawning ? 'spawning' : ''} ${!bubble.popping && !bubble.spawning ? 'breathing' : ''}`}
+            className={`crypto-bubble logo-bubble ${bubble.popping ? 'popping' : ''} ${bubble.spawning ? 'spawning' : ''} ${!bubble.popping && !bubble.spawning ? 'breathing' : ''}`}
             onClick={(e) => handleBubblePop(bubble.id, e)}
             style={{
               left: bubble.x - bubble.radius,
               top: bubble.y - bubble.radius,
               width: bubble.radius * 2,
               height: bubble.radius * 2,
-              fontSize: bubble.radius * 2,
             }}
           >
-            <span className="orange-emoji">🍊</span>
-            <div className="bubble-content">
-              {bubble.logo && (
-                <img src={bubble.logo} alt={bubble.symbol} className="bubble-logo" />
-              )}
-              {!isSmallBubble(bubble.radius) && (
-                <span className="bubble-symbol">{bubble.symbol}</span>
-              )}
+            {bubble.logo && (
+              <img
+                src={bubble.logo}
+                alt={bubble.symbol}
+                className="bubble-logo-main"
+                style={{
+                  width: bubble.radius * 2,
+                  height: bubble.radius * 2,
+                }}
+              />
+            )}
+            <div className="bubble-label">
               <span className="bubble-value">{formatValue(bubble.value)}</span>
             </div>
           </div>
