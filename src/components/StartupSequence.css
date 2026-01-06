@@ -35,7 +35,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: startupFadeIn 0.8s ease-out, orangePulse 2s ease-in-out infinite;
+  animation: startupFadeIn 2.5s ease-in-out, orangePulse 2s ease-in-out infinite;
   overflow: hidden;
 }
 

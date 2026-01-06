@@ -34,6 +34,21 @@ export default function StartupSequence({ onComplete }: StartupSequenceProps) {
       setStage('logo')
       setLogoFading(false)
 
+      // START BOOT AUDIO FADEOUT HERE - right when logo appears
+      if (bootAudioRef.current) {
+        const gainNode = (bootAudioRef.current as any)._gainNode
+        if (gainNode) {
+          // Use Web Audio API's built-in smooth ramping
+          // This is the professional way to fade audio - no clicks or pops
+          const currentTime = gainNode.context.currentTime
+          gainNode.gain.setValueAtTime(0.11, currentTime)
+          // Exponential ramp over 11 seconds to extremely quiet (0.00001 = -100dB)
+          gainNode.gain.exponentialRampToValueAtTime(0.00001, currentTime + 11)
+          // Then linear ramp to true zero over 2 more seconds for completely silent ending
+          gainNode.gain.linearRampToValueAtTime(0, currentTime + 13)
+        }
+      }
+
       // Play the pre-created PS1 audio (created during user click in BootSequence)
       if (ps1AudioRef.current) {
         ps1AudioRef.current.currentTime = 0.5 // Skip first 0.5 seconds
@@ -52,72 +67,41 @@ export default function StartupSequence({ onComplete }: StartupSequenceProps) {
       setStage('loading')
       setLoadingFading(false)
 
-      let bootFadeStarted = false
       let ps1FadeStarted = false
 
       for (let i = 0; i <= 100; i += 2) {
         setProgress(i)
 
-        // Start PC-boot fadeout very early (at 20%) for a very long linear fadeout
-        if (i >= 20 && !bootFadeStarted) {
-          bootFadeStarted = true
-
-          // Very long fadeout: ~40 iterations * 109ms = ~4.4 seconds
-          const bootFadeOutDuration = 4400
-
-          if (bootAudioRef.current && !bootAudioRef.current.paused) {
-            const startVolume = bootAudioRef.current.volume
-            const startTime = Date.now()
-
-            const fadeOutBoot = () => {
-              if (!bootAudioRef.current) return
-
-              const elapsed = Date.now() - startTime
-              const prog = Math.min(elapsed / bootFadeOutDuration, 1)
-              // Linear fadeout
-              bootAudioRef.current.volume = startVolume * (1 - prog)
-
-              if (prog < 1) {
-                requestAnimationFrame(fadeOutBoot)
-              } else {
-                bootAudioRef.current.pause()
-                bootAudioRef.current.currentTime = 0
-              }
-            }
-
-            fadeOutBoot()
-          }
-        }
-
-        // Start PS1 fadeout at 15% for a long linear fadeout - ensures fully faded by 100%
-        if (i >= 15 && !ps1FadeStarted) {
+        // Start PS1 fadeout at 10% for a long obvious fadeout
+        if (i >= 10 && !ps1FadeStarted) {
           ps1FadeStarted = true
 
-          // Very long fadeout: ~42 iterations * 109ms = ~4.6 seconds
-          const ps1FadeOutDuration = 4600
+          // Very long fadeout: ~5.5 seconds for obvious fade
+          const ps1FadeOutDuration = 5500
+          const startTime = Date.now()
 
-          if (ps1AudioRef.current && !ps1AudioRef.current.paused) {
-            const startVolume = ps1AudioRef.current.volume
-            const startTime = Date.now()
+          const fadeOutPs1 = () => {
+            if (!ps1AudioRef.current) return
 
-            const fadeOutPs1 = () => {
-              if (!ps1AudioRef.current) return
+            const elapsed = Date.now() - startTime
+            const prog = Math.min(elapsed / ps1FadeOutDuration, 1)
 
-              const elapsed = Date.now() - startTime
-              const prog = Math.min(elapsed / ps1FadeOutDuration, 1)
-              // Linear fadeout
-              ps1AudioRef.current.volume = startVolume * (1 - prog)
-
-              if (prog < 1) {
-                requestAnimationFrame(fadeOutPs1)
-              } else {
-                ps1AudioRef.current.pause()
-                ps1AudioRef.current.currentTime = 0
-              }
+            // Get gainNode each frame (might not be ready at start)
+            const gainNode = (ps1AudioRef.current as any)._gainNode
+            if (gainNode) {
+              // Fade from current max (0.11) to 0
+              gainNode.gain.value = 0.11 * (1 - prog)
             }
 
-            fadeOutPs1()
+            if (prog < 1) {
+              requestAnimationFrame(fadeOutPs1)
+            } else {
+              ps1AudioRef.current.pause()
+              ps1AudioRef.current.currentTime = 0
+            }
           }
+
+          fadeOutPs1()
         }
 
         await delay(99)

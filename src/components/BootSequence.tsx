@@ -65,7 +65,7 @@ export default function BootSequence({
   onDone,
   showOnce = true,
   maxVisibleLines = 18,
-  typingSpeed = 14,
+  typingSpeed = 10,
   onBootAudioReady,
   onPs1AudioReady
 }: BootSequenceProps) {
@@ -87,34 +87,44 @@ export default function BootSequence({
       return
     }
 
+    // Use Web Audio API for proper volume attenuation (can go below 0dB)
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
     const bootAudio = new Audio('/assets/BootUp/PC-boot.mp3')
-    bootAudio.volume = 0
     bootAudio.playbackRate = 0.8
 
+    // Pass reference immediately so fadeout can work later
     if (onBootAudioReady) {
       onBootAudioReady(bootAudio)
     }
 
-    bootAudio.play().catch(e => {
-      console.debug('[BootSequence] Audio play failed:', e)
-    })
+    // Wait for audio to be ready, then connect Web Audio API and play
+    bootAudio.addEventListener('canplaythrough', () => {
+      // Only set up once
+      if ((bootAudio as any)._gainNode) return
 
-    // Fade in the audio
-    const targetVolume = 0.02
-    const fadeInDuration = 1000
-    const startTime = Date.now()
+      // Create audio source and gain node for precise volume control
+      const source = audioContext.createMediaElementSource(bootAudio)
+      const gainNode = audioContext.createGain()
 
-    const fadeIn = () => {
-      const elapsed = Date.now() - startTime
-      const prog = Math.min(elapsed / fadeInDuration, 1)
-      bootAudio.volume = targetVolume * prog
+      // Start at target volume
+      gainNode.gain.value = 0.11
 
-      if (prog < 1) {
-        requestAnimationFrame(fadeIn)
-      }
-    }
+      // Connect: source -> gain -> destination
+      source.connect(gainNode)
+      gainNode.connect(audioContext.destination)
 
-    fadeIn()
+      // Store gainNode reference on the audio element for later access
+      ;(bootAudio as any)._gainNode = gainNode
+      ;(bootAudio as any)._audioContext = audioContext
+
+      // Now play
+      bootAudio.play().catch(e => {
+        console.debug('[BootSequence] Audio play failed:', e)
+      })
+    }, { once: true })
+
+    // Start loading
+    bootAudio.load()
 
     const sequence = async () => {
       for (let i = 0; i < lines.length; i++) {
@@ -144,9 +154,9 @@ export default function BootSequence({
         await delay(15)
       }
 
-      await delay(282)
+      await delay(100)
       setIsFading(true)
-      await delay(800)
+      await delay(200)
       onDone?.()
     }
 
@@ -160,13 +170,37 @@ export default function BootSequence({
   }, [visibleLines])
 
   const handleClickToStart = () => {
-    // Pre-create PS1 audio during user interaction so it can play later
+    // Pre-create PS1 audio with Web Audio API during user interaction
     if (onPs1AudioReady) {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
       const ps1Audio = new Audio('/assets/BootUp/Ps1-startup.mp3')
-      ps1Audio.volume = 0.02
-      // Load the audio so it's ready to play later
-      ps1Audio.load()
+
+      // Pass reference immediately
       onPs1AudioReady(ps1Audio)
+
+      // Wait for audio to be ready, then connect Web Audio API
+      ps1Audio.addEventListener('canplaythrough', () => {
+        // Only set up once
+        if ((ps1Audio as any)._gainNode) return
+
+        // Create gain node for precise volume control
+        const source = audioContext.createMediaElementSource(ps1Audio)
+        const gainNode = audioContext.createGain()
+
+        // Set volume
+        gainNode.gain.value = 0.11
+
+        // Connect: source -> gain -> destination
+        source.connect(gainNode)
+        gainNode.connect(audioContext.destination)
+
+        // Store references for later access
+        ;(ps1Audio as any)._gainNode = gainNode
+        ;(ps1Audio as any)._audioContext = audioContext
+      }, { once: true })
+
+      // Start loading
+      ps1Audio.load()
     }
     setShowClickPrompt(false)
     setSequenceStarted(true)

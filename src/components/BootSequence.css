@@ -8,14 +8,14 @@
   z-index: 9999999;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   font-family: 'Fixedsys', 'Terminal', 'MS Sans Serif', 'Courier New', monospace;
   overflow: hidden;
   animation: bootFadeIn 0.5s ease-out;
 }
 
 .boot-sequence.fade-out {
-  animation: bootFadeOut 0.8s ease-out forwards;
+  animation: bootFadeOut 2.5s ease-in-out forwards;
 }
 
 @keyframes bootFadeIn {
@@ -78,17 +78,18 @@
 .boot-sequence-container {
   width: 100%;
   max-width: 100%;
-  max-height: 90vh;
+  max-height: 80vh;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 8px;
   padding-top: 8px;
-  padding-bottom: 20px;
+  padding-bottom: 8px;
   font-size: 15px;
   line-height: 1.4;
   text-align: left;
   display: block;
   box-sizing: border-box;
+  margin-top: -50px;
 }
 
 @media (min-width: 400px) {
