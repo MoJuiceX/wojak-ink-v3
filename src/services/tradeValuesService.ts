@@ -1,7 +1,16 @@
 /**
  * Trade Values Service
- * Fetches trait valuation data from the API
+ * Fetches trait statistics from Cloudflare Worker API
+ * Falls back to local JSON if API unavailable
  */
+
+import traitValuesData from '../data/trait-values.json';
+
+// Cloudflare Worker API endpoint
+const WORKER_API_URL = 'https://wojak-mobile-trade-fetcher.abitsolvesthis.workers.dev';
+
+// Cache duration: 5 minutes
+const CACHE_DURATION_MS = 5 * 60 * 1000;
 
 export interface TraitStats {
   trait_name: string;
@@ -18,7 +27,8 @@ export interface Sale {
   edition: number;
   price_xch: number;
   timestamp: string;
-  traits: Record<string, string>;
+  nftName?: string;
+  traits?: Record<string, string>;
 }
 
 export interface TradeValuesData {
@@ -26,6 +36,7 @@ export interface TradeValuesData {
   all_sales?: Sale[];
   total_sales_count: number;
   last_updated: string | null;
+  source?: 'api' | 'local';
   error?: string;
 }
 
@@ -35,38 +46,158 @@ export interface TraitSalesData {
   total_sales: number;
 }
 
-// API base - uses relative path for same-origin, or full URL for cross-origin
-const API_BASE = '/api/trade-values';
+// Cache
+interface CachedData {
+  data: TradeValuesData;
+  timestamp: number;
+}
+
+let cache: CachedData | null = null;
+
+/**
+ * Check if cache is still valid
+ */
+function isCacheValid(): boolean {
+  if (!cache) return false;
+  return Date.now() - cache.timestamp < CACHE_DURATION_MS;
+}
+
+/**
+ * Fetch trait values from Worker API
+ */
+async function fetchFromAPI(category?: string): Promise<TradeValuesData> {
+  const url = category && category !== 'all'
+    ? `${WORKER_API_URL}/trait-values?category=${encodeURIComponent(category)}`
+    : `${WORKER_API_URL}/trait-values`;
+
+  const response = await fetch(url, {
+    headers: {
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  return {
+    trait_stats: data.trait_stats || [],
+    all_sales: data.all_sales,
+    total_sales_count: data.total_sales_count || 0,
+    last_updated: data.last_updated || null,
+    source: 'api',
+  };
+}
+
+/**
+ * Get trait values from local JSON fallback
+ */
+function getLocalData(category?: string): TradeValuesData {
+  let stats = traitValuesData.trait_stats as TraitStats[];
+
+  if (category && category !== 'all') {
+    stats = stats.filter(
+      t => t.trait_category.toLowerCase() === category.toLowerCase()
+    );
+  }
+
+  return {
+    trait_stats: stats,
+    total_sales_count: traitValuesData.total_trades_analyzed,
+    last_updated: traitValuesData.generated_at,
+    source: 'local',
+  };
+}
 
 /**
  * Fetch all trait statistics
+ * Tries API first, falls back to local JSON
  */
 export async function fetchTradeValues(category?: string): Promise<TradeValuesData> {
-  const params = new URLSearchParams();
-  if (category && category !== 'all') {
-    params.set('category', category);
+  // Return cached data if valid and no category filter
+  // (category-filtered requests bypass cache for simplicity)
+  if (!category && isCacheValid() && cache) {
+    return cache.data;
   }
 
-  const url = `${API_BASE}${params.toString() ? '?' + params.toString() : ''}`;
+  try {
+    // Try fetching from Worker API
+    const apiData = await fetchFromAPI(category);
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch trade values: ${response.status}`);
+    // Cache full data (only for non-filtered requests)
+    if (!category || category === 'all') {
+      cache = {
+        data: apiData,
+        timestamp: Date.now(),
+      };
+    }
+
+    return apiData;
+  } catch (error) {
+    console.warn('API fetch failed, using local data:', error);
+
+    // Fall back to local JSON
+    const localData = getLocalData(category);
+    return localData;
   }
+}
 
-  return response.json();
+/**
+ * Force refresh data from API (bypass cache)
+ */
+export async function refreshTradeValues(): Promise<TradeValuesData> {
+  cache = null;
+  return fetchTradeValues();
+}
+
+/**
+ * Get API status
+ */
+export async function getAPIStatus(): Promise<{
+  status: string;
+  last_updated: string | null;
+  total_sales: number;
+  total_traits: number;
+}> {
+  try {
+    const response = await fetch(`${WORKER_API_URL}/status`);
+    if (!response.ok) throw new Error('Status check failed');
+    return await response.json();
+  } catch (error) {
+    return {
+      status: 'offline',
+      last_updated: null,
+      total_sales: 0,
+      total_traits: 0,
+    };
+  }
 }
 
 /**
  * Fetch sales for a specific trait
  */
 export async function fetchTraitSales(traitName: string): Promise<TraitSalesData> {
-  const response = await fetch(`${API_BASE}?trait=${encodeURIComponent(traitName)}`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch trait sales: ${response.status}`);
+  // Get all sales from cache or API
+  const data = await fetchTradeValues();
+
+  if (!data.all_sales) {
+    return {
+      trait_name: traitName,
+      sales: [],
+      total_sales: 0,
+    };
   }
 
-  return response.json();
+  // Filter sales that include this trait
+  // Note: Worker API returns sales with nftName, not per-trait breakdown
+  // For now, return empty - would need trait metadata lookup
+  return {
+    trait_name: traitName,
+    sales: [],
+    total_sales: 0,
+  };
 }
 
 /**
@@ -96,4 +227,100 @@ export function formatRelativeTime(timestamp: string | null): string {
 export function formatXCH(value: number | null | undefined, decimals = 2): string {
   if (value === null || value === undefined) return '—';
   return value.toFixed(decimals);
+}
+
+// Collection stats interface
+export interface CollectionStats {
+  supply: number;
+  floor_xch: number;
+  volume_xch: number;
+  trade_count: number;
+  market_cap_xch: number;
+  collectors: number;
+}
+
+// Cache for collection stats (shorter duration since it changes more frequently)
+const COLLECTION_STATS_CACHE_DURATION_MS = 2 * 60 * 1000; // 2 minutes
+let collectionStatsCache: { data: CollectionStats; timestamp: number } | null = null;
+
+// Use Vite proxy in development to avoid CORS issues
+const isDev = import.meta.env.DEV;
+const MINTGARDEN_API = isDev ? '/mintgarden-api' : 'https://api.mintgarden.io';
+
+/**
+ * Fetch collection statistics from MintGarden API
+ */
+export async function fetchCollectionStats(): Promise<CollectionStats> {
+  // Return cached data if valid
+  if (collectionStatsCache && Date.now() - collectionStatsCache.timestamp < COLLECTION_STATS_CACHE_DURATION_MS) {
+    return collectionStatsCache.data;
+  }
+
+  const COLLECTION_ID = 'col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah';
+
+  try {
+    // Fetch collection stats and listings in parallel
+    const [collectionResponse, listingsResponse] = await Promise.all([
+      fetch(`${MINTGARDEN_API}/collections/${COLLECTION_ID}`),
+      fetch(`${MINTGARDEN_API}/collections/${COLLECTION_ID}/nfts/by_offers?size=10&sort_by=xch_price&require_price=true`)
+    ]);
+
+    if (!collectionResponse.ok) {
+      throw new Error(`MintGarden API error: ${collectionResponse.status}`);
+    }
+
+    const data = await collectionResponse.json();
+
+    // Calculate floor from actual listings (most accurate)
+    let floorPrice = 0;
+    if (listingsResponse.ok) {
+      const listingsData = await listingsResponse.json();
+      const items = listingsData.items || [];
+      if (items.length > 0) {
+        // Get the lowest price from first few listings
+        const prices = items
+          .map((item: any) => item.xch_price || item.price)
+          .filter((p: number) => p > 0);
+        if (prices.length > 0) {
+          floorPrice = Math.min(...prices);
+        }
+      }
+    }
+
+    // Fallback to collection API floor if no listings found
+    if (floorPrice === 0) {
+      floorPrice = data.floor || data.floor_price || 0;
+    }
+
+    const supply = data.supply || 4200;
+
+    const stats: CollectionStats = {
+      supply,
+      floor_xch: floorPrice,
+      volume_xch: data.volume || 0,
+      trade_count: data.trade_count || 0,
+      market_cap_xch: floorPrice * supply,
+      collectors: data.owners_count || 0,
+    };
+
+    // Cache the results
+    collectionStatsCache = {
+      data: stats,
+      timestamp: Date.now(),
+    };
+
+    return stats;
+  } catch (error) {
+    console.error('Failed to fetch collection stats:', error);
+
+    // Return fallback values
+    return {
+      supply: 4200,
+      floor_xch: 0.8,
+      volume_xch: 483,
+      trade_count: 723,
+      market_cap_xch: 3360,
+      collectors: 89,
+    };
+  }
 }

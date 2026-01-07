@@ -415,7 +415,7 @@ const BigPulp: React.FC = () => {
                   <IonLabel>Ask</IonLabel>
                 </IonSegmentButton>
                 <IonSegmentButton value="traits">
-                  <IonLabel>Traits</IonLabel>
+                  <IonLabel>Attributes</IonLabel>
                 </IonSegmentButton>
               </IonSegment>
             </IonToolbar>

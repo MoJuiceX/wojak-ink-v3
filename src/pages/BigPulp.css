@@ -438,9 +438,60 @@
   margin: 0 0 8px 0;
 }
 
-/* Intelligence Modal */
+/* Intelligence Modal - make it full screen */
+ion-modal {
+  --height: 100%;
+  --width: 100%;
+  --border-radius: 16px 16px 0 0;
+}
+
+ion-modal ion-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
 .intelligence-content {
   --background: var(--ion-background-color);
+  --padding-bottom: 0;
+  --padding-top: 0;
+  height: 100%;
+}
+
+/* Make IonContent scroll area fill height and allow children to stretch */
+.intelligence-content::part(scroll) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* TraitValues in modal should fill available space */
+.intelligence-content .trait-values-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Desktop - subtract header height (2 toolbars ~112px) */
+@media (min-width: 769px) {
+  .intelligence-content .trait-values-container {
+    height: calc(100vh - 112px);
+    max-height: calc(100vh - 112px);
+  }
+}
+
+/* Mobile - subtract header height + safe area bottom for tab bar */
+@media (max-width: 768px) {
+  .intelligence-content .trait-values-container {
+    height: calc(100vh - 112px - env(safe-area-inset-bottom, 0px));
+    max-height: calc(100vh - 112px - env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Ensure modal takes full height on mobile */
+  ion-modal {
+    --height: 100%;
+  }
 }
 
 .intelligence-container {
@@ -448,6 +499,7 @@
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
 .coming-soon {

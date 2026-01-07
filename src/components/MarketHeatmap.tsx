@@ -281,11 +281,12 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
     }
   }, [listings]);
 
-  if (loading) {
+  if (loading && listings.length === 0) {
     return (
       <div className="heatmap-loading">
         <IonSpinner name="crescent" />
-        <p>Loading market data...</p>
+        <p>Fetching live listings...</p>
+        <p className="loading-hint">This may take a moment</p>
       </div>
     );
   }

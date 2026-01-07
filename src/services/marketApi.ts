@@ -10,9 +10,12 @@ import { mintgardenQueue, dexieQueue, rateLimitedFetch } from '../utils/rateLimi
 // Collection ID for Wojak Farmers Plot
 export const COLLECTION_ID = 'col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah';
 
+// Use Vite proxy in development to avoid CORS issues
+const isDev = import.meta.env.DEV;
+
 // API Base URLs
-const MINTGARDEN_API = 'https://api.mintgarden.io';
-const DEXIE_API = 'https://api.dexie.space/v1';
+const MINTGARDEN_API = isDev ? '/mintgarden-api' : 'https://api.mintgarden.io';
+const DEXIE_API = isDev ? '/dexie-api/v1' : 'https://api.dexie.space/v1';
 
 /**
  * NFT History Cache
@@ -279,28 +282,22 @@ async function fetchMintGardenListings(): Promise<NFTListing[]> {
   const listings: NFTListing[] = [];
   let page: string | null = null;
   let pageCount = 0;
-  const maxPages = 50;
+  const maxPages = 5; // Reduced from 50 - 500 listings is more than enough
 
   try {
     while (pageCount < maxPages) {
-      const url = new URL(`${MINTGARDEN_API}/collections/${COLLECTION_ID}/nfts/by_offers`);
-      url.searchParams.set('size', '100');
-      url.searchParams.set('sort_by', 'xch_price');
-      url.searchParams.set('require_price', 'true');
+      // Build URL string (can't use URL constructor with relative paths)
+      let url = `${MINTGARDEN_API}/collections/${COLLECTION_ID}/nfts/by_offers?size=100&sort_by=xch_price&require_price=true`;
       if (page) {
-        url.searchParams.set('page', page);
+        url += `&page=${encodeURIComponent(page)}`;
       }
 
-      // Use rate-limited fetch
-      const data = await mintgardenQueue.add(async () => {
-        const response = await fetch(url.toString());
-        if (!response.ok) {
-          const error = new Error(`MintGarden fetch failed: ${response.status}`) as any;
-          error.status = response.status;
-          throw error;
-        }
-        return response.json();
-      });
+      // Fetch directly (rate limiter adds too much delay for initial load)
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`MintGarden fetch failed: ${response.status}`);
+      }
+      const data = await response.json();
 
       const items = data.items || [];
 
@@ -340,27 +337,19 @@ async function fetchMintGardenListings(): Promise<NFTListing[]> {
 async function fetchDexieListings(): Promise<NFTListing[]> {
   const listings: NFTListing[] = [];
   let page = 1;
-  const maxPages = 50;
+  const maxPages = 5; // Reduced from 50 - 500 listings is more than enough
 
   try {
     while (page <= maxPages) {
-      const url = new URL(`${DEXIE_API}/offers`);
-      url.searchParams.set('type', 'nft');
-      url.searchParams.set('collection', COLLECTION_ID);
-      url.searchParams.set('status', '0'); // Active offers only
-      url.searchParams.set('page_size', '100');
-      url.searchParams.set('page', String(page));
+      // Build URL string (can't use URL constructor with relative paths)
+      const url = `${DEXIE_API}/offers?type=nft&collection=${COLLECTION_ID}&status=0&page_size=100&page=${page}`;
 
-      // Use rate-limited fetch
-      const data = await dexieQueue.add(async () => {
-        const response = await fetch(url.toString());
-        if (!response.ok) {
-          const error = new Error(`Dexie fetch failed: ${response.status}`) as any;
-          error.status = response.status;
-          throw error;
-        }
-        return response.json();
-      });
+      // Fetch directly (rate limiter adds too much delay for initial load)
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Dexie fetch failed: ${response.status}`);
+      }
+      const data = await response.json();
 
       const offers = data.offers || [];
 

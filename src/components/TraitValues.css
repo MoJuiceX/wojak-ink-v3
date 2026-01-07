@@ -5,6 +5,8 @@
 
 .trait-values-container {
   height: 100%;
+  min-height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   background: var(--ion-background-color);
@@ -98,8 +100,7 @@
 .trait-summary {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-content: space-between;
   padding: 8px 12px;
   font-size: 12px;
   color: var(--ion-color-medium);
@@ -107,8 +108,35 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.trait-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .trait-summary .divider {
   color: rgba(255, 255, 255, 0.2);
+}
+
+.floor-price {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 165, 0, 0.15);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.floor-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.floor-value {
+  font-weight: 700;
+  color: #4ade80;
+  font-family: 'SF Mono', 'Monaco', monospace;
 }
 
 /* Table wrapper */
@@ -116,6 +144,12 @@
   flex: 1;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+  min-height: 0; /* Important for flex child to scroll properly */
+}
+
+/* Ensure table fills wrapper */
+.trait-table-wrapper .trait-table {
+  min-height: 100%;
 }
 
 /* Table */
@@ -123,6 +157,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
+  table-layout: fixed; /* Fixed column widths */
 }
 
 .trait-table thead {
@@ -134,7 +169,7 @@
 
 .trait-table th {
   padding: 10px 6px;
-  text-align: left;
+  text-align: center;
   font-weight: 600;
   color: var(--ion-color-medium);
   border-bottom: 2px solid rgba(255, 255, 255, 0.1);
@@ -142,19 +177,22 @@
   white-space: nowrap;
   user-select: none;
   transition: color 0.2s;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .trait-table th:hover {
   color: var(--ion-color-primary);
 }
 
-.trait-table th:first-child {
-  padding-left: 12px;
-}
-
-.trait-table th:last-child {
-  padding-right: 12px;
-}
+/* Column widths - fixed for stable layout */
+.trait-table th:nth-child(1) { width: 35%; text-align: left; padding-left: 12px; } /* Attribute */
+.trait-table th:nth-child(2) { width: 15%; } /* Type (hidden mobile) */
+.trait-table th:nth-child(3) { width: 12%; } /* Sales */
+.trait-table th:nth-child(4) { width: 12%; } /* Avg */
+.trait-table th:nth-child(5) { width: 10%; } /* Min (hidden mobile) */
+.trait-table th:nth-child(6) { width: 10%; } /* Max (hidden mobile) */
+.trait-table th:nth-child(7) { width: 12%; padding-right: 12px; } /* Last */
 
 .trait-table tbody tr {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -173,23 +211,21 @@
 .trait-table td {
   padding: 10px 6px;
   vertical-align: middle;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.trait-table td:first-child {
-  padding-left: 12px;
-}
-
-.trait-table td:last-child {
-  padding-right: 12px;
-}
+/* Data column alignment */
+.trait-table td:nth-child(1) { text-align: left; padding-left: 12px; } /* Attribute - left aligned */
+.trait-table td:nth-child(7) { padding-right: 12px; } /* Last */
 
 .trait-table .trait-name {
   font-weight: 500;
   color: var(--ion-text-color);
-  max-width: 100px;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .trait-table .trait-category {
@@ -219,8 +255,14 @@
     display: none;
   }
 
+  /* Adjust column widths for mobile (only 4 columns visible) */
+  .trait-table th:nth-child(1) { width: 45%; } /* Attribute */
+  .trait-table th:nth-child(3) { width: 15%; } /* Sales */
+  .trait-table th:nth-child(4) { width: 20%; } /* Avg */
+  .trait-table th:nth-child(7) { width: 20%; } /* Last */
+
   .trait-table .trait-name {
-    max-width: 80px;
+    max-width: none;
   }
 }
 

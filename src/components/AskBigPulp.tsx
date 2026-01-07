@@ -8,8 +8,12 @@ import {
   diamond,
   ribbon,
   statsChart,
-  school
+  school,
+  flame,
+  pricetag
 } from 'ionicons/icons';
+import { fetchTradeValues, fetchCollectionStats, TraitStats, CollectionStats, formatXCH, formatRelativeTime } from '../services/tradeValuesService';
+import { getXchPrice, getCachedXchPrice } from '../services/treasuryApi';
 import './AskBigPulp.css';
 
 interface NamedCombo {
@@ -49,6 +53,13 @@ interface TraitInsight {
   fun_fact: string;
 }
 
+interface TopSale {
+  edition: number;
+  price_xch: number;
+  timestamp: string;
+  nftName: string;
+}
+
 interface AskBigPulpProps {
   onNftClick: (nftId: string) => void;
 }
@@ -58,12 +69,33 @@ const getNftImageUrl = (id: string | number) => {
   return `https://bafybeigjkkonjzwwpopo4wn4gwrrvb7z3nwr2edj2554vx3avc5ietfjwq.ipfs.w3s.link/${paddedId}.png`;
 };
 
+// Format USD value
+const formatUsd = (xch: number, xchPrice: number): string => {
+  const usd = xch * xchPrice;
+  if (usd >= 1000) {
+    return `$${(usd / 1000).toFixed(1)}k`;
+  }
+  return `$${usd.toFixed(0)}`;
+};
+
 const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
   const [comboData, setComboData] = useState<ComboDatabase | null>(null);
   const [traitInsights, setTraitInsights] = useState<Record<string, TraitInsight> | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedSection, setExpandedSection] = useState<string | null>('stats');
   const [selectedCombo, setSelectedCombo] = useState<string | null>(null);
+
+  // Trade data from API
+  const [topTraits, setTopTraits] = useState<TraitStats[]>([]);
+  const [topSales, setTopSales] = useState<TopSale[]>([]);
+  const [tradeDataLoading, setTradeDataLoading] = useState(true);
+
+  // Collection stats from MintGarden API
+  const [collectionStats, setCollectionStats] = useState<CollectionStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  // XCH price for USD conversion
+  const [xchPriceUsd, setXchPriceUsd] = useState<number>(getCachedXchPrice());
 
   useEffect(() => {
     const loadData = async () => {
@@ -83,6 +115,50 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
       }
     };
     loadData();
+  }, []);
+
+  // Load trade values data
+  useEffect(() => {
+    const loadTradeData = async () => {
+      try {
+        const data = await fetchTradeValues();
+
+        // Top 10 traits by average XCH
+        setTopTraits(data.trait_stats.slice(0, 10));
+
+        // Top 10 sales from all_sales (sorted by price)
+        if (data.all_sales && data.all_sales.length > 0) {
+          const sortedSales = [...data.all_sales]
+            .sort((a, b) => b.price_xch - a.price_xch)
+            .slice(0, 10);
+          setTopSales(sortedSales as TopSale[]);
+        }
+      } catch (err) {
+        console.error('Failed to load trade data:', err);
+      } finally {
+        setTradeDataLoading(false);
+      }
+    };
+    loadTradeData();
+  }, []);
+
+  // Load collection stats from MintGarden and XCH price
+  useEffect(() => {
+    const loadCollectionStats = async () => {
+      try {
+        const [stats, price] = await Promise.all([
+          fetchCollectionStats(),
+          getXchPrice()
+        ]);
+        setCollectionStats(stats);
+        setXchPriceUsd(price);
+      } catch (err) {
+        console.error('Failed to load collection stats:', err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    loadCollectionStats();
   }, []);
 
   const toggleSection = (section: string) => {
@@ -139,17 +215,10 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
         .slice(0, 20)
     : [];
 
-  // Collection stats
-  const stats = {
-    totalNfts: 4200,
-    namedCombos: legendaryComboEntries.length,
-    sTierTraits: sTierTraits.length,
-    oneOfOnes: rarestPairings.length
-  };
 
   return (
     <div className="ask-bigpulp">
-      {/* Collection Stats Section */}
+      {/* 1. Collection Stats Section */}
       <div className="ask-section">
         <button
           className={`section-header ${expandedSection === 'stats' ? 'expanded' : ''}`}
@@ -164,29 +233,182 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
 
         {expandedSection === 'stats' && (
           <div className="section-content">
-            <div className="stats-grid">
-              <div className="stat-card">
-                <span className="stat-number">{stats.totalNfts.toLocaleString()}</span>
-                <span className="stat-label">Total NFTs</span>
+            {statsLoading ? (
+              <div className="section-loading">
+                <IonSpinner name="dots" />
               </div>
-              <div className="stat-card">
-                <span className="stat-number">{stats.namedCombos}</span>
-                <span className="stat-label">Named Combos</span>
+            ) : (
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <span className="stat-number">{collectionStats?.supply.toLocaleString() || '4,200'}</span>
+                  <span className="stat-label">Total Supply</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-number">{collectionStats?.trade_count.toLocaleString() || '—'}</span>
+                  <span className="stat-label">Total Trades</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-number green-text">{formatXCH(collectionStats?.floor_xch, 1)} XCH</span>
+                  <div className="stat-label-row">
+                    <span className="stat-usd">{formatUsd(collectionStats?.floor_xch || 0, xchPriceUsd)}</span>
+                    <span className="stat-label">Floor Price</span>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-number">{formatXCH(collectionStats?.volume_xch, 0)} XCH</span>
+                  <div className="stat-label-row">
+                    <span className="stat-usd">{formatUsd(collectionStats?.volume_xch || 0, xchPriceUsd)}</span>
+                    <span className="stat-label">Total Volume</span>
+                  </div>
+                </div>
+                <div className="stat-card wide">
+                  <span className="stat-number">{formatXCH(collectionStats?.market_cap_xch, 0)} XCH</span>
+                  <div className="stat-label-row">
+                    <span className="stat-usd">{formatUsd(collectionStats?.market_cap_xch || 0, xchPriceUsd)}</span>
+                    <span className="stat-label">Market Cap (Floor × Supply)</span>
+                  </div>
+                </div>
               </div>
-              <div className="stat-card">
-                <span className="stat-number">{stats.sTierTraits}</span>
-                <span className="stat-label">S-Tier Traits</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 2. Learn Provenance Section */}
+      <div className="ask-section">
+        <button
+          className={`section-header ${expandedSection === 'provenance' ? 'expanded' : ''}`}
+          onClick={() => toggleSection('provenance')}
+        >
+          <div className="section-header-left">
+            <IonIcon icon={school} className="section-icon blue" />
+            <span className="section-title">Learn Provenance</span>
+          </div>
+          <IonIcon icon={expandedSection === 'provenance' ? chevronBack : chevronForward} className="section-chevron" />
+        </button>
+
+        {expandedSection === 'provenance' && (
+          <div className="section-content">
+            <div className="provenance-cards">
+              <div className="provenance-card">
+                <h4>High Provenance</h4>
+                <p>These aren't necessarily the rarest attributes, but they're the most valuable. The community has spoken — Crown, Military Beret, Wizard Hat, Fedora, and Neckbeard command premium prices because of their cultural significance and meme status.</p>
               </div>
-              <div className="stat-card">
-                <span className="stat-number">{stats.oneOfOnes}+</span>
-                <span className="stat-label">1-of-1 Pairs</span>
+              <div className="provenance-card">
+                <h4>Rarest Attributes</h4>
+                <p>The scarcest attributes in the collection. Piccolo Turban, Piccolo Uniform, Fake It Mask, El Presidente, and Goose Suit are among the rarest pieces you can find. These dominate the top rankings.</p>
+              </div>
+              <div className="provenance-card">
+                <h4>Bases</h4>
+                <p>Monkey Zoo represents the OG ape heritage from the early grove — primal energy meets Wojak culture. Papa Tang is the founder energy, the king of the grove himself, inspired by Tales of the Grove and WMC creator lore.</p>
+              </div>
+              <div className="provenance-card">
+                <h4>Named Combos</h4>
+                <p>The artist crafted these matching sets with intention. Ronin Helmet pairs with Ronin clothes and Ronin Dojo background. Wizard Hat matches Wizard Drip and Wizard Glasses. These aren't random — they're designed to work together as complete transformations.</p>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Legendary Combos Section */}
+      {/* 3. Top 10 Most Valuable Traits Section */}
+      <div className="ask-section">
+        <button
+          className={`section-header ${expandedSection === 'topTraits' ? 'expanded' : ''}`}
+          onClick={() => toggleSection('topTraits')}
+        >
+          <div className="section-header-left">
+            <IonIcon icon={flame} className="section-icon color-orange" />
+            <span className="section-title">Top 10 Valuable Attributes</span>
+          </div>
+          <IonIcon icon={expandedSection === 'topTraits' ? chevronBack : chevronForward} className="section-chevron" />
+        </button>
+
+        {expandedSection === 'topTraits' && (
+          <div className="section-content">
+            {tradeDataLoading ? (
+              <div className="section-loading">
+                <IonSpinner name="dots" />
+              </div>
+            ) : topTraits.length > 0 ? (
+              <>
+                <p className="section-intro">Attributes with highest average sale prices</p>
+                <div className="top-list">
+                  {topTraits.map((trait, idx) => (
+                    <div key={`${trait.trait_category}-${trait.trait_name}`} className="top-list-item">
+                      <span className="top-rank">#{idx + 1}</span>
+                      <div className="top-info">
+                        <span className="top-name">{trait.trait_name}</span>
+                        <span className="top-category">{trait.trait_category}</span>
+                      </div>
+                      <div className="top-stats">
+                        <span className="top-price">{formatXCH(trait.average_xch)} XCH</span>
+                        <span className="top-usd">{formatUsd(trait.average_xch, xchPriceUsd)}</span>
+                        <span className="top-sales">{trait.total_sales} sales</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="section-empty">No trade data available</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 4. Top 10 Most Valuable Sales Section */}
+      <div className="ask-section">
+        <button
+          className={`section-header ${expandedSection === 'topSales' ? 'expanded' : ''}`}
+          onClick={() => toggleSection('topSales')}
+        >
+          <div className="section-header-left">
+            <IonIcon icon={pricetag} className="section-icon gold" />
+            <span className="section-title">Top 10 Highest Sales</span>
+          </div>
+          <IonIcon icon={expandedSection === 'topSales' ? chevronBack : chevronForward} className="section-chevron" />
+        </button>
+
+        {expandedSection === 'topSales' && (
+          <div className="section-content">
+            {tradeDataLoading ? (
+              <div className="section-loading">
+                <IonSpinner name="dots" />
+              </div>
+            ) : topSales.length > 0 ? (
+              <>
+                <p className="section-intro">Highest individual NFT sales recorded</p>
+                <div className="top-sales-gallery">
+                  {topSales.map((sale, idx) => (
+                    <div
+                      key={`${sale.edition}-${sale.timestamp}`}
+                      className="top-sale-card"
+                      onClick={() => onNftClick(String(sale.edition))}
+                    >
+                      <div className="sale-rank-badge">#{idx + 1}</div>
+                      <IonImg
+                        src={getNftImageUrl(sale.edition)}
+                        alt={sale.nftName || `#${sale.edition}`}
+                        className="sale-image"
+                      />
+                      <div className="sale-info">
+                        <span className="sale-name">{sale.nftName || `#${sale.edition}`}</span>
+                        <span className="sale-price">{formatXCH(sale.price_xch)} XCH <span className="sale-usd">{formatUsd(sale.price_xch, xchPriceUsd)}</span></span>
+                        <span className="sale-date">{formatRelativeTime(sale.timestamp)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="section-empty">No sales data available</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 5. Legendary Combos Section */}
       <div className="ask-section">
         <button
           className={`section-header ${expandedSection === 'combos' ? 'expanded' : ''}`}
@@ -251,7 +473,7 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
         )}
       </div>
 
-      {/* Rarest Finds Section */}
+      {/* 6. Rarest Finds Section */}
       <div className="ask-section">
         <button
           className={`section-header ${expandedSection === 'rarest' ? 'expanded' : ''}`}
@@ -266,7 +488,7 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
 
         {expandedSection === 'rarest' && (
           <div className="section-content">
-            <p className="section-intro">1-of-1 trait combinations</p>
+            <p className="section-intro">1-of-1 attribute combinations</p>
             <div className="rarest-gallery">
               {rarestPairings.map((pairing, idx) => (
                 <div
@@ -289,7 +511,7 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
         )}
       </div>
 
-      {/* High Provenance Traits Section */}
+      {/* 7. High Provenance Traits Section */}
       <div className="ask-section">
         <button
           className={`section-header ${expandedSection === 'stier' ? 'expanded' : ''}`}
@@ -304,7 +526,7 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
 
         {expandedSection === 'stier' && (
           <div className="section-content">
-            <p className="section-intro">Most valuable traits as decided by the community</p>
+            <p className="section-intro">Most valuable attributes as decided by the community</p>
             <div className="stier-grid">
               {sTierTraits.map((item) => (
                 <div
@@ -322,43 +544,6 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Learn Provenance Section */}
-      <div className="ask-section">
-        <button
-          className={`section-header ${expandedSection === 'provenance' ? 'expanded' : ''}`}
-          onClick={() => toggleSection('provenance')}
-        >
-          <div className="section-header-left">
-            <IonIcon icon={school} className="section-icon blue" />
-            <span className="section-title">Learn Provenance</span>
-          </div>
-          <IonIcon icon={expandedSection === 'provenance' ? chevronBack : chevronForward} className="section-chevron" />
-        </button>
-
-        {expandedSection === 'provenance' && (
-          <div className="section-content">
-            <div className="provenance-cards">
-              <div className="provenance-card">
-                <h4>High Provenance</h4>
-                <p>These aren't necessarily the rarest traits, but they're the most valuable. The community has spoken — Crown, Military Beret, Wizard Hat, Fedora, and Neckbeard command premium prices because of their cultural significance and meme status.</p>
-              </div>
-              <div className="provenance-card">
-                <h4>Rarest Traits</h4>
-                <p>The scarcest traits in the collection. Piccolo Turban, Piccolo Uniform, Fake It Mask, El Presidente, and Goose Suit are among the rarest pieces you can find. These dominate the top rankings.</p>
-              </div>
-              <div className="provenance-card">
-                <h4>Bases</h4>
-                <p>Monkey Zoo represents the OG ape heritage from the early grove — primal energy meets Wojak culture. Papa Tang is the founder energy, the king of the grove himself, inspired by Tales of the Grove and WMC creator lore.</p>
-              </div>
-              <div className="provenance-card">
-                <h4>Named Combos</h4>
-                <p>The artist crafted these matching sets with intention. Ronin Helmet pairs with Ronin clothes and Ronin Dojo background. Wizard Hat matches Wizard Drip and Wizard Glasses. These aren't random — they're designed to work together as complete transformations.</p>
-              </div>
             </div>
           </div>
         )}

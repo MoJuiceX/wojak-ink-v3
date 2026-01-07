@@ -44,13 +44,18 @@ initGalleryPreloader().then(() => {
   startPreloading();
 });
 
-// Prefetch market listings in background for instant heatmap loading
+// Prefetch market listings IMMEDIATELY during boot sequence
+// This runs while user watches the startup animation
 import { prefetchListings, preloadListingImages } from './services/marketApi';
-setTimeout(() => {
-  prefetchListings();
-  // Start image preloading after listings are fetched
-  setTimeout(() => preloadListingImages(), 3000);
-}, 2000); // Start after 2s to not block boot
+import { fetchTradeValues, fetchCollectionStats } from './services/tradeValuesService';
+
+// Start ALL prefetching immediately - boot sequence gives us time
+prefetchListings();
+fetchTradeValues().catch(() => {}); // Prefetch trade/attribute data
+fetchCollectionStats().catch(() => {}); // Prefetch collection stats
+
+// Preload images after data is fetched
+setTimeout(() => preloadListingImages(), 2000);
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';

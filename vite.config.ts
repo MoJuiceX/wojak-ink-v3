@@ -11,6 +11,7 @@ export default defineConfig({
     legacy()
   ],
   server: {
+    host: true, // Allow network access
     proxy: {
       '/spacescan-api': {
         target: 'https://api.spacescan.io',
@@ -21,6 +22,16 @@ export default defineConfig({
         target: 'https://api.coingecko.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/coingecko-api/, ''),
+      },
+      '/mintgarden-api': {
+        target: 'https://api.mintgarden.io',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/mintgarden-api/, ''),
+      },
+      '/dexie-api': {
+        target: 'https://api.dexie.space',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/dexie-api/, ''),
       },
     },
   },

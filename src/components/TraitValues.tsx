@@ -27,6 +27,15 @@ import './TraitValues.css';
 type SortField = 'trait_name' | 'trait_category' | 'total_sales' | 'average_xch' | 'min_xch' | 'max_xch' | 'last_trade';
 type SortDirection = 'asc' | 'desc';
 
+// Capitalize each word in a string
+const capitalizeCategory = (str: string): string => {
+  return str
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 interface TraitValuesProps {
   onTraitClick?: (traitName: string) => void;
 }
@@ -211,14 +220,14 @@ const TraitValues: React.FC<TraitValuesProps> = ({ onTraitClick }) => {
         >
           {categories.map(cat => (
             <IonSelectOption key={cat} value={cat}>
-              {cat === 'all' ? 'All Categories' : cat.replace(/_/g, ' ')}
+              {cat === 'all' ? 'All Categories' : capitalizeCategory(cat)}
             </IonSelectOption>
           ))}
         </IonSelect>
         <IonSearchbar
           value={searchQuery}
           onIonInput={e => setSearchQuery(e.detail.value || '')}
-          placeholder="Search traits..."
+          placeholder="Search attributes..."
           className="trait-search"
           debounce={300}
         />
@@ -228,7 +237,7 @@ const TraitValues: React.FC<TraitValuesProps> = ({ onTraitClick }) => {
       <div className="trait-summary">
         <span>{totalSalesCount} sales</span>
         <span className="divider">•</span>
-        <span>{traitStats.length} traits</span>
+        <span>{traitStats.length} attributes</span>
         <span className="divider">•</span>
         <span>Updated {formatRelativeTime(lastUpdated)}</span>
       </div>
@@ -239,7 +248,7 @@ const TraitValues: React.FC<TraitValuesProps> = ({ onTraitClick }) => {
           <thead>
             <tr>
               <th onClick={() => handleSort('trait_name')}>
-                Trait{renderSortIndicator('trait_name')}
+                Attribute{renderSortIndicator('trait_name')}
               </th>
               <th className="hide-mobile" onClick={() => handleSort('trait_category')}>
                 Type{renderSortIndicator('trait_category')}
@@ -265,7 +274,7 @@ const TraitValues: React.FC<TraitValuesProps> = ({ onTraitClick }) => {
             {filteredStats.length === 0 ? (
               <tr>
                 <td colSpan={7} className="no-results">
-                  No traits found matching your filters.
+                  No attributes found matching your filters.
                 </td>
               </tr>
             ) : (
@@ -278,7 +287,7 @@ const TraitValues: React.FC<TraitValuesProps> = ({ onTraitClick }) => {
                   >
                     <td className="trait-name">{trait.trait_name}</td>
                     <td className="trait-category hide-mobile">
-                      {trait.trait_category.replace(/_/g, ' ')}
+                      {capitalizeCategory(trait.trait_category)}
                     </td>
                     <td>{trait.total_sales}</td>
                     <td className="price">{formatXCH(trait.average_xch)}</td>
@@ -294,7 +303,7 @@ const TraitValues: React.FC<TraitValuesProps> = ({ onTraitClick }) => {
                           <div className="detail-stats">
                             <div className="stat">
                               <span className="stat-label">Category</span>
-                              <span className="stat-value">{trait.trait_category.replace(/_/g, ' ')}</span>
+                              <span className="stat-value">{capitalizeCategory(trait.trait_category)}</span>
                             </div>
                             <div className="stat">
                               <span className="stat-label">Price Range</span>
