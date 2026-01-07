@@ -89,7 +89,7 @@ const DEFAULT_CONFIG = {
   RATE_LIMIT_DELAY_MS: 200,
   MAX_RETRIES: 3,
   EVENTS_PAGE_SIZE: 100,
-  MAX_EVENT_PAGES: 10,  // Reduced to prevent timeouts
+  MAX_EVENT_PAGES: 40,  // Increased for more historical data
   MOJO_TO_XCH: 1_000_000_000_000,
 };
 
