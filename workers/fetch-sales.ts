@@ -10,28 +10,50 @@ interface Env {
   SECONDARY_SALES_CUTOFF?: string;
 }
 
-interface NFTEvent {
-  type: string;
-  timestamp: string;
-  price_mojo?: number;
-  xch_price?: number;
-}
-
 interface NFTAttribute {
   trait_type: string;
   value: string;
 }
 
-interface NFTData {
+interface NFTMetadata {
+  name?: string;
+  attributes?: NFTAttribute[];
+}
+
+interface NFTDetail {
+  id: string;
   encoded_id: string;
   name?: string;
   data?: {
-    metadata_json?: {
-      name?: string;
-      attributes?: NFTAttribute[];
-    };
+    metadata_json?: NFTMetadata;
+    name?: string;
   };
-  events?: NFTEvent[];
+}
+
+interface EventNFT {
+  id: string;
+  encoded_id: string;
+  data?: {
+    name?: string;
+  };
+}
+
+interface EventCollection {
+  id: string;
+  name: string;
+}
+
+interface TradeEvent {
+  nft_id: string;
+  timestamp: string;
+  xch_price: number | null;
+  nft?: EventNFT;
+  collection?: EventCollection;
+}
+
+interface EventsResponse {
+  items: TradeEvent[];
+  next?: string | null;
 }
 
 interface Sale {
@@ -62,11 +84,12 @@ interface StoredData {
 
 // Default configuration
 const DEFAULT_CONFIG = {
-  COLLECTION_ID: 'col1wfptqxfx99l8m9h5wd0xfm87hmp5h79kd6w5v33mhgmqdutmpvqsvt3w4s',
+  COLLECTION_ID: 'col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah',
   SECONDARY_SALES_CUTOFF: '2025-12-20T00:00:00Z',
-  RATE_LIMIT_DELAY_MS: 500,
+  RATE_LIMIT_DELAY_MS: 200,
   MAX_RETRIES: 3,
-  PAGE_SIZE: 100,
+  EVENTS_PAGE_SIZE: 100,
+  MAX_EVENT_PAGES: 10,  // Reduced to prevent timeouts
   MOJO_TO_XCH: 1_000_000_000_000,
 };
 
@@ -101,60 +124,77 @@ async function rateLimitedFetch(url: string, retryCount = 0): Promise<Response> 
   return response;
 }
 
-// Fetch all NFTs in collection (paginated)
-async function fetchAllCollectionNFTs(collectionId: string): Promise<NFTData[]> {
-  const allNFTs: NFTData[] = [];
-  let page = 1;
-  let hasMore = true;
+// Fetch trade events for our collection from global events endpoint
+async function fetchCollectionTrades(collectionId: string, cutoffDate: Date): Promise<TradeEvent[]> {
+  const collectionTrades: TradeEvent[] = [];
+  let cursor: string | null = null;
+  let pageCount = 0;
 
-  console.log('Fetching collection NFTs...');
+  console.log('Fetching trade events...');
 
-  while (hasMore) {
-    const url = `https://api.mintgarden.io/collections/${collectionId}/nfts?size=${DEFAULT_CONFIG.PAGE_SIZE}&page=${page}`;
+  while (pageCount < DEFAULT_CONFIG.MAX_EVENT_PAGES) {
+    pageCount++;
+    let url = `https://api.mintgarden.io/events?type=2&size=${DEFAULT_CONFIG.EVENTS_PAGE_SIZE}`;
+    if (cursor) {
+      url += `&cursor=${encodeURIComponent(cursor)}`;
+    }
+
     const response = await rateLimitedFetch(url);
-
     if (!response.ok) {
-      throw new Error(`Failed to fetch NFTs page ${page}: ${response.status}`);
+      throw new Error(`Failed to fetch events: ${response.status}`);
     }
 
-    const data = await response.json() as { nfts?: NFTData[]; items?: NFTData[] };
-    const nfts = data.nfts || data.items || [];
+    const data = await response.json() as EventsResponse;
+    const events = data.items || [];
 
-    allNFTs.push(...nfts);
-    console.log(`Fetched page ${page}, got ${nfts.length} NFTs (total: ${allNFTs.length})`);
-
-    if (nfts.length < DEFAULT_CONFIG.PAGE_SIZE) {
-      hasMore = false;
-    } else {
-      page++;
+    // Filter for our collection
+    for (const event of events) {
+      if (event.collection?.id === collectionId) {
+        const eventDate = new Date(event.timestamp);
+        if (eventDate > cutoffDate && event.xch_price && event.xch_price > 0) {
+          collectionTrades.push(event);
+        }
+      }
     }
 
-    // Safety limit
-    if (page > 100) {
-      console.warn('Hit page limit, stopping pagination');
-      hasMore = false;
+    console.log(`Events page ${pageCount}: found ${events.length} events, ${collectionTrades.length} Wojak trades so far`);
+
+    // Check if we've gone past our cutoff date (events are sorted newest first)
+    if (events.length > 0) {
+      const oldestEvent = events[events.length - 1];
+      const oldestDate = new Date(oldestEvent.timestamp);
+      if (oldestDate < cutoffDate) {
+        console.log('Reached events before cutoff date, stopping');
+        break;
+      }
     }
+
+    // Check for more pages
+    if (!data.next || events.length === 0) {
+      break;
+    }
+
+    cursor = data.next;
   }
 
-  return allNFTs;
+  return collectionTrades;
 }
 
-// Fetch detailed history for a single NFT
-async function fetchNFTHistory(launcherId: string): Promise<NFTEvent[]> {
-  const url = `https://api.mintgarden.io/nfts/${launcherId}`;
+// Fetch NFT details to get traits
+async function fetchNFTDetails(encodedId: string): Promise<NFTDetail | null> {
+  const url = `https://api.mintgarden.io/nfts/${encodedId}`;
   const response = await rateLimitedFetch(url);
 
   if (!response.ok) {
-    console.warn(`Failed to fetch history for ${launcherId}: ${response.status}`);
-    return [];
+    console.warn(`Failed to fetch NFT ${encodedId}: ${response.status}`);
+    return null;
   }
 
-  const data = await response.json() as NFTData;
-  return data.events || [];
+  return response.json() as Promise<NFTDetail>;
 }
 
 // Extract traits from NFT metadata
-function extractTraits(nft: NFTData): Record<string, string> | null {
+function extractTraits(nft: NFTDetail): Record<string, string> | null {
   const attributes = nft.data?.metadata_json?.attributes;
   if (!attributes || !Array.isArray(attributes)) return null;
 
@@ -170,17 +210,10 @@ function extractTraits(nft: NFTData): Record<string, string> | null {
 }
 
 // Extract edition number from NFT name (e.g., "Wojak #0042" -> 42)
-function extractEdition(nft: NFTData): number | null {
-  const name = nft.data?.metadata_json?.name || nft.name;
+function extractEdition(name: string | undefined): number | null {
   if (!name) return null;
-
   const match = name.match(/#(\d+)/);
   return match ? parseInt(match[1], 10) : null;
-}
-
-// Convert mojo to XCH
-function mojoToXCH(mojo: number): number {
-  return mojo / DEFAULT_CONFIG.MOJO_TO_XCH;
 }
 
 // Filter outliers using IQR method
@@ -266,69 +299,73 @@ export default {
     const cutoffDate = new Date(env.SECONDARY_SALES_CUTOFF || DEFAULT_CONFIG.SECONDARY_SALES_CUTOFF);
 
     try {
-      // Step 1: Fetch all NFTs in collection
-      const nfts = await fetchAllCollectionNFTs(collectionId);
-      console.log(`Found ${nfts.length} NFTs in collection`);
+      // Step 1: Fetch all trade events for our collection
+      const trades = await fetchCollectionTrades(collectionId, cutoffDate);
+      console.log(`Found ${trades.length} trades for collection`);
 
-      // Step 2: For each NFT, check for trade events after cutoff date
-      const allSales: Sale[] = [];
-      let processedCount = 0;
-      let salesFound = 0;
+      if (trades.length === 0) {
+        console.log('No trades found, storing empty data');
+        const emptyData: StoredData = {
+          trait_stats: [],
+          all_sales: [],
+          total_sales_count: 0,
+          last_updated: new Date().toISOString(),
+          fetch_duration_ms: Date.now() - startTime,
+        };
+        await env.TRADE_VALUES_KV.put('trade_values_data', JSON.stringify(emptyData));
+        return;
+      }
 
-      for (const nft of nfts) {
-        processedCount++;
+      // Step 2: Fetch NFT details for each traded NFT (deduplicated)
+      const uniqueNftIds = [...new Set(trades.map(t => t.nft?.encoded_id).filter(Boolean))] as string[];
+      console.log(`Fetching details for ${uniqueNftIds.length} unique NFTs...`);
 
-        if (processedCount % 100 === 0) {
-          console.log(`Processing NFT ${processedCount}/${nfts.length}, found ${salesFound} sales so far...`);
+      const nftDetailsMap = new Map<string, NFTDetail>();
+      let fetchedCount = 0;
+
+      for (const encodedId of uniqueNftIds) {
+        const details = await fetchNFTDetails(encodedId);
+        if (details) {
+          nftDetailsMap.set(encodedId, details);
         }
-
-        const edition = extractEdition(nft);
-        const traits = extractTraits(nft);
-
-        if (!edition || !traits) continue;
-
-        // Check if we need to fetch detailed history
-        let events = nft.events;
-        if (!events || events.length === 0) {
-          events = await fetchNFTHistory(nft.encoded_id);
-        }
-
-        // Filter for trade events after cutoff
-        for (const event of events) {
-          if (event.type !== 'trade') continue;
-
-          const eventDate = new Date(event.timestamp);
-          if (eventDate <= cutoffDate) continue;
-
-          // Get price (handle both mojo and XCH formats)
-          let priceXCH: number;
-          if (event.xch_price !== undefined) {
-            priceXCH = event.xch_price;
-          } else if (event.price_mojo !== undefined) {
-            priceXCH = mojoToXCH(event.price_mojo);
-          } else {
-            continue;
-          }
-
-          if (priceXCH <= 0) continue;
-
-          allSales.push({
-            edition,
-            price_xch: priceXCH,
-            timestamp: event.timestamp,
-            traits,
-          });
-          salesFound++;
+        fetchedCount++;
+        if (fetchedCount % 20 === 0) {
+          console.log(`Fetched ${fetchedCount}/${uniqueNftIds.length} NFT details`);
         }
       }
 
-      console.log(`Processed ${processedCount} NFTs, found ${allSales.length} secondary sales`);
+      // Step 3: Build sales data with traits
+      const allSales: Sale[] = [];
 
-      // Step 3: Calculate trait statistics
+      for (const trade of trades) {
+        const nftId = trade.nft?.encoded_id;
+        if (!nftId) continue;
+
+        const details = nftDetailsMap.get(nftId);
+        if (!details) continue;
+
+        const traits = extractTraits(details);
+        if (!traits) continue;
+
+        const name = details.data?.metadata_json?.name || details.data?.name || details.name;
+        const edition = extractEdition(name);
+        if (!edition) continue;
+
+        allSales.push({
+          edition,
+          price_xch: trade.xch_price!,
+          timestamp: trade.timestamp,
+          traits,
+        });
+      }
+
+      console.log(`Processed ${allSales.length} sales with trait data`);
+
+      // Step 4: Calculate trait statistics
       const traitStats = calculateTraitStats(allSales);
       console.log(`Calculated stats for ${traitStats.length} traits`);
 
-      // Step 4: Store in KV
+      // Step 5: Store in KV
       const storedData: StoredData = {
         trait_stats: traitStats,
         all_sales: allSales,

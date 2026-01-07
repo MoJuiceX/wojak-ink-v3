@@ -20,5 +20,5 @@ command = ""
 
 # Environment variables (optional - can also set in dashboard)
 [vars]
-COLLECTION_ID = "col1wfptqxfx99l8m9h5wd0xfm87hmp5h79kd6w5v33mhgmqdutmpvqsvt3w4s"
+COLLECTION_ID = "col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah"
 SECONDARY_SALES_CUTOFF = "2025-12-20T00:00:00Z"
