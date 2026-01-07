@@ -11,53 +11,93 @@
   flex-direction: column;
 }
 
-/* Search Section */
-.search-section {
-  margin-bottom: 8px;
-}
-
-.search-section-tight {
+/* Search Row - Input + Random Button (equal width) */
+.search-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
   margin-bottom: 12px;
 }
 
-.search-input-group {
+.search-input-wrapper {
+  flex: 1;
+  position: relative;
   display: flex;
-  gap: 8px;
   align-items: center;
-  margin: 0;
-  padding: 0;
-  border: none;
 }
 
-.nft-input {
-  --background: var(--ion-color-light);
-  --padding-start: 16px;
-  --padding-end: 16px;
-  border-radius: 12px;
-  flex: 1;
-  font-size: 16px;
+.search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 18px;
+  color: var(--ion-color-medium);
+  pointer-events: none;
 }
 
-.nft-input-native {
-  flex: 1;
+.nft-input-compact {
+  width: 100%;
   background: var(--ion-color-light);
-  border: none;
+  border: 1px solid var(--color-border-default, rgba(255,255,255,0.1));
   border-radius: 12px;
-  padding: 12px 16px;
-  font-size: 16px;
-  color: var(--ion-text-color);
+  padding: 14px 14px 14px 38px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  text-align: left;
   outline: none;
   -webkit-appearance: none;
   appearance: none;
+  transition: all 0.2s ease;
 }
 
-.nft-input-native::placeholder {
+.nft-input-compact::placeholder {
   color: var(--ion-color-medium);
+  font-weight: 500;
+  opacity: 0.7;
 }
 
-.nft-input-native:focus {
+.nft-input-compact:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--app-accent-color);
+  border-color: var(--app-accent-color);
+  box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.2);
+  color: var(--ion-text-color);
+}
+
+/* Random / Surprise Me Button */
+.random-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--ion-color-light);
+  border: 1px solid var(--color-border-default, rgba(255,255,255,0.1));
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.random-button ion-icon {
+  font-size: 18px;
+  color: var(--app-accent-color);
+}
+
+.random-button:hover {
+  background: var(--ion-color-light-shade);
+  border-color: var(--app-accent-color);
+}
+
+.random-button:active {
+  transform: scale(0.98);
+}
+
+.random-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .error-text {
@@ -152,12 +192,6 @@
   margin-top: 2px;
 }
 
-/* Ask Button */
-.ask-button {
-  --background: var(--app-button-background);
-  --color: white;
-  font-weight: 600;
-}
 
 /* Results Section */
 .results-section {
@@ -180,7 +214,7 @@
   background: var(--ion-color-light);
   border-radius: 16px;
   padding: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .preview-image-small {
@@ -226,7 +260,7 @@
   background: var(--ion-color-light);
   border-radius: 12px;
   padding: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .percentile-labels {
@@ -268,7 +302,7 @@
   padding: 8px 12px;
   background: var(--ion-color-light);
   border-radius: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .base-name {
@@ -281,9 +315,52 @@
   color: var(--ion-color-medium);
 }
 
+/* Flag Badges */
+.flag-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.flag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.flag-badge.crown {
+  background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%);
+  color: #333;
+}
+
+.flag-badge.special {
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  color: white;
+}
+
+.flag-badge.elite {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+}
+
+.flag-badge.rare {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.flag-badge.floor {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+}
+
 /* Traits Compact */
 .traits-compact {
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
 
 .traits-label {
@@ -320,7 +397,7 @@
   border: 1px solid rgba(255, 149, 0, 0.3);
   border-radius: 12px;
   padding: 12px 14px;
-  margin-top: 12px;
+  margin-top: 16px;
 }
 
 .dyk-label {
@@ -342,7 +419,7 @@
 .intelligence-button-container {
   margin-top: auto;
   padding-top: 0px;
-  padding-bottom: 14px;
+  padding-bottom: 12px;
 }
 
 .intelligence-button {
@@ -367,7 +444,7 @@
 }
 
 .intelligence-container {
-  padding: 24px 16px;
+  padding: 8px 16px 16px;
   min-height: 100%;
   display: flex;
   flex-direction: column;

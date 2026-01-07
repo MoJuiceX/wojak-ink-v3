@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { IonIcon } from '@ionic/react';
 import { chevronForward, chevronBack } from 'ionicons/icons';
 import './FloatingVideoPlayer.css';
@@ -9,8 +9,12 @@ interface FloatingVideoPlayerProps {
   onVideoEnded?: () => void;
   platform: 'local' | 'youtube';
   videoSrc: string;
+  nextVideoSrc?: string;
   title?: string;
 }
+
+// Crossfade duration in seconds - how long before end to start fading
+const CROSSFADE_DURATION = 4;
 
 const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
   isOpen,
@@ -18,15 +22,135 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
   onVideoEnded,
   platform,
   videoSrc,
+  nextVideoSrc,
 }) => {
   const [position, setPosition] = useState({ x: 20, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasMoved, setHasMoved] = useState(false);
+  const [crossfadeOpacity, setCrossfadeOpacity] = useState(1);
   const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const nextVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Track if we're currently fading
+  const isFadingRef = useRef(false);
+  const fadeAnimationRef = useRef<number | null>(null);
+
+  // Perform smooth fade out and transition
+  const performFadeTransition = useCallback(() => {
+    if (!videoRef.current || isFadingRef.current) return;
+
+    isFadingRef.current = true;
+    const video = videoRef.current;
+    const nextVideo = nextVideoRef.current;
+
+    // Start playing next video silently for preload
+    if (nextVideo && nextVideoSrc) {
+      nextVideo.volume = 0;
+      nextVideo.currentTime = 0;
+      nextVideo.play().catch(() => {});
+    }
+
+    const startTime = Date.now();
+    const fadeDuration = CROSSFADE_DURATION * 1000;
+    const startVolume = video.volume || 1;
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / fadeDuration, 1);
+
+      // Smooth ease-out curve
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+      // Fade out current video
+      const currentVolume = startVolume * (1 - easeProgress);
+      try {
+        video.volume = Math.max(0, currentVolume);
+      } catch (e) {
+        // iOS volume control fallback
+      }
+
+      // Fade in next video audio
+      if (nextVideo) {
+        try {
+          nextVideo.volume = easeProgress;
+        } catch (e) {}
+      }
+
+      // Visual crossfade
+      setCrossfadeOpacity(1 - easeProgress);
+
+      if (progress < 1) {
+        fadeAnimationRef.current = requestAnimationFrame(animate);
+      } else {
+        // Transition complete
+        video.pause();
+        isFadingRef.current = false;
+        fadeAnimationRef.current = null;
+        setCrossfadeOpacity(1);
+
+        // Switch to next video
+        if (onVideoEnded) {
+          onVideoEnded();
+        }
+      }
+    };
+
+    fadeAnimationRef.current = requestAnimationFrame(animate);
+  }, [nextVideoSrc, onVideoEnded]);
+
+  // Handle timeupdate to detect crossfade point
+  const handleTimeUpdate = useCallback(() => {
+    if (!videoRef.current || isFadingRef.current) return;
+
+    const video = videoRef.current;
+    const timeRemaining = video.duration - video.currentTime;
+
+    // Start fade when CROSSFADE_DURATION seconds remain
+    // Only if video is long enough (at least 2x the fade duration)
+    if (timeRemaining <= CROSSFADE_DURATION &&
+        timeRemaining > 0 &&
+        video.duration > CROSSFADE_DURATION * 2 &&
+        nextVideoSrc) {
+      performFadeTransition();
+    }
+  }, [nextVideoSrc, performFadeTransition]);
+
+  // Preload next video
+  useEffect(() => {
+    if (nextVideoSrc && nextVideoRef.current) {
+      nextVideoRef.current.src = nextVideoSrc;
+      nextVideoRef.current.load();
+    }
+  }, [nextVideoSrc]);
+
+  // Reset fade state when video source changes
+  useEffect(() => {
+    isFadingRef.current = false;
+    setCrossfadeOpacity(1);
+    if (fadeAnimationRef.current) {
+      cancelAnimationFrame(fadeAnimationRef.current);
+      fadeAnimationRef.current = null;
+    }
+    // Reset volume for new video
+    if (videoRef.current) {
+      try {
+        videoRef.current.volume = 1;
+      } catch (e) {}
+    }
+  }, [videoSrc]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (fadeAnimationRef.current) {
+        cancelAnimationFrame(fadeAnimationRef.current);
+      }
+    };
+  }, []);
 
   // Reset state and autoplay when opening
   useEffect(() => {
@@ -40,6 +164,7 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
       if (platform === 'local') {
         setTimeout(() => {
           if (videoRef.current) {
+            videoRef.current.volume = 1;
             videoRef.current.play()
               .then(() => setIsPlaying(true))
               .catch(err => {
@@ -71,7 +196,6 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    // Don't interfere with close button
     if ((e.target as HTMLElement).closest('.close-x')) return;
 
     const touch = e.touches[0];
@@ -92,7 +216,6 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
     const deltaX = touch.clientX - dragRef.current.startX;
     const deltaY = touch.clientY - dragRef.current.startY;
 
-    // Mark as moved if dragged more than 5px
     if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
       setHasMoved(true);
     }
@@ -112,11 +235,9 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    // Don't interfere with close button
     if ((e.target as HTMLElement).closest('.close-x')) return;
 
     if (!dragRef.current) {
-      // No drag started, might be a simple tap
       if (!hasMoved) {
         togglePlayPause();
       }
@@ -128,12 +249,10 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
     const deltaY = touch.clientY - dragRef.current.startY;
     const totalMovement = Math.abs(deltaX) + Math.abs(deltaY);
 
-    // If barely moved, treat as tap to play/pause
     if (totalMovement < 15 && !isMinimized && !hasMoved) {
       e.preventDefault();
       togglePlayPause();
     } else if (!isMinimized && Math.abs(deltaX) > 80) {
-      // Swipe to minimize
       if (deltaX < 0) {
         setIsMinimized(true);
         setPosition(prev => ({ ...prev, x: 0 }));
@@ -191,7 +310,6 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
           const deltaY = e.clientY - dragRef.current.startY;
           const totalMovement = Math.abs(deltaX) + Math.abs(deltaY);
 
-          // If barely moved, treat as click to play/pause
           if (totalMovement < 10 && !isMinimized) {
             togglePlayPause();
           }
@@ -217,10 +335,12 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
     setPosition(prev => ({ ...prev, x: centerX }));
   };
 
-  // Close on swipe down when minimized or double-tap
   const handleClose = () => {
     if (videoRef.current) {
       videoRef.current.pause();
+    }
+    if (fadeAnimationRef.current) {
+      cancelAnimationFrame(fadeAnimationRef.current);
     }
     onClose();
   };
@@ -228,6 +348,7 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
   if (!isOpen) return null;
 
   const isOnRightSide = position.x > window.innerWidth / 2;
+  const isFading = crossfadeOpacity < 1;
 
   return (
     <div
@@ -238,7 +359,6 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
         top: position.y,
       }}
     >
-      {/* Video element - ALWAYS rendered to keep audio playing when minimized */}
       <div
         className="video-wrapper"
         style={{ display: isMinimized ? 'none' : 'block' }}
@@ -255,35 +375,58 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
             allowFullScreen
           />
         ) : (
-          <video
-            ref={videoRef}
-            src={videoSrc}
-            playsInline
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onEnded={() => {
-              if (onVideoEnded) {
-                onVideoEnded();
-              }
-            }}
-          />
+          <>
+            {/* Next video (behind, for crossfade) */}
+            {nextVideoSrc && (
+              <video
+                ref={nextVideoRef}
+                playsInline
+                className="crossfade-video"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  pointerEvents: 'none',
+                  zIndex: 1,
+                }}
+              />
+            )}
+            {/* Current video (on top) */}
+            <video
+              ref={videoRef}
+              src={videoSrc}
+              playsInline
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onTimeUpdate={handleTimeUpdate}
+              onEnded={() => {
+                if (!isFadingRef.current && onVideoEnded) {
+                  onVideoEnded();
+                }
+              }}
+              style={{
+                position: 'relative',
+                zIndex: 2,
+                opacity: crossfadeOpacity,
+              }}
+            />
+          </>
         )}
-        {/* Close button - small X in corner */}
         <button className="close-x" onClick={handleClose}>×</button>
-        {/* Play/Pause indicator overlay */}
-        {!isPlaying && (
+        {!isPlaying && !isFading && (
           <div className="play-indicator">▶</div>
         )}
       </div>
 
-      {/* Minimized pill UI - shown when minimized */}
       {isMinimized && (
         <div
           className="minimized-player"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={(e) => {
-            // Only expand if it wasn't a drag
             if (!hasMoved) {
               handleExpand(e);
             }
@@ -292,7 +435,6 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
           }}
           onMouseDown={handleMouseDown}
           onClick={(e) => {
-            // Only expand if it wasn't a drag
             if (!hasMoved) {
               handleExpand(e);
             }

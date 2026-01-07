@@ -4,7 +4,7 @@
 
 .settings-section {
   padding: 0 16px;
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .settings-section-title {
@@ -33,6 +33,73 @@
 .settings-icon {
   color: var(--ion-color-primary);
   font-size: 24px;
+}
+
+/* Remove item dividers/borders */
+.settings-page-content ion-item {
+  --inner-border-width: 0;
+  --border-width: 0;
+  --border-color: transparent;
+  --inner-border-color: transparent;
+}
+
+.settings-page-content ion-list {
+  --ion-item-border-color: transparent;
+}
+
+/* Remove all slot dividers and borders */
+.settings-page-content ion-item::part(detail-icon),
+.settings-page-content ion-item::part(native)::after,
+.settings-page-content ion-item::part(native)::before {
+  display: none;
+}
+
+/* Remove borders around toggle slot */
+.settings-page-content ion-item [slot="end"] {
+  border: none;
+  box-shadow: none;
+  outline: none;
+}
+
+.settings-page-content ion-item::part(native) {
+  border: none;
+  box-shadow: none;
+}
+
+/* Target the inner wrapper that creates the vertical lines */
+.settings-page-content ion-item .item-inner {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.settings-page-content ion-item .item-detail-icon {
+  display: none;
+}
+
+/* Remove highlight and ripple borders */
+.settings-page-content ion-item {
+  --highlight-background: transparent;
+  --highlight-color-focused: transparent;
+  --highlight-color-valid: transparent;
+  --highlight-color-invalid: transparent;
+  --detail-icon-opacity: 0;
+}
+
+/* Keep labels on one line */
+.settings-page-content ion-item h2 {
+  white-space: nowrap;
+}
+
+/* Adjust item end slot padding */
+.settings-page-content ion-item {
+  --padding-end: 0;
+  --inner-padding-end: 0;
+}
+
+/* Toggle positioned to the right */
+.settings-page-content ion-item ion-toggle[slot="end"] {
+  margin-inline-start: 16px;
+  margin-inline-end: 16px;
 }
 
 /* Theme Grid */
@@ -110,7 +177,7 @@
 .settings-footer {
   text-align: center;
   padding: 32px 16px;
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .settings-footer ion-note p {

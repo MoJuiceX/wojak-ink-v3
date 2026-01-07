@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import './BigPulpCharacter.css';
 
 interface BigPulpCharacterProps {
@@ -51,6 +51,8 @@ const BigPulpCharacter: React.FC<BigPulpCharacterProps> = ({
 }) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isAnimatingText, setIsAnimatingText] = useState(false);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Determine the BigPulp image based on head trait
   const bigPulpImage = useMemo(() => {
@@ -107,11 +109,19 @@ const BigPulpCharacter: React.FC<BigPulpCharacterProps> = ({
     }
   }, [message, isTyping, onTypingComplete]);
 
+  // Check for overflow when text changes
+  useEffect(() => {
+    const el = contentRef.current;
+    if (el) {
+      setHasOverflow(el.scrollHeight > el.clientHeight);
+    }
+  }, [displayedText]);
+
   return (
     <div className="bigpulp-character-container">
       {/* Speech Bubble */}
-      <div className={`speech-bubble ${displayedText ? 'visible' : ''}`}>
-        <div className="speech-content">
+      <div className={`speech-bubble ${displayedText ? 'visible' : ''} ${hasOverflow ? 'has-overflow' : ''}`}>
+        <div className="speech-content" ref={contentRef}>
           {displayedText}
           {isAnimatingText && <span className="typing-cursor">|</span>}
         </div>

@@ -1,0 +1,322 @@
+/**
+ * TraitValues Component Styles
+ * Sortable trait trade statistics table
+ */
+
+.trait-values-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--ion-background-color);
+}
+
+/* Loading state */
+.trait-values-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--ion-color-medium);
+}
+
+.trait-values-loading ion-spinner {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 12px;
+}
+
+.trait-values-loading p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Error state */
+.trait-values-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  padding: 20px;
+  text-align: center;
+}
+
+.trait-values-error p {
+  color: var(--ion-color-danger);
+  margin-bottom: 16px;
+}
+
+.retry-btn {
+  background: var(--ion-color-primary);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.retry-btn:active {
+  opacity: 0.8;
+}
+
+/* Filters */
+.trait-filters {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.category-select {
+  flex: 0 0 auto;
+  min-width: 120px;
+  --background: rgba(255, 255, 255, 0.1);
+  --padding-start: 12px;
+  --padding-end: 12px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+.trait-search {
+  flex: 1;
+  --background: rgba(255, 255, 255, 0.1);
+  --border-radius: 8px;
+  --box-shadow: none;
+  --padding-start: 8px;
+  font-size: 13px;
+  min-height: 36px;
+}
+
+.trait-search .searchbar-input {
+  font-size: 13px !important;
+}
+
+/* Stats summary */
+.trait-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  background: rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.trait-summary .divider {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+/* Table wrapper */
+.trait-table-wrapper {
+  flex: 1;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Table */
+.trait-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.trait-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #1a1a1a;
+}
+
+.trait-table th {
+  padding: 10px 6px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.trait-table th:hover {
+  color: var(--ion-color-primary);
+}
+
+.trait-table th:first-child {
+  padding-left: 12px;
+}
+
+.trait-table th:last-child {
+  padding-right: 12px;
+}
+
+.trait-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+.trait-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.trait-table tbody tr.selected {
+  background: rgba(255, 165, 0, 0.1);
+}
+
+.trait-table td {
+  padding: 10px 6px;
+  vertical-align: middle;
+}
+
+.trait-table td:first-child {
+  padding-left: 12px;
+}
+
+.trait-table td:last-child {
+  padding-right: 12px;
+}
+
+.trait-table .trait-name {
+  font-weight: 500;
+  color: var(--ion-text-color);
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trait-table .trait-category {
+  color: var(--ion-color-medium);
+  text-transform: capitalize;
+}
+
+.trait-table .price {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  color: #4ade80;
+}
+
+.trait-table .last-trade {
+  color: var(--ion-color-medium);
+  font-size: 11px;
+}
+
+.trait-table .no-results {
+  text-align: center;
+  color: var(--ion-color-medium);
+  padding: 40px 20px !important;
+}
+
+/* Hide on mobile */
+@media (max-width: 480px) {
+  .trait-table .hide-mobile {
+    display: none;
+  }
+
+  .trait-table .trait-name {
+    max-width: 80px;
+  }
+}
+
+/* Detail row */
+.detail-row {
+  background: rgba(255, 165, 0, 0.05) !important;
+  cursor: default !important;
+}
+
+.detail-row:hover {
+  background: rgba(255, 165, 0, 0.05) !important;
+}
+
+.detail-row td {
+  padding: 0 !important;
+}
+
+.trait-detail {
+  padding: 12px;
+  border-top: 1px solid rgba(255, 165, 0, 0.2);
+}
+
+.detail-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.detail-stats .stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detail-stats .stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--ion-color-medium);
+  letter-spacing: 0.5px;
+}
+
+.detail-stats .stat-value {
+  font-size: 13px;
+  color: var(--ion-text-color);
+}
+
+.recent-sales h4 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.recent-sales ion-spinner {
+  display: block;
+  margin: 16px auto;
+}
+
+.recent-sales .no-sales {
+  color: var(--ion-color-medium);
+  font-size: 12px;
+  margin: 0;
+}
+
+.sales-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sale-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.sale-item .sale-edition {
+  font-weight: 600;
+  color: var(--ion-color-primary);
+  min-width: 50px;
+}
+
+.sale-item .sale-price {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  color: #4ade80;
+  flex: 1;
+}
+
+.sale-item .sale-time {
+  color: var(--ion-color-medium);
+  font-size: 11px;
+}

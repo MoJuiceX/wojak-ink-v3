@@ -1,307 +1,312 @@
-/* For information on how to create your own theme, please refer to:
-http://ionicframework.com/docs/theming/ */
+/* ============================================================
+   WOJAK.INK DESIGN SYSTEM v2.0
+   Tang Gang Cyberpunk Orange Theme
+   ============================================================ */
 
-/* ============================================
-   THEME DEFINITIONS
-   ============================================ */
-
-/* Dark Theme (Default) */
+/* ============================================================
+   DESIGN TOKENS - DARK THEME (Default)
+   ============================================================ */
 :root,
 .theme-dark {
-  --ion-background-color: #1a1a2e;
-  --ion-background-color-rgb: 26, 26, 46;
-  --ion-text-color: #ffffff;
+  /* ---------- BACKGROUND COLORS ---------- */
+  --color-bg-primary: #0a0a0f;
+  --color-bg-secondary: #101018;
+  --color-bg-elevated: #16161f;
+  --color-bg-card: rgba(255, 255, 255, 0.03);
+  --color-bg-glass: rgba(255, 255, 255, 0.05);
+  --color-bg-input: rgba(255, 255, 255, 0.08);
+
+  /* ---------- BRAND COLORS - ORANGE ---------- */
+  --color-orange-300: #ffb366;
+  --color-orange-400: #ff9933;
+  --color-orange-500: #ff6b00;
+  --color-orange-600: #e65c00;
+  --color-orange-700: #cc5200;
+  --color-orange-glow: rgba(255, 107, 0, 0.5);
+  --color-orange-glow-soft: rgba(255, 107, 0, 0.25);
+  --color-orange-glow-intense: rgba(255, 107, 0, 0.7);
+
+  /* ---------- ACCENT COLORS ---------- */
+  --color-cyan: #00d4ff;
+  --color-cyan-glow: rgba(0, 212, 255, 0.4);
+  --color-purple: #a855f7;
+  --color-purple-glow: rgba(168, 85, 247, 0.4);
+  --color-green: #22c55e;
+  --color-red: #ef4444;
+
+  /* ---------- TEXT COLORS ---------- */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: rgba(255, 255, 255, 0.7);
+  --color-text-muted: rgba(255, 255, 255, 0.4);
+  --color-text-disabled: rgba(255, 255, 255, 0.2);
+
+  /* ---------- BORDER COLORS ---------- */
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border-default: rgba(255, 255, 255, 0.1);
+  --color-border-strong: rgba(255, 255, 255, 0.2);
+  --color-border-orange: rgba(255, 107, 0, 0.3);
+  --color-border-orange-glow: rgba(255, 107, 0, 0.5);
+
+  /* ---------- GRADIENTS ---------- */
+  --gradient-bg: linear-gradient(180deg, #0a0a0f 0%, #050508 100%);
+  --gradient-orange: linear-gradient(135deg, #ff6b00 0%, #ff9500 100%);
+  --gradient-orange-dark: linear-gradient(135deg, #cc5200 0%, #ff6b00 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+  --gradient-card: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+  --gradient-glow: radial-gradient(ellipse at center, var(--color-orange-glow-soft) 0%, transparent 70%);
+
+  /* ---------- SHADOWS & GLOWS ---------- */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-button: 0 4px 16px rgba(0, 0, 0, 0.3);
+
+  --glow-orange-sm: 0 0 10px var(--color-orange-glow-soft);
+  --glow-orange: 0 0 20px var(--color-orange-glow);
+  --glow-orange-lg: 0 0 30px var(--color-orange-glow), 0 0 60px var(--color-orange-glow-soft);
+  --glow-orange-intense: 0 0 20px var(--color-orange-glow-intense), 0 0 40px var(--color-orange-glow), 0 0 80px var(--color-orange-glow-soft);
+  --glow-text: 0 0 10px var(--color-orange-glow);
+
+  /* ---------- BLUR & EFFECTS ---------- */
+  --blur-glass: blur(20px);
+  --blur-glass-heavy: blur(40px);
+
+  /* ---------- TYPOGRAPHY ---------- */
+  --font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-size-2xs: 10px;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 32px;
+  --font-size-4xl: 40px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ---------- SPACING ---------- */
+  --space-2xs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --space-4xl: 40px;
+  --space-5xl: 48px;
+
+  /* ---------- BORDER RADIUS ---------- */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* ---------- TRANSITIONS ---------- */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 400ms ease;
+  --transition-bounce: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ---------- Z-INDEX SCALE ---------- */
+  --z-base: 1;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-fixed: 30;
+  --z-modal: 40;
+  --z-toast: 50;
+
+  /* ========== IONIC OVERRIDES ========== */
+  --ion-background-color: var(--color-bg-primary);
+  --ion-background-color-rgb: 10, 10, 15;
+  --ion-text-color: var(--color-text-primary);
   --ion-text-color-rgb: 255, 255, 255;
-  --ion-color-medium: rgba(255, 255, 255, 0.6);
-  --ion-color-light: rgba(255, 255, 255, 0.08);
-  --ion-color-primary: #ff8c00;
-  --ion-color-primary-rgb: 255, 140, 0;
+
+  --ion-color-primary: var(--color-orange-500);
+  --ion-color-primary-rgb: 255, 107, 0;
   --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-shade: #e07b00;
-  --ion-color-primary-tint: #ff981a;
+  --ion-color-primary-shade: var(--color-orange-600);
+  --ion-color-primary-tint: var(--color-orange-400);
 
-  --ion-toolbar-background: #1a1a2e;
-  --ion-toolbar-color: #ffffff;
-  --ion-tab-bar-background: #0f0f1a;
-  --ion-tab-bar-color: rgba(255, 255, 255, 0.6);
-  --ion-tab-bar-color-selected: #ff8c00;
-  --ion-card-background: rgba(255, 255, 255, 0.05);
+  --ion-color-medium: var(--color-text-secondary);
+  --ion-color-light: var(--color-bg-glass);
 
-  --app-background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
-  --app-card-background: rgba(255, 255, 255, 0.05);
-  --app-card-border: rgba(255, 255, 255, 0.1);
-  --app-section-background: rgba(255, 255, 255, 0.05);
-  --app-input-background: rgba(255, 255, 255, 0.1);
-  --app-accent-color: #ff8c00;
-  --app-button-background: #ff8c00;
-  --app-button-selected: #ff8c00;
-  --app-preview-background: linear-gradient(135deg, #2a2a3e 0%, #3a3a4e 100%);
+  --ion-toolbar-background: transparent;
+  --ion-toolbar-color: var(--color-text-primary);
+  --ion-tab-bar-background: rgba(10, 10, 15, 0.85);
+  --ion-tab-bar-color: var(--color-text-muted);
+  --ion-tab-bar-color-selected: var(--color-orange-500);
+  --ion-card-background: var(--color-bg-glass);
 
-  /* Heatmap Theme - Dark (Modern deep blue/purple) */
-  --heatmap-card-bg: rgba(255, 255, 255, 0.05);
-  --heatmap-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --heatmap-card-border: rgba(255, 255, 255, 0.1);
-  --heatmap-grid-bg: rgba(0, 0, 0, 0.2);
-  --heatmap-divider: rgba(255, 255, 255, 0.1);
-  --heatmap-text: #ffffff;
-  --heatmap-text-muted: rgba(255, 255, 255, 0.6);
-  --heatmap-cell-rgb: 129, 140, 248;
+  /* App-specific tokens (legacy support) */
+  --app-background: var(--gradient-bg);
+  --app-card-background: var(--color-bg-glass);
+  --app-card-border: var(--color-border-default);
+  --app-section-background: var(--color-bg-card);
+  --app-input-background: var(--color-bg-input);
+  --app-accent-color: var(--color-orange-500);
+  --app-button-background: var(--color-orange-500);
+  --app-preview-background: rgba(255, 107, 0, 0.15);
+  --app-button-selected: var(--color-orange-500);
+
+  /* Heatmap tokens */
+  --heatmap-card-bg: var(--color-bg-glass);
+  --heatmap-card-shadow: var(--shadow-lg);
+  --heatmap-card-border: var(--color-border-default);
+  --heatmap-grid-bg: rgba(0, 0, 0, 0.3);
+  --heatmap-divider: var(--color-border-subtle);
+  --heatmap-text: var(--color-text-primary);
+  --heatmap-text-muted: var(--color-text-secondary);
+  --heatmap-cell-rgb: 255, 107, 0;
   --heatmap-cell-text: #ffffff;
-  --heatmap-highlight-rgb: 251, 191, 36;
-  --heatmap-highlight-ring: rgba(251, 191, 36, 0.6);
-  --heatmap-btn-bg: rgba(255, 255, 255, 0.08);
-  --heatmap-btn-border: rgba(255, 255, 255, 0.15);
-  --heatmap-btn-text: rgba(255, 255, 255, 0.9);
-  --heatmap-btn-active-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --heatmap-highlight-rgb: 255, 140, 0;
+  --heatmap-highlight-ring: var(--color-orange-glow);
+  --heatmap-btn-bg: var(--color-bg-input);
+  --heatmap-btn-border: var(--color-border-default);
+  --heatmap-btn-text: var(--color-text-secondary);
+  --heatmap-btn-active-bg: var(--gradient-orange);
   --heatmap-btn-active-text: #ffffff;
-  --heatmap-btn-active-shadow: rgba(99, 102, 241, 0.4);
-  --heatmap-legend-bg: rgba(0, 0, 0, 0.2);
+  --heatmap-btn-active-shadow: var(--glow-orange);
+  --heatmap-legend-bg: rgba(0, 0, 0, 0.3);
 }
 
-/* Light Theme */
+/* ============================================================
+   LIGHT THEME
+   ============================================================ */
 .theme-light {
-  --ion-background-color: #ffffff;
-  --ion-background-color-rgb: 255, 255, 255;
-  --ion-text-color: #1a1a2e;
-  --ion-text-color-rgb: 26, 26, 46;
-  --ion-color-medium: rgba(0, 0, 0, 0.5);
-  --ion-color-light: #f5f5f5;
-  --ion-color-primary: #ff8c00;
-  --ion-color-primary-rgb: 255, 140, 0;
-  --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-shade: #e07b00;
-  --ion-color-primary-tint: #ff981a;
+  --color-bg-primary: #f8f9fa;
+  --color-bg-secondary: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-card: rgba(0, 0, 0, 0.02);
+  --color-bg-glass: rgba(255, 255, 255, 0.8);
+  --color-bg-input: rgba(0, 0, 0, 0.05);
 
-  --ion-toolbar-background: #ffffff;
-  --ion-toolbar-color: #1a1a2e;
-  --ion-tab-bar-background: #f8f8f8;
-  --ion-tab-bar-color: rgba(0, 0, 0, 0.5);
-  --ion-tab-bar-color-selected: #ff8c00;
-  --ion-card-background: #ffffff;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: rgba(0, 0, 0, 0.6);
+  --color-text-muted: rgba(0, 0, 0, 0.4);
 
-  --app-background: linear-gradient(180deg, #f5f5f5 0%, #ffffff 100%);
-  --app-card-background: #ffffff;
-  --app-card-border: rgba(0, 0, 0, 0.1);
-  --app-section-background: #f5f5f5;
-  --app-input-background: #f0f0f0;
-  --app-accent-color: #ff8c00;
-  --app-button-background: #ff8c00;
-  --app-button-selected: #ff8c00;
-  --app-preview-background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 100%);
+  --color-border-subtle: rgba(0, 0, 0, 0.04);
+  --color-border-default: rgba(0, 0, 0, 0.08);
+  --color-border-strong: rgba(0, 0, 0, 0.15);
 
-  /* Heatmap Theme - Light (Clean modern blue) */
-  --heatmap-card-bg: #ffffff;
-  --heatmap-card-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-  --heatmap-card-border: rgba(0, 0, 0, 0.06);
-  --heatmap-grid-bg: #f8fafc;
-  --heatmap-divider: rgba(0, 0, 0, 0.08);
-  --heatmap-text: #1e293b;
-  --heatmap-text-muted: #64748b;
-  --heatmap-cell-rgb: 99, 102, 241;
-  --heatmap-cell-text: #ffffff;
-  --heatmap-highlight-rgb: 249, 115, 22;
-  --heatmap-highlight-ring: rgba(249, 115, 22, 0.5);
-  --heatmap-btn-bg: #f1f5f9;
-  --heatmap-btn-border: #e2e8f0;
-  --heatmap-btn-text: #475569;
-  --heatmap-btn-active-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  --heatmap-btn-active-text: #ffffff;
-  --heatmap-btn-active-shadow: rgba(99, 102, 241, 0.3);
-  --heatmap-legend-bg: #f1f5f9;
+  --gradient-bg: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.08);
+
+  --ion-background-color: var(--color-bg-primary);
+  --ion-background-color-rgb: 248, 249, 250;
+  --ion-text-color: var(--color-text-primary);
+  --ion-text-color-rgb: 26, 26, 26;
+
+  --ion-toolbar-background: rgba(255, 255, 255, 0.8);
+  --ion-tab-bar-background: rgba(255, 255, 255, 0.95);
+  --ion-tab-bar-color: var(--color-text-muted);
+
+  --app-preview-background: rgba(255, 107, 0, 0.1);
+
+  --heatmap-card-bg: var(--color-bg-glass);
+  --heatmap-grid-bg: rgba(0, 0, 0, 0.02);
+  --heatmap-text: var(--color-text-primary);
+  --heatmap-text-muted: var(--color-text-secondary);
 }
 
-/* Orange Theme */
+/* ============================================================
+   ORANGE THEME (Full Tang Mode)
+   ============================================================ */
 .theme-orange {
-  --ion-background-color: #ff8c00;
-  --ion-background-color-rgb: 255, 140, 0;
-  --ion-text-color: #ffffff;
-  --ion-text-color-rgb: 255, 255, 255;
-  --ion-color-medium: rgba(255, 255, 255, 0.7);
-  --ion-color-light: rgba(255, 255, 255, 0.15);
-  --ion-color-primary: #cc7000;
-  --ion-color-primary-rgb: 204, 112, 0;
-  --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-shade: #b36200;
-  --ion-color-primary-tint: #d97d1a;
+  --color-bg-primary: #1a0a00;
+  --color-bg-secondary: #261000;
+  --color-bg-elevated: #331500;
+  --color-bg-card: rgba(255, 107, 0, 0.08);
+  --color-bg-glass: rgba(255, 107, 0, 0.1);
+  --color-bg-input: rgba(255, 107, 0, 0.15);
 
-  --ion-toolbar-background: #ff7b00;
-  --ion-toolbar-color: #ffffff;
-  --ion-tab-bar-background: #e67e00;
-  --ion-tab-bar-color: rgba(255, 255, 255, 0.6);
-  --ion-tab-bar-color-selected: #ffffff;
-  --ion-card-background: rgba(255, 255, 255, 0.15);
+  --color-orange-glow: rgba(255, 107, 0, 0.6);
+  --color-orange-glow-soft: rgba(255, 107, 0, 0.3);
+  --color-orange-glow-intense: rgba(255, 140, 0, 0.8);
 
-  --app-background: linear-gradient(180deg, #ff8c00 0%, #e67e00 100%);
-  --app-card-background: rgba(255, 255, 255, 0.15);
-  --app-card-border: rgba(255, 255, 255, 0.2);
-  --app-section-background: rgba(255, 255, 255, 0.1);
-  --app-input-background: rgba(255, 255, 255, 0.2);
-  --app-accent-color: #cc7000;
-  --app-button-background: #cc7000;
-  --app-button-selected: #ffb84d;
-  --app-preview-background: linear-gradient(135deg, #ffb84d 0%, #ffd699 100%);
+  --color-text-primary: #ffffff;
+  --color-text-secondary: rgba(255, 200, 150, 0.8);
+  --color-text-muted: rgba(255, 180, 120, 0.5);
 
-  /* Heatmap Theme - Orange (Frosted glass with darker orange cells) */
-  --heatmap-card-bg: rgba(255, 255, 255, 0.92);
-  --heatmap-card-shadow: 0 8px 32px rgba(180, 83, 0, 0.25);
-  --heatmap-card-border: rgba(255, 255, 255, 0.5);
-  --heatmap-grid-bg: rgba(255, 248, 240, 0.8);
-  --heatmap-divider: rgba(180, 83, 0, 0.15);
-  --heatmap-text: #7c2d12;
-  --heatmap-text-muted: #9a3412;
-  --heatmap-cell-rgb: 230, 130, 0;
-  --heatmap-cell-text: #ffffff;
-  --heatmap-highlight-rgb: 200, 110, 0;
-  --heatmap-highlight-ring: rgba(120, 53, 0, 0.6);
-  --heatmap-btn-bg: rgba(255, 255, 255, 0.9);
-  --heatmap-btn-border: rgba(180, 83, 0, 0.2);
-  --heatmap-btn-text: #b45309;
-  --heatmap-btn-active-bg: linear-gradient(135deg, #ea580c 0%, #b45309 100%);
-  --heatmap-btn-active-text: #ffffff;
-  --heatmap-btn-active-shadow: rgba(180, 83, 0, 0.4);
-  --heatmap-legend-bg: rgba(255, 255, 255, 0.6);
+  --color-border-subtle: rgba(255, 107, 0, 0.1);
+  --color-border-default: rgba(255, 107, 0, 0.2);
+  --color-border-strong: rgba(255, 107, 0, 0.35);
+  --color-border-orange: rgba(255, 140, 0, 0.4);
+
+  --gradient-bg: linear-gradient(180deg, #1a0a00 0%, #0d0500 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255,107,0,0.12) 0%, rgba(255,107,0,0.04) 100%);
+  --gradient-card: linear-gradient(180deg, rgba(255,107,0,0.1) 0%, rgba(255,107,0,0.03) 100%);
+
+  --glow-orange: 0 0 25px var(--color-orange-glow);
+  --glow-orange-lg: 0 0 40px var(--color-orange-glow), 0 0 80px var(--color-orange-glow-soft);
+
+  --shadow-card: 0 8px 32px rgba(255, 80, 0, 0.2);
+
+  --ion-background-color: var(--color-bg-primary);
+  --ion-background-color-rgb: 26, 10, 0;
+  --ion-tab-bar-background: rgba(26, 10, 0, 0.95);
+
+  --app-preview-background: rgba(255, 107, 0, 0.2);
+
+  --heatmap-card-bg: rgba(255, 107, 0, 0.08);
+  --heatmap-grid-bg: rgba(255, 107, 0, 0.05);
+  --heatmap-card-shadow: 0 8px 32px rgba(255, 80, 0, 0.25);
 }
 
-/* Green Theme */
+/* ============================================================
+   GREEN THEME (Chia Mode)
+   ============================================================ */
 .theme-green {
-  --ion-background-color: #4ade80;
-  --ion-background-color-rgb: 74, 222, 128;
-  --ion-text-color: #1a3a1a;
-  --ion-text-color-rgb: 26, 58, 26;
-  --ion-color-medium: rgba(26, 58, 26, 0.6);
-  --ion-color-light: rgba(255, 255, 255, 0.25);
-  --ion-color-primary: #166534;
-  --ion-color-primary-rgb: 22, 101, 52;
-  --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-shade: #125a2e;
-  --ion-color-primary-tint: #2d7048;
+  --color-bg-primary: #001a0a;
+  --color-bg-secondary: #002610;
+  --color-bg-elevated: #003315;
+  --color-bg-card: rgba(34, 197, 94, 0.08);
+  --color-bg-glass: rgba(34, 197, 94, 0.1);
+  --color-bg-input: rgba(34, 197, 94, 0.15);
 
-  --ion-toolbar-background: #3dd673;
-  --ion-toolbar-color: #1a3a1a;
-  --ion-tab-bar-background: #32c966;
-  --ion-tab-bar-color: rgba(26, 58, 26, 0.5);
-  --ion-tab-bar-color-selected: #166534;
-  --ion-card-background: rgba(255, 255, 255, 0.25);
+  --color-orange-500: #22c55e;
+  --color-orange-600: #16a34a;
+  --color-orange-glow: rgba(34, 197, 94, 0.5);
+  --color-orange-glow-soft: rgba(34, 197, 94, 0.25);
 
-  --app-background: linear-gradient(180deg, #4ade80 0%, #3dd673 100%);
-  --app-card-background: rgba(255, 255, 255, 0.25);
-  --app-card-border: rgba(255, 255, 255, 0.3);
-  --app-section-background: rgba(255, 255, 255, 0.15);
-  --app-input-background: rgba(255, 255, 255, 0.3);
-  --app-accent-color: #166534;
-  --app-button-background: #166534;
+  --color-text-secondary: rgba(150, 255, 180, 0.8);
+  --color-text-muted: rgba(120, 255, 160, 0.5);
+
+  --color-border-subtle: rgba(34, 197, 94, 0.1);
+  --color-border-default: rgba(34, 197, 94, 0.2);
+  --color-border-strong: rgba(34, 197, 94, 0.35);
+
+  --gradient-bg: linear-gradient(180deg, #001a0a 0%, #000d05 100%);
+  --gradient-orange: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
+
+  --ion-background-color: var(--color-bg-primary);
+  --ion-background-color-rgb: 0, 26, 10;
+  --ion-color-primary: #22c55e;
+  --ion-tab-bar-background: rgba(0, 26, 10, 0.95);
+  --ion-tab-bar-color-selected: #22c55e;
+
+  --app-preview-background: rgba(34, 197, 94, 0.15);
+  --app-button-background: #22c55e;
   --app-button-selected: #22c55e;
-  --app-preview-background: linear-gradient(135deg, #86efac 0%, #bbf7d0 100%);
 
-  /* Heatmap Theme - Green (Frosted glass with forest tones) */
-  --heatmap-card-bg: rgba(255, 255, 255, 0.92);
-  --heatmap-card-shadow: 0 8px 32px rgba(22, 101, 52, 0.2);
-  --heatmap-card-border: rgba(255, 255, 255, 0.5);
-  --heatmap-grid-bg: rgba(240, 253, 244, 0.8);
-  --heatmap-divider: rgba(22, 101, 52, 0.15);
-  --heatmap-text: #14532d;
-  --heatmap-text-muted: #166534;
-  --heatmap-cell-rgb: 22, 163, 74;
-  --heatmap-cell-text: #ffffff;
-  --heatmap-highlight-rgb: 21, 128, 61;
-  --heatmap-highlight-ring: rgba(21, 128, 61, 0.5);
-  --heatmap-btn-bg: rgba(255, 255, 255, 0.9);
-  --heatmap-btn-border: rgba(22, 101, 52, 0.2);
-  --heatmap-btn-text: #166534;
-  --heatmap-btn-active-bg: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  --heatmap-btn-active-text: #ffffff;
-  --heatmap-btn-active-shadow: rgba(22, 163, 74, 0.4);
-  --heatmap-legend-bg: rgba(255, 255, 255, 0.6);
-}
-
-/* ============================================
-   GLOBAL STYLES
-   ============================================ */
-
-/* Global compact toolbar styling - matches BigPulp's thinner header */
-ion-toolbar {
-  --min-height: 44px !important;
-  --max-height: 44px;
-  --padding-top: 0;
-  --padding-bottom: 0;
-  --padding-start: 8px;
-  --padding-end: 8px;
-  height: 44px !important;
-  max-height: 44px !important;
-}
-
-ion-toolbar .toolbar-container {
-  height: 44px !important;
-  max-height: 44px !important;
-}
-
-ion-title {
-  font-size: 17px;
-  font-weight: 600;
-  padding: 0 8px;
-  height: 44px;
-  line-height: 44px;
-}
-
-/* Ensure buttons in toolbar don't expand height and stay centered */
-ion-toolbar ion-button {
-  --padding-top: 0;
-  --padding-bottom: 0;
-  --padding-start: 6px;
-  --padding-end: 6px;
-  height: 36px !important;
-  max-height: 36px !important;
-  margin: 0;
-  margin-top: -4px;
-}
-
-ion-toolbar ion-button ion-icon {
-  font-size: 18px;
-}
-
-ion-header {
-  box-shadow: none;
-}
-
-ion-header::after {
-  display: none;
-}
-
-/* Tab Bar Styling */
-ion-tab-bar {
-  --background: var(--ion-tab-bar-background);
-  --color: var(--ion-tab-bar-color);
-  --color-selected: var(--ion-tab-bar-color-selected);
-}
-
-ion-tab-button {
-  --color: var(--ion-tab-bar-color);
-  --color-selected: var(--ion-tab-bar-color-selected);
-}
-
-/* Toggle Styling - uses accent color when checked */
-ion-toggle {
-  --background-checked: var(--app-accent-color);
-  --handle-background-checked: var(--ion-color-primary-contrast, #ffffff);
-}
-
-/* Settings FAB Button */
-.settings-fab {
-  margin-top: 8px;
-  margin-right: 8px;
-  z-index: 999;
-}
-
-.settings-fab ion-fab-button {
-  --background: rgba(255, 140, 0, 0.9);
-  --background-activated: rgba(255, 100, 0, 1);
-  --background-hover: rgba(255, 120, 0, 1);
-  --color: white;
-  --box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
-  width: 40px;
-  height: 40px;
-}
-
-.settings-fab ion-fab-button ion-icon {
-  font-size: 20px;
+  --heatmap-card-bg: rgba(34, 197, 94, 0.08);
+  --heatmap-cell-rgb: 34, 197, 94;
 }

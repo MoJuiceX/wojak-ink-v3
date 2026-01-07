@@ -1122,24 +1122,22 @@ const Generator: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonButton slot="start" fill="clear" onClick={handleSaveFavorite} disabled={isCurrentFavorite}>
+      <IonContent fullscreen className="generator-content" ref={contentRef}>
+        {/* Action bar moved from header */}
+        <div className="generator-action-bar">
+          <IonButton fill="clear" onClick={handleSaveFavorite} disabled={isCurrentFavorite}>
             <IonIcon icon={isCurrentFavorite ? heart : heartOutline} />
           </IonButton>
-          <IonButton slot="start" fill="clear" onClick={() => setShowFavorites(true)} disabled={favorites.length === 0}>
+          <IonButton fill="clear" onClick={() => setShowFavorites(true)} disabled={favorites.length === 0}>
             <span className="favorites-badge">{favorites.length > 0 && favorites.length}</span>
           </IonButton>
-          <IonTitle>Wojak Generator</IonTitle>
-          <IonButton slot="end" fill="clear" onClick={handleOpenImage} disabled={!previewDataUrl} className="toolbar-btn">
+          <IonButton fill="clear" onClick={handleOpenImage} disabled={!previewDataUrl}>
             <IonIcon icon={openOutline} />
           </IonButton>
-          <IonButton slot="end" fill="clear" onClick={handleRandomize} className="toolbar-btn">
+          <IonButton fill="clear" onClick={handleRandomize}>
             <IonIcon icon={shuffle} />
           </IonButton>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent fullscreen className="generator-content" ref={contentRef}>
+        </div>
         {loading ? (
           <div className="loading-container">
             <IonSpinner name="crescent" />
@@ -1224,17 +1222,17 @@ const Generator: React.FC = () => {
 
             {/* Trait Selector */}
             <div className="trait-selector">
-              <div className="trait-header">
-                <span className="trait-title">
-                  {activeLayer}
+              {/* Hints shown inline when needed */}
+              {(activeLayer === 'Mouth' || (isAstronautSelected(selections) && ASTRONAUT_BLOCKED_LAYERS.includes(activeLayer))) && (
+                <div className="trait-hints">
                   {activeLayer === 'Mouth' && (
-                    <span className="multi-select-hint"> (multi-select)</span>
+                    <span className="multi-select-hint">Multi-select enabled</span>
                   )}
                   {isAstronautSelected(selections) && ASTRONAUT_BLOCKED_LAYERS.includes(activeLayer) && (
-                    <span className="blocked-notice"> (blocked by Astronaut)</span>
+                    <span className="blocked-notice">Blocked by Astronaut</span>
                   )}
-                </span>
-              </div>
+                </div>
+              )}
               <div className="trait-grid">
                 {/* "None" option for optional layers: Background, Eyes, Head */}
                 {['Background', 'Eyes', 'Head'].includes(activeLayer) && (

@@ -16,6 +16,11 @@ import {
 } from '@ionic/react';
 import { musicalNotes, videocam, gameController, play, close, pauseCircle, playCircle, volumeLow, volumeHigh } from 'ionicons/icons';
 import Game from './Game';
+import OrangeStack from './OrangeStack';
+import MemoryMatch from './MemoryMatch';
+import OrangePong from './OrangePong';
+import WojakRunner from './WojakRunner';
+import Orange2048 from './Orange2048';
 import { useVideoPlayer, MUSIC_VIDEOS, VideoItem } from '../contexts/VideoPlayerContext';
 import './Media.css';
 
@@ -33,8 +38,18 @@ const MUSIC_TRACKS: MusicTrack[] = [
   { id: '1', title: 'Wojak Theme', artist: 'Wojak.ink', file: '/assets/music/wojakmusic1.mp3', duration: '3:45' },
 ];
 
+// Game definitions
+const GAMES = [
+  { id: 'slice', name: 'Orange Slice', emoji: '🍊' },
+  { id: 'stack', name: 'Orange Stack', emoji: '📦' },
+  { id: 'memory', name: 'Memory Match', emoji: '🧠' },
+  { id: 'pong', name: 'Orange Pong', emoji: '🏓' },
+  { id: 'runner', name: 'Wojak Runner', emoji: '🏃' },
+  { id: '2048', name: '2048 Oranges', emoji: '🔢' },
+];
+
 const Media: React.FC = () => {
-  const [showGameModal, setShowGameModal] = useState(false);
+  const [activeGame, setActiveGame] = useState<string | null>(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
   const [playingTrack, setPlayingTrack] = useState<string | null>(null);
@@ -226,12 +241,58 @@ const Media: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Media</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="media-content">
+        {/* Games Section */}
+        <IonCard className="media-section">
+          <IonCardHeader>
+            <IonCardTitle className="section-title">
+              <IonIcon icon={gameController} className="section-icon" />
+              Two Grove Gaming
+            </IonCardTitle>
+          </IonCardHeader>
+          <IonCardContent>
+            <div className="games-grid">
+              {GAMES.map(game => (
+                <div
+                  key={game.id}
+                  className="game-card-mini"
+                  onClick={() => setActiveGame(game.id)}
+                >
+                  <div className="game-icon-mini">{game.emoji}</div>
+                  <span className="game-name-mini">{game.name}</span>
+                </div>
+              ))}
+            </div>
+          </IonCardContent>
+        </IonCard>
+
+        {/* Music Videos Section */}
+        <IonCard className="media-section">
+          <IonCardHeader>
+            <IonCardTitle className="section-title">
+              <IonIcon icon={videocam} className="section-icon" />
+              Music Videos
+            </IonCardTitle>
+          </IonCardHeader>
+          <IonCardContent>
+            <div className="video-grid">
+              {MUSIC_VIDEOS.map(video => (
+                <div
+                  key={video.id}
+                  className="video-item"
+                  onClick={() => handlePlayVideo(video)}
+                >
+                  <div className="video-thumbnail">
+                    {video.thumbnail && <img src={video.thumbnail} alt={video.title} />}
+                    <IonIcon icon={play} className="play-overlay" />
+                  </div>
+                  <span className="video-title">{video.title}</span>
+                </div>
+              ))}
+            </div>
+          </IonCardContent>
+        </IonCard>
+
         {/* Website Music Section */}
         <IonCard className="media-section">
           <IonCardHeader>
@@ -284,64 +345,18 @@ const Media: React.FC = () => {
           </IonCardContent>
         </IonCard>
 
-        {/* Music Videos Section */}
-        <IonCard className="media-section">
-          <IonCardHeader>
-            <IonCardTitle className="section-title">
-              <IonIcon icon={videocam} className="section-icon" />
-              Music Videos
-            </IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <div className="video-grid">
-              {MUSIC_VIDEOS.map(video => (
-                <div
-                  key={video.id}
-                  className="video-item"
-                  onClick={() => handlePlayVideo(video)}
-                >
-                  <div className="video-thumbnail">
-                    {video.thumbnail && <img src={video.thumbnail} alt={video.title} />}
-                    <IonIcon icon={play} className="play-overlay" />
-                  </div>
-                  <span className="video-title">{video.title}</span>
-                  {video.author && <span className="video-author">{video.author}</span>}
-                </div>
-              ))}
-            </div>
-          </IonCardContent>
-        </IonCard>
-
-        {/* Games Section */}
-        <IonCard className="media-section">
-          <IonCardHeader>
-            <IonCardTitle className="section-title">
-              <IonIcon icon={gameController} className="section-icon" />
-              Games
-            </IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <div
-              className="game-card"
-              onClick={() => setShowGameModal(true)}
-            >
-              <div className="game-icon">&#x1F34A;</div>
-              <div className="game-info">
-                <span className="game-name">Orange Tap</span>
-                <span className="game-desc">Tap oranges to score points!</span>
-              </div>
-              <IonIcon icon={play} className="game-play-icon" />
-            </div>
-          </IonCardContent>
-        </IonCard>
-
         {/* Game Modal */}
-        <IonModal isOpen={showGameModal} onDidDismiss={() => setShowGameModal(false)}>
-          <Game />
+        <IonModal isOpen={activeGame !== null} onDidDismiss={() => setActiveGame(null)}>
+          {activeGame === 'slice' && <Game />}
+          {activeGame === 'stack' && <OrangeStack />}
+          {activeGame === 'memory' && <MemoryMatch />}
+          {activeGame === 'pong' && <OrangePong />}
+          {activeGame === 'runner' && <WojakRunner />}
+          {activeGame === '2048' && <Orange2048 />}
           <IonButton
             className="close-game-btn"
             fill="clear"
-            onClick={() => setShowGameModal(false)}
+            onClick={() => setActiveGame(null)}
           >
             <IonIcon icon={close} />
           </IonButton>

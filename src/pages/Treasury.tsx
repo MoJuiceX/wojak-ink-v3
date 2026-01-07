@@ -157,11 +157,6 @@ const Treasury: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Treasury Wallet</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent fullscreen className="treasury-content">
         <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
           <IonRefresherContent />

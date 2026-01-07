@@ -272,7 +272,7 @@
 
 /* Sections */
 .section {
-  margin: 0 auto 24px;
+  margin: 0 auto 16px;
   max-width: 360px;
 }
 
@@ -307,7 +307,7 @@
 
 /* Small tokens section (under $1) */
 .small-tokens-section {
-  margin: 20px auto 0;
+  margin: 16px auto 0;
   padding: 16px;
   background: linear-gradient(135deg, #fff8f0 0%, #fff3e6 100%);
   border-radius: 16px;

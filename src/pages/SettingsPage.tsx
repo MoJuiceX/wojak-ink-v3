@@ -38,16 +38,11 @@ const SettingsPage: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Settings</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="settings-page-content">
         {/* Audio Section */}
         <div className="settings-section">
           <h3 className="settings-section-title">Audio</h3>
-          <IonList inset>
+          <IonList>
             <IonItem>
               <IonIcon icon={musicalNotes} slot="start" className="settings-icon" />
               <IonLabel>
@@ -55,6 +50,7 @@ const SettingsPage: React.FC = () => {
                 <p>Play music while browsing</p>
               </IonLabel>
               <IonToggle
+                slot="end"
                 checked={settings.backgroundMusic}
                 onIonChange={(e) => handleSettingChange('backgroundMusic', e.detail.checked)}
               />
@@ -66,6 +62,7 @@ const SettingsPage: React.FC = () => {
                 <p>UI sounds and game audio</p>
               </IonLabel>
               <IonToggle
+                slot="end"
                 checked={settings.soundEffects}
                 onIonChange={(e) => handleSettingChange('soundEffects', e.detail.checked)}
               />

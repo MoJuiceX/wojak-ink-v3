@@ -557,11 +557,6 @@ const Gallery: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Gallery</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent fullscreen>
         {loading ? (
           <div className="loading-container">

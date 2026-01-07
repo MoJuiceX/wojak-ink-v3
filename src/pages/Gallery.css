@@ -19,7 +19,7 @@
 .base-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 16px;
 }
 
 @media (min-width: 480px) {
@@ -216,7 +216,6 @@
 /* Slider container */
 .info-card-slider {
   position: relative;
-  min-height: 160px;
 }
 
 /* Tab content panels */
@@ -351,7 +350,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .nft-name-large {
@@ -361,12 +360,19 @@
 
 .nft-action-buttons {
   display: flex;
-  gap: 0;
+  gap: 4px;
 }
 
 .nft-action-buttons ion-button {
-  --padding-start: 8px;
-  --padding-end: 8px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --border-radius: var(--radius-md, 12px);
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.nft-action-buttons ion-button ion-icon {
+  font-size: 22px;
 }
 
 /* Close button padding */
@@ -377,35 +383,43 @@
 /* Stats Row */
 .nft-stats-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0;
+  align-items: stretch;
+  gap: 8px;
+  padding: 4px 0;
 }
 
 .nft-stat {
   flex: 1;
-  padding: 8px 12px;
+  padding: 10px 12px;
   background: var(--ion-background-color);
   border-radius: 8px;
+  height: 54px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .stat-value {
   font-size: 15px;
   font-weight: 600;
   color: var(--ion-color-primary);
+  font-variant-numeric: tabular-nums;
+  min-width: 50px;
+  display: inline-block;
 }
 
 .stat-total {
   font-size: 12px;
   font-weight: 400;
   color: var(--ion-color-medium);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Market Icon */
 .market-icon {
   position: relative;
-  width: 40px;
-  height: 40px;
+  flex: 1;
+  height: 54px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -441,23 +455,28 @@
 
 /* Market Price Display */
 .market-price {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  padding: 6px 12px;
+  justify-content: center;
+  padding: 10px 12px;
   background: var(--ion-background-color);
   border-radius: 8px;
+  height: 54px;
 }
 
 .market-price .price-xch {
   font-size: 14px;
   font-weight: 700;
   color: var(--ion-color-success);
+  font-variant-numeric: tabular-nums;
 }
 
 .market-price .price-usd {
   font-size: 11px;
   color: var(--ion-color-medium);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Sort Toggle Button in Header */
@@ -478,7 +497,7 @@
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin: 12px 0;
+  margin: 16px 0;
 }
 
 .filter-pill {
@@ -513,7 +532,7 @@
 .filter-toggle {
   display: flex;
   justify-content: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .filter-toggle ion-button {

@@ -22,6 +22,7 @@
   width: calc(100% - 30px);
   max-width: 400px;
   min-height: 60px;
+  max-height: 180px;
   position: absolute;
   top: 20px;
   left: 50%;
@@ -30,6 +31,7 @@
   opacity: 0;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 5;
+  overflow: hidden;
 }
 
 .speech-bubble.visible {
@@ -59,6 +61,28 @@
   line-height: 1.5;
   color: #333;
   text-align: center;
+  max-height: 148px;
+  overflow-y: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fade out indicator at bottom when scrollable */
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: 16px;
+  left: 20px;
+  right: 20px;
+  height: 24px;
+  background: linear-gradient(transparent, white);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.speech-bubble.has-overflow::after {
+  opacity: 1;
 }
 
 .typing-cursor {

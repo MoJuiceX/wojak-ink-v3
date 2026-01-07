@@ -47,6 +47,7 @@ const MUSIC_VIDEOS: VideoItem[] = [
 
 interface VideoPlayerContextType {
   currentVideo: VideoItem | null;
+  nextVideo: VideoItem | null;
   isOpen: boolean;
   openVideo: (video: VideoItem) => void;
   closeVideo: () => void;
@@ -58,6 +59,15 @@ const VideoPlayerContext = createContext<VideoPlayerContextType | undefined>(und
 export const VideoPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentVideo, setCurrentVideo] = useState<VideoItem | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+
+  // Compute next video based on current video
+  const nextVideo = React.useMemo(() => {
+    if (!currentVideo) return null;
+    const currentIndex = MUSIC_VIDEOS.findIndex(v => v.id === currentVideo.id);
+    if (currentIndex === -1) return null;
+    const nextIndex = (currentIndex + 1) % MUSIC_VIDEOS.length;
+    return MUSIC_VIDEOS[nextIndex];
+  }, [currentVideo]);
 
   const openVideo = useCallback((video: VideoItem) => {
     setCurrentVideo(video);
@@ -81,12 +91,12 @@ export const VideoPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     // Get next video (loop back to start if at end)
     const nextIndex = (currentIndex + 1) % MUSIC_VIDEOS.length;
-    const nextVideo = MUSIC_VIDEOS[nextIndex];
-    setCurrentVideo(nextVideo);
+    const nextVid = MUSIC_VIDEOS[nextIndex];
+    setCurrentVideo(nextVid);
   }, [currentVideo]);
 
   return (
-    <VideoPlayerContext.Provider value={{ currentVideo, isOpen, openVideo, closeVideo, playNext }}>
+    <VideoPlayerContext.Provider value={{ currentVideo, nextVideo, isOpen, openVideo, closeVideo, playNext }}>
       {children}
     </VideoPlayerContext.Provider>
   );

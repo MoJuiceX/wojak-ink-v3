@@ -16,10 +16,11 @@ import {
   IonSegment,
   IonSegmentButton
 } from '@ionic/react';
-import { sparkles, statsChart } from 'ionicons/icons';
+import { sparkles, statsChart, shuffle, search } from 'ionicons/icons';
 import BigPulpCharacter from '../components/BigPulpCharacter';
 import MarketHeatmap from '../components/MarketHeatmap';
-import QuestionTree from '../components/QuestionTree';
+import AskBigPulp from '../components/AskBigPulp';
+import TraitValues from '../components/TraitValues';
 import './BigPulp.css';
 
 interface STierTrait {
@@ -50,10 +51,25 @@ interface NFTAnalysis {
   highlight?: string;
 }
 
-interface NFTTake {
+// V2 NFT Takes structure
+interface NFTTakeV2 {
+  token_id: number;
+  open_rarity_rank: number;
   take: string;
-  mood: 'bullish' | 'neutral' | 'bearish';
-  didYouKnow?: string;
+  tone: 'bullish' | 'neutral' | 'fuddish-but-loving';
+  flags: {
+    is_bottom_10: boolean;
+    is_top_10: boolean;
+    is_one_of_one: boolean;
+    has_crown: boolean;
+    special_edition: boolean;
+  };
+}
+
+// Did You Know structure
+interface DidYouKnow {
+  token_id: number;
+  didYouKnow: string;
 }
 
 interface NFTAttribute {
@@ -74,9 +90,11 @@ const BigPulp: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [analysisData, setAnalysisData] = useState<Record<string, NFTAnalysis> | null>(null);
-  const [takesData, setTakesData] = useState<Record<string, NFTTake> | null>(null);
+  const [takesData, setTakesData] = useState<Record<string, NFTTakeV2> | null>(null);
+  const [didYouKnowData, setDidYouKnowData] = useState<Record<string, DidYouKnow> | null>(null);
   const [metadataList, setMetadataList] = useState<NFTMetadata[] | null>(null);
-  const [currentTake, setCurrentTake] = useState<NFTTake | null>(null);
+  const [currentTake, setCurrentTake] = useState<NFTTakeV2 | null>(null);
+  const [currentDidYouKnow, setCurrentDidYouKnow] = useState<string | null>(null);
   const [currentHeadTrait, setCurrentHeadTrait] = useState<string | undefined>(undefined);
   const [isTyping, setIsTyping] = useState(false);
   const [showIntelligence, setShowIntelligence] = useState(false);
@@ -107,16 +125,19 @@ const BigPulp: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [analysisRes, takesRes, metadataRes] = await Promise.all([
+        const [analysisRes, takesRes, didYouKnowRes, metadataRes] = await Promise.all([
           fetch('/assets/BigPulp/all_nft_analysis.json'),
-          fetch('/assets/BigPulp/nft_takes.json'),
+          fetch('/assets/BigPulp/nft_takes_v2.json'),
+          fetch('/assets/BigPulp/bigP_Didyouknow/did_you_know.json'),
           fetch('/assets/nft-data/metadata.json')
         ]);
         const analysisJson = await analysisRes.json();
         const takesJson = await takesRes.json();
+        const didYouKnowJson = await didYouKnowRes.json();
         const metadataJson = await metadataRes.json();
         setAnalysisData(analysisJson);
         setTakesData(takesJson);
+        setDidYouKnowData(didYouKnowJson);
         setMetadataList(metadataJson);
       } catch (err) {
         console.error('Failed to load BigPulp data:', err);
@@ -130,6 +151,14 @@ const BigPulp: React.FC = () => {
     return `https://bafybeigjkkonjzwwpopo4wn4gwrrvb7z3nwr2edj2554vx3avc5ietfjwq.ipfs.w3s.link/${paddedId}.png`;
   };
 
+  // Random NFT selection
+  const handleRandom = () => {
+    const randomId = Math.floor(Math.random() * 4200) + 1;
+    const paddedId = String(randomId).padStart(4, '0');
+    setNftId(paddedId);
+    handleSearch(paddedId);
+  };
+
   const handleSearch = (directValue?: string) => {
     setError('');
 
@@ -139,7 +168,7 @@ const BigPulp: React.FC = () => {
     // parseInt handles leading zeros (0001 -> 1)
     const id = parseInt(searchValue, 10);
     if (isNaN(id) || id < 1 || id > 4200) {
-      setError('Enter a valid NFT ID (0001-4200)');
+      setError('Enter a valid NFT ID (1-4200)');
       return;
     }
 
@@ -150,6 +179,7 @@ const BigPulp: React.FC = () => {
     setTimeout(() => {
       const nftAnalysis = analysisData?.[String(id)];
       const nftTake = takesData?.[String(id)];
+      const nftDidYouKnow = didYouKnowData?.[String(id)];
 
       if (!nftAnalysis) {
         setError(`No data for NFT #${id}`);
@@ -161,6 +191,7 @@ const BigPulp: React.FC = () => {
       setSearchedNftId(id);
       setAnalysis(nftAnalysis);
       setCurrentTake(nftTake || null);
+      setCurrentDidYouKnow(nftDidYouKnow?.didYouKnow || null);
 
       // Get head trait from metadata (metadata array is 0-indexed, NFT IDs start at 1)
       const nftMetadata = metadataList?.[id - 1];
@@ -195,11 +226,6 @@ const BigPulp: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>BigPulp's Take</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent fullscreen className="bigpulp-content">
         <div className="bigpulp-container">
           {/* Hang with BigPulp Button - First thing user sees */}
@@ -216,22 +242,16 @@ const BigPulp: React.FC = () => {
             </IonButton>
           </div>
 
-          {/* Search Input */}
-          <div className="search-section-tight">
-            <form
-              className="search-input-group"
-              autoComplete="off"
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSearch();
-              }}
-            >
+          {/* Search Input Row */}
+          <div className="search-row">
+            <div className="search-input-wrapper">
+              <IonIcon icon={search} className="search-icon" />
               <input
                 ref={inputRef}
                 type="text"
                 inputMode="decimal"
                 pattern="[0-9]*"
-                placeholder="0001 - 4200"
+                placeholder="NFT #1234"
                 value={nftId}
                 maxLength={4}
                 name="nftid"
@@ -249,22 +269,34 @@ const BigPulp: React.FC = () => {
                 onChange={(e) => {
                   const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
                   setNftId(value);
+                  setError(''); // Clear previous error
                   // Auto-search when 4 digits entered
                   if (value.length === 4) {
                     const id = parseInt(value, 10);
                     if (!isNaN(id) && id >= 1 && id <= 4200) {
+                      // Dismiss keyboard
+                      inputRef.current?.blur();
                       handleSearch(value);
+                    } else {
+                      // Show error for invalid range
+                      inputRef.current?.blur();
+                      setError('Choose a number between 1 and 4200');
                     }
                   }
                 }}
-                className="nft-input-native"
+                className="nft-input-compact"
               />
-              <IonButton className="ask-button" type="submit" disabled={loading || !analysisData}>
-                {loading ? <IonSpinner name="crescent" /> : 'Ask'}
-              </IonButton>
-            </form>
-            {error && <p className="error-text">{error}</p>}
+            </div>
+            <button
+              className="random-button"
+              onClick={handleRandom}
+              disabled={loading || !analysisData}
+            >
+              <IonIcon icon={shuffle} />
+              <span>Surprise Me</span>
+            </button>
           </div>
+          {error && <p className="error-text">{error}</p>}
 
           {/* NFT Preview Card (shown after search) - directly under search */}
           {analysis && searchedNftId && (
@@ -302,6 +334,27 @@ const BigPulp: React.FC = () => {
           {/* Additional NFT Stats (shown after search, below BigPulp) */}
           {analysis && searchedNftId && (
             <div className="results-section">
+              {/* Flag Badges */}
+              {currentTake?.flags && (
+                <div className="flag-badges">
+                  {currentTake.flags.has_crown && (
+                    <span className="flag-badge crown">👑 Crown Holder</span>
+                  )}
+                  {currentTake.flags.special_edition && (
+                    <span className="flag-badge special">⭐ Special Edition</span>
+                  )}
+                  {currentTake.flags.is_top_10 && (
+                    <span className="flag-badge elite">🏆 Top 10%</span>
+                  )}
+                  {currentTake.flags.is_one_of_one && (
+                    <span className="flag-badge rare">💎 Rare Combo</span>
+                  )}
+                  {currentTake.flags.is_bottom_10 && (
+                    <span className="flag-badge floor">🛡️ Floor Defender</span>
+                  )}
+                </div>
+              )}
+
               {/* High Provenance Traits */}
               {analysis.s_tier_traits.length > 0 && (
                 <div className="traits-compact">
@@ -330,11 +383,11 @@ const BigPulp: React.FC = () => {
                 </div>
               )}
 
-              {/* Did You Know? callout */}
-              {currentTake?.didYouKnow && (
+              {/* Did You Know? callout - from separate file */}
+              {currentDidYouKnow && (
                 <div className="did-you-know">
                   <span className="dyk-label">💡 Did You Know?</span>
-                  <p className="dyk-text">{currentTake.didYouKnow}</p>
+                  <p className="dyk-text">{currentDidYouKnow}</p>
                 </div>
               )}
             </div>
@@ -373,47 +426,27 @@ const BigPulp: React.FC = () => {
                 onNftClick={(nftId) => {
                   setShowIntelligence(false);
                   setNftId(nftId);
-                  setTimeout(() => handleSearch(), 100);
+                  setTimeout(() => handleSearch(nftId), 100);
                 }}
               />
             )}
 
             {intelligenceTab === 'questions' && (
-              <QuestionTree
+              <AskBigPulp
                 onNftClick={(nftId) => {
                   setShowIntelligence(false);
                   setNftId(nftId);
-                  setTimeout(() => handleSearch(), 100);
+                  setTimeout(() => handleSearch(nftId), 100);
                 }}
               />
             )}
 
             {intelligenceTab === 'traits' && (
-              <div className="intelligence-container">
-                <div className="coming-soon">
-                  <span className="cs-icon">💰</span>
-                  <h2>Trait Values</h2>
-                  <p>Trait value analytics based on historical sales data coming soon.</p>
-                  <div className="feature-preview">
-                    <div className="feature-item">
-                      <span>👑</span>
-                      <span>Crown: ~3.2 XCH avg</span>
-                    </div>
-                    <div className="feature-item">
-                      <span>🎭</span>
-                      <span>Straitjacket: ~2.8 XCH</span>
-                    </div>
-                    <div className="feature-item">
-                      <span>🧙</span>
-                      <span>Wizard Hat: ~2.5 XCH</span>
-                    </div>
-                    <div className="feature-item">
-                      <span>🤡</span>
-                      <span>Clown: ~1.8 XCH</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <TraitValues
+                onTraitClick={(traitName) => {
+                  console.log('Trait clicked:', traitName);
+                }}
+              />
             )}
           </IonContent>
         </IonModal>

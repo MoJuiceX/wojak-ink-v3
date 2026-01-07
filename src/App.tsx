@@ -3,7 +3,6 @@ import { Redirect, Route } from 'react-router-dom';
 import {
   IonApp,
   IonIcon,
-  IonLabel,
   IonRouterOutlet,
   IonTabBar,
   IonTabButton,
@@ -80,8 +79,10 @@ import '@ionic/react/css/display.css';
 /* import '@ionic/react/css/palettes/dark.class.css'; */
 import '@ionic/react/css/palettes/dark.system.css';
 
-/* Theme variables */
+/* Theme variables & Design System */
 import './theme/variables.css';
+import './theme/ionic-overrides.css';
+import './theme/global.css';
 
 setupIonicReact();
 
@@ -90,7 +91,7 @@ const SKIP_BOOT_IN_DEV = true;
 
 // Floating Video Player that uses context
 const GlobalFloatingPlayer: React.FC = () => {
-  const { currentVideo, isOpen, closeVideo, playNext } = useVideoPlayer();
+  const { currentVideo, nextVideo, isOpen, closeVideo, playNext } = useVideoPlayer();
 
   return (
     <FloatingVideoPlayer
@@ -99,6 +100,7 @@ const GlobalFloatingPlayer: React.FC = () => {
       onVideoEnded={playNext}
       platform={currentVideo?.platform || 'local'}
       videoSrc={currentVideo?.videoFile || ''}
+      nextVideoSrc={nextVideo?.videoFile}
       title={currentVideo?.title}
     />
   );
@@ -165,27 +167,21 @@ const App: React.FC = () => {
             <IonTabBar slot="bottom">
               <IonTabButton tab="gallery" href="/gallery">
                 <IonIcon aria-hidden="true" icon={images} />
-                <IonLabel>Gallery</IonLabel>
               </IonTabButton>
               <IonTabButton tab="treasury" href="/treasury">
                 <IonIcon aria-hidden="true" icon={wallet} />
-                <IonLabel>Treasury</IonLabel>
               </IonTabButton>
               <IonTabButton tab="bigpulp" href="/bigpulp">
                 <IonIcon aria-hidden="true" icon={bulb} />
-                <IonLabel>BigPulp</IonLabel>
               </IonTabButton>
               <IonTabButton tab="generator" href="/generator">
                 <IonIcon aria-hidden="true" icon={colorPalette} />
-                <IonLabel>Generator</IonLabel>
               </IonTabButton>
               <IonTabButton tab="media" href="/media">
                 <IonIcon aria-hidden="true" icon={musicalNotes} />
-                <IonLabel>Media</IonLabel>
               </IonTabButton>
               <IonTabButton tab="settings" href="/settings">
                 <IonIcon aria-hidden="true" icon={ellipsisVertical} />
-                <IonLabel>Settings</IonLabel>
               </IonTabButton>
             </IonTabBar>
           </IonTabs>

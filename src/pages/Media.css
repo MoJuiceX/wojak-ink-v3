@@ -6,8 +6,9 @@
 .media-section {
   background: var(--app-card-background);
   border-radius: 16px;
-  margin: 12px;
+  margin: 16px;
   border: 1px solid var(--app-card-border);
+  overflow: visible !important;
 }
 
 .section-title {
@@ -148,11 +149,17 @@
   pointer-events: none;
 }
 
-/* Video Grid */
+/* Video Grid - shows 2 columns, 2 rows for 4 videos */
 .video-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+  width: 100%;
+}
+
+/* Ensure card content doesn't clip video grid */
+.media-section ion-card-content {
+  overflow: visible;
 }
 
 .video-item {
@@ -160,6 +167,7 @@
   flex-direction: column;
   gap: 8px;
   cursor: pointer;
+  min-height: 100px;
 }
 
 .video-thumbnail {
@@ -222,7 +230,46 @@
   font-size: 10px;
 }
 
-/* Game Card */
+/* Games Grid */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.game-card-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  background: linear-gradient(135deg, rgba(255, 140, 0, 0.15), rgba(255, 100, 0, 0.08));
+  border-radius: 12px;
+  border: 1px solid rgba(255, 140, 0, 0.25);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.game-card-mini:hover,
+.game-card-mini:active {
+  background: linear-gradient(135deg, rgba(255, 140, 0, 0.25), rgba(255, 100, 0, 0.15));
+  transform: scale(1.02);
+  border-color: rgba(255, 140, 0, 0.4);
+}
+
+.game-icon-mini {
+  font-size: 28px;
+}
+
+.game-name-mini {
+  color: var(--ion-text-color);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Legacy Game Card (single) */
 .game-card {
   display: flex;
   align-items: center;
@@ -267,6 +314,7 @@
 .game-desc {
   color: var(--ion-color-medium);
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .game-play-icon {
@@ -318,6 +366,6 @@
   color: var(--ion-color-medium);
   font-size: 12px;
   font-style: italic;
-  margin-top: 12px;
+  margin-top: 16px;
   margin-bottom: 0;
 }

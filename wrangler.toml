@@ -1,0 +1,24 @@
+# Cloudflare Worker Configuration for Wojak.ink Mobile
+# This configures the scheduled worker that fetches trade data
+
+name = "wojak-mobile-trade-fetcher"
+main = "workers/fetch-sales.ts"
+compatibility_date = "2024-01-01"
+
+# KV Namespace binding - UPDATE THIS after creating KV in dashboard
+[[kv_namespaces]]
+binding = "TRADE_VALUES_KV"
+id = "3d3382d37eeb4d4dac250fcf03b3f24d"
+
+# Cron trigger - runs every 30 minutes
+[triggers]
+crons = ["*/30 * * * *"]
+
+# Build configuration
+[build]
+command = ""
+
+# Environment variables (optional - can also set in dashboard)
+[vars]
+COLLECTION_ID = "col1wfptqxfx99l8m9h5wd0xfm87hmp5h79kd6w5v33mhgmqdutmpvqsvt3w4s"
+SECONDARY_SALES_CUTOFF = "2025-12-20T00:00:00Z"
