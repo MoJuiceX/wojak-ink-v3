@@ -1,5 +1,5 @@
 .game-content {
-  --background: #1a1a2e;
+  --background: var(--app-background);
 }
 
 .game-area {
@@ -34,20 +34,20 @@
 .hud-label {
   font-size: 10px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--ion-color-medium);
   letter-spacing: 1px;
 }
 
 .hud-value {
   font-size: 20px;
   font-weight: 700;
-  color: white;
+  color: var(--ion-text-color);
 }
 
 .combo-text {
   font-size: 28px;
   font-weight: 800;
-  color: #ff8c00;
+  color: var(--app-accent-color);
   animation: pulse 0.3s ease;
 }
 
@@ -71,7 +71,7 @@
 .game-title {
   font-size: 32px;
   font-weight: 800;
-  color: white;
+  color: var(--ion-text-color);
   margin-bottom: 16px;
 }
 
@@ -87,13 +87,13 @@
 }
 
 .game-desc {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--ion-color-medium);
   font-size: 14px;
   margin: 4px 0;
 }
 
 .high-score {
-  color: #ff8c00;
+  color: var(--app-accent-color);
   font-size: 16px;
   font-weight: 600;
   margin-top: 16px;
@@ -101,8 +101,8 @@
 
 .play-btn {
   margin-top: 24px;
-  --background: #ff8c00;
-  --background-hover: #ff6b00;
+  --background: var(--app-accent-color);
+  --background-hover: var(--app-accent-color);
   --border-radius: 24px;
   --padding-start: 32px;
   --padding-end: 32px;
@@ -119,33 +119,30 @@
 
 .score-label {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--ion-color-medium);
   text-transform: uppercase;
 }
 
 .score-value {
   font-size: 56px;
   font-weight: 800;
-  color: #ff8c00;
+  color: var(--app-accent-color);
 }
 
 .new-record {
-  background: linear-gradient(135deg, #ffd700, #ff8c00);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--app-accent-color);
   font-size: 24px;
   font-weight: 800;
   animation: glow 1s ease-in-out infinite alternate;
 }
 
 @keyframes glow {
-  from { filter: drop-shadow(0 0 5px #ff8c00); }
-  to { filter: drop-shadow(0 0 15px #ff8c00); }
+  from { filter: drop-shadow(0 0 5px var(--app-accent-color)); }
+  to { filter: drop-shadow(0 0 15px var(--app-accent-color)); }
 }
 
 .high-score-display {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--ion-color-medium);
   font-size: 14px;
   margin-top: 8px;
 }

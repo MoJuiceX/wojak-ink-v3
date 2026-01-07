@@ -16,10 +16,17 @@
   margin-bottom: 8px;
 }
 
+.search-section-tight {
+  margin-bottom: 12px;
+}
+
 .search-input-group {
   display: flex;
   gap: 8px;
   align-items: center;
+  margin: 0;
+  padding: 0;
+  border: none;
 }
 
 .nft-input {
@@ -31,6 +38,28 @@
   font-size: 16px;
 }
 
+.nft-input-native {
+  flex: 1;
+  background: var(--ion-color-light);
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 16px;
+  color: var(--ion-text-color);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.nft-input-native::placeholder {
+  color: var(--ion-color-medium);
+}
+
+.nft-input-native:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--app-accent-color);
+}
+
 .error-text {
   color: var(--ion-color-danger);
   font-size: 13px;
@@ -38,10 +67,104 @@
   text-align: center;
 }
 
+/* NFT Preview Card - sits at top of Orange Grove background */
+.nft-preview-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  background: var(--ion-color-step-100, #1a1a1a);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 0px;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.nft-preview-card .preview-image-square {
+  width: 136px;
+  height: 136px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.nft-preview-card .nft-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.nft-preview-card .nft-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+}
+
+.nft-preview-card .nft-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.nft-preview-card .nft-rank {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--app-accent-color);
+}
+
+.nft-preview-card .nft-rarity {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.nft-preview-card .nft-rarity-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.nft-preview-card .nft-rarity-fill {
+  height: 100%;
+  background: var(--app-accent-color);
+  border-radius: 3px;
+}
+
+.nft-preview-card .nft-base-rank {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 2px;
+}
+
+/* Ask Button */
+.ask-button {
+  --background: var(--app-button-background);
+  --color: white;
+  font-weight: 600;
+}
+
 /* Results Section */
 .results-section {
   animation: fadeIn 0.3s ease;
-  margin-top: 16px;
+  margin-top: -40px;
+  position: relative;
+  z-index: 15;
 }
 
 @keyframes fadeIn {
@@ -132,7 +255,7 @@
 
 .percentile-fill {
   height: 100%;
-  background: linear-gradient(90deg, #ff8c00, #ffd700);
+  background: var(--app-accent-color);
   border-radius: 4px;
   transition: width 0.5s ease;
 }
@@ -191,15 +314,40 @@
   font-weight: 600;
 }
 
+/* Did You Know? Callout */
+.did-you-know {
+  background: linear-gradient(135deg, rgba(255, 149, 0, 0.15) 0%, rgba(255, 107, 0, 0.1) 100%);
+  border: 1px solid rgba(255, 149, 0, 0.3);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-top: 12px;
+}
+
+.dyk-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--app-accent-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dyk-text {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ion-text-color);
+}
+
 /* Intelligence Button */
 .intelligence-button-container {
   margin-top: auto;
-  padding-top: 24px;
-  padding-bottom: 16px;
+  padding-top: 0px;
+  padding-bottom: 14px;
 }
 
 .intelligence-button {
-  --background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+  --background: var(--app-button-background);
+  --color: white;
   --border-radius: 16px;
   height: 56px;
   font-size: 16px;
@@ -210,7 +358,7 @@
   text-align: center;
   font-size: 12px;
   color: var(--ion-color-medium);
-  margin: 8px 0 0 0;
+  margin: 0 0 8px 0;
 }
 
 /* Intelligence Modal */

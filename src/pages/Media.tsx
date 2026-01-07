@@ -16,7 +16,7 @@ import {
 } from '@ionic/react';
 import { musicalNotes, videocam, gameController, play, close, pauseCircle, playCircle, volumeLow, volumeHigh } from 'ionicons/icons';
 import Game from './Game';
-import { useVideoPlayer } from '../contexts/VideoPlayerContext';
+import { useVideoPlayer, MUSIC_VIDEOS, VideoItem } from '../contexts/VideoPlayerContext';
 import './Media.css';
 
 // Music tracks for background music
@@ -28,55 +28,9 @@ interface MusicTrack {
   duration?: string;
 }
 
-// Video items - now using local files
-interface VideoItem {
-  id: string;
-  title: string;
-  platform: 'local' | 'youtube';
-  videoFile: string; // Local file path or YouTube ID
-  thumbnail?: string;
-  author?: string;
-}
-
 // Website music tracks
 const MUSIC_TRACKS: MusicTrack[] = [
   { id: '1', title: 'Wojak Theme', artist: 'Wojak.ink', file: '/assets/music/wojakmusic1.mp3', duration: '3:45' },
-];
-
-// Music videos - LOCAL FILES
-const MUSIC_VIDEOS: VideoItem[] = [
-  {
-    id: '1',
-    title: 'HIT YAH! Neckbeard Punk Tactics',
-    platform: 'local',
-    videoFile: '/assets/videos/hit-yah-neckbeard-punk.mp4',
-    thumbnail: '/assets/videos/TN_hit-yah-neckbeard-punk.png',
-    author: '@yamidotmp3'
-  },
-  {
-    id: '2',
-    title: 'Pokemon Tang Gang - Gotta Trade em All!',
-    platform: 'local',
-    videoFile: '/assets/videos/pokemon-tang-gang.mp4',
-    thumbnail: '/assets/videos/TN_pokemon-tang-gang.png',
-    author: '@yamidotmp3'
-  },
-  {
-    id: '3',
-    title: 'Multi-Billion DAO Marketing Agency',
-    platform: 'local',
-    videoFile: '/assets/videos/multi-billion-dao.mp4',
-    thumbnail: '/assets/videos/TN_multi-billion-dao.png',
-    author: '@OrangeGooey'
-  },
-  {
-    id: '4',
-    title: 'WizNerd Music',
-    platform: 'local',
-    videoFile: '/assets/videos/wiznerd-music.mov',
-    thumbnail: '/assets/videos/TN_wiznerd-music.png',
-    author: '@WizNerd'
-  },
 ];
 
 const Media: React.FC = () => {
@@ -277,13 +231,7 @@ const Media: React.FC = () => {
           <IonTitle>Media</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen className="media-content">
-        <IonHeader collapse="condense">
-          <IonToolbar>
-            <IonTitle size="large">Media</IonTitle>
-          </IonToolbar>
-        </IonHeader>
-
+      <IonContent className="media-content">
         {/* Website Music Section */}
         <IonCard className="media-section">
           <IonCardHeader>

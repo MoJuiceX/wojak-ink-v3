@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Keyboard } from '@capacitor/keyboard';
 import {
   IonContent,
   IonHeader,
   IonPage,
   IonTitle,
   IonToolbar,
-  IonInput,
   IonButton,
   IonSpinner,
   IonImg,
@@ -50,8 +50,20 @@ interface NFTAnalysis {
   highlight?: string;
 }
 
-interface NFTSentences {
-  variants: string[];
+interface NFTTake {
+  take: string;
+  mood: 'bullish' | 'neutral' | 'bearish';
+  didYouKnow?: string;
+}
+
+interface NFTAttribute {
+  trait_type: string;
+  value: string;
+}
+
+interface NFTMetadata {
+  name: string;
+  attributes: NFTAttribute[];
 }
 
 const BigPulp: React.FC = () => {
@@ -62,10 +74,31 @@ const BigPulp: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [analysisData, setAnalysisData] = useState<Record<string, NFTAnalysis> | null>(null);
-  const [sentencesData, setSentencesData] = useState<Record<string, NFTSentences> | null>(null);
+  const [takesData, setTakesData] = useState<Record<string, NFTTake> | null>(null);
+  const [metadataList, setMetadataList] = useState<NFTMetadata[] | null>(null);
+  const [currentTake, setCurrentTake] = useState<NFTTake | null>(null);
+  const [currentHeadTrait, setCurrentHeadTrait] = useState<string | undefined>(undefined);
   const [isTyping, setIsTyping] = useState(false);
   const [showIntelligence, setShowIntelligence] = useState(false);
   const [intelligenceTab, setIntelligenceTab] = useState<'heatmap' | 'questions' | 'traits'>('heatmap');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Hide keyboard accessory bar on iOS
+  const hideAccessoryBar = async () => {
+    try {
+      await Keyboard.setAccessoryBarVisible({ isVisible: false });
+    } catch (e) {
+      // Not running in Capacitor or keyboard plugin not available
+    }
+  };
+
+  const showAccessoryBar = async () => {
+    try {
+      await Keyboard.setAccessoryBarVisible({ isVisible: true });
+    } catch (e) {
+      // Not running in Capacitor or keyboard plugin not available
+    }
+  };
 
   // Welcome message when no NFT selected
   const welcomeMessage = "Yo! I'm BigPulp. Drop an NFT ID and I'll give you the real talk on what you're looking at. 🍊";
@@ -74,14 +107,17 @@ const BigPulp: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [analysisRes, sentencesRes] = await Promise.all([
+        const [analysisRes, takesRes, metadataRes] = await Promise.all([
           fetch('/assets/BigPulp/all_nft_analysis.json'),
-          fetch('/assets/BigPulp/all_nft_sentences.json')
+          fetch('/assets/BigPulp/nft_takes.json'),
+          fetch('/assets/nft-data/metadata.json')
         ]);
         const analysisJson = await analysisRes.json();
-        const sentencesJson = await sentencesRes.json();
+        const takesJson = await takesRes.json();
+        const metadataJson = await metadataRes.json();
         setAnalysisData(analysisJson);
-        setSentencesData(sentencesJson);
+        setTakesData(takesJson);
+        setMetadataList(metadataJson);
       } catch (err) {
         console.error('Failed to load BigPulp data:', err);
       }
@@ -94,12 +130,16 @@ const BigPulp: React.FC = () => {
     return `https://bafybeigjkkonjzwwpopo4wn4gwrrvb7z3nwr2edj2554vx3avc5ietfjwq.ipfs.w3s.link/${paddedId}.png`;
   };
 
-  const handleSearch = () => {
+  const handleSearch = (directValue?: string) => {
     setError('');
 
-    const id = parseInt(nftId);
+    // Use direct value if provided, otherwise use state
+    const searchValue = directValue || nftId;
+
+    // parseInt handles leading zeros (0001 -> 1)
+    const id = parseInt(searchValue, 10);
     if (isNaN(id) || id < 1 || id > 4200) {
-      setError('Enter a valid NFT ID (1-4200)');
+      setError('Enter a valid NFT ID (0001-4200)');
       return;
     }
 
@@ -109,7 +149,7 @@ const BigPulp: React.FC = () => {
     // Small delay for UX
     setTimeout(() => {
       const nftAnalysis = analysisData?.[String(id)];
-      const nftSentences = sentencesData?.[String(id)];
+      const nftTake = takesData?.[String(id)];
 
       if (!nftAnalysis) {
         setError(`No data for NFT #${id}`);
@@ -120,11 +160,16 @@ const BigPulp: React.FC = () => {
 
       setSearchedNftId(id);
       setAnalysis(nftAnalysis);
+      setCurrentTake(nftTake || null);
 
-      // Pick a random sentence variant or use highlight
-      if (nftSentences?.variants?.length) {
-        const randomIndex = Math.floor(Math.random() * nftSentences.variants.length);
-        setSentence(nftSentences.variants[randomIndex]);
+      // Get head trait from metadata (metadata array is 0-indexed, NFT IDs start at 1)
+      const nftMetadata = metadataList?.[id - 1];
+      const headAttr = nftMetadata?.attributes?.find(attr => attr.trait_type === 'Head');
+      setCurrentHeadTrait(headAttr?.value);
+
+      // Use the BigPulp take, or fallback to analysis highlight
+      if (nftTake?.take) {
+        setSentence(nftTake.take);
       } else if (nftAnalysis.highlight) {
         setSentence(nftAnalysis.highlight);
       } else {
@@ -157,82 +202,106 @@ const BigPulp: React.FC = () => {
       </IonHeader>
       <IonContent fullscreen className="bigpulp-content">
         <div className="bigpulp-container">
+          {/* Hang with BigPulp Button - First thing user sees */}
+          <div className="intelligence-button-container">
+            <p className="intelligence-hint">Market intel, trait values, heatmaps & more</p>
+            <IonButton
+              expand="block"
+              className="intelligence-button"
+              onClick={() => setShowIntelligence(true)}
+            >
+              <IonIcon icon={statsChart} slot="start" />
+              Hang with BigPulp
+              <IonIcon icon={sparkles} slot="end" />
+            </IonButton>
+          </div>
+
           {/* Search Input */}
-          <div className="search-section">
-            <div className="search-input-group">
-              <IonInput
-                type="number"
-                placeholder="Enter NFT ID (1-4200)"
+          <div className="search-section-tight">
+            <form
+              className="search-input-group"
+              autoComplete="off"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSearch();
+              }}
+            >
+              <input
+                ref={inputRef}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*"
+                placeholder="0001 - 4200"
                 value={nftId}
-                onIonInput={(e) => setNftId(e.detail.value || '')}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="nft-input"
+                maxLength={4}
+                name="nftid"
+                id="nftid-input"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-form-type="other"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                aria-autocomplete="none"
+                onFocus={hideAccessoryBar}
+                onBlur={showAccessoryBar}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+                  setNftId(value);
+                  // Auto-search when 4 digits entered
+                  if (value.length === 4) {
+                    const id = parseInt(value, 10);
+                    if (!isNaN(id) && id >= 1 && id <= 4200) {
+                      handleSearch(value);
+                    }
+                  }
+                }}
+                className="nft-input-native"
               />
-              <IonButton onClick={handleSearch} disabled={loading || !analysisData}>
+              <IonButton className="ask-button" type="submit" disabled={loading || !analysisData}>
                 {loading ? <IonSpinner name="crescent" /> : 'Ask'}
               </IonButton>
-            </div>
+            </form>
             {error && <p className="error-text">{error}</p>}
           </div>
+
+          {/* NFT Preview Card (shown after search) - directly under search */}
+          {analysis && searchedNftId && (
+            <div className="nft-preview-card">
+              <IonImg
+                src={getNftImageUrl(searchedNftId)}
+                alt={`${analysis.base} #${searchedNftId}`}
+                className="preview-image-square"
+              />
+              <div className="nft-info">
+                <span className="nft-name">{analysis.base} #{searchedNftId}</span>
+                <div className="nft-stats-row">
+                  <span className="nft-rank">👑 {analysis.rank}</span>
+                  <span className="nft-rarity">Top {Math.ceil(analysis.percentile)}%</span>
+                </div>
+                <div className="nft-rarity-bar">
+                  <div
+                    className="nft-rarity-fill"
+                    style={{ width: `${100 - analysis.percentile}%` }}
+                  />
+                </div>
+                <span className="nft-base-rank">#{analysis.base_rank} of {analysis.base_total} {analysis.base}s</span>
+              </div>
+            </div>
+          )}
 
           {/* BigPulp Character with Speech Bubble */}
           <BigPulpCharacter
             message={sentence || welcomeMessage}
             isTyping={isTyping && !!sentence}
+            headTrait={currentHeadTrait}
             onTypingComplete={handleTypingComplete}
           />
 
-          {/* NFT Preview & Stats (shown after search) */}
+          {/* Additional NFT Stats (shown after search, below BigPulp) */}
           {analysis && searchedNftId && (
             <div className="results-section">
-              {/* NFT Image */}
-              <div className="nft-preview-row">
-                <IonImg
-                  src={getNftImageUrl(searchedNftId)}
-                  alt={`Wojak #${searchedNftId}`}
-                  className="preview-image-small"
-                />
-                <div className="nft-quick-stats">
-                  <div className="quick-stat">
-                    <span className="qs-label">NFT</span>
-                    <span className="qs-value">#{searchedNftId}</span>
-                  </div>
-                  <div className="quick-stat">
-                    <span className="qs-label">Rank</span>
-                    <span className="qs-value">#{analysis.rank}</span>
-                  </div>
-                  <div className="quick-stat">
-                    <span className="qs-label">Tier</span>
-                    <IonChip color={getTierColor(analysis.tier)} className="tier-chip">
-                      <IonLabel>{analysis.tier_label}</IonLabel>
-                    </IonChip>
-                  </div>
-                </div>
-              </div>
-
-              {/* Percentile Bar */}
-              <div className="percentile-bar-container">
-                <div className="percentile-labels">
-                  <span>Rarity</span>
-                  <span className="percentile-value">Top {Math.ceil(analysis.percentile)}%</span>
-                </div>
-                <div className="percentile-bar">
-                  <div
-                    className="percentile-fill"
-                    style={{ width: `${100 - analysis.percentile}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Base Info */}
-              <div className="base-info-row">
-                <span className="base-name">{analysis.base}</span>
-                <span className="base-rank">
-                  #{analysis.base_rank} of {analysis.base_total} {analysis.base}s
-                  {analysis.is_heritage_base && ' (Heritage)'}
-                </span>
-              </div>
-
               {/* High Provenance Traits */}
               {analysis.s_tier_traits.length > 0 && (
                 <div className="traits-compact">
@@ -260,22 +329,16 @@ const BigPulp: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* Did You Know? callout */}
+              {currentTake?.didYouKnow && (
+                <div className="did-you-know">
+                  <span className="dyk-label">💡 Did You Know?</span>
+                  <p className="dyk-text">{currentTake.didYouKnow}</p>
+                </div>
+              )}
             </div>
           )}
-
-          {/* Hang with BigPulp Button */}
-          <div className="intelligence-button-container">
-            <IonButton
-              expand="block"
-              className="intelligence-button"
-              onClick={() => setShowIntelligence(true)}
-            >
-              <IonIcon icon={statsChart} slot="start" />
-              Hang with BigPulp
-              <IonIcon icon={sparkles} slot="end" />
-            </IonButton>
-            <p className="intelligence-hint">Market intel, trait values, heatmaps & more</p>
-          </div>
         </div>
 
         {/* BigPulp Intelligence Modal */}

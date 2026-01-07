@@ -6,6 +6,7 @@ import './FloatingVideoPlayer.css';
 interface FloatingVideoPlayerProps {
   isOpen: boolean;
   onClose: () => void;
+  onVideoEnded?: () => void;
   platform: 'local' | 'youtube';
   videoSrc: string;
   title?: string;
@@ -14,6 +15,7 @@ interface FloatingVideoPlayerProps {
 const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
   isOpen,
   onClose,
+  onVideoEnded,
   platform,
   videoSrc,
 }) => {
@@ -257,9 +259,13 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
             ref={videoRef}
             src={videoSrc}
             playsInline
-            loop
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
+            onEnded={() => {
+              if (onVideoEnded) {
+                onVideoEnded();
+              }
+            }}
           />
         )}
         {/* Close button - small X in corner */}
@@ -274,8 +280,23 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
       {isMinimized && (
         <div
           className="minimized-player"
-          onClick={handleExpand}
-          onTouchEnd={handleExpand}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={(e) => {
+            // Only expand if it wasn't a drag
+            if (!hasMoved) {
+              handleExpand(e);
+            }
+            setIsDragging(false);
+            dragRef.current = null;
+          }}
+          onMouseDown={handleMouseDown}
+          onClick={(e) => {
+            // Only expand if it wasn't a drag
+            if (!hasMoved) {
+              handleExpand(e);
+            }
+          }}
         >
           <IonIcon icon={isOnRightSide ? chevronBack : chevronForward} className="expand-icon" />
           <div className="mini-title">{isPlaying ? '▶' : '⏸'}</div>

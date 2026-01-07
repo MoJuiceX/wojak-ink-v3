@@ -1,6 +1,223 @@
 /* For information on how to create your own theme, please refer to:
 http://ionicframework.com/docs/theming/ */
 
+/* ============================================
+   THEME DEFINITIONS
+   ============================================ */
+
+/* Dark Theme (Default) */
+:root,
+.theme-dark {
+  --ion-background-color: #1a1a2e;
+  --ion-background-color-rgb: 26, 26, 46;
+  --ion-text-color: #ffffff;
+  --ion-text-color-rgb: 255, 255, 255;
+  --ion-color-medium: rgba(255, 255, 255, 0.6);
+  --ion-color-light: rgba(255, 255, 255, 0.08);
+  --ion-color-primary: #ff8c00;
+  --ion-color-primary-rgb: 255, 140, 0;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-shade: #e07b00;
+  --ion-color-primary-tint: #ff981a;
+
+  --ion-toolbar-background: #1a1a2e;
+  --ion-toolbar-color: #ffffff;
+  --ion-tab-bar-background: #0f0f1a;
+  --ion-tab-bar-color: rgba(255, 255, 255, 0.6);
+  --ion-tab-bar-color-selected: #ff8c00;
+  --ion-card-background: rgba(255, 255, 255, 0.05);
+
+  --app-background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+  --app-card-background: rgba(255, 255, 255, 0.05);
+  --app-card-border: rgba(255, 255, 255, 0.1);
+  --app-section-background: rgba(255, 255, 255, 0.05);
+  --app-input-background: rgba(255, 255, 255, 0.1);
+  --app-accent-color: #ff8c00;
+  --app-button-background: #ff8c00;
+  --app-button-selected: #ff8c00;
+  --app-preview-background: linear-gradient(135deg, #2a2a3e 0%, #3a3a4e 100%);
+
+  /* Heatmap Theme - Dark (Modern deep blue/purple) */
+  --heatmap-card-bg: rgba(255, 255, 255, 0.05);
+  --heatmap-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --heatmap-card-border: rgba(255, 255, 255, 0.1);
+  --heatmap-grid-bg: rgba(0, 0, 0, 0.2);
+  --heatmap-divider: rgba(255, 255, 255, 0.1);
+  --heatmap-text: #ffffff;
+  --heatmap-text-muted: rgba(255, 255, 255, 0.6);
+  --heatmap-cell-rgb: 129, 140, 248;
+  --heatmap-cell-text: #ffffff;
+  --heatmap-highlight-rgb: 251, 191, 36;
+  --heatmap-highlight-ring: rgba(251, 191, 36, 0.6);
+  --heatmap-btn-bg: rgba(255, 255, 255, 0.08);
+  --heatmap-btn-border: rgba(255, 255, 255, 0.15);
+  --heatmap-btn-text: rgba(255, 255, 255, 0.9);
+  --heatmap-btn-active-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --heatmap-btn-active-text: #ffffff;
+  --heatmap-btn-active-shadow: rgba(99, 102, 241, 0.4);
+  --heatmap-legend-bg: rgba(0, 0, 0, 0.2);
+}
+
+/* Light Theme */
+.theme-light {
+  --ion-background-color: #ffffff;
+  --ion-background-color-rgb: 255, 255, 255;
+  --ion-text-color: #1a1a2e;
+  --ion-text-color-rgb: 26, 26, 46;
+  --ion-color-medium: rgba(0, 0, 0, 0.5);
+  --ion-color-light: #f5f5f5;
+  --ion-color-primary: #ff8c00;
+  --ion-color-primary-rgb: 255, 140, 0;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-shade: #e07b00;
+  --ion-color-primary-tint: #ff981a;
+
+  --ion-toolbar-background: #ffffff;
+  --ion-toolbar-color: #1a1a2e;
+  --ion-tab-bar-background: #f8f8f8;
+  --ion-tab-bar-color: rgba(0, 0, 0, 0.5);
+  --ion-tab-bar-color-selected: #ff8c00;
+  --ion-card-background: #ffffff;
+
+  --app-background: linear-gradient(180deg, #f5f5f5 0%, #ffffff 100%);
+  --app-card-background: #ffffff;
+  --app-card-border: rgba(0, 0, 0, 0.1);
+  --app-section-background: #f5f5f5;
+  --app-input-background: #f0f0f0;
+  --app-accent-color: #ff8c00;
+  --app-button-background: #ff8c00;
+  --app-button-selected: #ff8c00;
+  --app-preview-background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 100%);
+
+  /* Heatmap Theme - Light (Clean modern blue) */
+  --heatmap-card-bg: #ffffff;
+  --heatmap-card-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --heatmap-card-border: rgba(0, 0, 0, 0.06);
+  --heatmap-grid-bg: #f8fafc;
+  --heatmap-divider: rgba(0, 0, 0, 0.08);
+  --heatmap-text: #1e293b;
+  --heatmap-text-muted: #64748b;
+  --heatmap-cell-rgb: 99, 102, 241;
+  --heatmap-cell-text: #ffffff;
+  --heatmap-highlight-rgb: 249, 115, 22;
+  --heatmap-highlight-ring: rgba(249, 115, 22, 0.5);
+  --heatmap-btn-bg: #f1f5f9;
+  --heatmap-btn-border: #e2e8f0;
+  --heatmap-btn-text: #475569;
+  --heatmap-btn-active-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --heatmap-btn-active-text: #ffffff;
+  --heatmap-btn-active-shadow: rgba(99, 102, 241, 0.3);
+  --heatmap-legend-bg: #f1f5f9;
+}
+
+/* Orange Theme */
+.theme-orange {
+  --ion-background-color: #ff8c00;
+  --ion-background-color-rgb: 255, 140, 0;
+  --ion-text-color: #ffffff;
+  --ion-text-color-rgb: 255, 255, 255;
+  --ion-color-medium: rgba(255, 255, 255, 0.7);
+  --ion-color-light: rgba(255, 255, 255, 0.15);
+  --ion-color-primary: #cc7000;
+  --ion-color-primary-rgb: 204, 112, 0;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-shade: #b36200;
+  --ion-color-primary-tint: #d97d1a;
+
+  --ion-toolbar-background: #ff7b00;
+  --ion-toolbar-color: #ffffff;
+  --ion-tab-bar-background: #e67e00;
+  --ion-tab-bar-color: rgba(255, 255, 255, 0.6);
+  --ion-tab-bar-color-selected: #ffffff;
+  --ion-card-background: rgba(255, 255, 255, 0.15);
+
+  --app-background: linear-gradient(180deg, #ff8c00 0%, #e67e00 100%);
+  --app-card-background: rgba(255, 255, 255, 0.15);
+  --app-card-border: rgba(255, 255, 255, 0.2);
+  --app-section-background: rgba(255, 255, 255, 0.1);
+  --app-input-background: rgba(255, 255, 255, 0.2);
+  --app-accent-color: #cc7000;
+  --app-button-background: #cc7000;
+  --app-button-selected: #ffb84d;
+  --app-preview-background: linear-gradient(135deg, #ffb84d 0%, #ffd699 100%);
+
+  /* Heatmap Theme - Orange (Frosted glass with darker orange cells) */
+  --heatmap-card-bg: rgba(255, 255, 255, 0.92);
+  --heatmap-card-shadow: 0 8px 32px rgba(180, 83, 0, 0.25);
+  --heatmap-card-border: rgba(255, 255, 255, 0.5);
+  --heatmap-grid-bg: rgba(255, 248, 240, 0.8);
+  --heatmap-divider: rgba(180, 83, 0, 0.15);
+  --heatmap-text: #7c2d12;
+  --heatmap-text-muted: #9a3412;
+  --heatmap-cell-rgb: 230, 130, 0;
+  --heatmap-cell-text: #ffffff;
+  --heatmap-highlight-rgb: 200, 110, 0;
+  --heatmap-highlight-ring: rgba(120, 53, 0, 0.6);
+  --heatmap-btn-bg: rgba(255, 255, 255, 0.9);
+  --heatmap-btn-border: rgba(180, 83, 0, 0.2);
+  --heatmap-btn-text: #b45309;
+  --heatmap-btn-active-bg: linear-gradient(135deg, #ea580c 0%, #b45309 100%);
+  --heatmap-btn-active-text: #ffffff;
+  --heatmap-btn-active-shadow: rgba(180, 83, 0, 0.4);
+  --heatmap-legend-bg: rgba(255, 255, 255, 0.6);
+}
+
+/* Green Theme */
+.theme-green {
+  --ion-background-color: #4ade80;
+  --ion-background-color-rgb: 74, 222, 128;
+  --ion-text-color: #1a3a1a;
+  --ion-text-color-rgb: 26, 58, 26;
+  --ion-color-medium: rgba(26, 58, 26, 0.6);
+  --ion-color-light: rgba(255, 255, 255, 0.25);
+  --ion-color-primary: #166534;
+  --ion-color-primary-rgb: 22, 101, 52;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-shade: #125a2e;
+  --ion-color-primary-tint: #2d7048;
+
+  --ion-toolbar-background: #3dd673;
+  --ion-toolbar-color: #1a3a1a;
+  --ion-tab-bar-background: #32c966;
+  --ion-tab-bar-color: rgba(26, 58, 26, 0.5);
+  --ion-tab-bar-color-selected: #166534;
+  --ion-card-background: rgba(255, 255, 255, 0.25);
+
+  --app-background: linear-gradient(180deg, #4ade80 0%, #3dd673 100%);
+  --app-card-background: rgba(255, 255, 255, 0.25);
+  --app-card-border: rgba(255, 255, 255, 0.3);
+  --app-section-background: rgba(255, 255, 255, 0.15);
+  --app-input-background: rgba(255, 255, 255, 0.3);
+  --app-accent-color: #166534;
+  --app-button-background: #166534;
+  --app-button-selected: #22c55e;
+  --app-preview-background: linear-gradient(135deg, #86efac 0%, #bbf7d0 100%);
+
+  /* Heatmap Theme - Green (Frosted glass with forest tones) */
+  --heatmap-card-bg: rgba(255, 255, 255, 0.92);
+  --heatmap-card-shadow: 0 8px 32px rgba(22, 101, 52, 0.2);
+  --heatmap-card-border: rgba(255, 255, 255, 0.5);
+  --heatmap-grid-bg: rgba(240, 253, 244, 0.8);
+  --heatmap-divider: rgba(22, 101, 52, 0.15);
+  --heatmap-text: #14532d;
+  --heatmap-text-muted: #166534;
+  --heatmap-cell-rgb: 22, 163, 74;
+  --heatmap-cell-text: #ffffff;
+  --heatmap-highlight-rgb: 21, 128, 61;
+  --heatmap-highlight-ring: rgba(21, 128, 61, 0.5);
+  --heatmap-btn-bg: rgba(255, 255, 255, 0.9);
+  --heatmap-btn-border: rgba(22, 101, 52, 0.2);
+  --heatmap-btn-text: #166534;
+  --heatmap-btn-active-bg: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  --heatmap-btn-active-text: #ffffff;
+  --heatmap-btn-active-shadow: rgba(22, 163, 74, 0.4);
+  --heatmap-legend-bg: rgba(255, 255, 255, 0.6);
+}
+
+/* ============================================
+   GLOBAL STYLES
+   ============================================ */
+
 /* Global compact toolbar styling - matches BigPulp's thinner header */
 ion-toolbar {
   --min-height: 44px !important;
@@ -48,6 +265,24 @@ ion-header {
 
 ion-header::after {
   display: none;
+}
+
+/* Tab Bar Styling */
+ion-tab-bar {
+  --background: var(--ion-tab-bar-background);
+  --color: var(--ion-tab-bar-color);
+  --color-selected: var(--ion-tab-bar-color-selected);
+}
+
+ion-tab-button {
+  --color: var(--ion-tab-bar-color);
+  --color-selected: var(--ion-tab-bar-color-selected);
+}
+
+/* Toggle Styling - uses accent color when checked */
+ion-toggle {
+  --background-checked: var(--app-accent-color);
+  --handle-background-checked: var(--ion-color-primary-contrast, #ffffff);
 }
 
 /* Settings FAB Button */

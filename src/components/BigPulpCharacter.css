@@ -2,8 +2,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
+  justify-content: flex-end;
+  padding: 120px 20px 10px 20px;
   position: relative;
+  background-image: url('/assets/wojak-layers/BACKGROUND/Scene/BACKGROUND_Orange Grove.png');
+  background-size: cover;
+  background-position: center;
+  border-radius: 16px;
+  overflow: visible;
+  clip-path: inset(2% 0 10% 0 round 16px);
+  min-height: 486px;
 }
 
 /* Speech Bubble */
@@ -11,24 +19,43 @@
   background: white;
   border-radius: 20px;
   padding: 16px 20px;
-  max-width: 320px;
-  min-height: 80px;
-  margin-bottom: 20px;
-  position: relative;
+  width: calc(100% - 30px);
+  max-width: 400px;
+  min-height: 60px;
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.8);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   opacity: 0;
-  transform: scale(0.8) translateY(10px);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 5;
 }
 
 .speech-bubble.visible {
   opacity: 1;
-  transform: scale(1) translateY(0);
+  transform: translateX(-50%) scale(1);
+  animation: float-bubble 6s ease-in-out infinite;
+}
+
+@keyframes float-bubble {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  25% {
+    transform: translateX(calc(-50% + 3px)) translateY(4px) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  75% {
+    transform: translateX(calc(-50% - 3px)) translateY(4px) scale(1);
+  }
 }
 
 .speech-content {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.5;
   color: #333;
   text-align: center;
@@ -61,127 +88,45 @@
 /* Character Container */
 .bigpulp-character {
   position: relative;
+  width: 420px;
+  height: 336px;
+  margin-bottom: 50px;
 }
 
-.character-wrapper {
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-/* Orange Body */
-.orange-body {
+/* Character Layers Container */
+.character-layers {
   position: relative;
-  width: 180px;
-  height: 180px;
-}
-
-/* Placeholder Orange (until real image provided) */
-.orange-placeholder {
   width: 100%;
   height: 100%;
-  background: linear-gradient(145deg, #ff9500 0%, #ff6b00 50%, #e55a00 100%);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  box-shadow:
-    inset -10px -10px 30px rgba(0, 0, 0, 0.2),
-    inset 10px 10px 30px rgba(255, 255, 255, 0.2),
-    0 10px 30px rgba(255, 107, 0, 0.4);
-  animation: pulse 4s ease-in-out infinite;
 }
 
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-}
-
-.orange-emoji {
-  font-size: 80px;
-  display: none; /* Hidden, using CSS face instead */
-}
-
-/* Orange Face */
-.orange-face {
+/* Base layer styles for both images */
+.bigpulp-layer {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100px;
-  height: 80px;
-}
-
-.orange-eyes {
-  display: flex;
-  justify-content: space-between;
-  padding: 0 10px;
-  margin-bottom: 15px;
-}
-
-.eye {
-  width: 20px;
-  height: 24px;
-  background: #333;
-  border-radius: 50%;
-  position: relative;
-  animation: blink-eyes 4s infinite;
-}
-
-.eye::after {
-  content: '';
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 8px;
-  height: 8px;
-  background: white;
-  border-radius: 50%;
-}
-
-@keyframes blink-eyes {
-  0%, 45%, 55%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(0.1); }
-}
-
-.orange-mouth {
-  width: 40px;
-  height: 20px;
-  background: #333;
-  border-radius: 0 0 40px 40px;
-  margin: 0 auto;
-  animation: talk 0.3s ease-in-out infinite alternate;
-  animation-play-state: paused;
-}
-
-.bigpulp-character-container:has(.typing-cursor) .orange-mouth {
-  animation-play-state: running;
-}
-
-@keyframes talk {
-  0% { height: 15px; }
-  100% { height: 25px; }
-}
-
-/* Real Character Image */
-.character-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  object-position: bottom center;
 }
 
-/* Thinking/Loading State */
-.bigpulp-character-container.thinking .orange-placeholder {
-  animation: think 0.5s ease-in-out infinite;
+/* Layer 1: Static base - full image, stays in place */
+.bigpulp-layer-static {
+  z-index: 1;
 }
 
-@keyframes think {
-  0%, 100% { transform: rotate(-3deg); }
-  50% { transform: rotate(3deg); }
+/* Layer 2: Moving character layer */
+.bigpulp-layer-moving {
+  z-index: 2;
+  animation: float-gentle 3s ease-in-out infinite;
+}
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 /* Responsive */
@@ -195,8 +140,8 @@
     font-size: 14px;
   }
 
-  .orange-body {
-    width: 150px;
-    height: 150px;
+  .bigpulp-character {
+    width: 350px;
+    height: 280px;
   }
 }

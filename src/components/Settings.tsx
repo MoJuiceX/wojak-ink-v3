@@ -50,7 +50,7 @@ export function loadSettings(): AppSettings {
 }
 
 // Save settings to localStorage
-function saveSettings(settings: AppSettings): void {
+export function saveSettings(settings: AppSettings): void {
   try {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   } catch (e) {
@@ -154,6 +154,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, settings, onSettin
               <div
                 key={theme.id}
                 className={`theme-option ${settings.theme === theme.id ? 'selected' : ''}`}
+                data-theme={theme.id}
                 onClick={() => updateSetting('theme', theme.id)}
               >
                 <div

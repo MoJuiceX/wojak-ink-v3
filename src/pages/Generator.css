@@ -116,8 +116,8 @@
   padding: 8px 14px;
   border: none;
   border-radius: 20px;
-  background: var(--ion-color-light);
-  color: var(--ion-text-color);
+  background: var(--app-button-background);
+  color: white;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -125,7 +125,7 @@
 }
 
 .layer-tab.active {
-  background: var(--ion-color-primary);
+  background: var(--app-button-selected);
   color: white;
 }
 
@@ -187,7 +187,7 @@
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
-  background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 100%);
+  background: var(--app-preview-background);
 }
 
 .trait-name {
@@ -214,7 +214,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 100%);
+  background: var(--app-preview-background);
   color: var(--ion-color-medium);
 }
 

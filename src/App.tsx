@@ -8,12 +8,10 @@ import {
   IonTabBar,
   IonTabButton,
   IonTabs,
-  IonFab,
-  IonFabButton,
   setupIonicReact
 } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import { images, wallet, bulb, colorPalette, musicalNotes, settings as settingsIcon } from 'ionicons/icons';
+import { images, wallet, bulb, colorPalette, musicalNotes, ellipsisVertical } from 'ionicons/icons';
 
 // Pages
 import Gallery from './pages/Gallery';
@@ -21,9 +19,10 @@ import Treasury from './pages/Treasury';
 import BigPulp from './pages/BigPulp';
 import Generator from './pages/Generator';
 import Media from './pages/Media';
+import SettingsPage from './pages/SettingsPage';
 
 // Components
-import Settings, { loadSettings, applyTheme, AppSettings } from './components/Settings';
+import { loadSettings, applyTheme, AppSettings } from './components/Settings';
 import FloatingVideoPlayer from './components/FloatingVideoPlayer';
 import { AudioProvider } from './contexts/AudioContext';
 import { VideoPlayerProvider, useVideoPlayer } from './contexts/VideoPlayerContext';
@@ -91,12 +90,13 @@ const SKIP_BOOT_IN_DEV = true;
 
 // Floating Video Player that uses context
 const GlobalFloatingPlayer: React.FC = () => {
-  const { currentVideo, isOpen, closeVideo } = useVideoPlayer();
+  const { currentVideo, isOpen, closeVideo, playNext } = useVideoPlayer();
 
   return (
     <FloatingVideoPlayer
       isOpen={isOpen}
       onClose={closeVideo}
+      onVideoEnded={playNext}
       platform={currentVideo?.platform || 'local'}
       videoSrc={currentVideo?.videoFile || ''}
       title={currentVideo?.title}
@@ -109,14 +109,11 @@ const App: React.FC = () => {
   const skipBoot = import.meta.env.DEV && SKIP_BOOT_IN_DEV;
   const [isStartupComplete, setIsStartupComplete] = useState(skipBoot);
 
-  // Settings state
-  const [showSettings, setShowSettings] = useState(false);
-  const [appSettings, setAppSettings] = useState<AppSettings>(loadSettings);
-
-  // Apply theme on mount and when settings change
+  // Load and apply theme on mount
   useEffect(() => {
-    applyTheme(appSettings.theme);
-  }, [appSettings.theme]);
+    const settings = loadSettings();
+    applyTheme(settings.theme);
+  }, []);
 
   return (
     <AudioProvider>
@@ -158,6 +155,9 @@ const App: React.FC = () => {
               <Route exact path="/media">
                 <Media />
               </Route>
+              <Route exact path="/settings">
+                <SettingsPage />
+              </Route>
               <Route exact path="/">
                 <Redirect to="/gallery" />
               </Route>
@@ -183,24 +183,13 @@ const App: React.FC = () => {
                 <IonIcon aria-hidden="true" icon={musicalNotes} />
                 <IonLabel>Media</IonLabel>
               </IonTabButton>
+              <IonTabButton tab="settings" href="/settings">
+                <IonIcon aria-hidden="true" icon={ellipsisVertical} />
+                <IonLabel>Settings</IonLabel>
+              </IonTabButton>
             </IonTabBar>
           </IonTabs>
-
-          {/* Settings FAB Button */}
-          <IonFab vertical="top" horizontal="end" slot="fixed" className="settings-fab">
-            <IonFabButton size="small" onClick={() => setShowSettings(true)}>
-              <IonIcon icon={settingsIcon} />
-            </IonFabButton>
-          </IonFab>
         </IonReactRouter>
-
-        {/* Settings Modal */}
-        <Settings
-          isOpen={showSettings}
-          onClose={() => setShowSettings(false)}
-          settings={appSettings}
-          onSettingsChange={setAppSettings}
-        />
 
         {/* Global Floating Video Player - visible on all screens */}
         <GlobalFloatingPlayer />

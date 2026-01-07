@@ -34,6 +34,7 @@ interface HeatmapCell {
 }
 
 type HeatmapMode = 'all' | 'sleepy' | 'delusion' | 'floor' | 'rare' | 'whale';
+type ViewType = 'heatmap' | 'distribution';
 
 const HEATMAP_MODES: { key: HeatmapMode; label: string; description: string }[] = [
   { key: 'all', label: 'All Listings', description: 'Show all listed NFTs' },
@@ -76,8 +77,10 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
   const [error, setError] = useState('');
   const [selectedCell, setSelectedCell] = useState<HeatmapCell | null>(null);
   const [mode, setMode] = useState<HeatmapMode>('all');
+  const [viewType, setViewType] = useState<ViewType>('heatmap');
   const [internalRankData, setInternalRankData] = useState<Record<string, number>>({});
   const [xchPriceUsd, setXchPriceUsd] = useState<number>(getCachedXchPrice());
+  const [selectedBar, setSelectedBar] = useState<{ priceRange: string; listings: NFTListing[] } | null>(null);
 
   // Load listings and rank data
   useEffect(() => {
@@ -216,18 +219,47 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
     return Math.max(...heatmapGrid.flatMap(row => row.map(cell => cell.count)), 1);
   }, [heatmapGrid]);
 
-  // Get cell background color based on count
+  // Price distribution for bar chart (aggregates all rarity levels)
+  const priceDistribution = useMemo(() => {
+    if (!floorPrice || floorPrice === 0) return [];
+
+    return PRICE_RANGES.map(priceRange => {
+      const matchingListings = listings.filter(listing => {
+        const priceMultiple = listing.priceXch / floorPrice;
+        return priceMultiple >= priceRange.min &&
+          (priceRange.max === Infinity ? true : priceMultiple < priceRange.max);
+      });
+
+      return {
+        label: priceRange.label,
+        count: matchingListings.length,
+        listings: matchingListings
+      };
+    });
+  }, [listings, floorPrice]);
+
+  // Max count for bar chart scaling
+  const maxBarCount = useMemo(() => {
+    return Math.max(...priceDistribution.map(d => d.count), 1);
+  }, [priceDistribution]);
+
+  // Get cell background color based on count (theme-aware)
   const getCellColor = (count: number, highlight?: boolean) => {
     if (count === 0) return 'transparent';
 
     const intensity = Math.min(count / maxCount, 1);
     const alpha = 0.2 + intensity * 0.6;
 
+    // Read CSS variables for theme-aware colors
+    const rootStyles = getComputedStyle(document.documentElement);
+    const cellRgb = rootStyles.getPropertyValue('--heatmap-cell-rgb').trim() || '99, 102, 241';
+    const highlightRgb = rootStyles.getPropertyValue('--heatmap-highlight-rgb').trim() || '255, 140, 0';
+
     if (highlight) {
-      return `rgba(255, 140, 0, ${alpha})`; // Orange for highlighted
+      return `rgba(${highlightRgb}, ${alpha})`;
     }
 
-    return `rgba(99, 102, 241, ${alpha})`; // Indigo for normal
+    return `rgba(${cellRgb}, ${alpha})`;
   };
 
   // Preload images for all listings so they show instantly when clicking cells
@@ -269,75 +301,127 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
 
   return (
     <div className="market-heatmap">
-      {/* Stats Bar */}
-      <div className="heatmap-stats">
-        <div className="stat">
-          <span className="stat-label">Listed</span>
-          <span className="stat-value">{listings.length}</span>
-        </div>
-        <div className="stat">
-          <span className="stat-label">Floor</span>
-          <span className="stat-value">{floorPrice.toFixed(2)} XCH</span>
-        </div>
-      </div>
-
-      {/* Mode Selector */}
-      <div className="heatmap-modes">
-        {HEATMAP_MODES.map(m => (
-          <button
-            key={m.key}
-            className={`mode-btn ${mode === m.key ? 'active' : ''}`}
-            onClick={() => setMode(m.key)}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Heatmap Grid */}
-      <div className="heatmap-container">
-        {/* Price headers */}
-        <div className="heatmap-header">
-          <div className="header-spacer" />
-          {PRICE_RANGES.map(p => (
-            <div key={p.label} className="header-cell">
-              {p.label}
-            </div>
-          ))}
-        </div>
-
-        {/* Grid rows */}
-        {filteredGrid.map((row, rowIdx) => (
-          <div key={rowIdx} className="heatmap-row">
-            <div className="row-label">
-              {RARITY_RANGES[rowIdx].label}
-            </div>
-            {row.map((cell, colIdx) => (
-              <div
-                key={colIdx}
-                className={`heatmap-cell ${cell.count > 0 ? 'clickable' : ''} ${(cell as any).highlight ? 'highlighted' : ''}`}
-                style={{ backgroundColor: getCellColor(cell.count, (cell as any).highlight) }}
-                onClick={() => cell.count > 0 && setSelectedCell(cell)}
-              >
-                {cell.count > 0 && <span>{cell.count}</span>}
-              </div>
-            ))}
+      <div className="heatmap-card">
+        {/* Stats Bar */}
+        <div className="heatmap-stats">
+          <div className="stat">
+            <span className="stat-label">Listed</span>
+            <span className="stat-value">{listings.length}</span>
           </div>
-        ))}
-      </div>
-
-      {/* Legend */}
-      <div className="heatmap-legend">
-        <span className="legend-label">Density:</span>
-        <div className="legend-scale">
-          <div className="legend-item low" />
-          <div className="legend-item mid" />
-          <div className="legend-item high" />
+          <div className="stat">
+            <span className="stat-label">Floor</span>
+            <span className="stat-value">{floorPrice.toFixed(2)} XCH</span>
+          </div>
         </div>
-        <span className="legend-labels">
-          <span>Low</span>
-          <span>High</span>
-        </span>
+
+        {/* View Type Toggle */}
+        <div className="view-toggle">
+          <button
+            className={`view-toggle-btn ${viewType === 'heatmap' ? 'active' : ''}`}
+            onClick={() => setViewType('heatmap')}
+          >
+            Heat Map
+          </button>
+          <button
+            className={`view-toggle-btn ${viewType === 'distribution' ? 'active' : ''}`}
+            onClick={() => setViewType('distribution')}
+          >
+            Price Distribution
+          </button>
+        </div>
+
+        {/* Mode Selector - only show for heatmap */}
+        {viewType === 'heatmap' && <div className="heatmap-modes">
+          {HEATMAP_MODES.map(m => (
+            <button
+              key={m.key}
+              className={`mode-btn ${mode === m.key ? 'active' : ''}`}
+              onClick={() => setMode(m.key)}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>}
+
+        {/* Heatmap View */}
+        {viewType === 'heatmap' && (
+          <>
+            <div className="heatmap-container">
+              {/* Price headers */}
+              <div className="heatmap-header">
+                <div className="header-spacer" />
+                {PRICE_RANGES.map(p => (
+                  <div key={p.label} className="header-cell">
+                    {p.label}
+                  </div>
+                ))}
+              </div>
+
+              {/* Grid rows */}
+              {filteredGrid.map((row, rowIdx) => (
+                <div key={rowIdx} className="heatmap-row">
+                  <div className="row-label">
+                    {RARITY_RANGES[rowIdx].label}
+                  </div>
+                  {row.map((cell, colIdx) => (
+                    <div
+                      key={colIdx}
+                      className={`heatmap-cell ${cell.count > 0 ? 'clickable' : ''} ${(cell as any).highlight ? 'highlighted' : ''}`}
+                      style={{ backgroundColor: getCellColor(cell.count, (cell as any).highlight) }}
+                      onClick={() => cell.count > 0 && setSelectedCell(cell)}
+                    >
+                      {cell.count > 0 && <span>{cell.count}</span>}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            {/* Legend */}
+            <div className="heatmap-legend">
+              <span className="legend-label">Density:</span>
+              <div className="legend-scale">
+                <div className="legend-item low" />
+                <div className="legend-item mid" />
+                <div className="legend-item high" />
+              </div>
+              <span className="legend-labels">
+                <span>Low</span>
+                <span>High</span>
+              </span>
+            </div>
+          </>
+        )}
+
+        {/* Price Distribution View (Bar Chart) */}
+        {viewType === 'distribution' && (
+          <div className="distribution-container">
+            <div className="distribution-chart">
+              {priceDistribution.map((bar, idx) => {
+                const heightPercent = maxBarCount > 0 ? (bar.count / maxBarCount) * 100 : 0;
+                return (
+                  <div
+                    key={idx}
+                    className={`distribution-bar-wrapper ${bar.count > 0 ? 'clickable' : ''}`}
+                    onClick={() => bar.count > 0 && setSelectedBar({ priceRange: bar.label, listings: bar.listings })}
+                  >
+                    <div className="bar-count">{bar.count > 0 ? bar.count : ''}</div>
+                    <div
+                      className="distribution-bar"
+                      style={{ height: `${Math.max(heightPercent, bar.count > 0 ? 5 : 0)}%` }}
+                    />
+                    <div className="bar-label">{bar.label}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="distribution-axis">
+              <span>Floor</span>
+              <span>→</span>
+              <span>10x+ Floor</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Cell Detail Modal */}
@@ -374,7 +458,52 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
                   </IonThumbnail>
                   <IonLabel>
                     <h2>Wojak #{listing.nftId}</h2>
-                    <p>👑{ranks[listing.nftId] || '?'}</p>
+                    <p className="nft-rank">👑{ranks[listing.nftId] || '?'}</p>
+                  </IonLabel>
+                  <IonLabel slot="end" className="price-label">
+                    <span className="price-xch">{listing.priceXch.toFixed(2)} XCH</span>
+                    <span className="price-usd">${(listing.priceXch * xchPriceUsd).toFixed(2)}</span>
+                    <span className="price-multiple">
+                      {(listing.priceXch / floorPrice).toFixed(1)}x floor
+                    </span>
+                  </IonLabel>
+                </IonItem>
+              ))}
+          </IonList>
+        </IonContent>
+      </IonModal>
+
+      {/* Bar Detail Modal (for Price Distribution) */}
+      <IonModal isOpen={!!selectedBar} onDidDismiss={() => setSelectedBar(null)}>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>
+              {selectedBar?.listings.length} NFT{selectedBar?.listings.length !== 1 ? 's' : ''} at {selectedBar?.priceRange}
+            </IonTitle>
+            <IonButton slot="end" fill="clear" onClick={() => setSelectedBar(null)}>
+              Close
+            </IonButton>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          <IonList>
+            {selectedBar?.listings
+              .sort((a, b) => a.priceXch - b.priceXch)
+              .map(listing => (
+                <IonItem
+                  key={listing.nftId}
+                  button
+                  onClick={() => {
+                    onNftClick?.(listing.nftId);
+                    setSelectedBar(null);
+                  }}
+                >
+                  <IonThumbnail slot="start">
+                    <IonImg src={getNftImageUrl(listing.nftId)} />
+                  </IonThumbnail>
+                  <IonLabel>
+                    <h2>Wojak #{listing.nftId}</h2>
+                    <p className="nft-rank">👑{ranks[listing.nftId] || '?'}</p>
                   </IonLabel>
                   <IonLabel slot="end" className="price-label">
                     <span className="price-xch">{listing.priceXch.toFixed(2)} XCH</span>

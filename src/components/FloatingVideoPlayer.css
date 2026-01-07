@@ -20,7 +20,7 @@
   width: 50px;
   height: auto;
   border-radius: 25px;
-  background: linear-gradient(135deg, #ff8c00, #ff6600);
+  background: var(--app-accent-color);
   cursor: pointer;
 }
 
@@ -30,12 +30,15 @@
   align-items: center;
   justify-content: center;
   padding: 14px 8px;
-  cursor: pointer;
+  cursor: grab;
   -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .minimized-player:active {
-  transform: scale(0.95);
+  cursor: grabbing;
 }
 
 .expand-icon {

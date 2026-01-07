@@ -1,26 +1,26 @@
 .media-content {
-  --background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+  --background: var(--app-background);
 }
 
 /* Section Cards */
 .media-section {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--app-card-background);
   border-radius: 16px;
   margin: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--app-card-border);
 }
 
 .section-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: white;
+  color: var(--ion-text-color);
   font-size: 18px;
   font-weight: 700;
 }
 
 .section-icon {
-  color: #ff8c00;
+  color: var(--app-accent-color);
   font-size: 22px;
 }
 
@@ -36,7 +36,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--app-section-background);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -54,7 +54,7 @@
 
 .music-play-btn {
   font-size: 32px;
-  color: #ff8c00;
+  color: var(--app-accent-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -68,18 +68,18 @@
 }
 
 .music-title {
-  color: white;
+  color: var(--ion-text-color);
   font-size: 14px;
   font-weight: 600;
 }
 
 .music-artist {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--ion-color-medium);
   font-size: 12px;
 }
 
 .music-duration {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--ion-color-medium);
   font-size: 12px;
 }
 
@@ -95,13 +95,13 @@
   align-items: center;
   gap: 10px;
   padding: 8px 12px 12px 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--app-section-background);
   border-radius: 0 0 12px 12px;
   margin-top: -4px;
 }
 
 .volume-icon {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--ion-color-medium);
   font-size: 18px;
   flex-shrink: 0;
 }
@@ -130,7 +130,7 @@
   left: 0;
   top: 14px;
   height: 8px;
-  background: linear-gradient(90deg, #ff8c00, #ff6600);
+  background: var(--app-accent-color);
   border-radius: 4px;
   pointer-events: none;
 }
@@ -140,7 +140,7 @@
   top: 18px;
   width: 28px;
   height: 28px;
-  background: linear-gradient(135deg, #ff8c00, #ff6600);
+  background: var(--app-accent-color);
   border-radius: 50%;
   border: 3px solid white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
@@ -165,7 +165,7 @@
 .video-thumbnail {
   position: relative;
   aspect-ratio: 16/9;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--app-section-background);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -207,7 +207,7 @@
 }
 
 .video-title {
-  color: white;
+  color: var(--ion-text-color);
   font-size: 12px;
   font-weight: 500;
   line-height: 1.3;
@@ -218,7 +218,7 @@
 }
 
 .video-author {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--ion-color-medium);
   font-size: 10px;
 }
 
@@ -259,19 +259,19 @@
 }
 
 .game-name {
-  color: white;
+  color: var(--ion-text-color);
   font-size: 18px;
   font-weight: 700;
 }
 
 .game-desc {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--ion-color-medium);
   font-size: 13px;
 }
 
 .game-play-icon {
   font-size: 28px;
-  color: #ff8c00;
+  color: var(--app-accent-color);
 }
 
 /* Close Game Button */
@@ -308,14 +308,14 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--ion-color-medium);
   font-size: 18px;
 }
 
 /* Coming Soon Text */
 .coming-soon-text {
   text-align: center;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--ion-color-medium);
   font-size: 12px;
   font-style: italic;
   margin-top: 12px;

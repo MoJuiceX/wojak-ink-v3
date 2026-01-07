@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   IonSearchbar,
   IonSpinner,
-  IonChip,
-  IonLabel
+  IonImg
 } from '@ionic/react';
+import { getNftImageUrl } from '../services/marketApi';
 import './QuestionTree.css';
 
 interface Category {
@@ -172,17 +172,22 @@ const QuestionTree: React.FC<QuestionTreeProps> = ({ onNftClick }) => {
         </div>
 
         {selectedQuestion.nft_ids && selectedQuestion.nft_ids.length > 0 && !isTyping && (
-          <div className="qt-nft-chips">
-            <span className="qt-chips-label">Jump to NFT:</span>
-            <div className="qt-chips-row">
+          <div className="qt-nft-previews">
+            <span className="qt-previews-label">Featured NFTs:</span>
+            <div className="qt-previews-grid">
               {selectedQuestion.nft_ids.map(id => (
-                <IonChip
+                <div
                   key={id}
-                  color="primary"
+                  className="qt-nft-preview-card"
                   onClick={() => onNftClick?.(id)}
                 >
-                  <IonLabel>#{id}</IonLabel>
-                </IonChip>
+                  <IonImg
+                    src={getNftImageUrl(id)}
+                    alt={`NFT #${id}`}
+                    className="qt-nft-preview-img"
+                  />
+                  <span className="qt-nft-preview-id">#{id}</span>
+                </div>
               ))}
             </div>
           </div>

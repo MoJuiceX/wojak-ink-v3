@@ -1,21 +1,80 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import './BigPulpCharacter.css';
 
 interface BigPulpCharacterProps {
   message: string;
   isTyping?: boolean;
-  variant?: 'default' | 'crown' | 'wizard' | 'cowboy';
+  headTrait?: string;
   onTypingComplete?: () => void;
 }
+
+// Map head traits to BigPulp images
+const HEAD_TO_BIGPULP: Record<string, string> = {
+  'Crown': 'BigP_crown.png',
+  'Clown': 'BigP_clown.png',
+  'Military Beret': 'BigP_beret.png',
+  'Viking Helmet': 'BigP_viking.png',
+  'Tin Foil Hat': 'BigP_tin.png',
+  'Super Wojak Hat': 'BigP_super_wojak.png',
+  'Propeller Hat': 'BigP_propeller.png',
+  'Fedora': 'BigP_Fedora.png',
+};
+
+// Wizard hat colors for random selection
+const WIZARD_COLORS = [
+  'BigP_wiz_orange.png',
+  'BigP_wiz_red.png',
+  'BigP_wiz_pink.png',
+  'BigP_wiz_blue.png',
+  'BigP_wiz_yellow.png',
+  'BigP_wiz_dark_blue.png',
+];
+
+// All available BigPulp images for random selection when no match
+const ALL_BIGPULP_IMAGES = [
+  'BigP_crown.png',
+  'BigP_clown.png',
+  'BigP_beret.png',
+  'BigP_viking.png',
+  'BigP_tin.png',
+  'BigP_super_wojak.png',
+  'BigP_propeller.png',
+  'BigP_Fedora.png',
+  ...WIZARD_COLORS,
+];
 
 const BigPulpCharacter: React.FC<BigPulpCharacterProps> = ({
   message,
   isTyping = false,
-  variant = 'default',
+  headTrait,
   onTypingComplete
 }) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isAnimatingText, setIsAnimatingText] = useState(false);
+
+  // Determine the BigPulp image based on head trait
+  const bigPulpImage = useMemo(() => {
+    if (!headTrait) {
+      // No trait provided - pick random
+      return ALL_BIGPULP_IMAGES[Math.floor(Math.random() * ALL_BIGPULP_IMAGES.length)];
+    }
+
+    // Check for Wizard Hat - pick random wizard color
+    if (headTrait === 'Wizard Hat') {
+      return WIZARD_COLORS[Math.floor(Math.random() * WIZARD_COLORS.length)];
+    }
+
+    // Check for direct match
+    if (HEAD_TO_BIGPULP[headTrait]) {
+      return HEAD_TO_BIGPULP[headTrait];
+    }
+
+    // No match - pick random
+    return ALL_BIGPULP_IMAGES[Math.floor(Math.random() * ALL_BIGPULP_IMAGES.length)];
+  }, [headTrait]);
+
+  const baseImagePath = '/assets/BigPulp/art/BigP_base.png';
+  const characterImagePath = `/assets/BigPulp/art/${bigPulpImage}`;
 
   // Typing animation effect
   useEffect(() => {
@@ -48,19 +107,6 @@ const BigPulpCharacter: React.FC<BigPulpCharacterProps> = ({
     }
   }, [message, isTyping, onTypingComplete]);
 
-  // Get character image based on variant
-  const getCharacterImage = () => {
-    // TODO: Replace with actual BigPulp images once provided
-    // For now, using placeholder paths
-    const images: Record<string, string> = {
-      default: '/assets/BigPulp/characters/bigpulp-default.png',
-      crown: '/assets/BigPulp/characters/bigpulp-crown.png',
-      wizard: '/assets/BigPulp/characters/bigpulp-wizard.png',
-      cowboy: '/assets/BigPulp/characters/bigpulp-cowboy.png',
-    };
-    return images[variant] || images.default;
-  };
-
   return (
     <div className="bigpulp-character-container">
       {/* Speech Bubble */}
@@ -72,29 +118,21 @@ const BigPulpCharacter: React.FC<BigPulpCharacterProps> = ({
         <div className="speech-tail" />
       </div>
 
-      {/* BigPulp Character */}
+      {/* BigPulp Character - Two Layer Animation */}
       <div className="bigpulp-character">
-        <div className="character-wrapper">
-          {/* Animated orange character */}
-          <div className="orange-body">
-            {/* Placeholder orange circle until real image provided */}
-            <div className="orange-placeholder">
-              <span className="orange-emoji">🍊</span>
-              <div className="orange-face">
-                <div className="orange-eyes">
-                  <span className="eye left" />
-                  <span className="eye right" />
-                </div>
-                <div className="orange-mouth" />
-              </div>
-            </div>
-            {/* Real image (uncomment when available) */}
-            {/* <img
-              src={getCharacterImage()}
-              alt="BigPulp"
-              className="character-image"
-            /> */}
-          </div>
+        <div className="character-layers">
+          {/* Layer 1: Static base (feet) */}
+          <img
+            src={baseImagePath}
+            alt="BigPulp base"
+            className="bigpulp-layer bigpulp-layer-static"
+          />
+          {/* Layer 2: Character variant (moves) */}
+          <img
+            src={characterImagePath}
+            alt="BigPulp"
+            className="bigpulp-layer bigpulp-layer-moving"
+          />
         </div>
       </div>
     </div>

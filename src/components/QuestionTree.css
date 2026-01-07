@@ -27,10 +27,10 @@
   margin-bottom: 16px;
 }
 
-/* Categories */
+/* Categories - Two Column Grid */
 .qt-categories {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin-bottom: 16px;
 }
@@ -39,22 +39,23 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--ion-color-light);
-  border: 2px solid transparent;
+  background: var(--app-button-background);
+  border: none;
   border-radius: 12px;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 500;
+  padding: 12px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .qt-category:hover {
-  background: var(--ion-color-light-shade);
+  filter: brightness(1.1);
 }
 
 .qt-category.active {
-  background: var(--ion-color-primary);
+  background: var(--app-button-selected);
   color: white;
 }
 
@@ -64,6 +65,8 @@
 
 .qt-cat-name {
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Questions List */
@@ -90,7 +93,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--ion-color-light);
+  background: var(--app-button-background);
   border: none;
   border-radius: 12px;
   padding: 14px 16px;
@@ -100,7 +103,7 @@
 }
 
 .qt-question-btn:hover {
-  background: var(--ion-color-light-shade);
+  filter: brightness(1.1);
 }
 
 .qt-question-btn:active {
@@ -109,12 +112,13 @@
 
 .qt-q-short {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   flex: 1;
+  color: white;
 }
 
 .qt-arrow {
-  color: var(--ion-color-primary);
+  color: white;
   font-weight: 700;
   margin-left: 12px;
 }
@@ -125,14 +129,24 @@
 }
 
 .qt-back-btn {
-  background: none;
+  background: var(--app-button-background);
   border: none;
-  color: var(--ion-color-primary);
+  border-radius: 12px;
+  padding: 10px 16px;
+  color: white;
   font-size: 14px;
   font-weight: 600;
-  padding: 0;
   margin-bottom: 16px;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.qt-back-btn:hover {
+  filter: brightness(1.1);
+}
+
+.qt-back-btn:active {
+  transform: scale(0.98);
 }
 
 .qt-question-header {
@@ -154,6 +168,7 @@
   font-size: 15px;
   font-weight: 600;
   line-height: 1.4;
+  color: #1a1a1a;
 }
 
 /* Answer Bubble */
@@ -179,6 +194,7 @@
 .qt-answer-content {
   flex: 1;
   background: white;
+  color: #1a1a1a;
   border-radius: 16px;
   border-top-left-radius: 4px;
   padding: 16px;
@@ -212,8 +228,8 @@
   color: var(--ion-color-primary-shade);
 }
 
-/* NFT Chips */
-.qt-nft-chips {
+/* NFT Preview Cards */
+.qt-nft-previews {
   margin-top: 16px;
   animation: fadeIn 0.3s ease;
 }
@@ -223,22 +239,52 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.qt-chips-label {
+.qt-previews-label {
   display: block;
   font-size: 11px;
   color: var(--ion-color-medium);
   text-transform: uppercase;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
-.qt-chips-row {
+.qt-previews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.qt-nft-preview-card {
+  background: var(--app-button-background);
+  border-radius: 12px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
   gap: 6px;
 }
 
-.qt-chips-row ion-chip {
-  margin: 0;
+.qt-nft-preview-card:hover {
+  filter: brightness(1.1);
+  transform: scale(1.02);
+}
+
+.qt-nft-preview-card:active {
+  transform: scale(0.98);
+}
+
+.qt-nft-preview-img {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.qt-nft-preview-id {
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
 }
 
 /* Dark mode adjustments */
