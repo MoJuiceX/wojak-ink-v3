@@ -167,8 +167,8 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
             videoRef.current.volume = 1;
             videoRef.current.play()
               .then(() => setIsPlaying(true))
-              .catch(err => {
-                console.log('Autoplay blocked:', err);
+              .catch(() => {
+                // Autoplay blocked, try muted
                 if (videoRef.current) {
                   videoRef.current.muted = true;
                   videoRef.current.play()
@@ -190,7 +190,9 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
       } else {
         videoRef.current.play()
           .then(() => setIsPlaying(true))
-          .catch(err => console.log('Play failed:', err));
+          .catch(() => {
+            // Play failed
+          });
       }
     }
   };
@@ -225,8 +227,9 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
 
     const playerWidth = isMinimized ? 50 : 260;
     const playerHeight = isMinimized ? 70 : 180;
+    const tabBarHeight = 100; // Keep player above tab bar (includes safe area inset)
     const maxX = window.innerWidth - playerWidth;
-    const maxY = window.innerHeight - playerHeight;
+    const maxY = window.innerHeight - playerHeight - tabBarHeight;
 
     setPosition({
       x: Math.max(0, Math.min(newX, maxX)),
@@ -253,12 +256,14 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
       e.preventDefault();
       togglePlayPause();
     } else if (!isMinimized && Math.abs(deltaX) > 80) {
+      const tabBarHeight = 100;
+      const maxY = window.innerHeight - 70 - tabBarHeight; // 70 is minimized height
       if (deltaX < 0) {
         setIsMinimized(true);
-        setPosition(prev => ({ ...prev, x: 0 }));
+        setPosition(prev => ({ x: 0, y: Math.min(prev.y, maxY) }));
       } else {
         setIsMinimized(true);
-        setPosition(prev => ({ ...prev, x: window.innerWidth - 50 }));
+        setPosition(prev => ({ x: window.innerWidth - 50, y: Math.min(prev.y, maxY) }));
       }
     }
 
@@ -295,8 +300,9 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
 
         const playerWidth = isMinimized ? 50 : 260;
         const playerHeight = isMinimized ? 70 : 180;
+        const tabBarHeight = 100; // Keep player above tab bar
         const maxX = window.innerWidth - playerWidth;
-        const maxY = window.innerHeight - playerHeight;
+        const maxY = window.innerHeight - playerHeight - tabBarHeight;
 
         setPosition({
           x: Math.max(0, Math.min(newX, maxX)),

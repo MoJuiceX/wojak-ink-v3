@@ -1,12 +1,14 @@
 .floating-video-player {
   position: fixed;
-  z-index: 9999;
+  z-index: 999; /* Below Ionic modals (1000+) but above content */
   width: 260px;
   background: #000;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   overflow: hidden;
   transition: all 0.3s ease;
+  /* Prevent player from blocking tab bar */
+  max-height: calc(100vh - 120px);
 }
 
 .floating-video-player.dragging {
