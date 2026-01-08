@@ -14,7 +14,8 @@ import {
   IonRefresherContent,
   RefresherEventDetail,
 } from '@ionic/react';
-import { close, openOutline, copyOutline, helpCircleOutline } from 'ionicons/icons';
+import { close, openOutline, copyOutline, helpCircleOutline, checkmark } from 'ionicons/icons';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import {
   fetchWalletData,
   getWalletExplorerUrl,
@@ -57,7 +58,8 @@ const Treasury: React.FC = () => {
     '/assets/Wojaks/goldenPapatang4.mp4',
   ];
 
-  const handleInfoTap = () => {
+  const handleInfoTap = async () => {
+    try { await Haptics.impact({ style: ImpactStyle.Light }); } catch {}
     if (!tooltipTapped) {
       // First tap: show tooltip
       setShowInfoTooltip(true);
@@ -109,30 +111,41 @@ const Treasury: React.FC = () => {
   };
 
   useEffect(() => {
-    // Preload token logos immediately
+    // Preload token logos from cache (if any)
     preloadTokenLogos();
 
-    // If we have cached data, show it and refresh in background
-    if (walletData && isCacheStale()) {
-      loadData(false, true);
-    } else if (!walletData) {
-      // No cache, need to fetch
-      loadData(true, true);
+    // Only fetch if we have NO cached data at all
+    // If we have data (even stale), show it and let user manually refresh
+    if (!walletData) {
+      loadData(true, false); // Don't force refresh, let cache logic handle it
     }
+    // If cache is stale, user can pull-to-refresh
   }, []);
 
   const handleRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
-    await loadData(false);
+    await loadData(false, true); // Force refresh on manual pull
     event.detail.complete();
   };
 
   const copyAddress = () => {
-    navigator.clipboard.writeText(WALLET_ADDRESS);
+    Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+
+    // Use fallback method for better compatibility
+    const textArea = document.createElement('textarea');
+    textArea.value = WALLET_ADDRESS;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const openExplorer = () => {
+    Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
     window.open(getWalletExplorerUrl(), '_blank');
   };
 
@@ -269,8 +282,8 @@ const Treasury: React.FC = () => {
                 {copied ? 'Copied!' : WALLET_DISPLAY}
               </div>
               <div className="wallet-actions">
-                <button onClick={copyAddress} className="icon-btn">
-                  <IonIcon icon={copyOutline} />
+                <button onClick={copyAddress} className={`icon-btn ${copied ? 'copied' : ''}`}>
+                  <IonIcon icon={copied ? checkmark : copyOutline} />
                 </button>
                 <button onClick={openExplorer} className="icon-btn">
                   <IonIcon icon={openOutline} />
@@ -289,7 +302,10 @@ const Treasury: React.FC = () => {
                     <div
                       key={collection.collection_id}
                       className="collection-card"
-                      onClick={() => setSelectedCollection(collection)}
+                      onClick={async () => {
+                        try { await Haptics.impact({ style: ImpactStyle.Light }); } catch {}
+                        setSelectedCollection(collection);
+                      }}
                     >
                       <div className="collection-preview">
                         <IonImg

@@ -33,10 +33,8 @@ import StartupSequence from './components/StartupSequence';
 // Initialize Parse connection (temporarily disabled for debugging)
 // import './services/parseClient';
 
-// Prefetch treasury data on app start for instant loading
-import { prefetchWalletData, preloadTokenLogos } from './services/treasuryApi';
-prefetchWalletData();
-preloadTokenLogos();
+// Treasury data is fetched on-demand when user visits Treasury tab
+// No prefetch needed - uses 30-minute cache to avoid SpaceScan rate limits
 
 // Initialize gallery preloader - starts loading NFT images during boot
 import { initGalleryPreloader, startPreloading } from './services/galleryPreloader';

@@ -44,16 +44,21 @@ const DOMAIN_CONFIGS: Record<string, Partial<RateLimitConfig>> = {
     minDelayMs: 500,
   },
   'api.spacescan.io': {
-    requestsPerSecond: 0.5,   // SpaceScan is very strict - 1 request per 2 seconds
-    minDelayMs: 2000,
-    maxRetries: 5,            // More retries for Spacescan
-    baseBackoffMs: 3000,      // Longer initial backoff
+    requestsPerSecond: 0.2,   // SpaceScan is VERY strict - 1 request per 5 seconds
+    minDelayMs: 5000,
+    maxRetries: 5,
+    baseBackoffMs: 10000,     // 10 second initial backoff on failure
+    maxBackoffMs: 120000,     // Up to 2 minutes backoff
   },
   'api.coingecko.com': {
-    requestsPerSecond: 1,     // CoinGecko free tier is limited
-    minDelayMs: 1000,
+    requestsPerSecond: 0.5,   // CoinGecko free tier - 1 request per 2 seconds
+    minDelayMs: 2000,
   },
 };
+
+// Global cooldown tracking per domain (triggered by 429 errors)
+const domainCooldowns = new Map<string, number>();
+const COOLDOWN_DURATION = 60000; // 60 second cooldown after 429
 
 // ============================================
 // REQUEST QUEUE
@@ -72,9 +77,11 @@ class RequestQueue {
   private processing = false;
   private lastRequestTime = 0;
   private config: RateLimitConfig;
+  private domain: string;
 
-  constructor(config: RateLimitConfig = DEFAULT_CONFIG) {
+  constructor(config: RateLimitConfig = DEFAULT_CONFIG, domain: string = 'unknown') {
     this.config = config;
+    this.domain = domain;
   }
 
   updateConfig(config: Partial<RateLimitConfig>): void {
@@ -96,9 +103,17 @@ class RequestQueue {
     while (this.queue.length > 0) {
       const item = this.queue.shift()!;
 
-      // Enforce minimum delay between requests
+      // Check global cooldown for this domain (triggered by 429 errors)
+      const cooldownUntil = domainCooldowns.get(this.domain) || 0;
       const now = Date.now();
-      const timeSinceLastRequest = now - this.lastRequestTime;
+      if (now < cooldownUntil) {
+        const waitTime = cooldownUntil - now;
+        await this.delay(waitTime);
+      }
+
+      // Enforce minimum delay between requests
+      const currentTime = Date.now();
+      const timeSinceLastRequest = currentTime - this.lastRequestTime;
       if (timeSinceLastRequest < item.config.minDelayMs) {
         await this.delay(item.config.minDelayMs - timeSinceLastRequest);
       }
@@ -109,16 +124,21 @@ class RequestQueue {
         item.resolve(result);
       } catch (error: any) {
         const status = error?.status || error?.response?.status;
-        const isRetryable = status === 429 || (status >= 500 && status < 600);
+        const is429 = status === 429;
+        const isRetryable = is429 || (status >= 500 && status < 600);
+
+        // On 429, set global cooldown for this domain
+        if (is429) {
+          const cooldownTime = Date.now() + COOLDOWN_DURATION;
+          domainCooldowns.set(this.domain, cooldownTime);
+        }
 
         if (isRetryable && item.retryCount < item.config.maxRetries) {
+          // For 429, use longer backoff
+          const baseBackoff = is429 ? Math.max(item.config.baseBackoffMs, 15000) : item.config.baseBackoffMs;
           const backoffMs = Math.min(
-            item.config.baseBackoffMs * Math.pow(2, item.retryCount),
+            baseBackoff * Math.pow(2, item.retryCount),
             item.config.maxBackoffMs
-          );
-          console.log(
-            `[RateLimiter] ${status} error, backing off ${backoffMs}ms ` +
-            `(retry ${item.retryCount + 1}/${item.config.maxRetries})`
           );
           await this.delay(backoffMs);
           item.retryCount++;
@@ -164,7 +184,7 @@ function getQueueForDomain(domain: string): RequestQueue {
   if (!domainQueues.has(domain)) {
     const domainConfig = DOMAIN_CONFIGS[domain] || {};
     const config = { ...DEFAULT_CONFIG, ...domainConfig };
-    domainQueues.set(domain, new RequestQueue(config));
+    domainQueues.set(domain, new RequestQueue(config, domain));
   }
   return domainQueues.get(domain)!;
 }
@@ -264,14 +284,12 @@ export async function rateLimitedFetch(
   if (cacheTtl > 0) {
     const cached = getCachedResponse<Response>(cacheKey);
     if (cached) {
-      console.log(`[RateLimiter] Cache HIT: ${url}`);
       return cached.clone();
     }
   }
 
   // 2. Check for in-flight request (deduplication)
   if (inFlightRequests.has(cacheKey)) {
-    console.log(`[RateLimiter] Waiting for in-flight request: ${url}`);
     return inFlightRequests.get(cacheKey)!;
   }
 
@@ -399,7 +417,6 @@ export function getQueueStatus(): Record<string, { queueLength: number; isProces
  */
 export function clearCaches(): void {
   responseCache.clear();
-  console.log('[RateLimiter] Caches cleared');
 }
 
 /**

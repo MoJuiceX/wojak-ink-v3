@@ -1,15 +1,15 @@
 /**
  * Treasury API Service
- * Fetches wallet balances, tokens, and NFTs dynamically
+ * Fetches wallet balances, tokens, and NFTs dynamically from SpaceScan
  */
 
-import { WALLET_ADDRESS, XCH_DECIMALS, CAT_DECIMALS } from './treasuryConstants';
-import { TREASURY_TOKENS, TOTAL_TOKEN_VALUE_USD } from './tokenConfig';
+import { WALLET_ADDRESS, XCH_DECIMALS } from './treasuryConstants';
 import { spacescanQueue, coingeckoQueue } from '../utils/rateLimiter';
 
-// Use Vite proxy in development to avoid CORS
+// Use proxies to avoid CORS issues
+// Dev: Vite proxy, Prod: Cloudflare Pages Function
 const isDev = import.meta.env.DEV;
-const SPACESCAN_API = isDev ? '/spacescan-api' : 'https://api.spacescan.io';
+const SPACESCAN_API = isDev ? '/spacescan-api' : '/api/spacescan';
 const COINGECKO_API = isDev ? '/coingecko-api' : 'https://api.coingecko.com';
 
 // Types
@@ -18,10 +18,10 @@ export interface TokenBalance {
   name: string;
   symbol: string;
   balance: number; // in token units
-  balance_mojos: number;
   value_usd: number;
+  price_usd: number;
   logo_url?: string;
-  color?: string;
+  color?: string; // Optional - for UI display
 }
 
 export interface NFTItem {
@@ -59,11 +59,11 @@ const STORAGE_XCH_BALANCE_KEY = 'wojak_xch_balance';
 // Cache for API responses
 let cachedData: WalletData | null = null;
 let cacheTimestamp: number = 0;
-const CACHE_DURATION = 60 * 60 * 1000; // 60 minutes (Spacescan rate limits are very strict)
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes - conservative refresh interval
 
 // Rate limit tracking
 let lastApiCall: number = 0;
-const MIN_API_INTERVAL = 60000; // 60 seconds between API calls
+const MIN_API_INTERVAL = 30 * 60 * 1000; // 30 minutes between full API refreshes
 
 // XCH price cache - never show $0
 let cachedXchPrice: number = 5.0; // Default fallback price
@@ -118,17 +118,10 @@ function persistData(data: WalletData): void {
 loadPersistedData();
 
 /**
- * Convert mojos to XCH
+ * Convert mojos to XCH (not currently used but kept for reference)
  */
-function mojosToXch(mojos: number): number {
+function _mojosToXch(mojos: number): number {
   return mojos / Math.pow(10, XCH_DECIMALS);
-}
-
-/**
- * Convert mojos to CAT tokens
- */
-function mojosToCat(mojos: number): number {
-  return mojos / Math.pow(10, CAT_DECIMALS);
 }
 
 /**
@@ -208,24 +201,56 @@ async function fetchXchBalance(): Promise<{ xch: number; mojo: number }> {
   }
 }
 
+// Cached token balances (for fallback)
+let cachedTokens: TokenBalance[] = [];
+
 /**
- * Get CAT token balances from config
- * Note: Spacescan doesn't have a public API for token balances per address
- * Using static config with known holdings, sorted by USD value
+ * Fetch CAT token balances from SpaceScan API
+ * Endpoint: /address/token-balance/{address}
+ * Returns tokens sorted by USD value (highest first)
  */
-function getCatBalances(): TokenBalance[] {
-  return TREASURY_TOKENS
-    .map(token => ({
-      asset_id: token.asset_id,
-      name: token.name,
-      symbol: token.symbol,
-      balance: token.balance,
-      balance_mojos: token.balance * Math.pow(10, CAT_DECIMALS),
-      value_usd: token.value_usd,
-      logo_url: token.logo_url,
-      color: token.color,
-    }))
-    .sort((a, b) => b.value_usd - a.value_usd); // Sort by value descending
+async function fetchTokenBalances(): Promise<TokenBalance[]> {
+  try {
+    const data = await spacescanQueue.add(async () => {
+      const response = await fetch(
+        `${SPACESCAN_API}/address/token-balance/${WALLET_ADDRESS}`
+      );
+
+      if (!response.ok) {
+        const error = new Error(`SpaceScan token API error: ${response.status}`) as any;
+        error.status = response.status;
+        throw error;
+      }
+
+      return response.json();
+    });
+
+    // Response format: { status: "success", data: [...tokens] }
+    const tokens = data.data || data || [];
+
+    const tokenBalances: TokenBalance[] = tokens
+      .filter((token: any) => token.name) // Skip unnamed/unknown tokens
+      .map((token: any) => ({
+        asset_id: token.asset_id,
+        name: token.name,
+        symbol: token.symbol || token.name,
+        balance: token.balance || 0,
+        value_usd: token.total_value || 0,
+        price_usd: token.price || 0,
+        logo_url: token.preview_url,
+      }))
+      .sort((a: TokenBalance, b: TokenBalance) => b.value_usd - a.value_usd);
+
+    // Cache for fallback
+    if (tokenBalances.length > 0) {
+      cachedTokens = tokenBalances;
+    }
+
+    return tokenBalances;
+  } catch (error) {
+    // Return cached tokens on error
+    return cachedTokens;
+  }
 }
 
 /**
@@ -316,44 +341,72 @@ export async function fetchWalletData(forceRefresh = false, backgroundRefresh = 
     return cachedData;
   }
 
-  // Rate limit protection
+  // Rate limit protection - always return cache if we're being rate limited
   if (now - lastApiCall < MIN_API_INTERVAL) {
-    console.log('Rate limit protection: using cached data');
     if (cachedData) return cachedData;
     // If no cache and this is a background refresh, don't wait
     if (backgroundRefresh) {
-      throw new Error('Rate limited and no cache available');
+      // Return default data instead of throwing
+      return getDefaultWalletData();
     }
   }
   lastApiCall = now;
 
-  // Fetch API data sequentially to avoid rate limits
-  // Spacescan is very strict - don't run parallel requests
-  const xchPrice = await fetchXchPrice(); // CoinGecko first (different queue)
-  const xchData = await fetchXchBalance(); // Spacescan
-  // Add extra delay before second Spacescan request
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  const nftCollections = await fetchWalletNfts(); // Spacescan
+  try {
+    // Fetch API data sequentially - rate limiter handles spacing
+    // CoinGecko first (different API)
+    const xchPrice = await fetchXchPrice();
 
-  // Get tokens from static config (no public API available)
-  const tokens = getCatBalances();
+    // SpaceScan calls - rate limiter adds delays automatically
+    const xchData = await fetchXchBalance();
+    const tokens = await fetchTokenBalances();
+    const nftCollections = await fetchWalletNfts();
 
-  const walletData: WalletData = {
-    xch_balance: xchData.xch, // Already in XCH units from API
-    xch_balance_mojos: xchData.mojo,
-    xch_price_usd: xchPrice,
+    // Calculate total token value from fetched data
+    const totalTokenValue = tokens.reduce((sum, token) => sum + token.value_usd, 0);
+
+    const walletData: WalletData = {
+      xch_balance: xchData.xch,
+      xch_balance_mojos: xchData.mojo,
+      xch_price_usd: xchPrice,
+      tokens,
+      total_token_value_usd: totalTokenValue,
+      nft_collections: nftCollections,
+      last_updated: new Date(),
+    };
+
+    // Update cache and persist
+    cachedData = walletData;
+    cacheTimestamp = now;
+    persistData(walletData);
+
+    return walletData;
+  } catch (error) {
+    // On any error, return cached data if available
+    if (cachedData) {
+      return cachedData;
+    }
+    // Otherwise return default data
+    return getDefaultWalletData();
+  }
+}
+
+/**
+ * Get default wallet data when API fails and no cache is available
+ */
+function getDefaultWalletData(): WalletData {
+  const tokens = cachedTokens.length > 0 ? cachedTokens : [];
+  const totalTokenValue = tokens.reduce((sum, token) => sum + token.value_usd, 0);
+
+  return {
+    xch_balance: cachedXchBalance.xch,
+    xch_balance_mojos: cachedXchBalance.mojo,
+    xch_price_usd: cachedXchPrice,
     tokens,
-    total_token_value_usd: TOTAL_TOKEN_VALUE_USD,
-    nft_collections: nftCollections,
+    total_token_value_usd: totalTokenValue,
+    nft_collections: [],
     last_updated: new Date(),
   };
-
-  // Update cache and persist
-  cachedData = walletData;
-  cacheTimestamp = now;
-  persistData(walletData);
-
-  return walletData;
 }
 
 /**
@@ -363,23 +416,25 @@ export async function fetchWalletData(forceRefresh = false, backgroundRefresh = 
 export function prefetchWalletData(): void {
   // Skip if we have valid cached data
   if (!isCacheStale()) {
-    console.log('[Treasury] Using cached data, skipping prefetch');
     return;
   }
 
-  // Delay startup API calls by 5 seconds to avoid rate limits
+  // Delay startup API calls by 15 seconds to avoid rate limits
+  // This gives time for other more critical API calls to complete first
   setTimeout(() => {
-    fetchWalletData(true, true).catch(err => {
-      console.log('Background prefetch skipped:', err.message);
+    fetchWalletData(true, true).catch(() => {
+      // Background prefetch failed silently - will use cached data
     });
-  }, 5000);
+  }, 15000);
 }
 
 /**
- * Preload token logo images
+ * Preload token logo images from cached data
  */
 export function preloadTokenLogos(): void {
-  const logos = TREASURY_TOKENS
+  // Use cached tokens if available
+  const tokens = cachedTokens.length > 0 ? cachedTokens : [];
+  const logos = tokens
     .filter(t => t.logo_url)
     .map(t => t.logo_url!);
 
