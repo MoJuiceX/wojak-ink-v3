@@ -10,7 +10,7 @@ import {
   IonSpinner,
   IonModal,
 } from '@ionic/react';
-import { shuffle, sparkles, banOutline, openOutline, heartOutline, heart, trashOutline, close } from 'ionicons/icons';
+import { shuffle, sparkles, banOutline, openOutline, heartOutline, heart, trashOutline, close, pencilOutline, checkmarkOutline } from 'ionicons/icons';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
@@ -52,6 +52,15 @@ const MOUTH_EXCLUSIVE_TRAITS = ['Bandana-Mask', 'Bubble-Gum', 'Pipe', 'Pizza'];
 // Special: Hannibal-Mask forces numb underneath
 const MOUTH_HANNIBAL = 'Hannibal-Mask';
 
+// Mouth traits that render ON TOP of Centurion head
+const MOUTH_OVER_CENTURION = ['stach', 'Pizza', 'Bubble-Gum', 'Pipe', 'Joint', 'Cohiba', 'Sick'];
+
+// Secondary mouth traits (can be combined with base traits)
+const MOUTH_SECONDARY_TRAITS = [...MOUTH_OVERLAY_TRAITS, ...MOUTH_UNDERLAY_TRAITS];
+
+// Mouth masks that require Centurion to use the mask variant
+const MOUTH_MASKS_FOR_CENTURION = ['Hannibal-Mask', 'Bandana-Mask'];
+
 // Custom display order for Base grid
 const BASE_DISPLAY_ORDER = [
   'classic',
@@ -60,6 +69,10 @@ const BASE_DISPLAY_ORDER = [
   'bleeding',
   'terminator',
 ];
+
+// Base traits that show numb mouth overlay in grid preview
+const BASE_WITH_NUMB_OVERLAY = ['classic', 'rekt', 'rugged', 'bleeding', 'terminator'];
+const NUMB_MOUTH_PATH = '/assets/wojak-layers/MOUTH/MOUTH_numb.png';
 
 // Custom display order for Background grid
 const BACKGROUND_DISPLAY_ORDER = [
@@ -93,12 +106,12 @@ const BACKGROUND_DISPLAY_ORDER = [
   // $CASHTAG backgrounds
   '$BEPE',
   '$CASTER',
-  '$CHIA',
   '$HOA',
-  '$HONK',
-  '$LOVE',
-  '$NECKCOIN',
   '$PIZZA',
+  '$HONK',
+  '$NECKCOIN',
+  '$LOVE',
+  '$CHIA',
 ];
 
 // Custom display order for Mouth grid
@@ -150,6 +163,41 @@ function isAstronautSelected(selections: Record<string, string | string[]>): boo
   return clothes?.includes('Astronaut') || false;
 }
 
+function isCenturionSelected(selections: Record<string, string | string[]>): boolean {
+  const head = selections.Head;
+  if (Array.isArray(head)) return head.some(h => h.toLowerCase().includes('centurion'));
+  return head?.toLowerCase().includes('centurion') || false;
+}
+
+function isMouthOverCenturion(path: string): boolean {
+  return MOUTH_OVER_CENTURION.some(trait => path.includes(trait));
+}
+
+function needsCenturionMask(selections: Record<string, string | string[]>): boolean {
+  const mouth = selections.Mouth;
+  if (!mouth) return false;
+  const mouthPaths = Array.isArray(mouth) ? mouth : [mouth];
+  return mouthPaths.some(path => MOUTH_MASKS_FOR_CENTURION.some(mask => path.includes(mask)));
+}
+
+function getCenturionPath(selections: Record<string, string | string[]>, originalPath: string): string {
+  if (needsCenturionMask(selections)) {
+    return originalPath.replace('HEAD_Centurion_.png', 'HEAD_Centurion_mask.png');
+  }
+  return originalPath;
+}
+
+// Check if a base trait path needs numb mouth overlay in grid preview
+function baseNeedsNumbOverlay(path: string): boolean {
+  const pathLower = path.toLowerCase();
+  return BASE_WITH_NUMB_OVERLAY.some(base => pathLower.includes(base.toLowerCase()));
+}
+
+// Check if a mouth trait is a secondary (combinable) attribute
+function isSecondaryMouthTrait(path: string): boolean {
+  return MOUTH_SECONDARY_TRAITS.some(trait => path.includes(trait));
+}
+
 interface LayerImage {
   filename: string;
   displayName: string;
@@ -198,7 +246,84 @@ function parseDisplayName(filename: string, prefix: string, folder: string): str
     name = name.replace(/[_-]/g, ' ').trim();
   }
 
-  return name || 'Default';
+  // Apply name fixes to match NFT metadata
+  const nameLower = name.toLowerCase();
+
+  // Wizard Hat Man → Wizard + color (e.g., "Wizard Orange")
+  if (nameLower.includes('wizard') && nameLower.includes('hat')) {
+    const colors = ['orange', 'blue', 'green', 'pink', 'purple', 'red'];
+    for (const color of colors) {
+      if (nameLower.includes(color)) {
+        return `Wizard ${color.charAt(0).toUpperCase() + color.slice(1)}`;
+      }
+    }
+    return 'Wizard';
+  }
+
+  // Super Mario + color
+  if (nameLower.includes('super') && nameLower.includes('mario')) {
+    const colors = ['green', 'purple', 'red'];
+    for (const color of colors) {
+      if (nameLower.includes(color)) {
+        return `Super Mario ${color.charAt(0).toUpperCase() + color.slice(1)}`;
+      }
+    }
+    return 'Super Mario';
+  }
+
+  // Standard Cut + color
+  if (nameLower.includes('standard') && nameLower.includes('cut')) {
+    if (nameLower.includes('blond')) return 'Standard Cut Blonde';
+    if (nameLower.includes('brown')) return 'Standard Cut Brown';
+    return 'Standard Cut';
+  }
+
+  // Fedora (colors) → Fedora
+  if (nameLower.includes('fedora')) {
+    return 'Fedora';
+  }
+
+  // Cowboy Hat (colors) → Cowboy Hat
+  if (nameLower.includes('cowboy') && nameLower.includes('hat')) {
+    return 'Cowboy Hat';
+  }
+
+  // Anarchy Spikes → Spikes + color
+  if (nameLower.includes('spikes')) {
+    if (nameLower.includes('pink')) return 'Spikes Pink';
+    if (nameLower.includes('red')) return 'Spikes Red';
+    return 'Spikes';
+  }
+
+  // SWAT Helmet - keep full name
+  if (nameLower.includes('swat') && nameLower.includes('helmet')) {
+    return 'SWAT Helmet';
+  }
+
+  // Super Saiyan - keep as is (not "Super Saiyan Uniform")
+  if (nameLower.includes('super') && nameLower.includes('saiyan')) {
+    return 'Super Saiyan';
+  }
+
+  // Fix typo: screeming → Screaming
+  if (nameLower === 'screeming') {
+    return 'Screaming';
+  }
+
+  // Fix abbreviation: stach → Stache
+  if (nameLower === 'stach') {
+    return 'Stache';
+  }
+
+  // Apply title case to ensure proper capitalization
+  let result = toTitleCase(name) || 'Default';
+
+  // Keep MOG uppercase (after title case)
+  if (result.toLowerCase().includes('mog')) {
+    result = result.replace(/mog/gi, 'MOG');
+  }
+
+  return result;
 }
 
 const Generator: React.FC = () => {
@@ -214,6 +339,8 @@ const Generator: React.FC = () => {
   });
   const [exporting, setExporting] = useState(false);
   const [showFavorites, setShowFavorites] = useState(false);
+  const [editingFavoriteIndex, setEditingFavoriteIndex] = useState<number | null>(null);
+  const [editingFavoriteName, setEditingFavoriteName] = useState('');
 
   const previewRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLIonContentElement>(null);
@@ -273,9 +400,17 @@ const Generator: React.FC = () => {
 
           const hasRektBase = (selections.Base as string)?.includes('rekt');
 
+          const hasCenturion = isCenturionSelected(selections);
+
           sorted.forEach((path, index) => {
             const isBubbleGum = path.includes('Bubble-Gum');
-            const layerZIndex = isBubbleGum ? RENDER_ORDER.indexOf('Eyes') + 1 : RENDER_ORDER.indexOf('Mouth') + index;
+            let layerZIndex = isBubbleGum ? RENDER_ORDER.indexOf('Eyes') + 1 : RENDER_ORDER.indexOf('Mouth') + index;
+
+            // If Centurion is selected, certain mouth traits render on top of Head
+            if (hasCenturion && isMouthOverCenturion(path)) {
+              layerZIndex = RENDER_ORDER.indexOf('Head') + 1;
+            }
+
             layersToRender.push({ path, zIndex: layerZIndex });
 
             if (isBubbleGum && hasRektBase) {
@@ -291,8 +426,13 @@ const Generator: React.FC = () => {
         const selection = selections[layerName];
         if (!selection || (Array.isArray(selection) && selection.length === 0)) return;
 
-        const path = Array.isArray(selection) ? selection[0] : selection;
+        let path = Array.isArray(selection) ? selection[0] : selection;
         let zIndex = RENDER_ORDER.indexOf(layerName);
+
+        // Centurion mask variant when Hannibal or Bandana mask is selected
+        if (layerName === 'Head' && path.includes('Centurion')) {
+          path = getCenturionPath(selections, path);
+        }
 
         if (layerName === 'Clothes' && isAstronautSelected(selections)) {
           zIndex = RENDER_ORDER.length + 10;
@@ -741,8 +881,13 @@ const Generator: React.FC = () => {
       const selection = selections[layerName];
       if (!selection || (Array.isArray(selection) && selection.length === 0)) return;
 
-      const path = Array.isArray(selection) ? selection[0] : selection;
+      let path = Array.isArray(selection) ? selection[0] : selection;
       let zIndex = RENDER_ORDER.indexOf(layerName);
+
+      // Centurion mask variant when Hannibal or Bandana mask is selected
+      if (layerName === 'Head' && path.includes('Centurion')) {
+        path = getCenturionPath(selections, path);
+      }
 
       if (layerName === 'Clothes' && isAstronautSelected(selections)) {
         zIndex = RENDER_ORDER.length + 10;
@@ -874,8 +1019,13 @@ const Generator: React.FC = () => {
       const selection = selections[layerName];
       if (!selection || (Array.isArray(selection) && selection.length === 0)) return;
 
-      const path = Array.isArray(selection) ? selection[0] : selection;
+      let path = Array.isArray(selection) ? selection[0] : selection;
       let zIndex = RENDER_ORDER.indexOf(layerName);
+
+      // Centurion mask variant when Hannibal or Bandana mask is selected
+      if (layerName === 'Head' && path.includes('Centurion')) {
+        path = getCenturionPath(selections, path);
+      }
 
       if (layerName === 'Clothes' && isAstronautSelected(selections)) {
         zIndex = RENDER_ORDER.length + 10;
@@ -980,6 +1130,13 @@ const Generator: React.FC = () => {
     const newFavorites = [...favorites, { name, selections: { ...selections } }];
     setFavorites(newFavorites);
     localStorage.setItem('wojakFavorites', JSON.stringify(newFavorites));
+
+    // Send anonymous analytics (fire and forget)
+    fetch('https://wojak-mobile-trade-fetcher.abitsolvesthis.workers.dev/api/favorite-stats/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attributes: selections }),
+    }).catch(() => {}); // Silently ignore errors
   }, [favorites, selections]);
 
   // Load a favorite
@@ -997,6 +1154,26 @@ const Generator: React.FC = () => {
     setFavorites(newFavorites);
     localStorage.setItem('wojakFavorites', JSON.stringify(newFavorites));
   }, [favorites]);
+
+  // Start editing a favorite name
+  const handleStartRename = useCallback((index: number) => {
+    setEditingFavoriteIndex(index);
+    setEditingFavoriteName(favorites[index].name);
+  }, [favorites]);
+
+  // Save the renamed favorite
+  const handleSaveRename = useCallback(() => {
+    if (editingFavoriteIndex === null) return;
+    const newFavorites = [...favorites];
+    newFavorites[editingFavoriteIndex] = {
+      ...newFavorites[editingFavoriteIndex],
+      name: editingFavoriteName.trim() || `Wojak ${editingFavoriteIndex + 1}`
+    };
+    setFavorites(newFavorites);
+    localStorage.setItem('wojakFavorites', JSON.stringify(newFavorites));
+    setEditingFavoriteIndex(null);
+    setEditingFavoriteName('');
+  }, [editingFavoriteIndex, editingFavoriteName, favorites]);
 
   // Check if current selections match a favorite
   const isCurrentFavorite = useMemo(() => {
@@ -1028,10 +1205,12 @@ const Generator: React.FC = () => {
                   display: flex;
                   flex-direction: column;
                   align-items: center;
+                  justify-content: flex-start;
                   min-height: 100vh;
                   background: #111;
                   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                   padding: 20px;
+                  padding-top: 40px;
                 }
                 .instructions {
                   color: #fff;
@@ -1041,7 +1220,6 @@ const Generator: React.FC = () => {
                   opacity: 0.9;
                 }
                 .image-container {
-                  flex: 1;
                   display: flex;
                   align-items: center;
                   justify-content: center;
@@ -1087,12 +1265,20 @@ const Generator: React.FC = () => {
     const hasRektBase = (selections.Base as string)?.includes('rekt');
     const isMouthAnimating = animatingLayer === 'Mouth';
 
+    const hasCenturion = isCenturionSelected(selections);
+
     return (
       <>
         {sorted.map((path, index) => {
           // Bubble-Gum renders above Eyes (z-index 4), so use higher z-index
           const isBubbleGum = path.includes('Bubble-Gum');
-          const layerZIndex = isBubbleGum ? RENDER_ORDER.indexOf('Eyes') + 1 : baseZIndex + index;
+          let layerZIndex = isBubbleGum ? RENDER_ORDER.indexOf('Eyes') + 1 : baseZIndex + index;
+
+          // If Centurion is selected, certain mouth traits render on top of Head
+          if (hasCenturion && isMouthOverCenturion(path)) {
+            layerZIndex = RENDER_ORDER.indexOf('Head') + 1;
+          }
+
           const layerClass = mini ? 'mini-layer' : 'layer-image';
           const animClass = isMouthAnimating ? 'layer-pop' : '';
 
@@ -1158,8 +1344,13 @@ const Generator: React.FC = () => {
                   const selection = selections[layerName];
                   if (!selection || (Array.isArray(selection) && selection.length === 0)) return null;
 
-                  const path = Array.isArray(selection) ? selection[0] : selection;
+                  let path = Array.isArray(selection) ? selection[0] : selection;
                   let zIndex = RENDER_ORDER.indexOf(layerName);
+
+                  // Centurion mask variant when Hannibal or Bandana mask is selected
+                  if (layerName === 'Head' && path.includes('Centurion')) {
+                    path = getCenturionPath(selections, path);
+                  }
 
                   if (layerName === 'Clothes' && isAstronautSelected(selections)) {
                     zIndex = RENDER_ORDER.length + 10;
@@ -1226,14 +1417,14 @@ const Generator: React.FC = () => {
               {(activeLayer === 'Mouth' || (isAstronautSelected(selections) && ASTRONAUT_BLOCKED_LAYERS.includes(activeLayer))) && (
                 <div className="trait-hints">
                   {activeLayer === 'Mouth' && (
-                    <span className="multi-select-hint">Multi-select enabled</span>
+                    <span className="multi-select-hint"><span className="hint-plus">+</span> Secondary attribute</span>
                   )}
                   {isAstronautSelected(selections) && ASTRONAUT_BLOCKED_LAYERS.includes(activeLayer) && (
                     <span className="blocked-notice">Blocked by Astronaut</span>
                   )}
                 </div>
               )}
-              <div className="trait-grid">
+              <div className={`trait-grid layer-${activeLayer.toLowerCase()}`}>
                 {/* "None" option for optional layers: Background, Eyes, Head */}
                 {['Background', 'Eyes', 'Head'].includes(activeLayer) && (
                   <div
@@ -1241,7 +1432,7 @@ const Generator: React.FC = () => {
                     onClick={() => handleClear(activeLayer)}
                   >
                     <div className="none-icon">
-                      <IonIcon icon={banOutline} />
+                      <IonIcon icon={banOutline} style={{ color: 'inherit' }} />
                     </div>
                     <span className="trait-name">None</span>
                   </div>
@@ -1251,6 +1442,8 @@ const Generator: React.FC = () => {
                   const isSelected = activeLayer === 'Mouth'
                     ? isMouthSelected(image.path)
                     : selections[activeLayer] === image.path;
+                  const showNumbOverlay = activeLayer === 'Base' && baseNeedsNumbOverlay(image.path);
+                  const isSecondary = activeLayer === 'Mouth' && isSecondaryMouthTrait(image.path);
 
                   return (
                     <div
@@ -1258,7 +1451,20 @@ const Generator: React.FC = () => {
                       className={`trait-option ${isSelected ? 'selected' : ''} ${isBlocked ? 'blocked' : ''}`}
                       onClick={() => handleSelect(activeLayer, image.path)}
                     >
-                      <img src={image.path} alt={image.displayName} loading="lazy" />
+                      <div className="trait-image-container">
+                        <img src={image.path} alt={image.displayName} loading="lazy" className="trait-base-image" />
+                        {showNumbOverlay && (
+                          <img
+                            src={NUMB_MOUTH_PATH}
+                            alt=""
+                            className="trait-overlay-mouth"
+                            loading="lazy"
+                          />
+                        )}
+                        {isSecondary && (
+                          <span className="secondary-badge">+</span>
+                        )}
+                      </div>
                       <span className="trait-name">{image.displayName}</span>
                     </div>
                   );
@@ -1285,8 +1491,13 @@ const Generator: React.FC = () => {
               const selection = selections[layerName];
               if (!selection || (Array.isArray(selection) && selection.length === 0)) return null;
 
-              const path = Array.isArray(selection) ? selection[0] : selection;
+              let path = Array.isArray(selection) ? selection[0] : selection;
               let zIndex = RENDER_ORDER.indexOf(layerName);
+
+              // Centurion mask variant when Hannibal or Bandana mask is selected
+              if (layerName === 'Head' && path.includes('Centurion')) {
+                path = getCenturionPath(selections, path);
+              }
 
               if (layerName === 'Clothes' && isAstronautSelected(selections)) {
                 zIndex = 16;
@@ -1355,10 +1566,31 @@ const Generator: React.FC = () => {
                   })}
                 </div>
                 <div className="favorite-actions">
-                  <span className="favorite-name">{favorite.name}</span>
-                  <button className="favorite-delete" onClick={() => handleDeleteFavorite(index)}>
-                    <IonIcon icon={trashOutline} />
-                  </button>
+                  {editingFavoriteIndex === index ? (
+                    <>
+                      <input
+                        type="text"
+                        className="favorite-name-input"
+                        value={editingFavoriteName}
+                        onChange={(e) => setEditingFavoriteName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSaveRename()}
+                        autoFocus
+                      />
+                      <button className="favorite-save" onClick={handleSaveRename}>
+                        <IonIcon icon={checkmarkOutline} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="favorite-name">{favorite.name}</span>
+                      <button className="favorite-rename" onClick={() => handleStartRename(index)}>
+                        <IonIcon icon={pencilOutline} />
+                      </button>
+                      <button className="favorite-delete" onClick={() => handleDeleteFavorite(index)}>
+                        <IonIcon icon={trashOutline} />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}

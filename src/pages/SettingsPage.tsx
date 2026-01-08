@@ -11,12 +11,15 @@ import {
   IonToggle,
   IonIcon,
   IonNote,
+  IonButton,
 } from '@ionic/react';
-import { musicalNotes, volumeHigh, sunny, moon, colorPalette } from 'ionicons/icons';
+import { musicalNotes, volumeHigh, sunny, moon, colorPalette, statsChart } from 'ionicons/icons';
+import { useHistory } from 'react-router-dom';
 import { loadSettings, saveSettings, applyTheme, AppSettings, ThemeMode } from '../components/Settings';
 import './SettingsPage.css';
 
 const SettingsPage: React.FC = () => {
+  const history = useHistory();
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
 
   const handleSettingChange = (key: keyof AppSettings, value: any) => {
@@ -91,6 +94,19 @@ const SettingsPage: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Admin Section */}
+        <div className="settings-section admin-section">
+          <IonButton
+            expand="block"
+            fill="outline"
+            className="admin-button"
+            onClick={() => history.push('/admin/stats')}
+          >
+            <IonIcon icon={statsChart} slot="start" />
+            Generator Stats
+          </IonButton>
         </div>
 
         {/* App Info */}

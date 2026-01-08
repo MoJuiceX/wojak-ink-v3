@@ -185,3 +185,15 @@
   font-size: 12px;
   color: var(--ion-color-medium);
 }
+
+/* Admin Section */
+.admin-section {
+  margin-top: 24px;
+}
+
+.admin-button {
+  --color: var(--ion-color-medium);
+  --border-color: var(--ion-color-light-shade);
+  --border-radius: 12px;
+  font-size: 14px;
+}

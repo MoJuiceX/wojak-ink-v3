@@ -19,6 +19,7 @@ import BigPulp from './pages/BigPulp';
 import Generator from './pages/Generator';
 import Media from './pages/Media';
 import SettingsPage from './pages/SettingsPage';
+import AdminStats from './pages/AdminStats';
 
 // Components
 import { loadSettings, applyTheme, AppSettings } from './components/Settings';
@@ -164,6 +165,9 @@ const App: React.FC = () => {
               </Route>
               <Route exact path="/settings">
                 <SettingsPage />
+              </Route>
+              <Route exact path="/admin/stats">
+                <AdminStats />
               </Route>
               <Route exact path="/">
                 <Redirect to="/gallery" />

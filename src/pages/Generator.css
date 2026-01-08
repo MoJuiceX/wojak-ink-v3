@@ -123,6 +123,10 @@
 /* Layer Tabs */
 .layer-tabs-container {
   position: relative;
+  margin-left: calc(-1 * var(--space-md));
+  margin-right: calc(-1 * var(--space-md));
+  padding-left: var(--space-md);
+  padding-right: var(--space-md);
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
@@ -144,8 +148,8 @@
   gap: 8px;
   overflow-x: auto;
   overflow-y: visible;
-  padding: 8px 4px var(--space-md) 4px;
-  margin: -8px -4px 0 -4px;
+  padding: 8px 12px var(--space-md) 12px;
+  margin: -8px 0 0 0;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -193,12 +197,14 @@
 /* Trait Hints (multi-select, blocked notices) */
 .trait-hints {
   display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 12px;
   margin-bottom: 12px;
-  padding: 8px 12px;
-  background: var(--color-bg-input);
-  border-radius: 8px;
-  border-left: 3px solid var(--color-orange-500);
+  padding: 10px 16px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 10px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .trait-header {
@@ -228,29 +234,232 @@
 }
 
 .trait-option {
-  background: var(--ion-background-color);
+  background: var(--app-accent-color);
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.35s ease-out,
+    border-color 0.35s ease-out;
   border: 2px solid transparent;
+  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.trait-option:active {
-  transform: scale(0.95);
+.trait-option:active:not(.selected) {
+  transform: scale(0.97);
 }
 
 .trait-option.selected {
-  border-color: var(--ion-color-primary);
-  box-shadow: 0 0 0 2px var(--ion-color-primary-tint);
+  border-color: #3b82f6;
+  box-shadow: 0 0 8px 1px rgba(59, 130, 246, 0.25);
+  animation: glow-move 2s linear infinite;
+}
+
+@keyframes glow-move {
+  0% {
+    box-shadow:
+      3px 0 8px 1px rgba(59, 130, 246, 0.3),
+      0 0 6px 1px rgba(59, 130, 246, 0.2);
+  }
+  12.5% {
+    box-shadow:
+      2px -2px 8px 1px rgba(59, 130, 246, 0.3),
+      0 0 6px 1px rgba(59, 130, 246, 0.2);
+  }
+  25% {
+    box-shadow:
+      0 -3px 8px 1px rgba(59, 130, 246, 0.3),
+      0 0 6px 1px rgba(59, 130, 246, 0.2);
+  }
+  37.5% {
+    box-shadow:
+      -2px -2px 8px 1px rgba(59, 130, 246, 0.3),
+      0 0 6px 1px rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    box-shadow:
+      -3px 0 8px 1px rgba(59, 130, 246, 0.3),
+      0 0 6px 1px rgba(59, 130, 246, 0.2);
+  }
+  62.5% {
+    box-shadow:
+      -2px 2px 8px 1px rgba(59, 130, 246, 0.3),
+      0 0 6px 1px rgba(59, 130, 246, 0.2);
+  }
+  75% {
+    box-shadow:
+      0 3px 8px 1px rgba(59, 130, 246, 0.3),
+      0 0 6px 1px rgba(59, 130, 246, 0.2);
+  }
+  87.5% {
+    box-shadow:
+      2px 2px 8px 1px rgba(59, 130, 246, 0.3),
+      0 0 6px 1px rgba(59, 130, 246, 0.2);
+  }
+  100% {
+    box-shadow:
+      3px 0 8px 1px rgba(59, 130, 246, 0.3),
+      0 0 6px 1px rgba(59, 130, 246, 0.2);
+  }
+}
+
+/* Trait image container for layered previews */
+.trait-image-container {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  background:
+    linear-gradient(225deg, rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 100%),
+    radial-gradient(ellipse at 80% 20%, rgba(255, 255, 255, 0.14) 0%, transparent 50%),
+    var(--app-accent-color);
+}
+
+.trait-base-image {
+  display: block !important;
+  width: 100% !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  object-fit: cover !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.trait-overlay-mouth {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 20% !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+  background: transparent !important;
+}
+
+/* Secondary attribute badge */
+.secondary-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  z-index: 10;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .trait-option img {
   display: block;
   width: 100%;
-  aspect-ratio: 1;
+  flex: 1;
+  min-height: 0;
   object-fit: cover;
-  background: var(--app-preview-background);
+  background:
+    linear-gradient(225deg, rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 100%),
+    radial-gradient(ellipse at 80% 20%, rgba(255, 255, 255, 0.14) 0%, transparent 50%),
+    var(--app-accent-color);
+  object-position: center;
+}
+
+/* Layer-specific cropping */
+.layer-base .trait-option img,
+.layer-base .trait-image-container img {
+  object-position: center 20%;
+}
+
+.layer-head .trait-option img {
+  object-position: center -20%;
+}
+
+/* Exceptions: keep these heads at top */
+.layer-head .trait-option img[alt*="Centurion"],
+.layer-head .trait-option img[alt*="SWAT Helmet"],
+.layer-head .trait-option img[alt*="Hard Hat"],
+.layer-head .trait-option img[alt*="Super Saiyan"],
+.layer-head .trait-option img[alt*="Wizard"] {
+  object-position: center top;
+}
+
+.layer-eyes .trait-option img {
+  object-position: center top;
+}
+
+.layer-mouth .trait-option img,
+.layer-clothes .trait-option img {
+  object-position: center bottom;
+}
+
+/* Zoom specific mouth traits 3x */
+.layer-mouth .trait-option img[alt="Numb"],
+.layer-mouth .trait-option img[alt="Smile"],
+.layer-mouth .trait-option img[alt="Teeth"],
+.layer-mouth .trait-option img[alt="Gold Teeth"],
+.layer-mouth .trait-option img[alt="Screaming"] {
+  transform: scale(3);
+  transform-origin: 60% 45%;
+}
+
+.layer-mouth .trait-option img[alt="Sick"] {
+  transform: scale(3);
+  transform-origin: 50% 50%;
+}
+
+.layer-mouth .trait-option img[alt="Cohiba"],
+.layer-mouth .trait-option img[alt="Joint"],
+.layer-mouth .trait-option img[alt="Cig"] {
+  transform: scale(3);
+  transform-origin: 75% 50%;
+}
+
+.layer-mouth .trait-option img[alt="Pipe"] {
+  transform: scale(2.55);
+  transform-origin: 80% 65%;
+}
+
+.layer-mouth .trait-option img[alt="Bubble Gum"] {
+  transform: scale(1.5);
+  transform-origin: 130% 35%;
+  background: none !important;
+}
+
+.layer-mouth .trait-option img[alt="Pizza"] {
+  transform: scale(2);
+  transform-origin: 80% 80%;
+}
+
+.layer-mouth .trait-option img[alt="Neckbeard"] {
+  transform: scale(1.8);
+  transform-origin: 60% 40%;
+}
+
+.layer-mouth .trait-option img[alt="Stache"] {
+  transform: scale(3);
+  transform-origin: 62% 40%;
+}
+
+.layer-mouth .trait-option img[alt="Hannibal Mask"] {
+  transform: scale(1.44);
+  transform-origin: 50% 15%;
+}
+
+.layer-mouth .trait-option img[alt="Bandana Mask"] {
+  transform: scale(1.13);
+  transform-origin: 50% -25%;
+}
+
+.layer-clothes .trait-option img[alt="Astronaut"] {
+  object-fit: contain;
+}
+
+.layer-background .trait-option img {
+  object-position: center center;
 }
 
 .trait-name {
@@ -261,6 +470,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  background: var(--ion-background-color);
+  color: var(--ion-text-color);
 }
 
 .no-traits {
@@ -271,22 +482,49 @@
 }
 
 /* None option (first in grid) */
-.none-option .none-icon {
+.trait-option.none-option {
+  background: transparent;
+}
+
+.trait-option.none-option .none-icon {
   width: 100%;
-  aspect-ratio: 1;
+  flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--app-preview-background);
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, rgba(0, 0, 0, 0.1) 100%),
+    color-mix(in srgb, var(--app-accent-color) 15%, transparent);
   color: var(--ion-color-medium);
 }
 
-.none-option .none-icon ion-icon {
+.trait-option.none-option .none-icon ion-icon {
   font-size: 40px;
+  color: inherit;
 }
 
-.none-option.selected .none-icon {
-  color: var(--ion-color-primary);
+/* Ensure all none-icons have consistent color matching theme */
+.trait-option.none-option .none-icon,
+.trait-option.none-option .none-icon ion-icon,
+.layer-head .trait-option.none-option .none-icon,
+.layer-head .trait-option.none-option .none-icon ion-icon,
+.layer-eyes .trait-option.none-option .none-icon,
+.layer-eyes .trait-option.none-option .none-icon ion-icon,
+.layer-background .trait-option.none-option .none-icon,
+.layer-background .trait-option.none-option .none-icon ion-icon {
+  color: var(--app-accent-color) !important;
+}
+
+.trait-option.none-option.selected .none-icon,
+.trait-option.none-option.selected .none-icon ion-icon,
+.layer-head .trait-option.none-option.selected .none-icon,
+.layer-head .trait-option.none-option.selected .none-icon ion-icon,
+.layer-eyes .trait-option.none-option.selected .none-icon,
+.layer-eyes .trait-option.none-option.selected .none-icon ion-icon,
+.layer-background .trait-option.none-option.selected .none-icon,
+.layer-background .trait-option.none-option.selected .none-icon ion-icon {
+  color: var(--app-accent-color) !important;
 }
 
 
@@ -310,9 +548,17 @@
 
 /* Multi-select hint */
 .multi-select-hint {
-  font-size: 11px;
-  color: var(--ion-color-primary);
-  font-weight: 400;
+  font-size: 13px;
+  color: rgba(59, 130, 246, 1);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.hint-plus {
+  color: white;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  margin-right: 4px;
 }
 
 /* Blocked notice in header */
@@ -438,6 +684,41 @@
   border: none;
   color: var(--ion-color-danger);
   font-size: 18px;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.favorite-rename {
+  background: none;
+  border: none;
+  color: var(--ion-color-medium);
+  font-size: 16px;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.favorite-name-input {
+  flex: 1;
+  background: var(--ion-background-color);
+  border: 1px solid var(--ion-color-primary);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--ion-text-color);
+  outline: none;
+}
+
+.favorite-save {
+  background: none;
+  border: none;
+  color: var(--ion-color-success);
+  font-size: 20px;
   padding: 4px;
   cursor: pointer;
   display: flex;
