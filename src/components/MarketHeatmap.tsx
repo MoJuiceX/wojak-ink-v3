@@ -36,6 +36,13 @@ interface HeatmapCell {
 type HeatmapMode = 'all' | 'sleepy' | 'delusion' | 'floor' | 'rare' | 'whale';
 type ViewType = 'heatmap' | 'distribution';
 
+interface ComboBadge {
+  id: string;
+  name: string;
+  emoji: string;
+  category: string;
+}
+
 const HEATMAP_MODES: { key: HeatmapMode; label: string; description: string }[] = [
   { key: 'all', label: 'All Listings', description: 'Show all listed NFTs' },
   { key: 'sleepy', label: 'Find Sleepy Deals', description: 'Rare NFTs at low prices' },
@@ -81,6 +88,58 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
   const [internalRankData, setInternalRankData] = useState<Record<string, number>>({});
   const [xchPriceUsd, setXchPriceUsd] = useState<number>(getCachedXchPrice());
   const [selectedBar, setSelectedBar] = useState<{ priceRange: string; listings: NFTListing[] } | null>(null);
+  const [showBadges, setShowBadges] = useState(false);
+  const [nftBadges, setNftBadges] = useState<Map<number, string[]>>(new Map());
+  const [comboLegend, setComboLegend] = useState<{ emoji: string; name: string }[]>([]);
+
+  // Load combo badges data
+  useEffect(() => {
+    const loadBadges = async () => {
+      try {
+        const [combosRes, nftsRes] = await Promise.all([
+          fetch('/assets/BigPulp/combos_badges.json'),
+          fetch('/assets/BigPulp/combo_badges_nfts.json')
+        ]);
+
+        const combosData = await combosRes.json();
+        const nftsData = await nftsRes.json();
+
+        // Build combo id -> emoji map and legend
+        const comboEmojis = new Map<string, string>();
+        const legendItems: { emoji: string; name: string }[] = [];
+
+        if (combosData.combos && Array.isArray(combosData.combos)) {
+          for (const combo of combosData.combos) {
+            comboEmojis.set(combo.id, combo.emoji);
+            legendItems.push({ emoji: combo.emoji, name: combo.name });
+          }
+        }
+        setComboLegend(legendItems);
+        console.log('Loaded combo legend:', legendItems.length, 'items');
+
+        // Build NFT id -> emojis array map
+        const badgeMap = new Map<number, string[]>();
+        for (const [comboId, nftIds] of Object.entries(nftsData)) {
+          const emoji = comboEmojis.get(comboId);
+          if (emoji) {
+            for (const nftId of nftIds as number[]) {
+              const existing = badgeMap.get(nftId) || [];
+              if (!existing.includes(emoji)) {
+                existing.push(emoji);
+              }
+              badgeMap.set(nftId, existing);
+            }
+          }
+        }
+
+        setNftBadges(badgeMap);
+      } catch (err) {
+        console.error('Failed to load combo badges:', err);
+      }
+    };
+
+    loadBadges();
+  }, []);
 
   // Load listings and rank data
   useEffect(() => {
@@ -219,6 +278,19 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
     return Math.max(...heatmapGrid.flatMap(row => row.map(cell => cell.count)), 1);
   }, [heatmapGrid]);
 
+  // Get badges for NFTs in a cell
+  const getCellBadges = (cellListings: NFTListing[]): string[] => {
+    const badges: string[] = [];
+    for (const listing of cellListings) {
+      const nftId = parseInt(listing.nftId);
+      const nftEmojis = nftBadges.get(nftId);
+      if (nftEmojis) {
+        badges.push(...nftEmojis);
+      }
+    }
+    return badges;
+  };
+
   // Price distribution for bar chart (aggregates all rarity levels)
   const priceDistribution = useMemo(() => {
     if (!floorPrice || floorPrice === 0) return [];
@@ -342,6 +414,31 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
               {m.label}
             </button>
           ))}
+          <div className="combo-btn-wrapper">
+            <button
+              className={`mode-btn badge-toggle ${showBadges ? 'active' : ''}`}
+              onClick={() => setShowBadges(!showBadges)}
+            >
+              🏆 Combos
+            </button>
+            <div className="combo-legend">
+              <div className="combo-legend-title">Combo Badges</div>
+              <div className="combo-legend-list">
+                {comboLegend.length > 0 ? (
+                  comboLegend.map((item, idx) => (
+                    <div key={idx} className="combo-legend-item">
+                      <span className="combo-legend-emoji">{item.emoji}</span>
+                      <span className="combo-legend-name">{item.name}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="combo-legend-item">
+                    <span className="combo-legend-name">Loading...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>}
 
         {/* Heatmap View */}
@@ -364,16 +461,32 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
                   <div className="row-label">
                     {RARITY_RANGES[rowIdx].label}
                   </div>
-                  {row.map((cell, colIdx) => (
-                    <div
-                      key={colIdx}
-                      className={`heatmap-cell ${cell.count > 0 ? 'clickable' : ''} ${(cell as any).highlight ? 'highlighted' : ''}`}
-                      style={{ backgroundColor: getCellColor(cell.count, (cell as any).highlight) }}
-                      onClick={() => cell.count > 0 && setSelectedCell(cell)}
-                    >
-                      {cell.count > 0 && <span>{cell.count}</span>}
-                    </div>
-                  ))}
+                  {row.map((cell, colIdx) => {
+                    const cellBadges = showBadges ? getCellBadges(cell.listings) : [];
+                    return (
+                      <div
+                        key={colIdx}
+                        className={`heatmap-cell ${cell.count > 0 ? 'clickable' : ''} ${(cell as any).highlight ? 'highlighted' : ''} ${cellBadges.length > 0 ? 'has-badges' : ''}`}
+                        style={{ backgroundColor: getCellColor(cell.count, (cell as any).highlight) }}
+                        onClick={() => cell.count > 0 && setSelectedCell(cell)}
+                      >
+                        {cell.count > 0 && (
+                          <>
+                            {showBadges && cellBadges.length > 0 ? (
+                              <span className="cell-badges">
+                                {cellBadges.slice(0, 4).map((emoji, i) => (
+                                  <span key={i} className="badge-emoji">{emoji}</span>
+                                ))}
+                                {cellBadges.length > 4 && <span className="badge-overflow">+{cellBadges.length - 4}</span>}
+                              </span>
+                            ) : (
+                              <span>{cell.count}</span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -459,7 +572,12 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
                   </IonThumbnail>
                   <IonLabel>
                     <h2>Wojak #{listing.nftId}</h2>
-                    <p className="nft-rank">👑{ranks[listing.nftId] || '?'}</p>
+                    <p className="nft-rank">
+                      👑{ranks[listing.nftId] || '?'}
+                      {nftBadges.get(parseInt(listing.nftId))?.length ? (
+                        <span className="nft-badges"> {nftBadges.get(parseInt(listing.nftId))?.join('')}</span>
+                      ) : null}
+                    </p>
                   </IonLabel>
                   <IonLabel slot="end" className="price-label">
                     <span className="price-xch">{listing.priceXch.toFixed(2)} XCH</span>
@@ -504,7 +622,12 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
                   </IonThumbnail>
                   <IonLabel>
                     <h2>Wojak #{listing.nftId}</h2>
-                    <p className="nft-rank">👑{ranks[listing.nftId] || '?'}</p>
+                    <p className="nft-rank">
+                      👑{ranks[listing.nftId] || '?'}
+                      {nftBadges.get(parseInt(listing.nftId))?.length ? (
+                        <span className="nft-badges"> {nftBadges.get(parseInt(listing.nftId))?.join('')}</span>
+                      ) : null}
+                    </p>
                   </IonLabel>
                   <IonLabel slot="end" className="price-label">
                     <span className="price-xch">{listing.priceXch.toFixed(2)} XCH</span>

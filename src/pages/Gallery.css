@@ -586,3 +586,104 @@
   font-style: italic;
   padding: 16px;
 }
+
+/* Money Emoji Price Slider - Invisible overlay on left side of NFT */
+.price-slider-overlay {
+  position: absolute;
+  left: -4px;
+  top: 8%;
+  bottom: 8%;
+  width: 44px;
+  z-index: 25;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.slider-emoji {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  font-size: 24px;
+  cursor: grab;
+  z-index: 10;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+  animation: idlePulse 2.5s ease-in-out infinite;
+  /* GPU acceleration */
+  will-change: transform;
+  -webkit-transform: translateX(-50%) translateY(50%) scale(1);
+  transform: translateX(-50%) translateY(50%) scale(1);
+  /* Smooth scale transition only when not dragging */
+  transition: transform 0.15s ease-out;
+}
+
+/* Idle pulse animation to indicate interactivity */
+@keyframes idlePulse {
+  0%, 100% {
+    -webkit-transform: translateX(-50%) translateY(50%) scale(1);
+    transform: translateX(-50%) translateY(50%) scale(1);
+  }
+  50% {
+    -webkit-transform: translateX(-50%) translateY(50%) scale(1.06);
+    transform: translateX(-50%) translateY(50%) scale(1.06);
+  }
+}
+
+/* Active state when dragging - NO transitions for instant response */
+.slider-emoji.active {
+  cursor: grabbing;
+  animation: none !important;
+  transition: none !important;
+  -webkit-transform: translateX(-50%) translateY(50%) scale(1.15);
+  transform: translateX(-50%) translateY(50%) scale(1.15);
+}
+
+/* Price tooltip - hidden by default */
+.slider-price-tooltip {
+  position: absolute;
+  left: 32px;
+  top: 50%;
+  transform: translateY(-50%) translateX(0) scale(0.95);
+  background: rgba(0, 0, 0, 0.85);
+  color: var(--ion-color-success);
+  padding: 4px 7px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+  z-index: 30;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  /* Longer, elegant fade out */
+  transition:
+    opacity 0.4s ease-out,
+    transform 0.4s ease-out;
+}
+
+/* Tooltip visible state */
+.slider-price-tooltip.visible {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0) scale(1);
+  /* Quicker fade in */
+  transition:
+    opacity 0.15s ease-out,
+    transform 0.15s ease-out;
+}
+
+.slider-price-tooltip::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: rgba(0, 0, 0, 0.85);
+  border-left: none;
+}
+
+/* Dragging state on overlay - subtle feedback */
+.price-slider-overlay.dragging {
+  cursor: grabbing;
+}

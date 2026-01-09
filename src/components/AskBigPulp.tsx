@@ -3,10 +3,7 @@ import { IonImg, IonIcon, IonSpinner } from '@ionic/react';
 import {
   chevronForward,
   chevronBack,
-  sparkles,
-  trophy,
   diamond,
-  ribbon,
   statsChart,
   school,
   flame,
@@ -53,6 +50,49 @@ interface TraitInsight {
   fun_fact: string;
 }
 
+interface HpTrait {
+  count: number;
+  creator: string;
+  lore: string;
+}
+
+interface HpTraitsData {
+  head: Record<string, HpTrait>;
+  clothes: Record<string, HpTrait>;
+  faceWear: Record<string, HpTrait>;
+  mouth: Record<string, HpTrait>;
+}
+
+type HpTraitsNfts = Record<string, Record<string, number[]>>;
+
+interface ComboRequirement {
+  [category: string]: string;
+}
+
+interface Combo {
+  id: string;
+  name: string;
+  emoji: string;
+  category: 'legendary' | 'signature' | 'military' | 'character' | 'divine' | 'location' | 'single_trait';
+  logic: 'exact' | 'any_two' | 'trait_plus_base' | 'single';
+  requirements?: ComboRequirement;
+  requirementPool?: ComboRequirement[];
+  requiredBases?: string[];
+  lore: string;
+}
+
+interface CombosData {
+  combos: Combo[];
+  categories: {
+    [key: string]: {
+      name: string;
+      description: string;
+    };
+  };
+}
+
+type ComboBadgesNfts = Record<string, number[]>;
+
 interface TopSale {
   edition: number;
   price_xch: number;
@@ -83,7 +123,6 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
   const [traitInsights, setTraitInsights] = useState<Record<string, TraitInsight> | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedSection, setExpandedSection] = useState<string | null>('stats');
-  const [selectedCombo, setSelectedCombo] = useState<string | null>(null);
 
   // Trade data from API
   const [topTraits, setTopTraits] = useState<TraitStats[]>([]);
@@ -97,17 +136,41 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
   // XCH price for USD conversion
   const [xchPriceUsd, setXchPriceUsd] = useState<number>(getCachedXchPrice());
 
+  // High Provenance traits data
+  const [hpTraits, setHpTraits] = useState<HpTraitsData | null>(null);
+  const [hpTraitsNfts, setHpTraitsNfts] = useState<HpTraitsNfts | null>(null);
+  const [expandedHpCategory, setExpandedHpCategory] = useState<string | null>(null);
+  const [carouselIndices, setCarouselIndices] = useState<Record<string, number>>({});
+
+  // Combo badges data
+  const [combosData, setCombosData] = useState<CombosData | null>(null);
+  const [comboBadgesNfts, setComboBadgesNfts] = useState<ComboBadgesNfts | null>(null);
+  const [expandedComboCategory, setExpandedComboCategory] = useState<string | null>(null);
+  const [comboCarouselIndices, setComboCarouselIndices] = useState<Record<string, number>>({});
+
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [comboRes, traitsRes] = await Promise.all([
+        const [comboRes, traitsRes, hpRes, hpNftsRes, comboBadgesRes, comboBadgesNftsRes] = await Promise.all([
           fetch('/assets/BigPulp/combo_database.json'),
-          fetch('/assets/BigPulp/trait_insights.json')
+          fetch('/assets/BigPulp/trait_insights.json'),
+          fetch('/assets/BigPulp/hp_traits.json'),
+          fetch('/assets/BigPulp/hp_traits_nfts.json'),
+          fetch('/assets/BigPulp/combos_badges.json'),
+          fetch('/assets/BigPulp/combo_badges_nfts.json')
         ]);
         const combos = await comboRes.json();
         const traits = await traitsRes.json();
+        const hp = await hpRes.json();
+        const hpNfts = await hpNftsRes.json();
+        const comboBadges = await comboBadgesRes.json();
+        const comboBadgesNftsData = await comboBadgesNftsRes.json();
         setComboData(combos);
         setTraitInsights(traits);
+        setHpTraits(hp);
+        setHpTraitsNfts(hpNfts);
+        setCombosData(comboBadges);
+        setComboBadgesNfts(comboBadgesNftsData);
       } catch (err) {
         console.error('Failed to load BigPulp data:', err);
       } finally {
@@ -126,12 +189,22 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
         // Top 10 traits by average XCH
         setTopTraits(data.trait_stats.slice(0, 10));
 
-        // Top 10 sales from all_sales (sorted by price)
+        // Top 10 sales from all_sales (sorted by price, unique NFTs only)
         if (data.all_sales && data.all_sales.length > 0) {
-          const sortedSales = [...data.all_sales]
-            .sort((a, b) => b.price_xch - a.price_xch)
-            .slice(0, 10);
-          setTopSales(sortedSales as TopSale[]);
+          // Sort by price descending
+          const sortedSales = [...data.all_sales].sort((a, b) => b.price_xch - a.price_xch);
+
+          // Deduplicate: keep only the highest sale for each NFT edition
+          const seenEditions = new Set<number>();
+          const uniqueSales = sortedSales.filter(sale => {
+            if (seenEditions.has(sale.edition)) {
+              return false;
+            }
+            seenEditions.add(sale.edition);
+            return true;
+          });
+
+          setTopSales(uniqueSales.slice(0, 10) as TopSale[]);
         }
       } catch (err) {
         console.error('Failed to load trade data:', err);
@@ -163,7 +236,6 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
 
   const toggleSection = (section: string) => {
     setExpandedSection(expandedSection === section ? null : section);
-    setSelectedCombo(null);
   };
 
   if (loading) {
@@ -175,44 +247,101 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
     );
   }
 
-  // Get legendary combos (sorted by rarity)
-  const legendaryComboEntries = comboData?.named_combos
-    ? Object.entries(comboData.named_combos)
-        .filter(([_, combo]) => combo.cultural_significance === 'Legendary' || combo.cultural_significance === 'Iconic')
-        .sort((a, b) => a[1].count - b[1].count)
-    : [];
+  // HP category labels
+  const hpCategoryLabels: Record<string, string> = {
+    head: 'Head',
+    clothes: 'Clothes',
+    faceWear: 'Face Wear',
+    mouth: 'Mouth'
+  };
 
-  // High provenance traits in community-ranked order with unique base previews
-  const highProvenanceData: Array<{ trait: string; nftId: string; base: string }> = [
-    { trait: 'Crown', nftId: '2867', base: 'Waifu' },              // rank 88
-    { trait: 'Military Beret', nftId: '3782', base: 'Alien Soyjak' }, // rank 134
-    { trait: 'MOG Glasses', nftId: '3879', base: 'Alien Baddie' },    // rank 23
-    { trait: 'Neckbeard', nftId: '3658', base: 'Alien Wojak' },       // rank 184
-    { trait: 'Fedora', nftId: '4046', base: 'Bepe Soyjak' },          // rank 68
-    { trait: 'Wizard Hat', nftId: '4158', base: 'Bepe Waifu' },       // rank 83
-    { trait: 'Clown', nftId: '3435', base: 'Papa Tang' },             // rank 123
-    { trait: 'Devil Horns', nftId: '586', base: 'Wojak' },            // rank 509
-    { trait: 'Straitjacket', nftId: '2157', base: 'Soyjak' },         // rank 11
-    { trait: 'Ronin Helmet', nftId: '3180', base: 'Baddie' },         // rank 308
-    { trait: 'Wizard Glasses', nftId: '3589', base: 'Monkey Zoo' },   // rank 119
-    { trait: 'Goose Suit', nftId: '3944', base: 'Bepe Wojak' },       // rank 684
+  const toggleHpCategory = (category: string) => {
+    setExpandedHpCategory(expandedHpCategory === category ? null : category);
+  };
+
+  // Combo badges category labels and toggle
+  const comboCategoryInfo = [
+    { id: 'legendary', name: 'Legendary Combos', emoji: '🏆' },
+    { id: 'signature', name: 'Signature Combos', emoji: '✍️' },
+    { id: 'military', name: 'Military Combos', emoji: '🪖' },
+    { id: 'character', name: 'Character Combos', emoji: '🎭' },
+    { id: 'divine', name: 'Divine Combos', emoji: '✨' },
+    { id: 'location', name: 'Location Combos', emoji: '📍' },
+    { id: 'single_trait', name: 'Single Trait Badges', emoji: '🎖️' },
   ];
 
-  const sTierTraits = traitInsights
-    ? highProvenanceData
-        .filter(item => traitInsights[item.trait])
-        .map(item => ({
-          name: item.trait,
-          trait: traitInsights[item.trait],
-          previewNftId: item.nftId
-        }))
-    : [];
+  const toggleComboCategory = (category: string) => {
+    setExpandedComboCategory(expandedComboCategory === category ? null : category);
+  };
 
-  // Get rarest 1-of-1 pairings
+  const formatComboRequirements = (combo: Combo): string => {
+    switch (combo.logic) {
+      case 'exact':
+        return Object.values(combo.requirements || {}).join(' + ');
+      case 'any_two':
+        const traits = (combo.requirementPool || []).map(req => Object.values(req)[0]);
+        return `Any 2 of: ${traits.join(', ')}`;
+      case 'trait_plus_base':
+        const trait = Object.values(combo.requirements || {})[0];
+        return `${trait} + ${(combo.requiredBases || []).join('/')} base`;
+      case 'single':
+        return Object.values(combo.requirements || {})[0] + ' (single trait)';
+      default:
+        return '';
+    }
+  };
+
+  // Carousel navigation for combo badges
+  const getComboCarouselIndex = (comboId: string): number => {
+    return comboCarouselIndices[comboId] || 0;
+  };
+
+  const navigateComboCarousel = (comboId: string, direction: 'prev' | 'next', maxLength: number) => {
+    setComboCarouselIndices(prev => {
+      const current = prev[comboId] || 0;
+      let newIndex: number;
+      if (direction === 'next') {
+        newIndex = current < maxLength - 1 ? current + 1 : 0;
+      } else {
+        newIndex = current > 0 ? current - 1 : maxLength - 1;
+      }
+      return { ...prev, [comboId]: newIndex };
+    });
+  };
+
+  // Carousel navigation for HP traits
+  const getCarouselIndex = (traitName: string): number => {
+    return carouselIndices[traitName] || 0;
+  };
+
+  const navigateCarousel = (traitName: string, direction: 'prev' | 'next', maxLength: number) => {
+    setCarouselIndices(prev => {
+      const current = prev[traitName] || 0;
+      let newIndex: number;
+      if (direction === 'next') {
+        newIndex = current < maxLength - 1 ? current + 1 : 0;
+      } else {
+        newIndex = current > 0 ? current - 1 : maxLength - 1;
+      }
+      return { ...prev, [traitName]: newIndex };
+    });
+  };
+
+  // Get rarest 1-of-1 pairings (deduplicated by NFT)
   const rarestPairings = comboData?.rare_pairings
-    ? comboData.rare_pairings
-        .filter(p => p.count === 1)
-        .slice(0, 20)
+    ? (() => {
+        const seenNfts = new Set<string>();
+        return comboData.rare_pairings
+          .filter(p => p.count === 1)
+          .filter(p => {
+            if (seenNfts.has(p.best_nft)) {
+              return false;
+            }
+            seenNfts.add(p.best_nft);
+            return true;
+          })
+          .slice(0, 20);
+      })()
     : [];
 
 
@@ -408,72 +537,7 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
         )}
       </div>
 
-      {/* 5. Legendary Combos Section */}
-      <div className="ask-section">
-        <button
-          className={`section-header ${expandedSection === 'combos' ? 'expanded' : ''}`}
-          onClick={() => toggleSection('combos')}
-        >
-          <div className="section-header-left">
-            <IonIcon icon={trophy} className="section-icon gold" />
-            <span className="section-title">Legendary Combos</span>
-          </div>
-          <IonIcon icon={expandedSection === 'combos' ? chevronBack : chevronForward} className="section-chevron" />
-        </button>
-
-        {expandedSection === 'combos' && (
-          <div className="section-content">
-            {!selectedCombo ? (
-              <div className="combo-grid">
-                {legendaryComboEntries.map(([name, combo]) => (
-                  <div
-                    key={name}
-                    className="combo-card"
-                    onClick={() => setSelectedCombo(name)}
-                  >
-                    <div className="combo-preview">
-                      <IonImg
-                        src={getNftImageUrl(combo.best_nft)}
-                        alt={name}
-                        className="combo-image"
-                      />
-                      <span className="combo-badge">{combo.count}</span>
-                    </div>
-                    <span className="combo-name">{name}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="combo-detail">
-                <button className="back-btn" onClick={() => setSelectedCombo(null)}>
-                  <IonIcon icon={chevronBack} /> Back
-                </button>
-                <h3 className="detail-title">{selectedCombo}</h3>
-                <p className="detail-lore">{comboData?.named_combos[selectedCombo]?.lore}</p>
-                <p className="detail-note">{comboData?.named_combos[selectedCombo]?.rarity_note}</p>
-                <div className="nft-gallery">
-                  {comboData?.named_combos[selectedCombo]?.all_nfts.slice(0, 10).map((nftId) => (
-                    <div
-                      key={nftId}
-                      className="gallery-item"
-                      onClick={() => onNftClick(nftId)}
-                    >
-                      <IonImg
-                        src={getNftImageUrl(nftId)}
-                        alt={`#${nftId}`}
-                        className="gallery-image"
-                      />
-                      <span className="gallery-id">#{nftId}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* 6. Rarest Finds Section */}
+      {/* 5. Rarest Finds Section */}
       <div className="ask-section">
         <button
           className={`section-header ${expandedSection === 'rarest' ? 'expanded' : ''}`}
@@ -511,7 +575,7 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
         )}
       </div>
 
-      {/* 7. High Provenance Traits Section */}
+      {/* 6. High Provenance Traits Section */}
       <div className="ask-section">
         <button
           className={`section-header ${expandedSection === 'stier' ? 'expanded' : ''}`}
@@ -520,31 +584,261 @@ const AskBigPulp: React.FC<AskBigPulpProps> = ({ onNftClick }) => {
           <div className="section-header-left">
             <span className="section-emoji">👑</span>
             <span className="section-title">High Provenance</span>
+            <span className="hp-count-badge">43</span>
           </div>
           <IonIcon icon={expandedSection === 'stier' ? chevronBack : chevronForward} className="section-chevron" />
         </button>
 
         {expandedSection === 'stier' && (
           <div className="section-content">
-            <p className="section-intro">Most valuable attributes as decided by the community</p>
-            <div className="stier-grid">
-              {sTierTraits.map((item) => (
-                <div
-                  key={item.name}
-                  className="stier-card"
-                  onClick={() => onNftClick(item.previewNftId)}
-                >
-                  <IonImg
-                    src={getNftImageUrl(item.previewNftId)}
-                    alt={item.name}
-                    className="stier-image"
-                  />
-                  <div className="stier-info">
-                    <span className="stier-name">{item.name}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="section-intro">Community-valued attributes with lore</p>
+            {hpTraits && hpTraitsNfts && (
+              <div className="hp-categories">
+                {(['head', 'clothes', 'faceWear', 'mouth'] as const).map(category => {
+                  const traits = hpTraits[category];
+                  const nftsData = hpTraitsNfts[category];
+                  const traitCount = Object.keys(traits).length;
+                  return (
+                    <div key={category} className="hp-category">
+                      <button
+                        className={`hp-category-header ${expandedHpCategory === category ? 'expanded' : ''}`}
+                        onClick={() => toggleHpCategory(category)}
+                      >
+                        <span className="hp-category-title">
+                          {hpCategoryLabels[category]} <span className="hp-category-count">({traitCount})</span>
+                        </span>
+                        <IonIcon
+                          icon={expandedHpCategory === category ? chevronBack : chevronForward}
+                          className="hp-category-chevron"
+                        />
+                      </button>
+
+                      {expandedHpCategory === category && (
+                        <div className="hp-traits-list">
+                          {Object.entries(traits).map(([name, trait]) => {
+                            const nfts = nftsData?.[name] || [];
+                            const currentIndex = getCarouselIndex(name);
+                            const prevIndex = currentIndex > 0 ? currentIndex - 1 : nfts.length - 1;
+                            const nextIndex = currentIndex < nfts.length - 1 ? currentIndex + 1 : 0;
+
+                            return (
+                              <div key={name} className="hp-trait-card">
+                                <div className="hp-trait-content">
+                                  {/* Carousel */}
+                                  {nfts.length > 0 && (
+                                    <div className="hp-carousel">
+                                      <button
+                                        className="hp-carousel-btn prev"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigateCarousel(name, 'prev', nfts.length);
+                                        }}
+                                      >
+                                        <IonIcon icon={chevronBack} />
+                                      </button>
+
+                                      <div className="hp-carousel-track">
+                                        {/* Previous NFT (hint) */}
+                                        <div
+                                          className="hp-carousel-item hint prev"
+                                          onClick={() => onNftClick(String(nfts[prevIndex]))}
+                                        >
+                                          <IonImg
+                                            src={getNftImageUrl(nfts[prevIndex])}
+                                            alt={`#${nfts[prevIndex]}`}
+                                          />
+                                        </div>
+
+                                        {/* Current NFT */}
+                                        <div
+                                          className="hp-carousel-item current"
+                                          onClick={() => onNftClick(String(nfts[currentIndex]))}
+                                        >
+                                          <IonImg
+                                            src={getNftImageUrl(nfts[currentIndex])}
+                                            alt={`#${nfts[currentIndex]}`}
+                                          />
+                                        </div>
+
+                                        {/* Next NFT (hint) */}
+                                        <div
+                                          className="hp-carousel-item hint next"
+                                          onClick={() => onNftClick(String(nfts[nextIndex]))}
+                                        >
+                                          <IonImg
+                                            src={getNftImageUrl(nfts[nextIndex])}
+                                            alt={`#${nfts[nextIndex]}`}
+                                          />
+                                        </div>
+                                      </div>
+
+                                      <button
+                                        className="hp-carousel-btn next"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigateCarousel(name, 'next', nfts.length);
+                                        }}
+                                      >
+                                        <IonIcon icon={chevronForward} />
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {/* Trait info */}
+                                  <div className="hp-trait-info">
+                                    <div className="hp-trait-header">
+                                      <span className="hp-trait-name">{name}</span>
+                                      <span className="hp-trait-count">{trait.count} exist</span>
+                                    </div>
+                                    <div className="hp-trait-lore">{trait.lore}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 7. Combo Badges Section */}
+      <div className="ask-section">
+        <button
+          className={`section-header ${expandedSection === 'comboBadges' ? 'expanded' : ''}`}
+          onClick={() => toggleSection('comboBadges')}
+        >
+          <div className="section-header-left">
+            <span className="section-emoji">🏆</span>
+            <span className="section-title">Combo Badges</span>
+            <span className="hp-count-badge">26</span>
+          </div>
+          <IonIcon icon={expandedSection === 'comboBadges' ? chevronBack : chevronForward} className="section-chevron" />
+        </button>
+
+        {expandedSection === 'comboBadges' && (
+          <div className="section-content">
+            <p className="section-intro">Earn badges by holding specific trait combinations</p>
+            {combosData && (
+              <div className="combo-categories">
+                {comboCategoryInfo.map(cat => {
+                  const combosInCategory = combosData.combos.filter(c => c.category === cat.id);
+                  if (combosInCategory.length === 0) return null;
+                  return (
+                    <div key={cat.id} className="combo-category">
+                      <button
+                        className={`combo-category-header ${expandedComboCategory === cat.id ? 'expanded' : ''}`}
+                        onClick={() => toggleComboCategory(cat.id)}
+                      >
+                        <span className="combo-category-title">
+                          <span className="combo-category-emoji">{cat.emoji}</span>
+                          {cat.name} <span className="combo-category-count">({combosInCategory.length})</span>
+                        </span>
+                        <IonIcon
+                          icon={expandedComboCategory === cat.id ? chevronBack : chevronForward}
+                          className="combo-category-chevron"
+                        />
+                      </button>
+
+                      {expandedComboCategory === cat.id && (
+                        <div className="combo-badges-list">
+                          {combosInCategory.map(combo => {
+                            const nfts = comboBadgesNfts?.[combo.id] || [];
+                            const currentIndex = getComboCarouselIndex(combo.id);
+                            const prevIndex = currentIndex > 0 ? currentIndex - 1 : nfts.length - 1;
+                            const nextIndex = currentIndex < nfts.length - 1 ? currentIndex + 1 : 0;
+
+                            return (
+                              <div key={combo.id} className="combo-badge-card">
+                                <div className="combo-badge-content">
+                                  {/* Carousel */}
+                                  {nfts.length > 0 && (
+                                    <div className="hp-carousel">
+                                      <button
+                                        className="hp-carousel-btn prev"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigateComboCarousel(combo.id, 'prev', nfts.length);
+                                        }}
+                                      >
+                                        <IonIcon icon={chevronBack} />
+                                      </button>
+
+                                      <div className="hp-carousel-track">
+                                        {/* Previous NFT (hint) */}
+                                        <div
+                                          className="hp-carousel-item hint prev"
+                                          onClick={() => onNftClick(String(nfts[prevIndex]))}
+                                        >
+                                          <IonImg
+                                            src={getNftImageUrl(nfts[prevIndex])}
+                                            alt={`NFT`}
+                                          />
+                                        </div>
+
+                                        {/* Current NFT */}
+                                        <div
+                                          className="hp-carousel-item current"
+                                          onClick={() => onNftClick(String(nfts[currentIndex]))}
+                                        >
+                                          <IonImg
+                                            src={getNftImageUrl(nfts[currentIndex])}
+                                            alt={`NFT`}
+                                          />
+                                        </div>
+
+                                        {/* Next NFT (hint) */}
+                                        <div
+                                          className="hp-carousel-item hint next"
+                                          onClick={() => onNftClick(String(nfts[nextIndex]))}
+                                        >
+                                          <IonImg
+                                            src={getNftImageUrl(nfts[nextIndex])}
+                                            alt={`NFT`}
+                                          />
+                                        </div>
+                                      </div>
+
+                                      <button
+                                        className="hp-carousel-btn next"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigateComboCarousel(combo.id, 'next', nfts.length);
+                                        }}
+                                      >
+                                        <IonIcon icon={chevronForward} />
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {/* Badge info */}
+                                  <div className="combo-badge-info">
+                                    <div className="combo-badge-header">
+                                      <span className="combo-badge-emoji">{combo.emoji}</span>
+                                      <span className="combo-badge-name">{combo.name}</span>
+                                      <span className="combo-badge-count">{nfts.length} NFTs</span>
+                                    </div>
+                                    <div className="combo-badge-requirements">
+                                      {formatComboRequirements(combo)}
+                                    </div>
+                                    <div className="combo-badge-lore">{combo.lore}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

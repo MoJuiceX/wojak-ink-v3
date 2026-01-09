@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   IonContent,
   IonHeader,
@@ -121,6 +121,92 @@ const Gallery: React.FC = () => {
   const [rarityData, setRarityData] = useState<{ id: number; rank: number }[]>([]);
   // Sorted listings by price for Listed mode navigation
   const [sortedListings, setSortedListings] = useState<NFTListing[]>([]);
+  // Price slider state
+  const [sliderPosition, setSliderPosition] = useState<number>(0); // 0-100
+  const [isDraggingSlider, setIsDraggingSlider] = useState(false);
+  const [showSliderPrice, setShowSliderPrice] = useState(false);
+  const sliderRef = useRef<HTMLDivElement>(null);
+
+  // Get floor and ceiling prices from sorted listings
+  const floorPrice = sortedListings.length > 0 ? sortedListings[0].priceXch : 0;
+  const ceilingPrice = sortedListings.length > 0 ? sortedListings[sortedListings.length - 1].priceXch : 0;
+
+  // Logarithmic scaling for price slider (handles outliers better)
+  const positionToPrice = useCallback((position: number): number => {
+    if (sortedListings.length === 0 || floorPrice === 0) return 0;
+    if (floorPrice === ceilingPrice) return floorPrice;
+
+    // Use logarithmic scale: price = floor * (ceiling/floor)^(position/100)
+    const ratio = ceilingPrice / floorPrice;
+    const price = floorPrice * Math.pow(ratio, position / 100);
+    return price;
+  }, [sortedListings.length, floorPrice, ceilingPrice]);
+
+  const priceToPosition = useCallback((price: number): number => {
+    if (sortedListings.length === 0 || floorPrice === 0) return 0;
+    if (floorPrice === ceilingPrice) return 50;
+
+    // Inverse of logarithmic scale: position = 100 * log(price/floor) / log(ceiling/floor)
+    const ratio = ceilingPrice / floorPrice;
+    const position = 100 * Math.log(price / floorPrice) / Math.log(ratio);
+    return Math.max(0, Math.min(100, position));
+  }, [sortedListings.length, floorPrice, ceilingPrice]);
+
+  // Find NFT closest to a given price
+  const findNftAtPrice = useCallback((targetPrice: number): NFTListing | null => {
+    if (sortedListings.length === 0) return null;
+
+    // Binary search for closest price
+    let left = 0;
+    let right = sortedListings.length - 1;
+
+    while (left < right) {
+      const mid = Math.floor((left + right) / 2);
+      if (sortedListings[mid].priceXch < targetPrice) {
+        left = mid + 1;
+      } else {
+        right = mid;
+      }
+    }
+
+    // Check if left or left-1 is closer
+    if (left > 0) {
+      const diffLeft = Math.abs(sortedListings[left].priceXch - targetPrice);
+      const diffPrev = Math.abs(sortedListings[left - 1].priceXch - targetPrice);
+      if (diffPrev < diffLeft) {
+        return sortedListings[left - 1];
+      }
+    }
+    return sortedListings[left];
+  }, [sortedListings]);
+
+  // Handle slider drag with requestAnimationFrame for smooth 60fps
+  const handleSliderDrag = useCallback((clientY: number) => {
+    if (!sliderRef.current) return;
+
+    requestAnimationFrame(() => {
+      if (!sliderRef.current) return;
+      const rect = sliderRef.current.getBoundingClientRect();
+      // Invert Y: top = 100 (highest price), bottom = 0 (floor price)
+      const relativeY = rect.bottom - clientY;
+      const percentage = Math.max(0, Math.min(100, (relativeY / rect.height) * 100));
+      setSliderPosition(percentage);
+      setShowSliderPrice(true);
+    });
+  }, []);
+
+  // Handle slider release - navigate to NFT at that price
+  const handleSliderRelease = useCallback(() => {
+    setIsDraggingSlider(false);
+    // Keep price visible for a moment, then hide
+    setTimeout(() => setShowSliderPrice(false), 1500);
+
+    const targetPrice = positionToPrice(sliderPosition);
+    const nft = findNftAtPrice(targetPrice);
+    if (nft) {
+      loadListedNftById(parseInt(nft.nftId));
+    }
+  }, [sliderPosition, positionToPrice, findNftAtPrice]);
 
   // Swipe tracking - horizontal
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
@@ -156,17 +242,28 @@ const Gallery: React.FC = () => {
     loadRarityData();
   }, []);
 
-  // Load listings data on mount
+  // Load listings data on mount (with retry if not available yet)
   useEffect(() => {
-    const listings = getCachedListings();
-    if (listings) {
-      const map = new Map<string, NFTListing>();
-      listings.forEach(l => map.set(l.nftId, l));
-      setListingsMap(map);
-      // Also create sorted list by price (cheapest first)
-      const sorted = [...listings].sort((a, b) => a.priceXch - b.priceXch);
-      setSortedListings(sorted);
-    }
+    let attempts = 0;
+    const maxAttempts = 30; // 30 attempts * 500ms = 15 seconds max wait
+
+    const loadListings = () => {
+      const listings = getCachedListings();
+      if (listings && listings.length > 0) {
+        const map = new Map<string, NFTListing>();
+        listings.forEach(l => map.set(l.nftId, l));
+        setListingsMap(map);
+        // Also create sorted list by price (cheapest first)
+        const sorted = [...listings].sort((a, b) => a.priceXch - b.priceXch);
+        setSortedListings(sorted);
+        console.log(`[Gallery] Loaded ${listings.length} listings`);
+      } else if (attempts < maxAttempts) {
+        attempts++;
+        setTimeout(loadListings, 500);
+      }
+    };
+
+    loadListings();
   }, []);
 
   // Wait for preloader service to be ready
@@ -660,6 +757,55 @@ const Gallery: React.FC = () => {
                   onTouchMove={onTouchMove}
                   onTouchEnd={onTouchEnd}
                 >
+                  {/* Money Emoji Price Slider - overlay on left side, only in Listed mode */}
+                  {showListedOnly && sortedListings.length > 0 && (
+                    <div
+                      className={`price-slider-overlay ${isDraggingSlider ? 'dragging' : ''}`}
+                      ref={sliderRef}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsDraggingSlider(true);
+                        handleSliderDrag(e.touches[0].clientY);
+                      }}
+                      onTouchMove={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSliderDrag(e.touches[0].clientY);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSliderRelease();
+                      }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setIsDraggingSlider(true);
+                        handleSliderDrag(e.clientY);
+                      }}
+                      onMouseMove={(e) => {
+                        if (isDraggingSlider) {
+                          handleSliderDrag(e.clientY);
+                        }
+                      }}
+                      onMouseUp={handleSliderRelease}
+                      onMouseLeave={() => {
+                        if (isDraggingSlider) {
+                          handleSliderRelease();
+                        }
+                      }}
+                    >
+                      <div
+                        className={`slider-emoji ${isDraggingSlider ? 'active' : ''} ${sliderPosition <= 2 ? 'at-floor' : ''} ${sliderPosition >= 98 ? 'at-ceiling' : ''}`}
+                        style={{ bottom: `${sliderPosition}%` }}
+                      >
+                        💰
+                        <span className={`slider-price-tooltip ${showSliderPrice ? 'visible' : ''}`}>
+                          {positionToPrice(sliderPosition).toFixed(2)} XCH
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   {imageLoading && (
                     <div className="character-loading">
                       <IonSpinner name="crescent" />

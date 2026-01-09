@@ -24,7 +24,7 @@ import AdminStats from './pages/AdminStats';
 // Components
 import { loadSettings, applyTheme, AppSettings } from './components/Settings';
 import FloatingVideoPlayer from './components/FloatingVideoPlayer';
-import { AudioProvider } from './contexts/AudioContext';
+import { AudioProvider, useAudio } from './contexts/AudioContext';
 import { VideoPlayerProvider, useVideoPlayer } from './contexts/VideoPlayerContext';
 
 // Boot Sequence
@@ -96,6 +96,7 @@ const SKIP_BOOT_IN_DEV = true;
 // Floating Video Player that uses context
 const GlobalFloatingPlayer: React.FC = () => {
   const { currentVideo, nextVideo, isOpen, closeVideo, playNext } = useVideoPlayer();
+  const { isBackgroundMusicEnabled } = useAudio();
 
   return (
     <FloatingVideoPlayer
@@ -106,6 +107,7 @@ const GlobalFloatingPlayer: React.FC = () => {
       videoSrc={currentVideo?.videoFile || ''}
       nextVideoSrc={nextVideo?.videoFile}
       title={currentVideo?.title}
+      isBackgroundMusicEnabled={isBackgroundMusicEnabled}
     />
   );
 };

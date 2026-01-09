@@ -613,3 +613,366 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* High Provenance Badge */
+.hp-count-badge {
+  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+  color: #333;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+/* HP Categories Accordion */
+.hp-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hp-category {
+  background: var(--ion-background-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.hp-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.hp-category-header:active {
+  background: rgba(255, 140, 0, 0.1);
+}
+
+.hp-category-header.expanded {
+  border-bottom: 1px solid var(--ion-color-light-shade);
+}
+
+.hp-category-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.hp-category-count {
+  font-weight: 400;
+  color: var(--ion-color-medium);
+  font-size: 14px;
+}
+
+.hp-category-chevron {
+  font-size: 18px;
+  color: var(--ion-color-medium);
+  transition: transform 0.2s ease;
+}
+
+.hp-category-header.expanded .hp-category-chevron {
+  transform: rotate(-90deg);
+}
+
+/* HP Traits List */
+.hp-traits-list {
+  padding: 0;
+}
+
+.hp-trait-card {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--ion-color-light-shade);
+}
+
+.hp-trait-card:last-child {
+  border-bottom: none;
+}
+
+.hp-trait-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.hp-trait-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ion-text-color);
+}
+
+.hp-trait-count {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+.hp-trait-lore {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ion-text-color);
+  opacity: 0.9;
+}
+
+/* HP Trait Content Layout */
+.hp-trait-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hp-trait-info {
+  flex: 1;
+}
+
+/* HP Carousel */
+.hp-carousel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+}
+
+.hp-carousel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--ion-color-light-shade);
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--ion-color-medium);
+  flex-shrink: 0;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.hp-carousel-btn:hover {
+  background: var(--ion-color-primary);
+  color: white;
+}
+
+.hp-carousel-btn ion-icon {
+  font-size: 16px;
+}
+
+.hp-carousel-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.hp-carousel-item {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.hp-carousel-item.current {
+  width: 80px;
+  height: 80px;
+  opacity: 1;
+  transform: scale(1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.hp-carousel-item.hint {
+  width: 50px;
+  height: 50px;
+  opacity: 0.4;
+  transform: scale(0.85);
+}
+
+.hp-carousel-item.hint:hover {
+  opacity: 0.7;
+}
+
+.hp-carousel-item ion-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hp-carousel-id {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Desktop: Carousel on left side */
+@media (min-width: 480px) {
+  .hp-trait-content {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .hp-carousel {
+    flex-shrink: 0;
+  }
+
+  .hp-carousel-item.current {
+    width: 90px;
+    height: 90px;
+  }
+
+  .hp-carousel-item.hint {
+    width: 55px;
+    height: 55px;
+  }
+}
+
+/* Combo Badges Styles */
+.combo-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.combo-category {
+  background: var(--ion-background-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.combo-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.combo-category-header:active {
+  background: rgba(255, 140, 0, 0.1);
+}
+
+.combo-category-header.expanded {
+  border-bottom: 1px solid var(--ion-color-light-shade);
+}
+
+.combo-category-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.combo-category-emoji {
+  font-size: 18px;
+}
+
+.combo-category-count {
+  font-weight: 400;
+  color: var(--ion-color-medium);
+  font-size: 14px;
+}
+
+.combo-category-chevron {
+  font-size: 18px;
+  color: var(--ion-color-medium);
+  transition: transform 0.2s ease;
+}
+
+.combo-category-header.expanded .combo-category-chevron {
+  transform: rotate(-90deg);
+}
+
+/* Combo Badges List */
+.combo-badges-list {
+  padding: 0;
+}
+
+.combo-badge-card {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--ion-color-light-shade);
+}
+
+.combo-badge-card:last-child {
+  border-bottom: none;
+}
+
+.combo-badge-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.combo-badge-info {
+  flex: 1;
+}
+
+.combo-badge-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.combo-badge-emoji {
+  font-size: 20px;
+}
+
+.combo-badge-name {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ion-text-color);
+}
+
+.combo-badge-count {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  background: var(--ion-color-light-shade);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+
+.combo-badge-requirements {
+  font-size: 13px;
+  color: var(--ion-color-primary);
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+.combo-badge-lore {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ion-text-color);
+  opacity: 0.9;
+}
+
+/* Desktop: Carousel on left side for combo badges */
+@media (min-width: 480px) {
+  .combo-badge-content {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}

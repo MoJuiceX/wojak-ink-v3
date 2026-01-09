@@ -16,11 +16,13 @@ import {
 import { musicalNotes, volumeHigh, sunny, moon, colorPalette, statsChart } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { loadSettings, saveSettings, applyTheme, AppSettings, ThemeMode } from '../components/Settings';
+import { useAudio } from '../contexts/AudioContext';
 import './SettingsPage.css';
 
 const SettingsPage: React.FC = () => {
   const history = useHistory();
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
+  const audio = useAudio();
 
   const handleSettingChange = (key: keyof AppSettings, value: any) => {
     const newSettings = { ...settings, [key]: value };
@@ -29,6 +31,11 @@ const SettingsPage: React.FC = () => {
 
     if (key === 'theme') {
       applyTheme(value);
+    }
+
+    // Sync audio settings with AudioContext
+    if (key === 'backgroundMusic' || key === 'soundEffects') {
+      audio.updateFromSettings(newSettings);
     }
   };
 

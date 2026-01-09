@@ -82,6 +82,27 @@ interface NFTMetadata {
   attributes: NFTAttribute[];
 }
 
+// Combo badges interfaces
+interface ComboRequirement {
+  [category: string]: string;
+}
+
+interface Combo {
+  id: string;
+  name: string;
+  emoji: string;
+  category: string;
+  logic: 'exact' | 'any_two' | 'trait_plus_base' | 'single';
+  requirements?: ComboRequirement;
+  requirementPool?: ComboRequirement[];
+  requiredBases?: string[];
+  lore: string;
+}
+
+interface CombosData {
+  combos: Combo[];
+}
+
 const BigPulp: React.FC = () => {
   const [nftId, setNftId] = useState('');
   const [searchedNftId, setSearchedNftId] = useState<number | null>(null);
@@ -99,6 +120,8 @@ const BigPulp: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [showIntelligence, setShowIntelligence] = useState(false);
   const [intelligenceTab, setIntelligenceTab] = useState<'heatmap' | 'questions' | 'traits'>('heatmap');
+  const [combosData, setCombosData] = useState<CombosData | null>(null);
+  const [earnedBadges, setEarnedBadges] = useState<Combo[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Hide keyboard accessory bar on iOS
@@ -125,20 +148,23 @@ const BigPulp: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [analysisRes, takesRes, didYouKnowRes, metadataRes] = await Promise.all([
+        const [analysisRes, takesRes, didYouKnowRes, metadataRes, combosRes] = await Promise.all([
           fetch('/assets/BigPulp/all_nft_analysis.json'),
           fetch('/assets/BigPulp/nft_takes_v2.json'),
           fetch('/assets/BigPulp/bigP_Didyouknow/did_you_know.json'),
-          fetch('/assets/nft-data/metadata.json')
+          fetch('/assets/nft-data/metadata.json'),
+          fetch('/assets/BigPulp/combos_badges.json')
         ]);
         const analysisJson = await analysisRes.json();
         const takesJson = await takesRes.json();
         const didYouKnowJson = await didYouKnowRes.json();
         const metadataJson = await metadataRes.json();
+        const combosJson = await combosRes.json();
         setAnalysisData(analysisJson);
         setTakesData(takesJson);
         setDidYouKnowData(didYouKnowJson);
         setMetadataList(metadataJson);
+        setCombosData(combosJson);
       } catch (err) {
         console.error('Failed to load BigPulp data:', err);
       }
@@ -149,6 +175,50 @@ const BigPulp: React.FC = () => {
   const getNftImageUrl = (id: number) => {
     const paddedId = String(id).padStart(4, '0');
     return `https://bafybeigjkkonjzwwpopo4wn4gwrrvb7z3nwr2edj2554vx3avc5ietfjwq.ipfs.w3s.link/${paddedId}.png`;
+  };
+
+  // Check if NFT qualifies for a badge
+  const checkBadge = (combo: Combo, nftTraits: Record<string, string>): boolean => {
+    switch (combo.logic) {
+      case 'exact':
+        return Object.entries(combo.requirements || {}).every(
+          ([category, trait]) => nftTraits[category] === trait
+        );
+      case 'any_two':
+        const matchCount = (combo.requirementPool || []).filter(req => {
+          const [category, trait] = Object.entries(req)[0];
+          return nftTraits[category] === trait;
+        }).length;
+        return matchCount >= 2;
+      case 'trait_plus_base':
+        const hasTraits = Object.entries(combo.requirements || {}).every(
+          ([category, trait]) => nftTraits[category] === trait
+        );
+        const hasBase = (combo.requiredBases || []).includes(nftTraits.Base);
+        return hasTraits && hasBase;
+      case 'single':
+        return Object.entries(combo.requirements || {}).every(
+          ([category, trait]) => nftTraits[category] === trait
+        );
+      default:
+        return false;
+    }
+  };
+
+  // Get all earned badges for an NFT
+  const getEarnedBadges = (nftId: number): Combo[] => {
+    if (!combosData || !metadataList) return [];
+
+    const nft = metadataList.find(m => m.name.includes(`#${String(nftId).padStart(4, '0')}`));
+    if (!nft) return [];
+
+    // Convert attributes array to object for easier lookup
+    const nftTraits: Record<string, string> = {};
+    for (const attr of nft.attributes) {
+      nftTraits[attr.trait_type] = attr.value;
+    }
+
+    return combosData.combos.filter(combo => checkBadge(combo, nftTraits));
   };
 
   // Random NFT selection
@@ -198,6 +268,10 @@ const BigPulp: React.FC = () => {
       const headAttr = nftMetadata?.attributes?.find(attr => attr.trait_type === 'Head');
       setCurrentHeadTrait(headAttr?.value);
 
+      // Compute earned combo badges
+      const badges = getEarnedBadges(id);
+      setEarnedBadges(badges);
+
       // Use the BigPulp take, or fallback to analysis highlight
       if (nftTake?.take) {
         setSentence(nftTake.take);
@@ -230,7 +304,6 @@ const BigPulp: React.FC = () => {
         <div className="bigpulp-container">
           {/* Hang with BigPulp Button - First thing user sees */}
           <div className="intelligence-button-container">
-            <p className="intelligence-hint">Market intel, trait values, heatmaps & more</p>
             <IonButton
               expand="block"
               className="intelligence-button"
@@ -301,11 +374,23 @@ const BigPulp: React.FC = () => {
           {/* NFT Preview Card (shown after search) - directly under search */}
           {analysis && searchedNftId && (
             <div className="nft-preview-card">
-              <IonImg
-                src={getNftImageUrl(searchedNftId)}
-                alt={`${analysis.base} #${searchedNftId}`}
-                className="preview-image-square"
-              />
+              <div className="nft-image-container">
+                <IonImg
+                  src={getNftImageUrl(searchedNftId)}
+                  alt={`${analysis.base} #${searchedNftId}`}
+                  className="preview-image-square"
+                />
+                {/* Earned Combo Badges */}
+                {earnedBadges.length > 0 && (
+                  <div className="earned-badges-overlay">
+                    {earnedBadges.map(badge => (
+                      <div key={badge.id} className="earned-badge" title={badge.name}>
+                        <span className="earned-badge-emoji">{badge.emoji}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="nft-info">
                 <span className="nft-name">{analysis.base} #{searchedNftId}</span>
                 <div className="nft-stats-row">

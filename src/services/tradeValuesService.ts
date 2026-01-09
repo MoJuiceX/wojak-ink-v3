@@ -175,6 +175,22 @@ export async function getAPIStatus(): Promise<{
   }
 }
 
+// Cache for NFT metadata
+let nftMetadataCache: Array<{ edition: number; attributes: Array<{ trait_type: string; value: string }> }> | null = null;
+
+async function loadNftMetadata() {
+  if (nftMetadataCache) return nftMetadataCache;
+
+  try {
+    const response = await fetch('/assets/nft-data/metadata.json');
+    nftMetadataCache = await response.json();
+    return nftMetadataCache;
+  } catch (err) {
+    console.error('Failed to load NFT metadata:', err);
+    return [];
+  }
+}
+
 /**
  * Fetch sales for a specific trait
  */
@@ -182,7 +198,7 @@ export async function fetchTraitSales(traitName: string): Promise<TraitSalesData
   // Get all sales from cache or API
   const data = await fetchTradeValues();
 
-  if (!data.all_sales) {
+  if (!data.all_sales || data.all_sales.length === 0) {
     return {
       trait_name: traitName,
       sales: [],
@@ -190,13 +206,34 @@ export async function fetchTraitSales(traitName: string): Promise<TraitSalesData
     };
   }
 
-  // Filter sales that include this trait
-  // Note: Worker API returns sales with nftName, not per-trait breakdown
-  // For now, return empty - would need trait metadata lookup
+  // Load NFT metadata to check traits
+  const metadata = await loadNftMetadata();
+  if (!metadata || metadata.length === 0) {
+    return {
+      trait_name: traitName,
+      sales: [],
+      total_sales: 0,
+    };
+  }
+
+  // Build a set of edition numbers that have this trait
+  const editionsWithTrait = new Set<number>();
+  for (const nft of metadata) {
+    const hasTrait = nft.attributes?.some(
+      attr => attr.value.toLowerCase() === traitName.toLowerCase()
+    );
+    if (hasTrait) {
+      editionsWithTrait.add(nft.edition);
+    }
+  }
+
+  // Filter sales to only those NFTs that have this trait
+  const filteredSales = data.all_sales.filter(sale => editionsWithTrait.has(sale.edition));
+
   return {
     trait_name: traitName,
-    sales: [],
-    total_sales: 0,
+    sales: filteredSales,
+    total_sales: filteredSales.length,
   };
 }
 

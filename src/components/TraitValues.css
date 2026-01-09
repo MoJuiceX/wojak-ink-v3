@@ -285,38 +285,66 @@
   border-top: 1px solid rgba(255, 165, 0, 0.2);
 }
 
-.detail-stats {
+/* Sales Header with Sort Toggles */
+.sales-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 16px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
-.detail-stats .stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.detail-stats .stat-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  color: var(--ion-color-medium);
-  letter-spacing: 0.5px;
-}
-
-.detail-stats .stat-value {
-  font-size: 13px;
-  color: var(--ion-text-color);
-}
-
-.recent-sales h4 {
-  margin: 0 0 8px 0;
-  font-size: 12px;
+.sales-header h4 {
+  margin: 0;
+  font-size: 11px;
   font-weight: 600;
   color: var(--ion-color-medium);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+/* Average formula below carousel */
+.avg-formula-row {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.avg-formula {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-size: 10px;
+  color: var(--ion-color-medium);
+}
+
+.avg-formula strong {
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.sales-sort-toggles {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sort-toggle {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--ion-color-medium);
+}
+
+.sort-toggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.sort-toggle.active {
+  background: var(--app-accent-color, #ff9500);
+  color: white;
 }
 
 .recent-sales ion-spinner {
@@ -330,35 +358,139 @@
   margin: 0;
 }
 
-.sales-list {
+/* Sales Carousel - Horizontal Scrollable */
+.sales-carousel {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 0 8px 0;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.sales-carousel::-webkit-scrollbar {
+  height: 4px;
+}
+
+.sales-carousel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sales-carousel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+/* Sale Card */
+.sale-card {
+  flex-shrink: 0;
+  width: 72px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.sale-item {
-  display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  padding: 5px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.sale-card:hover {
+  background: rgba(0, 0, 0, 0.35);
+  transform: translateY(-2px);
+}
+
+/* Sale Image */
+.sale-image-wrapper {
+  position: relative;
+  width: 62px;
+  height: 62px;
   border-radius: 6px;
-  font-size: 12px;
+  overflow: hidden;
+  margin-bottom: 4px;
 }
 
-.sale-item .sale-edition {
+.sale-preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Highlight badges above image */
+.sale-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+  min-height: 12px;
+  margin-bottom: 2px;
+}
+
+.sale-badge {
+  font-size: 7px;
+  font-weight: 700;
+  padding: 1px 3px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.sale-badge.min {
+  background: #22c55e;
+  color: white;
+}
+
+.sale-badge.max {
+  background: #ef4444;
+  color: white;
+}
+
+.sale-badge.last {
+  background: #3b82f6;
+  color: white;
+  font-size: 9px;
+}
+
+.sale-badge.rare {
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffd700;
+  font-size: 9px;
+}
+
+/* Sale Info - below image */
+.sale-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0px;
+  width: 100%;
+}
+
+.sale-info .sale-edition {
+  font-size: 9px;
   font-weight: 600;
-  color: var(--ion-color-primary);
-  min-width: 50px;
+  color: var(--ion-text-color);
+  margin-bottom: 1px;
 }
 
-.sale-item .sale-price {
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+.sale-info .sale-price-xch {
+  font-size: 8px;
+  font-weight: 700;
   color: #4ade80;
-  flex: 1;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  white-space: nowrap;
 }
 
-.sale-item .sale-time {
+.sale-info .sale-price-usd {
+  font-size: 8px;
   color: var(--ion-color-medium);
-  font-size: 11px;
+}
+
+.sale-info .sale-rank {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--app-accent-color, #ff9500);
+  margin-top: 1px;
 }

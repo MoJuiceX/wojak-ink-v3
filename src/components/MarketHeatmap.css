@@ -404,3 +404,153 @@
   color: var(--heatmap-text-muted);
   opacity: 0.5;
 }
+
+/* Badge Toggle Button */
+.combo-btn-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.mode-btn.badge-toggle {
+  border: 1px dashed var(--heatmap-btn-border);
+}
+
+.mode-btn.badge-toggle.active {
+  border-style: solid;
+}
+
+/* Combo Legend Tooltip */
+.combo-legend {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: rgba(20, 20, 20, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 14px 16px;
+  width: 220px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* Keep tooltip visible when hovering the button OR the tooltip itself */
+.combo-btn-wrapper:hover .combo-legend,
+.combo-legend:hover {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Invisible bridge to prevent tooltip from closing when moving mouse to it */
+.combo-legend::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 0;
+  right: 0;
+  height: 12px;
+}
+
+.combo-legend-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--app-accent-color, #ff9500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.combo-legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 350px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Mobile: taller legend that extends toward bottom of screen */
+@media (max-width: 480px) {
+  .combo-legend {
+    position: fixed;
+    top: auto;
+    bottom: 20px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+  }
+
+  .combo-legend-list {
+    max-height: 50vh;
+  }
+
+  .combo-legend::before {
+    display: none;
+  }
+}
+
+.combo-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.combo-legend-emoji {
+  font-size: 18px;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+
+.combo-legend-name {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Cell Badges */
+.heatmap-cell.has-badges {
+  position: relative;
+}
+
+.cell-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  gap: 6px;
+  padding: 4px;
+}
+
+.badge-overflow {
+  font-size: 10px;
+  color: var(--heatmap-cell-text);
+  margin-left: 3px;
+}
+
+/* Mobile: much smaller emojis to fit multiple in a cell */
+@media (max-width: 480px) {
+  .cell-badges {
+    font-size: 8px;
+    gap: 2px;
+    padding: 1px;
+  }
+
+  .badge-overflow {
+    font-size: 6px;
+    margin-left: 1px;
+  }
+}
+
+/* NFT Badges in modal list */
+.nft-badges {
+  margin-left: 4px;
+}

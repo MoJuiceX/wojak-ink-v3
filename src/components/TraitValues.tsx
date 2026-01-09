@@ -22,10 +22,19 @@ import {
   TraitStats,
   Sale,
 } from '../services/tradeValuesService';
+import { getCachedXchPrice } from '../services/treasuryApi';
 import './TraitValues.css';
 
 type SortField = 'trait_name' | 'trait_category' | 'total_sales' | 'average_xch' | 'min_xch' | 'max_xch' | 'last_trade';
 type SortDirection = 'asc' | 'desc';
+type SalesSortMode = 'price_asc' | 'price_desc' | 'rarity_asc' | 'rarity_desc' | 'time_asc' | 'time_desc';
+
+// IPFS gateway for NFT images
+const IPFS_CID = 'bafybeigjkkonjzwwpopo4wn4gwrrvb7z3nwr2edj2554vx3avc5ietfjwq';
+const getIpfsUrl = (edition: number) => {
+  const paddedId = String(edition).padStart(4, '0');
+  return `https://${IPFS_CID}.ipfs.w3s.link/${paddedId}.png`;
+};
 
 // Capitalize each word in a string
 const capitalizeCategory = (str: string): string => {
@@ -60,6 +69,11 @@ const TraitValues: React.FC<TraitValuesProps> = ({ onTraitClick }) => {
   const [selectedTraitSales, setSelectedTraitSales] = useState<Sale[]>([]);
   const [loadingTraitSales, setLoadingTraitSales] = useState(false);
 
+  // Sales sorting and rarity data
+  const [salesSortMode, setSalesSortMode] = useState<SalesSortMode>('price_asc');
+  const [rarityData, setRarityData] = useState<Map<number, number>>(new Map());
+  const xchPriceUsd = getCachedXchPrice();
+
   // Fetch main data
   const loadData = useCallback(async () => {
     try {
@@ -87,6 +101,24 @@ const TraitValues: React.FC<TraitValuesProps> = ({ onTraitClick }) => {
     loadData();
   }, [loadData]);
 
+  // Load rarity data for sorting
+  useEffect(() => {
+    const loadRarityData = async () => {
+      try {
+        const response = await fetch('/assets/BigPulp/all_nft_analysis.json');
+        const data = await response.json();
+        const rarityMap = new Map<number, number>();
+        for (const [id, analysis] of Object.entries(data)) {
+          rarityMap.set(parseInt(id), (analysis as any).rank);
+        }
+        setRarityData(rarityMap);
+      } catch (err) {
+        console.error('Failed to load rarity data:', err);
+      }
+    };
+    loadRarityData();
+  }, []);
+
   // Fetch sales for selected trait
   const loadTraitSales = useCallback(async (traitName: string) => {
     try {
@@ -109,6 +141,44 @@ const TraitValues: React.FC<TraitValuesProps> = ({ onTraitClick }) => {
       setSelectedTraitSales([]);
     }
   }, [selectedTrait, loadTraitSales]);
+
+  // Sorted sales based on current sort mode (with deduplication)
+  const sortedSales = useMemo(() => {
+    // Deduplicate: remove entries with same edition + price + timestamp
+    const seen = new Set<string>();
+    const dedupedSales = selectedTraitSales.filter(sale => {
+      const key = `${sale.edition}-${sale.price_xch}-${sale.timestamp}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    const sales = [...dedupedSales];
+    switch (salesSortMode) {
+      case 'price_asc':
+        return sales.sort((a, b) => a.price_xch - b.price_xch);
+      case 'price_desc':
+        return sales.sort((a, b) => b.price_xch - a.price_xch);
+      case 'rarity_asc':
+        return sales.sort((a, b) => {
+          const rankA = rarityData.get(a.edition) || 9999;
+          const rankB = rarityData.get(b.edition) || 9999;
+          return rankA - rankB; // Lower rank = rarer
+        });
+      case 'rarity_desc':
+        return sales.sort((a, b) => {
+          const rankA = rarityData.get(a.edition) || 0;
+          const rankB = rarityData.get(b.edition) || 0;
+          return rankB - rankA; // Higher rank = more common
+        });
+      case 'time_desc':
+        return sales.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // Newest first
+      case 'time_asc':
+        return sales.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()); // Oldest first
+      default:
+        return sales;
+    }
+  }, [selectedTraitSales, salesSortMode, rarityData]);
 
   // Get unique categories
   const categories = useMemo(() => {
@@ -300,37 +370,126 @@ const TraitValues: React.FC<TraitValuesProps> = ({ onTraitClick }) => {
                     <tr className="detail-row">
                       <td colSpan={7}>
                         <div className="trait-detail">
-                          <div className="detail-stats">
-                            <div className="stat">
-                              <span className="stat-label">Category</span>
-                              <span className="stat-value">{capitalizeCategory(trait.trait_category)}</span>
-                            </div>
-                            <div className="stat">
-                              <span className="stat-label">Price Range</span>
-                              <span className="stat-value">{formatXCH(trait.min_xch)} - {formatXCH(trait.max_xch)} XCH</span>
-                            </div>
-                            {trait.outliers_excluded > 0 && (
-                              <div className="stat">
-                                <span className="stat-label">Outliers Excluded</span>
-                                <span className="stat-value">{trait.outliers_excluded}</span>
-                              </div>
-                            )}
-                          </div>
                           <div className="recent-sales">
-                            <h4>Recent Sales</h4>
+                            <div className="sales-header">
+                              <h4>Sales ({selectedTraitSales.length})</h4>
+                              <div className="sales-sort-toggles">
+                                <button
+                                  className={`sort-toggle ${salesSortMode.startsWith('price') ? 'active' : ''}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (salesSortMode === 'price_asc') {
+                                      setSalesSortMode('price_desc');
+                                    } else {
+                                      setSalesSortMode('price_asc');
+                                    }
+                                  }}
+                                >
+                                  💰{salesSortMode === 'price_desc' ? '↓' : '↑'}
+                                </button>
+                                <button
+                                  className={`sort-toggle ${salesSortMode.startsWith('rarity') ? 'active' : ''}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (salesSortMode === 'rarity_asc') {
+                                      setSalesSortMode('rarity_desc');
+                                    } else {
+                                      setSalesSortMode('rarity_asc');
+                                    }
+                                  }}
+                                >
+                                  👑{salesSortMode === 'rarity_desc' ? '↓' : '↑'}
+                                </button>
+                                <button
+                                  className={`sort-toggle ${salesSortMode.startsWith('time') ? 'active' : ''}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (salesSortMode === 'time_desc') {
+                                      setSalesSortMode('time_asc');
+                                    } else {
+                                      setSalesSortMode('time_desc');
+                                    }
+                                  }}
+                                >
+                                  🕐{salesSortMode === 'time_asc' ? '↑' : '↓'}
+                                </button>
+                              </div>
+                            </div>
                             {loadingTraitSales ? (
                               <IonSpinner name="dots" />
                             ) : selectedTraitSales.length === 0 ? (
-                              <p className="no-sales">No recent sales data.</p>
+                              <p className="no-sales">No sales data available.</p>
                             ) : (
-                              <div className="sales-list">
-                                {selectedTraitSales.slice(0, 5).map((sale, idx) => (
-                                  <div key={`${sale.edition}-${idx}`} className="sale-item">
-                                    <span className="sale-edition">#{sale.edition}</span>
-                                    <span className="sale-price">{formatXCH(sale.price_xch)} XCH</span>
-                                    <span className="sale-time">{formatRelativeTime(sale.timestamp)}</span>
-                                  </div>
-                                ))}
+                              <div className="sales-carousel">
+                                {(() => {
+                                  // Calculate highlights
+                                  const minPrice = Math.min(...sortedSales.map(s => s.price_xch));
+                                  const maxPrice = Math.max(...sortedSales.map(s => s.price_xch));
+                                  const timestamps = sortedSales.map(s => new Date(s.timestamp).getTime());
+                                  const lastTime = Math.max(...timestamps);
+                                  const rarities = sortedSales.map(s => rarityData.get(s.edition) || 9999);
+                                  const rarestRank = Math.min(...rarities);
+
+                                  return sortedSales.map((sale, idx) => {
+                                    const saleTime = new Date(sale.timestamp).getTime();
+                                    const saleRarity = rarityData.get(sale.edition) || 9999;
+                                    const isMin = sale.price_xch === minPrice;
+                                    const isMax = sale.price_xch === maxPrice;
+                                    const isLast = saleTime === lastTime;
+                                    const isRarest = saleRarity === rarestRank;
+
+                                    return (
+                                      <div key={`${sale.edition}-${idx}`} className="sale-card">
+                                        {/* Highlight badges above image */}
+                                        <div className="sale-badges">
+                                          {isMin && <span className="sale-badge min">MIN</span>}
+                                          {isMax && <span className="sale-badge max">MAX</span>}
+                                          {isLast && <span className="sale-badge last">🕐</span>}
+                                          {isRarest && <span className="sale-badge rare">👑</span>}
+                                        </div>
+                                        <div className="sale-image-wrapper">
+                                          <img
+                                            src={getIpfsUrl(sale.edition)}
+                                            alt={`#${sale.edition}`}
+                                            className="sale-preview-image"
+                                            loading="lazy"
+                                          />
+                                        </div>
+                                        <div className="sale-info">
+                                          <span className="sale-edition">#{sale.edition}</span>
+                                          <span className="sale-price-xch">{formatXCH(sale.price_xch)} XCH</span>
+                                          <span className="sale-price-usd">${(sale.price_xch * xchPriceUsd).toFixed(2)}</span>
+                                          <span className="sale-rank">👑 {rarityData.get(sale.edition) || '—'}</span>
+                                        </div>
+                                      </div>
+                                    );
+                                  });
+                                })()}
+                              </div>
+                            )}
+                            {/* Average calculation below the carousel */}
+                            {selectedTraitSales.length > 0 && !loadingTraitSales && (
+                              <div className="avg-formula-row">
+                                {(() => {
+                                  const prices = selectedTraitSales.map(s => s.price_xch);
+                                  const total = prices.reduce((sum, p) => sum + p, 0);
+                                  const avg = total / prices.length;
+
+                                  let priceStr;
+                                  if (prices.length <= 4) {
+                                    priceStr = prices.map(p => formatXCH(p)).join(' + ');
+                                  } else {
+                                    const first = prices.slice(0, 2).map(p => formatXCH(p)).join(' + ');
+                                    const last = formatXCH(prices[prices.length - 1]);
+                                    priceStr = `${first} + ... + ${last}`;
+                                  }
+
+                                  return (
+                                    <span className="avg-formula">
+                                      Avg: {priceStr} = {formatXCH(total)} ÷ {prices.length} = <strong>{formatXCH(avg)} XCH</strong>
+                                    </span>
+                                  );
+                                })()}
                               </div>
                             )}
                           </div>

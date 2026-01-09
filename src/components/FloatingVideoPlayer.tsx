@@ -11,6 +11,7 @@ interface FloatingVideoPlayerProps {
   videoSrc: string;
   nextVideoSrc?: string;
   title?: string;
+  isBackgroundMusicEnabled?: boolean;
 }
 
 // Crossfade duration in seconds - how long before end to start fading
@@ -23,6 +24,7 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
   platform,
   videoSrc,
   nextVideoSrc,
+  isBackgroundMusicEnabled = true,
 }) => {
   const [position, setPosition] = useState({ x: 20, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
@@ -160,8 +162,8 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
       setIsPlaying(false);
       setHasMoved(false);
 
-      // Autoplay after a short delay
-      if (platform === 'local') {
+      // Only autoplay if background music is enabled
+      if (platform === 'local' && isBackgroundMusicEnabled) {
         setTimeout(() => {
           if (videoRef.current) {
             videoRef.current.volume = 1;
@@ -180,14 +182,23 @@ const FloatingVideoPlayer: React.FC<FloatingVideoPlayerProps> = ({
         }, 100);
       }
     }
-  }, [isOpen, videoSrc, platform]);
+  }, [isOpen, videoSrc, platform, isBackgroundMusicEnabled]);
+
+  // Pause video when background music is disabled
+  useEffect(() => {
+    if (!isBackgroundMusicEnabled && isPlaying && videoRef.current) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, [isBackgroundMusicEnabled, isPlaying]);
 
   const togglePlayPause = () => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
         setIsPlaying(false);
-      } else {
+      } else if (isBackgroundMusicEnabled) {
+        // Only allow play if background music is enabled
         videoRef.current.play()
           .then(() => setIsPlaying(true))
           .catch(() => {

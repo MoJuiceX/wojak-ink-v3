@@ -22,6 +22,7 @@ import OrangePong from './OrangePong';
 import WojakRunner from './WojakRunner';
 import Orange2048 from './Orange2048';
 import { useVideoPlayer, MUSIC_VIDEOS, VideoItem } from '../contexts/VideoPlayerContext';
+import { useAudio } from '../contexts/AudioContext';
 import './Media.css';
 
 // Music tracks for background music
@@ -35,7 +36,7 @@ interface MusicTrack {
 
 // Website music tracks
 const MUSIC_TRACKS: MusicTrack[] = [
-  { id: '1', title: 'Wojak Theme', artist: 'Wojak.ink', file: '/assets/music/wojakmusic1.mp3', duration: '3:45' },
+  { id: '1', title: 'Crash Bandicoot', artist: 'Wojak.ink', file: '/assets/music/wojakmusic1.mp3', duration: '3:45' },
 ];
 
 // Game definitions
@@ -59,6 +60,7 @@ const Media: React.FC = () => {
   const gainNodeRef = useRef<GainNode | null>(null);
   const sliderRef = useRef<HTMLDivElement>(null);
   const { openVideo, closeVideo, isOpen: isVideoPlaying } = useVideoPlayer();
+  const { isBackgroundMusicEnabled } = useAudio();
 
   const handlePlayTrack = (track: MusicTrack) => {
     if (playingTrack === track.id) {
@@ -68,7 +70,8 @@ const Media: React.FC = () => {
         audioRef.current.currentTime = 0;
       }
       setPlayingTrack(null);
-    } else {
+    } else if (isBackgroundMusicEnabled) {
+      // Only play if background music is enabled in settings
       // Stop any playing video first - music and video can't play together
       if (isVideoPlaying) {
         closeVideo();
@@ -227,6 +230,17 @@ const Media: React.FC = () => {
       }
     };
   }, []);
+
+  // Stop music when background music setting is disabled
+  useEffect(() => {
+    if (!isBackgroundMusicEnabled && playingTrack) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setPlayingTrack(null);
+    }
+  }, [isBackgroundMusicEnabled, playingTrack]);
 
   const handlePlayVideo = (video: VideoItem) => {
     // Stop background music when video starts

@@ -24,6 +24,7 @@ interface CryptoBubblesProps {
   data: BubbleData[];
   width?: number;
   height?: number;
+  soundEffectsEnabled?: boolean;
 }
 
 // Color palette for bubbles
@@ -210,7 +211,8 @@ const playCelebrationSound = () => {
 const CryptoBubbles: React.FC<CryptoBubblesProps> = ({
   data,
   width = 340,
-  height = 320
+  height = 320,
+  soundEffectsEnabled = true
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
@@ -235,8 +237,10 @@ const CryptoBubbles: React.FC<CryptoBubblesProps> = ({
 
     const bubble = bubblesRef.current[bubbleIndex];
 
-    // Play pop sound (pitch based on value) and haptic feedback
-    playPopSound(bubble.value, maxValueRef.current);
+    // Play pop sound (pitch based on value) and haptic feedback - only if sound effects enabled
+    if (soundEffectsEnabled) {
+      playPopSound(bubble.value, maxValueRef.current);
+    }
     triggerHaptic();
 
     // Create ripple at tap position
@@ -272,7 +276,9 @@ const CryptoBubbles: React.FC<CryptoBubblesProps> = ({
         const allPopped = bubblesRef.current.every(b => b.hidden);
         if (allPopped) {
           setShowConfetti(true);
-          playCelebrationSound();
+          if (soundEffectsEnabled) {
+            playCelebrationSound();
+          }
           triggerHaptic();
           // Extra haptic for celebration
           setTimeout(() => triggerHaptic(), 100);
@@ -308,7 +314,7 @@ const CryptoBubbles: React.FC<CryptoBubblesProps> = ({
     }, RESPAWN_DELAY);
 
     respawnTimersRef.current.set(id, timer);
-  }, [width, height]);
+  }, [width, height, soundEffectsEnabled]);
 
   // Cleanup timers on unmount
   useEffect(() => {

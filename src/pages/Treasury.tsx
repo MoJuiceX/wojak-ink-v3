@@ -27,6 +27,7 @@ import {
 } from '../services/treasuryApi';
 import { WALLET_DISPLAY, WALLET_ADDRESS } from '../services/treasuryConstants';
 import CryptoBubbles from '../components/CryptoBubbles';
+import { useAudio } from '../contexts/AudioContext';
 import './Treasury.css';
 
 // Color palette for bubbles
@@ -40,6 +41,7 @@ const Treasury: React.FC = () => {
   // Initialize with cached data immediately (no loading state if we have cache)
   const [walletData, setWalletData] = useState<WalletData | null>(() => getCachedWalletData());
   const [loading, setLoading] = useState(() => !getCachedWalletData());
+  const { isSoundEffectsEnabled } = useAudio();
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [selectedCollection, setSelectedCollection] = useState<NFTCollection | null>(null);
@@ -255,6 +257,7 @@ const Treasury: React.FC = () => {
                 ]}
                 width={360}
                 height={340}
+                soundEffectsEnabled={isSoundEffectsEnabled}
               />
               {/* Small tokens under $1 - shown statically */}
               {walletData.tokens.filter(t => t.value_usd > 0 && t.value_usd < 1).length > 0 && (
