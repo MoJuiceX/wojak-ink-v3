@@ -414,16 +414,16 @@ class TreasuryService implements ITreasuryService {
     const localCache = loadCache();
     // Skip localStorage cache since it doesn't include NFT collections
     // Always fetch fresh if we have no NFT collections in memory
-    if (!forceRefresh && localCache && isCacheFresh(localCache.lastUpdated) && cachedWalletData?.nftCollections?.length > 0) {
+    if (!forceRefresh && localCache && isCacheFresh(localCache.lastUpdated) && (cachedWalletData?.nftCollections?.length ?? 0) > 0) {
       cachedWalletData = convertCacheToWalletData(localCache);
       cacheTimestamp = localCache.lastUpdated;
-      return cachedWalletData;
+      return cachedWalletData!;
     }
 
     // Rate limit protection - prevent hammering APIs
     // BUT: Allow refetch if we have no NFT collections
-    if (now - this.lastApiCall < this.minApiInterval && cachedWalletData?.nftCollections?.length > 0) {
-      return cachedWalletData;
+    if (now - this.lastApiCall < this.minApiInterval && (cachedWalletData?.nftCollections?.length ?? 0) > 0) {
+      return cachedWalletData!;
     }
     this.lastApiCall = now;
 

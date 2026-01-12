@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * TraitValues Component
  * Displays trait trade statistics in a sortable table

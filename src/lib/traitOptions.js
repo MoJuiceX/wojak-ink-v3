@@ -1,7 +1,7 @@
 // Shared trait options helper module
 // Used by both LayerSelector and ExportControls to ensure consistent label formatting
 
-import { getAllLayerImages } from './memeImageManifest'
+import { getAllLayerImages } from '../services/generatorService'
 
 // Color tokens for variant grouping (case-insensitive)
 export const COLOR_TOKENS = {
@@ -19,6 +19,28 @@ export const COLOR_TOKENS = {
   'gray': '#808080',
   'white': '#ffffff',
   'neon green': '#39ff14'
+}
+
+/**
+ * Clean display name from filepath
+ * Extracts filename, removes extension, converts hyphens/underscores to spaces
+ * @param {string} filepath - File path from manifest
+ * @returns {string} Clean display name
+ */
+export function cleanDisplayName(filepath) {
+  if (!filepath) return ''
+
+  // Get filename from path
+  const filename = filepath.split('/').pop() || filepath
+
+  // Remove extension
+  const withoutExt = filename.replace(/\.(png|jpg|jpeg|webp|gif)$/i, '')
+
+  // Convert hyphens and underscores to spaces
+  const withSpaces = withoutExt.replace(/[-_]/g, ' ')
+
+  // Clean up multiple spaces and trim
+  return withSpaces.replace(/\s+/g, ' ').trim()
 }
 
 /**

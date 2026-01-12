@@ -5,7 +5,7 @@
  * Merges results, prioritizing MintGarden for duplicates
  */
 
-import { mintgardenQueue, dexieQueue, rateLimitedFetch } from '../utils/rateLimiter';
+import { mintgardenQueue } from '../utils/rateLimiter';
 
 // Collection ID for Wojak Farmers Plot
 export const COLLECTION_ID = 'col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah';

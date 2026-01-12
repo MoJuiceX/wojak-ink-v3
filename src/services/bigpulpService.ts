@@ -14,7 +14,7 @@ import type {
   NFTBasic,
   RarityTier,
 } from '@/types/bigpulp';
-import { COLLECTION_SIZE, getNftImageUrl, WORKER_API } from './constants';
+import { COLLECTION_SIZE, getNftImageUrl } from './constants';
 import { marketService } from './marketService';
 import { getRecentSales, type SaleRecord } from './salesDatabank';
 import { fetchCollectionStats } from './parseBotService';
@@ -33,17 +33,18 @@ interface NFTTakeEntry {
   };
 }
 
-interface TraitInsight {
-  trait_name: string;
-  category: string;
-  rarity: number;
-  value_assessment: string;
-}
+// Interface kept for future use
+// interface TraitInsight {
+//   trait_name: string;
+//   category: string;
+//   rarity: number;
+//   value_assessment: string;
+// }
 
 // ============ Cache ============
 
 let nftTakesCache: Record<string, NFTTakeEntry> | null = null;
-let traitInsightsCache: TraitInsight[] | null = null;
+// let traitInsightsCache: TraitInsight[] | null = null; // Kept for future use
 let traitStatsCache: AttributeStats[] | null = null;
 
 // ============ Loaders ============
@@ -62,19 +63,19 @@ async function loadNftTakes(): Promise<Record<string, NFTTakeEntry>> {
   }
 }
 
-async function loadTraitInsights(): Promise<TraitInsight[]> {
-  if (traitInsightsCache) return traitInsightsCache;
-
-  try {
-    const response = await fetch('/assets/BigPulp/trait_insights.json');
-    if (!response.ok) throw new Error('Failed to load trait insights');
-    traitInsightsCache = await response.json();
-    return traitInsightsCache!;
-  } catch (error) {
-    console.error('Failed to load trait insights:', error);
-    return [];
-  }
-}
+// Function kept for future use - loads trait insights JSON
+// async function loadTraitInsights(): Promise<TraitInsight[]> {
+//   if (traitInsightsCache) return traitInsightsCache;
+//   try {
+//     const response = await fetch('/assets/BigPulp/trait_insights.json');
+//     if (!response.ok) throw new Error('Failed to load trait insights');
+//     traitInsightsCache = await response.json();
+//     return traitInsightsCache!;
+//   } catch (error) {
+//     console.error('Failed to load trait insights:', error);
+//     return [];
+//   }
+// }
 
 // Types for trait rankings data
 interface TraitRankingEntry {

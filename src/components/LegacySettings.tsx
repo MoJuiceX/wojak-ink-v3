@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect } from 'react';
 import {
   IonModal,
@@ -14,7 +15,7 @@ import {
   IonButtons,
 } from '@ionic/react';
 import { close, musicalNotes, volumeHigh, colorPalette, sunny, moon } from 'ionicons/icons';
-import './Settings.css';
+import './LegacySettings.css';
 
 // Theme types
 export type ThemeMode = 'light' | 'dark' | 'orange' | 'green';

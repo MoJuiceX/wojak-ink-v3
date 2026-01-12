@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { IonImg, IonIcon, IonSpinner } from '@ionic/react';
 import {

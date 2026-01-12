@@ -3,7 +3,7 @@
  * Fetches wallet balances, tokens, and NFTs dynamically from SpaceScan
  */
 
-import { WALLET_ADDRESS, XCH_DECIMALS } from './treasuryConstants';
+import { WALLET_ADDRESS } from './treasuryConstants';
 import { spacescanQueue, coingeckoQueue } from '../utils/rateLimiter';
 
 // Use proxies to avoid CORS issues
@@ -117,12 +117,7 @@ function persistData(data: WalletData): void {
 // Initialize persisted data
 loadPersistedData();
 
-/**
- * Convert mojos to XCH (not currently used but kept for reference)
- */
-function _mojosToXch(mojos: number): number {
-  return mojos / Math.pow(10, XCH_DECIMALS);
-}
+// Note: mojosToXch function removed - use direct calculation where needed
 
 /**
  * Fetch XCH price from CoinGecko

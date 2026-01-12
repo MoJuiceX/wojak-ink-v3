@@ -105,21 +105,22 @@ interface ParseBotNFTDetails {
   events: ParseBotEvent[];
 }
 
-interface ParseBotListedNFTsResponse {
-  collection_id: string;
-  page: number;
-  size: number;
-  next: string;
-  previous: string;
-  count: number;
-  items: Array<{
-    id: string;
-    encoded_id: string;
-    name: string;
-    thumbnail_uri: string;
-    xch_price: number | null;
-  }>;
-}
+// Interface kept for future use - Parse.bot listed NFTs response
+// interface ParseBotListedNFTsResponse {
+//   collection_id: string;
+//   page: number;
+//   size: number;
+//   next: string;
+//   previous: string;
+//   count: number;
+//   items: Array<{
+//     id: string;
+//     encoded_id: string;
+//     name: string;
+//     thumbnail_uri: string;
+//     xch_price: number | null;
+//   }>;
+// }
 
 // ============ App Types (transformed for our app) ============
 

@@ -8,7 +8,7 @@
  * from Parse.bot Dexie scraping.
  */
 
-import { convertSalePrice, type SalePriceInfo } from './historicalPriceService';
+import { convertSalePrice } from './historicalPriceService';
 
 // ============ Types ============
 
