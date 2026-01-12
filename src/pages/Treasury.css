@@ -1,0 +1,154 @@
+/**
+ * Treasury Page Styles
+ *
+ * Responsive layout:
+ * - Mobile (<1024px): Vertical stack with specific order
+ * - Desktop (>=1024px): 3-column grid
+ *
+ * Mobile order: Price -> Bubbles -> Other Tokens -> NFTs -> Wallet
+ * Desktop: Left column (Price, Other, Wallet) | Bubbles | NFTs
+ */
+
+.treasury-page {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* ============================================
+   MOBILE LAYOUT: Vertical Stack with Order
+   ============================================ */
+.treasury-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+/* Mobile ordering */
+.treasury-price {
+  order: 1;
+}
+
+.treasury-bubbles {
+  order: 2;
+  min-height: 350px;
+  display: flex;
+  flex-direction: column;
+}
+
+.treasury-other-tokens {
+  order: 3;
+}
+
+.treasury-nft {
+  order: 4;
+  /* Mobile: taller box (1:2 ratio - twice as tall as wide) */
+  height: 600px;
+  max-height: 600px;
+  position: relative;
+}
+
+.treasury-wallet {
+  order: 5;
+}
+
+/* ============================================
+   TABLET LAYOUT (>=768px): Slightly larger bubbles
+   ============================================ */
+@media (min-width: 768px) {
+  .treasury-grid {
+    gap: 20px;
+  }
+
+  .treasury-bubbles {
+    min-height: 420px;
+  }
+
+  .treasury-nft {
+    height: 450px;
+    max-height: 450px;
+  }
+}
+
+/* ============================================
+   DESKTOP LAYOUT (>=1024px): 3-column grid
+   Left: Price + Other + Wallet (stacked)
+   Middle: Bubbles (full height)
+   Right: NFTs (full height)
+   ============================================ */
+@media (min-width: 1024px) {
+  .treasury-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 300px;
+    grid-template-rows: auto 1fr auto;
+    gap: 20px;
+    overflow: hidden; /* Prevent grid from growing */
+  }
+
+  /* Left column items */
+  .treasury-price {
+    grid-column: 1;
+    grid-row: 1;
+    order: unset;
+  }
+
+  .treasury-other-tokens {
+    grid-column: 1;
+    grid-row: 2;
+    order: unset;
+    /* Allow this to stretch and fill middle space */
+    display: flex;
+    flex-direction: column;
+  }
+
+  .treasury-wallet {
+    grid-column: 1;
+    grid-row: 3;
+    order: unset;
+  }
+
+  /* Middle column: Bubbles span all rows */
+  .treasury-bubbles {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    order: unset;
+    min-height: unset;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Right column: NFTs span all rows */
+  .treasury-nft {
+    grid-column: 3;
+    grid-row: 1 / 4;
+    order: unset;
+    position: relative;
+    overflow: hidden;
+    height: unset;
+    max-height: unset;
+    min-height: 0;
+  }
+}
+
+/* ============================================
+   LARGE DESKTOP (>=1280px): More breathing room
+   ============================================ */
+@media (min-width: 1280px) {
+  .treasury-grid {
+    grid-template-columns: 300px 1fr 320px;
+    gap: 24px;
+  }
+}
+
+/* ============================================
+   EXTRA LARGE (>=1440px): Maximum space for bubbles
+   ============================================ */
+@media (min-width: 1440px) {
+  .treasury-grid {
+    grid-template-columns: 300px 1fr 340px;
+    gap: 28px;
+  }
+}

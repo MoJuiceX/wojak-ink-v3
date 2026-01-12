@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>wojak-ink-redesign</title>
+    <script>
+      // Prevent theme flash - apply theme before React loads
+      (function() {
+        var STORAGE_KEY = 'wojak-theme';
+        var DEFAULT_THEME = 'tang-orange';
+        var VALID_THEMES = ['dark', 'light', 'tang-orange', 'chia-green'];
+
+        var stored = null;
+        try {
+          stored = localStorage.getItem(STORAGE_KEY);
+        } catch (e) {}
+
+        var theme = (stored && VALID_THEMES.indexOf(stored) !== -1) ? stored : DEFAULT_THEME;
+
+        // Apply theme immediately
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.style.colorScheme = (theme === 'light') ? 'light' : 'dark';
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

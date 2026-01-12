@@ -1,0 +1,63 @@
+name: Daily Sales Update
+
+on:
+  schedule:
+    # Run daily at 6:00 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    # Allow manual trigger from GitHub Actions UI
+
+jobs:
+  update-sales:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run daily sales update
+        run: npx tsx scripts/dailySalesUpdate.ts
+        env:
+          NODE_ENV: production
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git diff --quiet public/assets/nft-data/attribute_stats.json || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push changes
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add public/assets/nft-data/attribute_stats.json
+          git commit -m "chore: update attribute sales data [automated]"
+          git push
+
+      - name: Trigger Vercel rebuild
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          if [ -n "${{ secrets.VERCEL_DEPLOY_HOOK }}" ]; then
+            curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"
+            echo "Vercel rebuild triggered"
+          else
+            echo "VERCEL_DEPLOY_HOOK secret not set, skipping rebuild trigger"
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Daily Sales Update Complete" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.git-check.outputs.changed }}" == "true" ]; then
+            echo "New sales data was found and committed." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No new sales data found." >> $GITHUB_STEP_SUMMARY
+          fi

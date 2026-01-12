@@ -1,0 +1,244 @@
+/**
+ * Split-Flap Display Styles
+ *
+ * Mechanical split-flap (Solari board) animation for rotating taglines.
+ * Each character flips individually with a scramble effect before settling.
+ */
+
+/* ============================================
+   Split-Flap Display Container
+   ============================================ */
+.split-flap-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Fixed width to prevent layout shifts - fits longest phrase */
+  min-width: 220px;
+  height: 1.5em;
+  perspective: 300px;
+}
+
+.split-flap-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+/* ============================================
+   Individual Character Cell
+   ============================================ */
+.flap-char {
+  display: inline-block;
+  position: relative;
+  width: 0.65em;
+  height: 1.4em;
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-brand-primary, #e8792f);
+  perspective: 200px;
+  transform-style: preserve-3d;
+}
+
+/* Subtle shadow for depth - very minimal split line */
+.flap-char::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+/* ============================================
+   Flap Halves
+   ============================================ */
+
+/* Top half of the character (current, folds down) */
+.flap-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  background: rgba(20, 20, 30, 0.8);
+  border-radius: 2px 2px 0 0;
+  transform-origin: bottom center;
+  backface-visibility: hidden;
+  z-index: 3;
+}
+
+.flap-top::after {
+  content: attr(data-char);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-brand-primary, #e8792f);
+}
+
+/* Bottom half of the character (current, stays) */
+.flap-bottom {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  background: rgba(15, 15, 25, 0.8);
+  border-radius: 0 0 2px 2px;
+  z-index: 1;
+}
+
+.flap-bottom::after {
+  content: attr(data-char);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-brand-primary, #e8792f);
+}
+
+/* Folding top half (old character folding away) */
+.flap-fold-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  background: rgba(25, 25, 35, 0.9);
+  border-radius: 2px 2px 0 0;
+  transform-origin: bottom center;
+  transform: rotateX(0deg);
+  backface-visibility: hidden;
+  z-index: 4;
+}
+
+.flap-fold-top::after {
+  content: attr(data-char);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-brand-primary, #e8792f);
+}
+
+/* Unfolding bottom half (new character unfolding) */
+.flap-unfold-bottom {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  background: rgba(20, 20, 30, 0.8);
+  border-radius: 0 0 2px 2px;
+  transform-origin: top center;
+  transform: rotateX(180deg);
+  backface-visibility: hidden;
+  z-index: 2;
+}
+
+.flap-unfold-bottom::after {
+  content: attr(data-char);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-brand-primary, #e8792f);
+  transform: rotateX(180deg);
+}
+
+/* ============================================
+   Animation States
+   ============================================ */
+.flap-char.flipping .flap-fold-top {
+  animation: foldDown 0.15s ease-in forwards;
+}
+
+.flap-char.flipping .flap-unfold-bottom {
+  animation: unfoldUp 0.15s ease-out 0.15s forwards;
+}
+
+@keyframes foldDown {
+  0% { transform: rotateX(0deg); }
+  100% { transform: rotateX(-90deg); }
+}
+
+@keyframes unfoldUp {
+  0% { transform: rotateX(90deg); }
+  100% { transform: rotateX(0deg); }
+}
+
+/* ============================================
+   Screen Reader Accessibility
+   ============================================ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+  .split-flap-container {
+    min-width: 180px;
+  }
+
+  .flap-char {
+    font-size: 0.875rem;
+    width: 0.6em;
+  }
+}
+
+/* ============================================
+   Light Theme Overrides
+   ============================================ */
+[data-theme="light"] .flap-top {
+  background: rgba(240, 240, 242, 0.9);
+}
+
+[data-theme="light"] .flap-bottom {
+  background: rgba(232, 232, 236, 0.9);
+}
+
+[data-theme="light"] .flap-fold-top {
+  background: rgba(245, 245, 247, 0.95);
+}
+
+[data-theme="light"] .flap-unfold-bottom {
+  background: rgba(240, 240, 242, 0.9);
+}
+
+[data-theme="light"] .flap-char::before {
+  background: rgba(0, 0, 0, 0.08);
+}

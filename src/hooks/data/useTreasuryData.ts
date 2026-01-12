@@ -1,0 +1,210 @@
+/**
+ * Treasury Data Hooks
+ *
+ * TanStack Query hooks for treasury/portfolio data.
+ */
+
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
+import { treasuryService } from '@/services/treasuryService';
+import { DATA_CACHE_MAP } from '@/config/query/cacheConfig';
+import { getTokenLogo } from '@/services/treasuryFallback';
+import type { PortfolioSummary, WalletInfo, WalletToken } from '@/types/treasury';
+import type { TokenBalance } from '@/services/treasuryService';
+
+// Query keys
+export const treasuryKeys = {
+  all: ['treasury'] as const,
+  walletData: () => [...treasuryKeys.all, 'walletData'] as const,
+  xchPrice: () => [...treasuryKeys.all, 'xchPrice'] as const,
+} as const;
+
+/**
+ * Fetch complete wallet data
+ * Shows cached/fallback data IMMEDIATELY, then refreshes in background
+ */
+export function useTreasuryWalletData() {
+  // Get cached data synchronously for instant display (always returns data, never null)
+  const cachedData = treasuryService.getCachedWalletData();
+  const isCacheStale = treasuryService.isCacheStale();
+  const hasNftCollections = (cachedData?.nftCollections?.length ?? 0) > 0;
+
+  return useQuery({
+    queryKey: treasuryKeys.walletData(),
+    queryFn: () => treasuryService.fetchWalletData(),
+    // If we have no NFT collections, set staleTime to 0 to force refetch
+    staleTime: hasNftCollections ? DATA_CACHE_MAP.walletBalance.staleTime : 0,
+    gcTime: DATA_CACHE_MAP.walletBalance.gcTime,
+    // Show cached/fallback data immediately - NEVER show loading state
+    initialData: cachedData,
+    // Mark initialData as stale if we have no NFT collections
+    initialDataUpdatedAt: hasNftCollections ? undefined : 0,
+    // Only refetch if cache is stale
+    refetchOnMount: isCacheStale || !hasNftCollections,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false, // Don't retry on failure - just use cache
+  });
+}
+
+/**
+ * Fetch XCH price - shows cached price immediately
+ */
+export function useXchPrice() {
+  const cachedPrice = treasuryService.getCachedXchPrice();
+
+  return useQuery({
+    queryKey: treasuryKeys.xchPrice(),
+    queryFn: () => treasuryService.getXchPrice(),
+    ...DATA_CACHE_MAP.tokenPrices,
+    initialData: cachedPrice,
+  });
+}
+
+/**
+ * Hook to refresh wallet data
+ */
+export function useRefreshTreasury() {
+  const queryClient = useQueryClient();
+
+  return useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: treasuryKeys.walletData() });
+  }, [queryClient]);
+}
+
+/**
+ * Convert TokenBalance to WalletToken
+ */
+function convertToWalletToken(token: TokenBalance): WalletToken {
+  const valueUSD = token.valueUsd || token.balance * token.priceUsd;
+
+  return {
+    id: token.assetId,
+    symbol: token.symbol,
+    name: token.name,
+    type: token.assetId === 'xch' ? 'native' : 'cat',
+    balance: BigInt(Math.floor(token.balance * 1e12)), // Convert to mojos
+    balanceFormatted: token.balance,
+    decimals: 12,
+    priceUSD: token.priceUsd,
+    valueUSD: valueUSD,
+    logoUrl: getTokenLogo(token.symbol, token.logoUrl), // Use custom icons if available
+    logoFallback: token.symbol.charAt(0).toUpperCase(),
+    color: token.color || '#4ade80',
+    isVisible: valueUSD >= 10, // $10 minimum to appear in bubble map
+  };
+}
+
+/**
+ * Combined treasury data hook
+ */
+export function useTreasury() {
+  const walletData = useTreasuryWalletData();
+  const xchPrice = useXchPrice();
+  const refreshTreasury = useRefreshTreasury();
+
+  return {
+    walletData: walletData.data ?? null,
+    xchBalance: walletData.data?.xchBalance ?? 0,
+    xchPriceUsd: xchPrice.data ?? walletData.data?.xchPriceUsd ?? 0,
+    tokens: walletData.data?.tokens ?? [],
+    nftCollections: walletData.data?.nftCollections ?? [],
+    totalTokenValueUsd: walletData.data?.totalTokenValueUsd ?? 0,
+    isLoading: walletData.isLoading,
+    isRefreshing: walletData.isFetching && !walletData.isLoading,
+    error: walletData.error,
+    refreshPrices: refreshTreasury,
+    lastUpdated: walletData.data?.lastUpdated ?? null,
+    explorerUrl: treasuryService.getWalletExplorerUrl(),
+  };
+}
+
+// Legacy hooks for backward compatibility
+export function useTreasuryPortfolio() {
+  const walletData = useTreasuryWalletData();
+
+  const portfolioData = useMemo((): PortfolioSummary | null => {
+    if (!walletData.data) return null;
+
+    const xchValueUSD = walletData.data.xchBalance * walletData.data.xchPriceUsd;
+    const catsValueUSD = walletData.data.totalTokenValueUsd;
+    const totalValueUSD = xchValueUSD + catsValueUSD;
+
+    // Convert tokens to WalletToken format
+    const tokens: WalletToken[] = walletData.data.tokens.map(convertToWalletToken);
+
+    // Add XCH as the first token
+    const xchToken: WalletToken = {
+      id: 'xch',
+      symbol: 'XCH',
+      name: 'Chia',
+      type: 'native',
+      balance: BigInt(walletData.data.xchBalanceMojos),
+      balanceFormatted: walletData.data.xchBalance,
+      decimals: 12,
+      priceUSD: walletData.data.xchPriceUsd,
+      valueUSD: xchValueUSD,
+      logoUrl: '/assets/icons/icon_XCH.png',
+      logoFallback: 'X',
+      color: '#4ade80',
+      isVisible: xchValueUSD >= 10, // $10 minimum to appear in bubble map
+    };
+
+    const allTokens = [xchToken, ...tokens];
+    const visibleTokens = allTokens.filter(t => t.isVisible);
+    const smallTokens = allTokens.filter(t => !t.isVisible);
+
+    return {
+      totalValueUSD,
+      totalValueXCH: totalValueUSD / walletData.data.xchPriceUsd,
+      xchValueUSD,
+      catsValueUSD,
+      xchPriceUSD: walletData.data.xchPriceUsd,
+      lastUpdated: walletData.data.lastUpdated,
+      tokens: allTokens,
+      visibleTokens,
+      smallTokens,
+      tokenCount: allTokens.length,
+      visibleTokenCount: visibleTokens.length,
+    };
+  }, [walletData.data]);
+
+  return {
+    data: portfolioData,
+    isLoading: walletData.isLoading,
+    isFetching: walletData.isFetching,
+    error: walletData.error,
+  };
+}
+
+export function useTreasuryWallet() {
+  const walletData = useTreasuryWalletData();
+
+  const walletInfo = useMemo((): WalletInfo | null => {
+    if (!walletData.data) return null;
+
+    const explorerUrl = treasuryService.getWalletExplorerUrl();
+    const address = explorerUrl.split('/').pop() || '';
+    const addressTruncated = address.length > 12
+      ? `${address.slice(0, 8)}...${address.slice(-4)}`
+      : address;
+
+    return {
+      address,
+      addressTruncated,
+      explorerUrl,
+      isConnected: true,
+    };
+  }, [walletData.data]);
+
+  return {
+    data: walletInfo,
+    isLoading: walletData.isLoading,
+    isFetching: walletData.isFetching,
+    error: walletData.error,
+  };
+}
+
+export function useRefreshPortfolio() {
+  return useRefreshTreasury();
+}

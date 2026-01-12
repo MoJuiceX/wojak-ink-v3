@@ -1,0 +1,226 @@
+/**
+ * Price Split-Flap Display Styles
+ *
+ * Mechanical split-flap animation for price tickers.
+ * Green color scheme for financial data.
+ */
+
+/* ============================================
+   Price Split-Flap Container
+   ============================================ */
+.price-flap-container {
+  display: inline-flex;
+  align-items: center;
+  perspective: 300px;
+}
+
+.price-flap-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+/* ============================================
+   Individual Character Cell
+   ============================================ */
+.price-flap-char {
+  display: inline-block;
+  position: relative;
+  width: 0.6em;
+  height: 1.3em;
+  font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+  font-size: inherit;
+  font-weight: 700;
+  color: #4ade80;
+  perspective: 200px;
+  transform-style: preserve-3d;
+}
+
+/* Wider for dollar sign and decimal */
+.price-flap-char.char-symbol {
+  width: 0.5em;
+}
+
+.price-flap-char.char-decimal {
+  width: 0.35em;
+}
+
+/* Subtle shadow for depth */
+.price-flap-char::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: rgba(74, 222, 128, 0.1);
+  z-index: 10;
+}
+
+/* ============================================
+   Flap Halves
+   ============================================ */
+
+/* Top half (current, folds down) */
+.price-flap-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  background: transparent;
+  transform-origin: bottom center;
+  backface-visibility: hidden;
+  z-index: 3;
+}
+
+.price-flap-top::after {
+  content: attr(data-char);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4ade80;
+}
+
+/* Bottom half (current, stays) */
+.price-flap-bottom {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  background: transparent;
+  z-index: 1;
+}
+
+.price-flap-bottom::after {
+  content: attr(data-char);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4ade80;
+}
+
+/* Folding top half (old character folding away) */
+.price-flap-fold-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  background: rgba(74, 222, 128, 0.05);
+  transform-origin: bottom center;
+  transform: rotateX(0deg);
+  backface-visibility: hidden;
+  z-index: 4;
+}
+
+.price-flap-fold-top::after {
+  content: attr(data-char);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4ade80;
+}
+
+/* Unfolding bottom half (new character unfolding) */
+.price-flap-unfold-bottom {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  background: rgba(74, 222, 128, 0.05);
+  transform-origin: top center;
+  transform: rotateX(180deg);
+  backface-visibility: hidden;
+  z-index: 2;
+}
+
+.price-flap-unfold-bottom::after {
+  content: attr(data-char);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4ade80;
+  transform: rotateX(180deg);
+}
+
+/* ============================================
+   Animation States
+   ============================================ */
+.price-flap-char.flipping .price-flap-fold-top {
+  animation: priceFoldDown 0.12s ease-in forwards;
+}
+
+.price-flap-char.flipping .price-flap-unfold-bottom {
+  animation: priceUnfoldUp 0.12s ease-out 0.12s forwards;
+}
+
+@keyframes priceFoldDown {
+  0% { transform: rotateX(0deg); }
+  100% { transform: rotateX(-90deg); }
+}
+
+@keyframes priceUnfoldUp {
+  0% { transform: rotateX(90deg); }
+  100% { transform: rotateX(0deg); }
+}
+
+/* ============================================
+   Muted variant (for parentheses, XCH text)
+   ============================================ */
+.price-flap-char.muted .price-flap-top::after,
+.price-flap-char.muted .price-flap-bottom::after,
+.price-flap-char.muted .price-flap-fold-top::after,
+.price-flap-char.muted .price-flap-unfold-bottom::after {
+  color: rgba(74, 222, 128, 0.7);
+}
+
+/* ============================================
+   Size Variants
+   ============================================ */
+
+/* Large size for portfolio card */
+.price-flap-char.size-lg {
+  width: 0.55em;
+  height: 1.2em;
+}
+
+.price-flap-char.size-lg.char-symbol {
+  width: 0.45em;
+}
+
+.price-flap-char.size-lg.char-decimal {
+  width: 0.3em;
+}
+
+/* Small size */
+.price-flap-char.size-sm {
+  width: 0.55em;
+  height: 1.2em;
+}

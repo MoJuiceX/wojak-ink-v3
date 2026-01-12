@@ -1,0 +1,536 @@
+/**
+ * NFTInfoCard Component
+ *
+ * Tabbed info card showing NFT details: Main, Metadata, History.
+ */
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ExternalLink, X, Crown } from 'lucide-react';
+import type { NFT } from '@/types/nft';
+import {
+  formatPriceXCH,
+  formatPriceUSD,
+} from '@/utils/mockData';
+import { useTraitRankings, type TooltipData } from '@/hooks/useTraitRankings';
+import { fetchNFTOwnerByEdition, type NFTOwnerInfo } from '@/services/parseBotService';
+import { useSalesHistory } from '@/hooks/useSalesHistory';
+import { useXchPrice } from '@/hooks/data/useTreasuryData';
+
+type InfoTab = 'main' | 'metadata' | 'history';
+
+interface NFTInfoCardProps {
+  nft: NFT;
+  activeTab: InfoTab;
+  onTabChange: (tab: InfoTab) => void;
+  onOpenExternal: () => void;
+}
+
+const tabs: { id: InfoTab; label: string }[] = [
+  { id: 'main', label: 'Main' },
+  { id: 'metadata', label: 'Metadata' },
+  { id: 'history', label: 'History' },
+];
+
+// Truncate wallet address
+function truncateAddress(address: string): string {
+  if (address.length <= 10) return address;
+  return `${address.slice(0, 5)}...${address.slice(-4)}`;
+}
+
+function MainTabContent({
+  nft,
+  ownerInfo,
+  onOpenExternal,
+}: {
+  nft: NFT;
+  ownerInfo: NFTOwnerInfo | null;
+  onOpenExternal: () => void;
+}) {
+  const { data: xchPrice } = useXchPrice();
+
+  // Calculate USD from XCH using real price
+  const calculateUsd = (xch: number) => {
+    const price = xchPrice ?? 5; // Fallback to $5 if not loaded
+    return xch * price;
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Name and rank - like desktop */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <h2
+          className="text-lg font-bold"
+          style={{ color: 'var(--color-text-primary)' }}
+        >
+          {nft.name}
+        </h2>
+        <div className="flex items-center gap-1">
+          <Crown size={16} style={{ color: 'var(--color-brand-primary)' }} />
+          <span
+            className="text-sm font-medium"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
+            {nft.rarityRank}
+          </span>
+        </div>
+      </div>
+
+      {/* Owner */}
+      <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+        Owned by:{' '}
+        {ownerInfo ? (
+          <a
+            href={ownerInfo.profileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline"
+            style={{ color: 'var(--color-brand-primary)' }}
+          >
+            {ownerInfo.name || truncateAddress(ownerInfo.address)}
+          </a>
+        ) : (
+          <span>Loading...</span>
+        )}
+      </p>
+
+      {/* Price */}
+      {nft.listing ? (
+        <div className="flex items-baseline gap-2">
+          <p
+            className="text-xl font-bold"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
+            {formatPriceXCH(nft.listing.priceXCH)}
+          </p>
+          <p
+            className="text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            ≈ {formatPriceUSD(calculateUsd(nft.listing.priceXCH))}
+          </p>
+        </div>
+      ) : (
+        <p
+          className="text-sm font-medium"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
+          Not Listed
+        </p>
+      )}
+
+      {/* Action button */}
+      {nft.listing && (
+        <motion.button
+          className="w-full flex items-center justify-center gap-2 h-10 rounded-lg text-sm font-medium transition-colors"
+          style={{
+            background: '#22c55e',
+            color: 'white',
+          }}
+          onClick={onOpenExternal}
+          whileTap={{ scale: 0.98 }}
+        >
+          Buy on {nft.listing.marketplace === 'mintgarden' ? 'MintGarden' : nft.listing.marketplace}
+        </motion.button>
+      )}
+    </div>
+  );
+}
+
+// Trait Ranking Row in popup - table-like with fixed columns
+function TraitRankingRow({
+  entry,
+  isCurrent,
+}: {
+  entry: { rank: number; trait: string; count: number };
+  isCurrent: boolean;
+}) {
+  return (
+    <div
+      className="grid py-1.5 px-2 rounded-md text-sm"
+      style={{
+        gridTemplateColumns: '18px 32px 1fr 44px',
+        gap: '4px',
+        alignItems: 'center',
+        background: isCurrent ? 'rgba(247, 147, 26, 0.3)' : 'transparent',
+        border: isCurrent ? '2px solid var(--color-accent)' : '1px solid transparent',
+        boxShadow: isCurrent ? '0 0 12px rgba(247, 147, 26, 0.4)' : 'none',
+        margin: isCurrent ? '0 -2px' : '0',
+      }}
+    >
+      {/* Arrow indicator column */}
+      <span className="text-xs" style={{ color: 'var(--color-accent)', textAlign: 'center' }}>
+        {isCurrent ? '▶' : ''}
+      </span>
+      {/* Rank column */}
+      <span
+        className="text-right text-xs"
+        style={{
+          color: isCurrent ? 'var(--color-accent)' : 'var(--color-text-muted)',
+          fontWeight: isCurrent ? 700 : 400,
+        }}
+      >
+        #{entry.rank}
+      </span>
+      {/* Trait name column */}
+      <span
+        className="truncate"
+        style={{
+          color: isCurrent ? 'var(--color-accent)' : 'var(--color-text-primary)',
+          fontWeight: isCurrent ? 700 : 400,
+        }}
+      >
+        {entry.trait}
+      </span>
+      {/* Count column */}
+      <span
+        className="text-right text-xs"
+        style={{
+          color: isCurrent ? 'var(--color-accent)' : 'var(--color-text-muted)',
+          fontWeight: isCurrent ? 700 : 400,
+        }}
+      >
+        {entry.count}
+      </span>
+    </div>
+  );
+}
+
+// Trait Ranking Popup for mobile
+function TraitRankingPopup({
+  data,
+  onClose,
+}: {
+  data: TooltipData;
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      className="fixed inset-0 z-[150] flex items-center justify-center px-4"
+      style={{ background: 'rgba(0, 0, 0, 0.7)' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="w-full max-w-xs rounded-xl overflow-hidden"
+        style={{
+          background: 'var(--color-bg-primary)',
+          border: '1px solid var(--color-border)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        }}
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-4 py-3"
+          style={{ borderBottom: '1px solid var(--color-border)' }}
+        >
+          <span
+            className="font-bold text-sm uppercase tracking-wide"
+            style={{ color: 'var(--color-accent)' }}
+          >
+            {data.category} Rarity
+          </span>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-3 font-mono text-sm max-h-[50vh] overflow-y-auto">
+          {/* Rarest bookend */}
+          {data.rarest && (
+            <>
+              <TraitRankingRow entry={data.rarest} isCurrent={false} />
+              <div
+                className="text-center py-1 text-xs"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                ...
+              </div>
+            </>
+          )}
+
+          {/* Context window */}
+          {data.contextWindow.map((entry) => (
+            <TraitRankingRow
+              key={entry.rank}
+              entry={entry}
+              isCurrent={entry.trait === data.currentTrait}
+            />
+          ))}
+
+          {/* Most common bookend */}
+          {data.mostCommon && (
+            <>
+              <div
+                className="text-center py-1 text-xs"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                ...
+              </div>
+              <TraitRankingRow entry={data.mostCommon} isCurrent={false} />
+            </>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function MetadataTabContent({ nft }: { nft: NFT }) {
+  const { getTooltipData } = useTraitRankings();
+  const [selectedTrait, setSelectedTrait] = useState<TooltipData | null>(null);
+
+  const handleTraitTap = (category: string, value: string) => {
+    const data = getTooltipData(category, value);
+    if (data) {
+      setSelectedTrait(data);
+    }
+  };
+
+  return (
+    <>
+      <div className="space-y-1">
+        {nft.traits.map((trait, index) => {
+          const rankData = getTooltipData(trait.category, trait.value);
+
+          return (
+            <div
+              key={index}
+              className="py-2"
+              style={{
+                borderBottom:
+                  index < nft.traits.length - 1
+                    ? '1px solid var(--color-border)'
+                    : 'none',
+              }}
+            >
+              {/* Category label */}
+              <p
+                className="text-sm mb-0.5"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                {trait.category}
+              </p>
+              {/* Value + Rank on same row */}
+              <div className="flex items-center justify-between">
+                <p
+                  className="text-sm font-medium truncate flex-1 min-w-0"
+                  style={{ color: 'var(--color-text-primary)' }}
+                >
+                  {trait.value}
+                </p>
+                {/* Rank display - tappable */}
+                {rankData && (
+                  <button
+                    onClick={() => handleTraitTap(trait.category, trait.value)}
+                    className="text-xs px-1.5 py-0.5 rounded active:opacity-70 whitespace-nowrap ml-2"
+                    style={{
+                      background: 'rgba(247, 147, 26, 0.15)',
+                      color: 'var(--color-accent)',
+                      opacity: 0.8,
+                    }}
+                  >
+                    {rankData.currentRank}/{rankData.total}
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Trait ranking popup */}
+      <AnimatePresence>
+        {selectedTrait && (
+          <TraitRankingPopup
+            data={selectedTrait}
+            onClose={() => setSelectedTrait(null)}
+          />
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function HistoryTabContent({ nftId }: { nftId: number }) {
+  const { sales, isLoading, hasSales } = useSalesHistory(nftId);
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+
+    if (hours < 1) return 'Just now';
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div
+        className="py-8 text-center text-sm"
+        style={{ color: 'var(--color-text-muted)' }}
+      >
+        Loading...
+      </div>
+    );
+  }
+
+  if (!hasSales) {
+    return (
+      <div
+        className="py-8 text-center text-sm"
+        style={{ color: 'var(--color-text-muted)' }}
+      >
+        No sales history yet
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1 max-h-48 overflow-y-auto">
+      {sales.map((sale, index) => (
+        <div
+          key={`${sale.nftId}-${sale.timestamp}`}
+          className="py-2"
+          style={{
+            borderBottom:
+              index < sales.length - 1
+                ? '1px solid var(--color-border)'
+                : 'none',
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span
+              className="text-sm font-medium"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
+              Sold for {formatPriceXCH(sale.xchEquivalent)}
+            </span>
+            <span
+              className="text-xs"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              {formatDate(sale.timestamp)}
+            </span>
+          </div>
+          {sale.currency === 'CAT' && (
+            <p
+              className="text-xs mt-0.5"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              (Paid in CAT: {sale.amount.toLocaleString()})
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function NFTInfoCard({
+  nft,
+  activeTab,
+  onTabChange,
+  onOpenExternal,
+}: NFTInfoCardProps) {
+  // Fetch owner info via Parse.bot
+  const [ownerInfo, setOwnerInfo] = useState<NFTOwnerInfo | null>(null);
+
+  useEffect(() => {
+    setOwnerInfo(null);
+    const edition = nft.tokenId;
+    fetchNFTOwnerByEdition(edition)
+      .then((info) => setOwnerInfo(info))
+      .catch((err) => console.error('[NFTInfoCard] Error fetching owner:', err));
+  }, [nft.tokenId]);
+
+  return (
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{
+        background: 'var(--color-glass-bg)',
+        border: '1px solid var(--color-border)',
+      }}
+    >
+      {/* Tab bar */}
+      <div
+        className="relative flex"
+        style={{ borderBottom: '1px solid var(--color-border)' }}
+      >
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+
+          return (
+            <button
+              key={tab.id}
+              className="flex-1 py-3 text-sm font-medium transition-colors relative"
+              style={{
+                color: isActive
+                  ? 'var(--color-brand-primary)'
+                  : 'var(--color-text-muted)',
+              }}
+              onClick={() => onTabChange(tab.id)}
+            >
+              {tab.label}
+
+              {/* Active indicator */}
+              {isActive && (
+                <motion.div
+                  className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-full"
+                  style={{
+                    background: 'var(--color-brand-primary)',
+                  }}
+                  layoutId="tab-indicator"
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab content */}
+      <div className="p-4">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            {activeTab === 'main' && (
+              <MainTabContent
+                nft={nft}
+                ownerInfo={ownerInfo}
+                onOpenExternal={onOpenExternal}
+              />
+            )}
+            {activeTab === 'metadata' && <MetadataTabContent nft={nft} />}
+            {activeTab === 'history' && <HistoryTabContent nftId={nft.tokenId} />}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+export default NFTInfoCard;

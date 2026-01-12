@@ -1,0 +1,267 @@
+/**
+ * NavItem Component
+ *
+ * Individual navigation item used in Sidebar and MobileNavigation.
+ * Shows icon, optional label, and badge indicator.
+ */
+
+import { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import type { LucideIcon } from 'lucide-react';
+import { usePrefersReducedMotion } from '@/hooks/useMediaQuery';
+import { useHaptic } from '@/hooks/useHaptic';
+import { useNavigationPreload } from '@/hooks/usePreloadCoordinator';
+
+interface NavItemProps {
+  icon: LucideIcon;
+  label: string;
+  shortLabel?: string;
+  isActive: boolean;
+  onClick: () => void;
+  showLabel?: boolean;
+  badge?: number | 'dot';
+  disabled?: boolean;
+  tooltip?: string;
+  variant?: 'sidebar' | 'mobile';
+  className?: string;
+  path?: string; // For navigation preloading
+}
+
+export function NavItem({
+  icon: Icon,
+  label,
+  shortLabel: _shortLabel,
+  isActive,
+  onClick,
+  showLabel = true,
+  badge,
+  disabled = false,
+  tooltip,
+  variant = 'sidebar',
+  className = '',
+  path,
+}: NavItemProps) {
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const haptic = useHaptic();
+  const [showTooltip, setShowTooltip] = useState(false);
+  const { onMouseEnter: onPreloadHover } = useNavigationPreload(path || '');
+
+  const handleClick = () => {
+    if (disabled) return;
+    haptic.tap();
+    onClick();
+  };
+
+  // Combined hover handler for sidebar: tooltip + preload
+  const handleSidebarMouseEnter = useCallback(() => {
+    if (tooltip) setShowTooltip(true);
+    if (path) onPreloadHover();
+  }, [tooltip, path, onPreloadHover]);
+
+  if (variant === 'mobile') {
+    return (
+      <motion.button
+        className={`
+          flex flex-col items-center justify-center gap-1 flex-1 py-2
+          transition-colors duration-150 relative
+          ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+          ${className}
+        `}
+        style={{
+          color: isActive
+            ? 'var(--color-brand-primary)'
+            : 'var(--color-text-muted)',
+        }}
+        onClick={handleClick}
+        whileTap={disabled || prefersReducedMotion ? undefined : { scale: 0.95 }}
+        aria-current={isActive ? 'page' : undefined}
+        aria-disabled={disabled}
+        role="tab"
+        aria-selected={isActive}
+      >
+        <div className="relative">
+          <motion.div
+            animate={
+              isActive && !prefersReducedMotion ? { scale: 1.05 } : { scale: 1 }
+            }
+            transition={{ duration: 0.15 }}
+          >
+            <Icon size={24} aria-hidden="true" />
+          </motion.div>
+
+          {/* Badge */}
+          {badge && (
+            <span
+              className="absolute -top-1 -right-1 flex items-center justify-center"
+              style={{
+                background: 'var(--color-brand-primary)',
+                minWidth: badge === 'dot' ? 8 : 16,
+                height: badge === 'dot' ? 8 : 16,
+                borderRadius: badge === 'dot' ? 4 : 8,
+                fontSize: 10,
+                fontWeight: 600,
+                color: 'white',
+              }}
+              aria-label={
+                badge === 'dot'
+                  ? 'New'
+                  : `${badge} notification${badge === 1 ? '' : 's'}`
+              }
+            >
+              {badge !== 'dot' && badge}
+            </span>
+          )}
+        </div>
+      </motion.button>
+    );
+  }
+
+  // Sidebar variant
+  return (
+    <motion.button
+      className={`
+        relative flex items-center w-full rounded-lg overflow-hidden
+        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+        ${className}
+      `}
+      style={{
+        height: 48,
+        paddingLeft: 12,
+        paddingRight: 12,
+        background: isActive ? 'var(--color-glass-bg)' : 'transparent',
+        color: isActive
+          ? 'var(--color-brand-primary)'
+          : 'var(--color-text-secondary)',
+      }}
+      onClick={handleClick}
+      onMouseEnter={handleSidebarMouseEnter}
+      onMouseLeave={() => setShowTooltip(false)}
+      whileHover={
+        disabled
+          ? undefined
+          : {
+              background: isActive
+                ? 'var(--color-glass-bg)'
+                : 'var(--color-glass-hover)',
+            }
+      }
+      whileTap={disabled || prefersReducedMotion ? undefined : { scale: 0.98 }}
+      aria-current={isActive ? 'page' : undefined}
+      aria-disabled={disabled}
+    >
+      {/* Tooltip */}
+      <AnimatePresence>
+        {showTooltip && tooltip && (
+          <motion.div
+            className="absolute left-full ml-2 px-2 py-1 rounded-md whitespace-nowrap pointer-events-none"
+            style={{
+              background: 'var(--color-bg-tertiary)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text-secondary)',
+              fontSize: '0.875rem',
+              zIndex: 100,
+            }}
+            initial={{ opacity: 0, x: -4 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -4 }}
+            transition={{ duration: 0.15 }}
+          >
+            {tooltip}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Active indicator bar */}
+      {isActive && (
+        <motion.div
+          className="absolute left-0 top-1/2 w-[3px] rounded-r-full"
+          style={{
+            background: 'var(--color-brand-primary)',
+            boxShadow: 'var(--glow-subtle)',
+          }}
+          initial={prefersReducedMotion ? { height: 24 } : { height: 0 }}
+          animate={{ height: 24, y: '-50%' }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+        />
+      )}
+
+      {/* Icon - fixed width container to prevent movement during sidebar animation */}
+      <div
+        className="flex items-center justify-center flex-shrink-0 relative"
+        style={{ width: 24, height: 24 }}
+      >
+        <Icon size={24} aria-hidden="true" />
+
+        {/* Badge (collapsed state) */}
+        {badge && !showLabel && (
+          <span
+            className="absolute -top-1 -right-1 flex items-center justify-center"
+            style={{
+              background: 'var(--color-brand-primary)',
+              minWidth: badge === 'dot' ? 6 : 14,
+              height: badge === 'dot' ? 6 : 14,
+              borderRadius: badge === 'dot' ? 3 : 7,
+              fontSize: 9,
+              fontWeight: 600,
+              color: 'white',
+            }}
+            aria-label={
+              badge === 'dot'
+                ? 'New'
+                : `${badge} notification${badge === 1 ? '' : 's'}`
+            }
+          >
+            {badge !== 'dot' && badge}
+          </span>
+        )}
+      </div>
+
+      {/* Label and badge (expanded state) */}
+      <AnimatePresence>
+        {showLabel && (
+          <motion.div
+            className="flex items-center justify-between flex-1 ml-3 overflow-hidden"
+            initial={{ opacity: 0, width: 0 }}
+            animate={{ opacity: 1, width: 'auto' }}
+            exit={{ opacity: 0, width: 0 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+          >
+          <span
+            className="font-medium truncate"
+            style={{
+              fontSize: '1.05rem',
+              textShadow: isActive ? 'var(--glow-subtle)' : 'none',
+            }}
+          >
+            {label}
+          </span>
+
+          {/* Badge */}
+          {badge && (
+            <span
+              className="ml-2 flex items-center justify-center flex-shrink-0"
+              style={{
+                background: 'var(--color-brand-primary)',
+                minWidth: badge === 'dot' ? 8 : 18,
+                height: badge === 'dot' ? 8 : 18,
+                borderRadius: badge === 'dot' ? 4 : 9,
+                fontSize: 10,
+                fontWeight: 600,
+                color: 'white',
+              }}
+              aria-label={
+                badge === 'dot'
+                  ? 'New'
+                  : `${badge} notification${badge === 1 ? '' : 's'}`
+              }
+            >
+              {badge !== 'dot' && badge}
+            </span>
+          )}
+        </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.button>
+  );
+}
+
+export default NavItem;
