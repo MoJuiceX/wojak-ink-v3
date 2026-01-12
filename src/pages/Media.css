@@ -1,0 +1,371 @@
+.media-content {
+  --background: var(--app-background);
+}
+
+/* Section Cards */
+.media-section {
+  background: var(--app-card-background);
+  border-radius: 16px;
+  margin: 16px;
+  border: 1px solid var(--app-card-border);
+  overflow: visible !important;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ion-text-color);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.section-icon {
+  color: var(--app-accent-color);
+  font-size: 22px;
+}
+
+/* Music List */
+.music-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.music-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--app-section-background);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.music-item:hover,
+.music-item:active {
+  background: rgba(255, 140, 0, 0.15);
+}
+
+.music-item.playing {
+  background: rgba(255, 140, 0, 0.2);
+  border: 1px solid rgba(255, 140, 0, 0.3);
+}
+
+.music-play-btn {
+  font-size: 32px;
+  color: var(--app-accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.music-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.music-title {
+  color: var(--ion-text-color);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.music-artist {
+  color: var(--ion-color-medium);
+  font-size: 12px;
+}
+
+.music-duration {
+  color: var(--ion-color-medium);
+  font-size: 12px;
+}
+
+/* Volume Slider */
+.music-item-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.volume-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 12px 12px;
+  background: var(--app-section-background);
+  border-radius: 0 0 12px 12px;
+  margin-top: -4px;
+}
+
+.volume-icon {
+  color: var(--ion-color-medium);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* Custom Volume Slider */
+.volume-slider-track {
+  flex: 1;
+  height: 8px;
+  background: transparent;
+  border-radius: 4px;
+  position: relative;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* Larger touch target */
+  padding: 14px 0;
+  margin: -14px 0;
+  box-sizing: content-box;
+}
+
+.volume-slider-fill {
+  position: absolute;
+  left: 0;
+  top: 14px;
+  height: 8px;
+  background: var(--app-accent-color);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.volume-slider-thumb {
+  position: absolute;
+  top: 18px;
+  width: 28px;
+  height: 28px;
+  background: var(--app-accent-color);
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Video Grid - shows 2 columns, 2 rows for 4 videos */
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+/* Ensure card content doesn't clip video grid */
+.media-section ion-card-content {
+  overflow: visible;
+}
+
+.video-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  min-height: 100px;
+}
+
+.video-thumbnail {
+  position: relative;
+  aspect-ratio: 16/9;
+  background: var(--app-section-background);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.video-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.play-overlay {
+  position: absolute;
+  font-size: 40px;
+  color: white;
+  opacity: 0.8;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  transition: transform 0.2s ease;
+}
+
+.video-item:hover .play-overlay,
+.video-item:active .play-overlay {
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+.platform-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.video-title {
+  color: var(--ion-text-color);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.video-author {
+  color: var(--ion-color-medium);
+  font-size: 10px;
+}
+
+/* Games Grid */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.game-card-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  background: linear-gradient(135deg, rgba(255, 140, 0, 0.15), rgba(255, 100, 0, 0.08));
+  border-radius: 12px;
+  border: 1px solid rgba(255, 140, 0, 0.25);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.game-card-mini:hover,
+.game-card-mini:active {
+  background: linear-gradient(135deg, rgba(255, 140, 0, 0.25), rgba(255, 100, 0, 0.15));
+  transform: scale(1.02);
+  border-color: rgba(255, 140, 0, 0.4);
+}
+
+.game-icon-mini {
+  font-size: 28px;
+}
+
+.game-name-mini {
+  color: var(--ion-text-color);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Legacy Game Card (single) */
+.game-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(255, 140, 0, 0.2), rgba(255, 100, 0, 0.1));
+  border-radius: 16px;
+  border: 1px solid rgba(255, 140, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.game-card:hover,
+.game-card:active {
+  background: linear-gradient(135deg, rgba(255, 140, 0, 0.3), rgba(255, 100, 0, 0.2));
+  transform: scale(1.02);
+}
+
+.game-icon {
+  font-size: 48px;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.game-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.game-name {
+  color: var(--ion-text-color);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.game-desc {
+  color: var(--ion-color-medium);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.game-play-icon {
+  font-size: 28px;
+  color: var(--app-accent-color);
+}
+
+/* Close Game Button */
+.close-game-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1000;
+  --color: white;
+  font-size: 28px;
+}
+
+/* Video Modal */
+.video-modal .video-modal-content {
+  --background: #000;
+}
+
+.video-container {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 aspect ratio */
+}
+
+.video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.placeholder-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ion-color-medium);
+  font-size: 18px;
+}
+
+/* Coming Soon Text */
+.coming-soon-text {
+  text-align: center;
+  color: var(--ion-color-medium);
+  font-size: 12px;
+  font-style: italic;
+  margin-top: 16px;
+  margin-bottom: 0;
+}

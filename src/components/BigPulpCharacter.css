@@ -1,0 +1,171 @@
+.bigpulp-character-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 120px 20px 10px 20px;
+  position: relative;
+  background-image: url('/assets/wojak-layers/BACKGROUND/Scene/BACKGROUND_Orange Grove.png');
+  background-size: cover;
+  background-position: center;
+  border-radius: 16px;
+  overflow: visible;
+  clip-path: inset(2% 0 10% 0 round 16px);
+  min-height: 486px;
+}
+
+/* Speech Bubble */
+.speech-bubble {
+  background: white;
+  border-radius: 20px;
+  padding: 16px 20px;
+  width: calc(100% - 30px);
+  max-width: 400px;
+  min-height: 60px;
+  max-height: 180px;
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 5;
+  overflow: hidden;
+}
+
+.speech-bubble.visible {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+  animation: float-bubble 6s ease-in-out infinite;
+}
+
+@keyframes float-bubble {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  25% {
+    transform: translateX(calc(-50% + 3px)) translateY(4px) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  75% {
+    transform: translateX(calc(-50% - 3px)) translateY(4px) scale(1);
+  }
+}
+
+.speech-content {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  text-align: center;
+  max-height: 148px;
+  overflow-y: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fade out indicator at bottom when scrollable */
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: 16px;
+  left: 20px;
+  right: 20px;
+  height: 24px;
+  background: linear-gradient(transparent, white);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.speech-bubble.has-overflow::after {
+  opacity: 1;
+}
+
+.typing-cursor {
+  animation: blink 0.7s infinite;
+  color: var(--ion-color-primary);
+  font-weight: bold;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Speech bubble tail pointing down to character */
+.speech-tail {
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-top: 20px solid white;
+}
+
+/* Character Container */
+.bigpulp-character {
+  position: relative;
+  width: 420px;
+  height: 336px;
+  margin-bottom: 50px;
+}
+
+/* Character Layers Container */
+.character-layers {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Base layer styles for both images */
+.bigpulp-layer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+/* Layer 1: Static base - full image, stays in place */
+.bigpulp-layer-static {
+  z-index: 1;
+}
+
+/* Layer 2: Moving character layer */
+.bigpulp-layer-moving {
+  z-index: 2;
+  animation: float-gentle 3s ease-in-out infinite;
+}
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Responsive */
+@media (max-width: 380px) {
+  .speech-bubble {
+    max-width: 280px;
+    padding: 12px 16px;
+  }
+
+  .speech-content {
+    font-size: 14px;
+  }
+
+  .bigpulp-character {
+    width: 350px;
+    height: 280px;
+  }
+}

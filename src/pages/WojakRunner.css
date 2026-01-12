@@ -1,0 +1,304 @@
+.runner-content {
+  --background: #1a1a2e;
+}
+
+.runner-hud {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.runner-area {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+}
+
+.road {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 240px;
+  background: #2d2d2d;
+  border-left: 4px solid #ffcc00;
+  border-right: 4px solid #ffcc00;
+}
+
+.lane-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #ffcc00 0px,
+    #ffcc00 30px,
+    transparent 30px,
+    transparent 60px
+  );
+  animation: scroll-lines 0.5s linear infinite;
+}
+
+@keyframes scroll-lines {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(60px); }
+}
+
+.runner-player {
+  position: absolute;
+  bottom: 120px;
+  width: 50px;
+  height: 50px;
+  background: url('/assets/games/runner.png') 0 0;
+  background-size: 100px 50px;
+  animation: wojak-run 0.3s steps(2) infinite;
+  transition: left 0.15s ease-out;
+  z-index: 10;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+@keyframes wojak-run {
+  from { background-position: 0 0; }
+  to { background-position: -100px 0; }
+}
+
+.runner-obstacle {
+  position: absolute;
+  width: 45px;
+  height: 45px;
+  font-size: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.runner-obstacle.camel {
+  filter: drop-shadow(0 0 8px rgba(255, 200, 100, 0.5));
+}
+
+.runner-obstacle.bear {
+  filter: drop-shadow(0 0 8px rgba(139, 69, 19, 0.5));
+}
+
+.runner-collectible {
+  position: absolute;
+  width: 35px;
+  height: 35px;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  animation: pulse-collectible 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-collectible {
+  from { transform: scale(1); filter: drop-shadow(0 0 5px rgba(255, 140, 0, 0.5)); }
+  to { transform: scale(1.1); filter: drop-shadow(0 0 15px rgba(255, 140, 0, 0.8)); }
+}
+
+.swipe-hint {
+  position: absolute;
+  bottom: 50px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 14px;
+  animation: fade-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes fade-pulse {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.5; }
+}
+
+/* Reuse game menu styles */
+.runner-content .game-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+}
+
+.runner-content .game-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--ion-text-color);
+  margin-bottom: 16px;
+}
+
+.runner-content .game-emoji {
+  font-size: 80px;
+  margin-bottom: 24px;
+  animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.runner-content .game-desc {
+  color: var(--ion-color-medium);
+  font-size: 14px;
+  margin: 4px 0;
+}
+
+.runner-content .high-score {
+  color: var(--app-accent-color);
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 16px;
+}
+
+.runner-content .play-btn {
+  margin-top: 24px;
+  --background: var(--app-accent-color);
+  --border-radius: 24px;
+  --padding-start: 32px;
+  --padding-end: 32px;
+  font-weight: 600;
+}
+
+.runner-content .final-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.runner-content .score-label {
+  font-size: 14px;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+}
+
+.runner-content .score-value {
+  font-size: 56px;
+  font-weight: 800;
+  color: var(--app-accent-color);
+}
+
+.runner-content .new-record {
+  color: var(--app-accent-color);
+  font-size: 24px;
+  font-weight: 800;
+  animation: glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from { filter: drop-shadow(0 0 5px var(--app-accent-color)); }
+  to { filter: drop-shadow(0 0 15px var(--app-accent-color)); }
+}
+
+.runner-content .high-score-display {
+  color: var(--ion-color-medium);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.runner-content .hud-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.runner-content .hud-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--ion-color-medium);
+  letter-spacing: 1px;
+}
+
+.runner-content .hud-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ion-text-color);
+}
+
+/* Info Modal */
+.runner-content .info-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.runner-content .info-modal {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 320px;
+  width: 100%;
+  position: relative;
+  border: 1px solid rgba(255, 140, 0, 0.3);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.runner-content .info-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--ion-color-medium);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.runner-content .info-close:hover {
+  color: var(--ion-text-color);
+}
+
+.runner-content .info-modal h2 {
+  margin: 0 0 16px 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--app-accent-color);
+}
+
+.runner-content .info-content {
+  color: var(--ion-text-color);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.runner-content .info-content p {
+  margin: 0 0 12px 0;
+}
+
+.runner-content .info-content ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.runner-content .info-content li {
+  margin-bottom: 6px;
+  color: var(--ion-color-medium);
+}

@@ -1,0 +1,978 @@
+.ask-bigpulp {
+  padding: 8px 16px 16px 16px;
+}
+
+.ask-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 16px;
+  color: var(--ion-color-medium);
+}
+
+/* Section Styling */
+.ask-section {
+  background: var(--ion-color-light);
+  border-radius: 16px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.section-header:active {
+  background: rgba(255, 140, 0, 0.1);
+}
+
+.section-header.expanded {
+  border-bottom: 1px solid var(--ion-color-light-shade);
+}
+
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.section-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+}
+
+.section-icon.gold {
+  color: #ffd700;
+}
+
+.section-icon.purple {
+  color: #9b59b6;
+}
+
+.section-icon.color-orange {
+  color: #ff8c00;
+}
+
+.section-icon.green {
+  color: #2ecc71;
+}
+
+.section-icon.blue {
+  color: #3498db;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.section-emoji {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.section-chevron {
+  font-size: 20px;
+  color: var(--ion-color-medium);
+  transition: transform 0.2s ease;
+}
+
+.section-header.expanded .section-chevron {
+  transform: rotate(-90deg);
+}
+
+.section-content {
+  padding: 16px;
+}
+
+.section-intro {
+  color: var(--ion-color-medium);
+  font-size: 13px;
+  margin: 0 0 16px 0;
+}
+
+/* Combo Grid */
+.combo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.combo-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.combo-card:active {
+  transform: scale(0.95);
+}
+
+.combo-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--ion-background-color);
+}
+
+.combo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.combo-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.combo-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ion-text-color);
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Combo Detail View */
+.combo-detail {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--ion-color-primary);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.detail-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: var(--ion-text-color);
+}
+
+.detail-lore {
+  font-size: 14px;
+  color: var(--ion-text-color);
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.detail-note {
+  font-size: 12px;
+  color: var(--ion-color-primary);
+  margin: 0 0 16px 0;
+  font-weight: 500;
+}
+
+/* NFT Gallery (horizontal scroll) */
+.nft-gallery {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.nft-gallery::-webkit-scrollbar {
+  display: none;
+}
+
+.gallery-item {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.gallery-item:active {
+  transform: scale(0.95);
+}
+
+.gallery-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.gallery-id {
+  font-size: 10px;
+  color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+/* Rarest Finds Gallery */
+.rarest-gallery {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.rarest-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.rarest-item:active {
+  transform: scale(0.95);
+}
+
+.rarest-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rarest-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+}
+
+.rarest-rank {
+  font-size: 9px;
+  font-weight: 600;
+  color: white;
+}
+
+/* S-Tier Grid */
+.stier-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.stier-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--ion-background-color);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.stier-card:active {
+  transform: scale(0.95);
+}
+
+.stier-image {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.stier-info {
+  padding: 8px;
+}
+
+.stier-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  background: var(--ion-background-color);
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.stat-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.stat-number {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ion-color-primary);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.stat-usd {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ion-color-medium);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  text-align: center;
+}
+
+.stat-card.wide {
+  grid-column: span 2;
+}
+
+.stat-number.green-text {
+  color: #4ade80;
+}
+
+/* Provenance Cards */
+.provenance-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.provenance-card {
+  background: var(--ion-background-color);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.provenance-card h4 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: var(--ion-color-primary);
+}
+
+.provenance-card p {
+  font-size: 13px;
+  color: var(--ion-text-color);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Section Loading */
+.section-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.section-empty {
+  color: var(--ion-color-medium);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px;
+  margin: 0;
+}
+
+/* Top 10 List Styles */
+.top-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.top-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--ion-background-color);
+  border-radius: 10px;
+}
+
+.top-rank {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ion-color-primary);
+  min-width: 28px;
+}
+
+.top-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.top-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-category {
+  display: block;
+  font-size: 11px;
+  color: var(--ion-color-medium);
+  text-transform: capitalize;
+}
+
+.top-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.top-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: #4ade80;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+.top-usd {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+}
+
+.top-sales {
+  font-size: 11px;
+  color: var(--ion-color-medium);
+}
+
+/* Top Sales Gallery */
+.top-sales-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.top-sale-card {
+  position: relative;
+  background: var(--ion-background-color);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.top-sale-card:active {
+  transform: scale(0.97);
+}
+
+.sale-rank-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: var(--ion-color-primary);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  z-index: 1;
+}
+
+.sale-image {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.sale-info {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sale-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sale-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: #4ade80;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+.sale-usd {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ion-color-medium);
+}
+
+.sale-date {
+  font-size: 11px;
+  color: var(--ion-color-medium);
+}
+
+/* Responsive - Small screens */
+@media (max-width: 380px) {
+  .stat-number {
+    font-size: 20px;
+  }
+
+  .stat-usd {
+    font-size: 12px;
+  }
+
+  .stat-label-row {
+    gap: 4px;
+  }
+
+  .stat-card {
+    padding: 16px 10px;
+  }
+}
+
+/* Responsive - Larger screens */
+@media (min-width: 480px) {
+  .combo-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .stier-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .rarest-gallery {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .top-sales-gallery {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* High Provenance Badge */
+.hp-count-badge {
+  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+  color: #333;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+/* HP Categories Accordion */
+.hp-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hp-category {
+  background: var(--ion-background-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.hp-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.hp-category-header:active {
+  background: rgba(255, 140, 0, 0.1);
+}
+
+.hp-category-header.expanded {
+  border-bottom: 1px solid var(--ion-color-light-shade);
+}
+
+.hp-category-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.hp-category-count {
+  font-weight: 400;
+  color: var(--ion-color-medium);
+  font-size: 14px;
+}
+
+.hp-category-chevron {
+  font-size: 18px;
+  color: var(--ion-color-medium);
+  transition: transform 0.2s ease;
+}
+
+.hp-category-header.expanded .hp-category-chevron {
+  transform: rotate(-90deg);
+}
+
+/* HP Traits List */
+.hp-traits-list {
+  padding: 0;
+}
+
+.hp-trait-card {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--ion-color-light-shade);
+}
+
+.hp-trait-card:last-child {
+  border-bottom: none;
+}
+
+.hp-trait-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.hp-trait-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ion-text-color);
+}
+
+.hp-trait-count {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+.hp-trait-lore {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ion-text-color);
+  opacity: 0.9;
+}
+
+/* HP Trait Content Layout */
+.hp-trait-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hp-trait-info {
+  flex: 1;
+}
+
+/* HP Carousel */
+.hp-carousel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+}
+
+.hp-carousel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--ion-color-light-shade);
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--ion-color-medium);
+  flex-shrink: 0;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.hp-carousel-btn:hover {
+  background: var(--ion-color-primary);
+  color: white;
+}
+
+.hp-carousel-btn ion-icon {
+  font-size: 16px;
+}
+
+.hp-carousel-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.hp-carousel-item {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.hp-carousel-item.current {
+  width: 80px;
+  height: 80px;
+  opacity: 1;
+  transform: scale(1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.hp-carousel-item.hint {
+  width: 50px;
+  height: 50px;
+  opacity: 0.4;
+  transform: scale(0.85);
+}
+
+.hp-carousel-item.hint:hover {
+  opacity: 0.7;
+}
+
+.hp-carousel-item ion-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hp-carousel-id {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Desktop: Carousel on left side */
+@media (min-width: 480px) {
+  .hp-trait-content {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .hp-carousel {
+    flex-shrink: 0;
+  }
+
+  .hp-carousel-item.current {
+    width: 90px;
+    height: 90px;
+  }
+
+  .hp-carousel-item.hint {
+    width: 55px;
+    height: 55px;
+  }
+}
+
+/* Combo Badges Styles */
+.combo-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.combo-category {
+  background: var(--ion-background-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.combo-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.combo-category-header:active {
+  background: rgba(255, 140, 0, 0.1);
+}
+
+.combo-category-header.expanded {
+  border-bottom: 1px solid var(--ion-color-light-shade);
+}
+
+.combo-category-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.combo-category-emoji {
+  font-size: 18px;
+}
+
+.combo-category-count {
+  font-weight: 400;
+  color: var(--ion-color-medium);
+  font-size: 14px;
+}
+
+.combo-category-chevron {
+  font-size: 18px;
+  color: var(--ion-color-medium);
+  transition: transform 0.2s ease;
+}
+
+.combo-category-header.expanded .combo-category-chevron {
+  transform: rotate(-90deg);
+}
+
+/* Combo Badges List */
+.combo-badges-list {
+  padding: 0;
+}
+
+.combo-badge-card {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--ion-color-light-shade);
+}
+
+.combo-badge-card:last-child {
+  border-bottom: none;
+}
+
+.combo-badge-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.combo-badge-info {
+  flex: 1;
+}
+
+.combo-badge-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.combo-badge-emoji {
+  font-size: 20px;
+}
+
+.combo-badge-name {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ion-text-color);
+}
+
+.combo-badge-count {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  background: var(--ion-color-light-shade);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+
+.combo-badge-requirements {
+  font-size: 13px;
+  color: var(--ion-color-primary);
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+.combo-badge-lore {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ion-text-color);
+  opacity: 0.9;
+}
+
+/* Desktop: Carousel on left side for combo badges */
+@media (min-width: 480px) {
+  .combo-badge-content {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}

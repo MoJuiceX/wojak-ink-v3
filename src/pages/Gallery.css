@@ -1,0 +1,689 @@
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  gap: 16px;
+}
+
+.loading-container p {
+  color: var(--ion-color-medium);
+}
+
+.gallery-container {
+  padding: 16px;
+}
+
+/* Base Character Grid */
+.base-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (min-width: 480px) {
+  .base-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .base-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
+.base-card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--ion-color-light);
+  aspect-ratio: 1;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.base-card:active {
+  transform: scale(0.95);
+}
+
+.base-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.base-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--ion-color-medium);
+}
+
+.base-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+}
+
+.base-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+/* Explorer Modal */
+.explorer-content {
+  --background: var(--ion-background-color);
+}
+
+.explorer-container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* NFT Image */
+.character-wrapper {
+  position: relative;
+  width: calc(100vw - 32px);
+  max-width: 360px;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  touch-action: pan-y;
+}
+
+.character-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.2s ease;
+}
+
+.character-image.loading {
+  opacity: 0.3;
+}
+
+.character-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+/* Tap Zones for Navigation - invisible */
+.tap-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 30%;
+  z-index: 15;
+}
+
+.tap-zone-left {
+  left: 0;
+}
+
+.tap-zone-right {
+  right: 0;
+}
+
+.tap-zone-icon {
+  display: none;
+}
+
+/* Swipe Hint Animation */
+.swipe-hint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.swipe-hint-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  color: white;
+  animation: swipe-hint-pulse 0.8s ease-in-out infinite;
+}
+
+.swipe-hint-arrow ion-icon {
+  font-size: 24px;
+}
+
+.swipe-hint-arrow.left {
+  left: 12px;
+  animation: swipe-hint-left 0.8s ease-in-out infinite;
+}
+
+.swipe-hint-arrow.right {
+  right: 12px;
+  animation: swipe-hint-right 0.8s ease-in-out infinite;
+}
+
+@keyframes swipe-hint-left {
+  0%, 100% {
+    transform: translateY(-50%) translateX(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-50%) translateX(-8px);
+    opacity: 1;
+  }
+}
+
+@keyframes swipe-hint-right {
+  0%, 100% {
+    transform: translateY(-50%) translateX(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-50%) translateX(8px);
+    opacity: 1;
+  }
+}
+
+/* NFT Info Card */
+.nft-info-card {
+  width: calc(100vw - 32px);
+  max-width: 360px;
+  margin-top: 16px;
+  background: var(--ion-color-light);
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Slider container */
+.info-card-slider {
+  position: relative;
+}
+
+/* Tab content panels */
+.info-tab-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 16px;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  background: var(--ion-color-light);
+}
+
+.info-tab-content.active {
+  transform: translateX(0);
+  opacity: 1;
+  position: relative;
+}
+
+.info-tab-content.slide-left {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.info-tab-content.slide-right {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Tab header */
+.tab-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ion-color-medium-tint);
+}
+
+.tab-header ion-button {
+  --padding-start: 4px;
+  --padding-end: 4px;
+  margin: -8px;
+  margin-right: 4px;
+}
+
+.tab-title {
+  font-size: 16px;
+  font-weight: 700;
+  flex: 1;
+}
+
+/* Traits list in card - 2 column grid */
+.traits-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.trait-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 10px 8px;
+  background: var(--ion-background-color);
+  border-radius: 8px;
+}
+
+/* Center the 7th item (last odd item) */
+.trait-item:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  max-width: 50%;
+  justify-self: center;
+}
+
+.trait-item .trait-type {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--ion-color-medium);
+  margin-bottom: 4px;
+}
+
+.trait-item .trait-value {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* History list in card */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.history-chip {
+  margin: 0;
+  font-size: 11px;
+}
+
+.history-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-details .history-date {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+}
+
+.history-details .history-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-color-primary);
+}
+
+/* Name row with action buttons */
+.nft-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.nft-name-large {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.nft-action-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.nft-action-buttons ion-button {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --border-radius: var(--radius-md, 12px);
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.nft-action-buttons ion-button ion-icon {
+  font-size: 22px;
+}
+
+/* Close button padding */
+.close-btn {
+  margin-right: 8px;
+}
+
+/* Stats Row */
+.nft-stats-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.nft-stat {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--ion-background-color);
+  border-radius: 8px;
+  height: 54px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stat-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ion-color-primary);
+  font-variant-numeric: tabular-nums;
+  min-width: 50px;
+  display: inline-block;
+}
+
+.stat-total {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ion-color-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Market Icon */
+.market-icon {
+  position: relative;
+  flex: 1;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--ion-background-color);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.market-icon:active {
+  transform: scale(0.95);
+}
+
+.market-icon ion-icon {
+  font-size: 24px;
+}
+
+.market-icon.listed {
+  color: var(--ion-color-success);
+}
+
+.market-icon.not-listed {
+  color: var(--ion-color-medium);
+}
+
+.market-icon .crossed {
+  position: absolute;
+  width: 28px;
+  height: 2px;
+  background: var(--ion-color-danger);
+  transform: rotate(-45deg);
+}
+
+/* Market Price Display */
+.market-price {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 10px 12px;
+  background: var(--ion-background-color);
+  border-radius: 8px;
+  height: 54px;
+}
+
+.market-price .price-xch {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ion-color-success);
+  font-variant-numeric: tabular-nums;
+}
+
+.market-price .price-usd {
+  font-size: 11px;
+  color: var(--ion-color-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sort Toggle Button in Header */
+.sort-toggle-btn {
+  --padding-start: 8px;
+  --padding-end: 8px;
+}
+
+.sort-toggle-btn .sort-btn-label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: 4px;
+  min-width: 24px;
+}
+
+/* Filter Pills below image */
+.filter-pills {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.filter-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 16px;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--ion-color-light);
+  color: var(--ion-color-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-pill ion-icon {
+  font-size: 14px;
+}
+
+.filter-pill.active {
+  background: var(--ion-color-primary);
+  color: white;
+}
+
+.filter-pill:active {
+  transform: scale(0.95);
+}
+
+/* Filter Toggle */
+.filter-toggle {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.filter-toggle ion-button {
+  --border-radius: 20px;
+  font-size: 13px;
+}
+
+/* Action Buttons */
+.nft-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.nft-actions ion-button {
+  flex: 1;
+  --padding-start: 12px;
+  --padding-end: 12px;
+}
+
+/* Listing Price Display */
+.market-value.listed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.listing-price {
+  font-weight: 700;
+  color: var(--ion-color-success);
+}
+
+.listing-usd {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+}
+
+/* Trait count badge */
+.trait-count {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  background: var(--ion-background-color);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* No sales message */
+.no-sales {
+  text-align: center;
+  color: var(--ion-color-medium);
+  font-style: italic;
+  padding: 16px;
+}
+
+/* Money Emoji Price Slider - Invisible overlay on left side of NFT */
+.price-slider-overlay {
+  position: absolute;
+  left: -4px;
+  top: 8%;
+  bottom: 8%;
+  width: 44px;
+  z-index: 25;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.slider-emoji {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  font-size: 24px;
+  cursor: grab;
+  z-index: 10;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+  animation: idlePulse 2.5s ease-in-out infinite;
+  /* GPU acceleration */
+  will-change: transform;
+  -webkit-transform: translateX(-50%) translateY(50%) scale(1);
+  transform: translateX(-50%) translateY(50%) scale(1);
+  /* Smooth scale transition only when not dragging */
+  transition: transform 0.15s ease-out;
+}
+
+/* Idle pulse animation to indicate interactivity */
+@keyframes idlePulse {
+  0%, 100% {
+    -webkit-transform: translateX(-50%) translateY(50%) scale(1);
+    transform: translateX(-50%) translateY(50%) scale(1);
+  }
+  50% {
+    -webkit-transform: translateX(-50%) translateY(50%) scale(1.06);
+    transform: translateX(-50%) translateY(50%) scale(1.06);
+  }
+}
+
+/* Active state when dragging - NO transitions for instant response */
+.slider-emoji.active {
+  cursor: grabbing;
+  animation: none !important;
+  transition: none !important;
+  -webkit-transform: translateX(-50%) translateY(50%) scale(1.15);
+  transform: translateX(-50%) translateY(50%) scale(1.15);
+}
+
+/* Price tooltip - hidden by default */
+.slider-price-tooltip {
+  position: absolute;
+  left: 32px;
+  top: 50%;
+  transform: translateY(-50%) translateX(0) scale(0.95);
+  background: rgba(0, 0, 0, 0.85);
+  color: var(--ion-color-success);
+  padding: 4px 7px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+  z-index: 30;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  /* Longer, elegant fade out */
+  transition:
+    opacity 0.4s ease-out,
+    transform 0.4s ease-out;
+}
+
+/* Tooltip visible state */
+.slider-price-tooltip.visible {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0) scale(1);
+  /* Quicker fade in */
+  transition:
+    opacity 0.15s ease-out,
+    transform 0.15s ease-out;
+}
+
+.slider-price-tooltip::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: rgba(0, 0, 0, 0.85);
+  border-left: none;
+}
+
+/* Dragging state on overlay - subtle feedback */
+.price-slider-overlay.dragging {
+  cursor: grabbing;
+}
