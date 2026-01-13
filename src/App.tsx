@@ -20,6 +20,13 @@ const Generator = lazy(() => import('./pages/Generator'));
 const Media = lazy(() => import('./pages/Media'));
 const Settings = lazy(() => import('./pages/Settings'));
 
+// Games
+const OrangeStack = lazy(() => import('./pages/OrangeStack'));
+const MemoryMatch = lazy(() => import('./pages/MemoryMatch'));
+const OrangePong = lazy(() => import('./pages/OrangePong'));
+const WojakRunner = lazy(() => import('./pages/WojakRunner'));
+const Orange2048 = lazy(() => import('./pages/Orange2048'));
+
 function App() {
   return (
     <QueryProvider>
@@ -87,6 +94,47 @@ function App() {
                       element={
                         <Suspense fallback={<PageSkeleton type="settings" />}>
                           <Settings />
+                        </Suspense>
+                      }
+                    />
+                    {/* Game Routes */}
+                    <Route
+                      path="orange-stack"
+                      element={
+                        <Suspense fallback={<PageSkeleton type="media" />}>
+                          <OrangeStack />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="memory-match"
+                      element={
+                        <Suspense fallback={<PageSkeleton type="media" />}>
+                          <MemoryMatch />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="orange-pong"
+                      element={
+                        <Suspense fallback={<PageSkeleton type="media" />}>
+                          <OrangePong />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="wojak-runner"
+                      element={
+                        <Suspense fallback={<PageSkeleton type="media" />}>
+                          <WojakRunner />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="orange-2048"
+                      element={
+                        <Suspense fallback={<PageSkeleton type="media" />}>
+                          <Orange2048 />
                         </Suspense>
                       }
                     />
