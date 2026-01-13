@@ -5,6 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useLayout } from '@/hooks/useLayout';
 import { MediaProvider, useMedia } from '@/contexts/MediaContext';
@@ -19,6 +20,7 @@ import { useMediaContent } from '@/hooks/data/useMediaData';
 import type { MiniGame, VideoItem, VideoCategory } from '@/types/media';
 
 function MediaContent() {
+  const navigate = useNavigate();
   const { contentPadding, isDesktop } = useLayout();
   const { playVideo, videoPlayer } = useMedia();
 
@@ -30,9 +32,14 @@ function MediaContent() {
   const { videos, tracks, games, isLoading } = useMediaContent(videoFilter);
 
   const handleGameSelect = useCallback((game: MiniGame) => {
-    setSelectedGame(game);
-    setGameModalOpen(true);
-  }, []);
+    // Navigate to game route if available, otherwise show modal
+    if (game.status === 'available' && game.route) {
+      navigate(game.route);
+    } else {
+      setSelectedGame(game);
+      setGameModalOpen(true);
+    }
+  }, [navigate]);
 
   const handleGameModalClose = useCallback(() => {
     setGameModalOpen(false);
