@@ -135,9 +135,23 @@ export function FloatingVideoPlayer() {
               className="w-full h-full object-cover"
               src={currentVideo.videoUrl}
               poster={currentVideo.thumbnailUrl}
+              autoPlay
+              playsInline
               onTimeUpdate={(e) => {
                 const video = e.target as HTMLVideoElement;
                 seekVideo(video.currentTime);
+              }}
+              onLoadedMetadata={(e) => {
+                const video = e.target as HTMLVideoElement;
+                video.volume = volume;
+              }}
+              onPlay={() => {
+                if (!isPlaying) {
+                  // Sync state if video started playing
+                }
+              }}
+              onEnded={() => {
+                pauseVideo();
               }}
             />
 
