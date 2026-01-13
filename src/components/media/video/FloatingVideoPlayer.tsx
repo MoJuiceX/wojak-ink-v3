@@ -40,6 +40,7 @@ export function FloatingVideoPlayer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showControls, setShowControls] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
+  const [isMutedForAutoplay, setIsMutedForAutoplay] = useState(true);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { currentVideo, isPlaying, currentTime, duration, volume, isMuted, position, size, isMinimized } =
@@ -76,8 +77,14 @@ export function FloatingVideoPlayer() {
   const handlePlayPause = () => {
     if (isPlaying) {
       pauseVideo();
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
     } else if (videoRef.current) {
-      videoRef.current.play();
+      // Unmute when user clicks play (they've interacted)
+      setIsMutedForAutoplay(false);
+      videoRef.current.muted = false;
+      videoRef.current.play().catch(console.error);
     }
   };
 
@@ -136,6 +143,7 @@ export function FloatingVideoPlayer() {
               src={currentVideo.videoUrl}
               poster={currentVideo.thumbnailUrl}
               autoPlay
+              muted={isMutedForAutoplay}
               playsInline
               onTimeUpdate={(e) => {
                 const video = e.target as HTMLVideoElement;
@@ -145,11 +153,6 @@ export function FloatingVideoPlayer() {
                 const video = e.target as HTMLVideoElement;
                 video.volume = volume;
               }}
-              onPlay={() => {
-                if (!isPlaying) {
-                  // Sync state if video started playing
-                }
-              }}
               onEnded={() => {
                 pauseVideo();
               }}
@@ -157,25 +160,34 @@ export function FloatingVideoPlayer() {
 
             {/* Play/Pause overlay */}
             <AnimatePresence>
-              {showControls && (
+              {(showControls || isMutedForAutoplay) && (
                 <motion.div
                   className="absolute inset-0 flex items-center justify-center"
-                  style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+                  style={{ background: isMutedForAutoplay ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.3)' }}
                   variants={prefersReducedMotion ? undefined : playerControlsVariants}
                   initial="hidden"
                   animate="visible"
                   exit="hidden"
                 >
                   <button
-                    className="w-14 h-14 rounded-full flex items-center justify-center transition-transform hover:scale-110"
-                    style={{ background: 'var(--color-brand-primary)' }}
+                    className="flex flex-col items-center gap-2 transition-transform hover:scale-110"
                     onClick={handlePlayPause}
-                    aria-label={isPlaying ? 'Pause' : 'Play'}
+                    aria-label={isMutedForAutoplay ? 'Tap to unmute' : isPlaying ? 'Pause' : 'Play'}
                   >
-                    {isPlaying ? (
-                      <Pause size={28} fill="white" color="white" />
-                    ) : (
-                      <Play size={28} fill="white" color="white" />
+                    <div
+                      className="w-14 h-14 rounded-full flex items-center justify-center"
+                      style={{ background: 'var(--color-brand-primary)' }}
+                    >
+                      {isMutedForAutoplay ? (
+                        <VolumeX size={28} color="white" />
+                      ) : isPlaying ? (
+                        <Pause size={28} fill="white" color="white" />
+                      ) : (
+                        <Play size={28} fill="white" color="white" />
+                      )}
+                    </div>
+                    {isMutedForAutoplay && (
+                      <span className="text-white text-sm font-medium">Tap to unmute</span>
                     )}
                   </button>
                 </motion.div>
