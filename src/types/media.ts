@@ -17,6 +17,9 @@ export interface MiniGame {
   thumbnailUrl?: string;
   accentColor: string;
 
+  // Navigation
+  route?: string;
+
   // Game metadata
   hasHighScores: boolean;
   difficulty?: 'easy' | 'medium' | 'hard';

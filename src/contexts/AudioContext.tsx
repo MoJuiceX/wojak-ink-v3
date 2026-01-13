@@ -28,9 +28,9 @@ const SOUND_EFFECTS: Record<string, string> = {
   error: '/assets/audio/sfx/error.mp3',
 };
 
-// Background music tracks (will be populated when audio files are added)
+// Background music tracks
 const MUSIC_TRACKS: Record<string, string> = {
-  default: '/assets/audio/music/background.mp3',
+  default: '/assets/music/wojakmusic1.mp3',
 };
 
 interface AudioProviderProps {
