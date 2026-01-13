@@ -48,6 +48,26 @@ export function FloatingVideoPlayer() {
 
   const playerSize = PLAYER_SIZES[size];
 
+  // Try to play with sound, fall back to muted
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !currentVideo) return;
+
+    // Try playing with sound first
+    video.muted = false;
+    video.play()
+      .then(() => {
+        // Autoplay with sound worked
+        setIsMutedForAutoplay(false);
+      })
+      .catch(() => {
+        // Autoplay with sound blocked, try muted
+        video.muted = true;
+        setIsMutedForAutoplay(true);
+        video.play().catch(console.error);
+      });
+  }, [currentVideo, videoRef]);
+
   // Auto-hide controls
   useEffect(() => {
     if (!isPlaying || isDragging) return;
@@ -142,8 +162,6 @@ export function FloatingVideoPlayer() {
               className="w-full h-full object-cover"
               src={currentVideo.videoUrl}
               poster={currentVideo.thumbnailUrl}
-              autoPlay
-              muted={isMutedForAutoplay}
               playsInline
               onTimeUpdate={(e) => {
                 const video = e.target as HTMLVideoElement;
