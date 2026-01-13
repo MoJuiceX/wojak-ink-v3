@@ -33,11 +33,11 @@ export function FloatingVideoPlayer() {
     togglePictureInPicture,
     setVideoPosition,
     toggleVideoMinimize,
-    videoRef,
   } = useMedia();
 
   const prefersReducedMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
   const [showControls, setShowControls] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,8 +80,11 @@ export function FloatingVideoPlayer() {
   };
 
   const handlePlayPause = () => {
-    const video = videoRef.current;
-    if (!video) return;
+    const video = localVideoRef.current;
+    if (!video) {
+      console.error('Video element not found');
+      return;
+    }
 
     if (video.paused) {
       // Start or resume playback
@@ -89,7 +92,9 @@ export function FloatingVideoPlayer() {
         .then(() => {
           setHasStarted(true);
         })
-        .catch(console.error);
+        .catch((err) => {
+          console.error('Play failed:', err);
+        });
     } else {
       video.pause();
       pauseVideo();
@@ -146,11 +151,12 @@ export function FloatingVideoPlayer() {
         {!isMinimized && (
           <div className="relative" style={{ height: playerSize.height }}>
             <video
-              ref={videoRef}
+              ref={localVideoRef}
               className="w-full h-full object-cover"
               src={currentVideo.videoUrl}
               poster={currentVideo.thumbnailUrl}
               playsInline
+              preload="auto"
               onTimeUpdate={(e) => {
                 const video = e.target as HTMLVideoElement;
                 seekVideo(video.currentTime);
@@ -161,6 +167,13 @@ export function FloatingVideoPlayer() {
               }}
               onEnded={() => {
                 pauseVideo();
+                setHasStarted(false);
+              }}
+              onCanPlay={() => {
+                console.log('Video can play');
+              }}
+              onError={(e) => {
+                console.error('Video error:', e);
               }}
             />
 
@@ -184,7 +197,7 @@ export function FloatingVideoPlayer() {
                       className="w-16 h-16 rounded-full flex items-center justify-center"
                       style={{ background: 'var(--color-brand-primary)' }}
                     >
-                      {!hasStarted || videoRef.current?.paused ? (
+                      {!hasStarted || localVideoRef.current?.paused ? (
                         <Play size={32} fill="white" color="white" />
                       ) : (
                         <Pause size={32} fill="white" color="white" />
