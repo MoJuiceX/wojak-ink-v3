@@ -40,33 +40,18 @@ export function FloatingVideoPlayer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showControls, setShowControls] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
-  const [isMutedForAutoplay, setIsMutedForAutoplay] = useState(true);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { currentVideo, isPlaying, currentTime, duration, volume, isMuted, position, size, isMinimized } =
     videoPlayer;
 
   const playerSize = PLAYER_SIZES[size];
+  const [hasStarted, setHasStarted] = useState(false);
 
-  // Try to play with sound, fall back to muted
+  // Reset hasStarted when video changes
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !currentVideo) return;
-
-    // Try playing with sound first
-    video.muted = false;
-    video.play()
-      .then(() => {
-        // Autoplay with sound worked
-        setIsMutedForAutoplay(false);
-      })
-      .catch(() => {
-        // Autoplay with sound blocked, try muted
-        video.muted = true;
-        setIsMutedForAutoplay(true);
-        video.play().catch(console.error);
-      });
-  }, [currentVideo, videoRef]);
+    setHasStarted(false);
+  }, [currentVideo?.id]);
 
   // Auto-hide controls
   useEffect(() => {
@@ -95,16 +80,19 @@ export function FloatingVideoPlayer() {
   };
 
   const handlePlayPause = () => {
-    if (isPlaying) {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.paused) {
+      // Start or resume playback
+      video.play()
+        .then(() => {
+          setHasStarted(true);
+        })
+        .catch(console.error);
+    } else {
+      video.pause();
       pauseVideo();
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
-    } else if (videoRef.current) {
-      // Unmute when user clicks play (they've interacted)
-      setIsMutedForAutoplay(false);
-      videoRef.current.muted = false;
-      videoRef.current.play().catch(console.error);
     }
   };
 
@@ -178,34 +166,32 @@ export function FloatingVideoPlayer() {
 
             {/* Play/Pause overlay */}
             <AnimatePresence>
-              {(showControls || isMutedForAutoplay) && (
+              {(showControls || !hasStarted) && (
                 <motion.div
-                  className="absolute inset-0 flex items-center justify-center"
-                  style={{ background: isMutedForAutoplay ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.3)' }}
+                  className="absolute inset-0 flex items-center justify-center cursor-pointer"
+                  style={{ background: !hasStarted ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.3)' }}
                   variants={prefersReducedMotion ? undefined : playerControlsVariants}
                   initial="hidden"
                   animate="visible"
                   exit="hidden"
+                  onClick={handlePlayPause}
                 >
                   <button
                     className="flex flex-col items-center gap-2 transition-transform hover:scale-110"
-                    onClick={handlePlayPause}
-                    aria-label={isMutedForAutoplay ? 'Tap to unmute' : isPlaying ? 'Pause' : 'Play'}
+                    aria-label={!hasStarted ? 'Play video' : 'Pause'}
                   >
                     <div
-                      className="w-14 h-14 rounded-full flex items-center justify-center"
+                      className="w-16 h-16 rounded-full flex items-center justify-center"
                       style={{ background: 'var(--color-brand-primary)' }}
                     >
-                      {isMutedForAutoplay ? (
-                        <VolumeX size={28} color="white" />
-                      ) : isPlaying ? (
-                        <Pause size={28} fill="white" color="white" />
+                      {!hasStarted || videoRef.current?.paused ? (
+                        <Play size={32} fill="white" color="white" />
                       ) : (
-                        <Play size={28} fill="white" color="white" />
+                        <Pause size={32} fill="white" color="white" />
                       )}
                     </div>
-                    {isMutedForAutoplay && (
-                      <span className="text-white text-sm font-medium">Tap to unmute</span>
+                    {!hasStarted && (
+                      <span className="text-white text-sm font-medium">Tap to play</span>
                     )}
                   </button>
                 </motion.div>
