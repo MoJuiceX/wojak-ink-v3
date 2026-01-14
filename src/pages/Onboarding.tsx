@@ -95,8 +95,11 @@ export default function Onboarding() {
   return (
     <PageTransition>
       <motion.div
-        className="min-h-full flex items-center justify-center"
-        style={{ padding: contentPadding }}
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          padding: contentPadding,
+          background: 'var(--color-bg-primary)',
+        }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
