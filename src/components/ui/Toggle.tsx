@@ -20,19 +20,22 @@ interface ToggleProps {
 
 const sizeConfig = {
   small: {
-    track: 'w-8 h-4',
-    thumb: 'w-3 h-3',
-    thumbTranslate: 12,
+    track: 'w-10 h-6',
+    thumb: 'w-4 h-4',
+    thumbTranslate: 16,
+    thumbOffset: 4, // (24 - 16) / 2 = 4px for centering
   },
   medium: {
-    track: 'w-10 h-6',
+    track: 'w-12 h-7',
     thumb: 'w-5 h-5',
-    thumbTranslate: 16,
+    thumbTranslate: 20,
+    thumbOffset: 4, // (28 - 20) / 2 = 4px for centering
   },
   large: {
-    track: 'w-12 h-7',
+    track: 'w-14 h-8',
     thumb: 'w-6 h-6',
-    thumbTranslate: 20,
+    thumbTranslate: 24,
+    thumbOffset: 4, // (32 - 24) / 2 = 4px for centering
   },
 };
 
@@ -114,7 +117,7 @@ export function Toggle({
       >
         <motion.span
           className={`
-            ${config.thumb} absolute top-0.5 left-0.5 bg-white rounded-full shadow-sm
+            ${config.thumb} absolute bg-white rounded-full shadow-sm
           `}
           variants={prefersReducedMotion ? undefined : toggleThumbVariants}
           animate={checked ? 'on' : 'off'}
@@ -125,6 +128,8 @@ export function Toggle({
               : { type: 'spring', stiffness: 500, damping: 30 }
           }
           style={{
+            top: config.thumbOffset,
+            left: config.thumbOffset,
             x: checked ? config.thumbTranslate : 0,
           }}
           aria-hidden="true"

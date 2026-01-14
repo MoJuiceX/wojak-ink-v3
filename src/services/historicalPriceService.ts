@@ -35,6 +35,37 @@ const DEXIE_API = import.meta.env.DEV ? '/dexie-api/v1' : 'https://api.dexie.spa
 // CAT token asset ID (update this with the actual CAT token ID)
 const CAT_ASSET_ID = 'a628c1c2c6fcb74d53746157e438e108eab5c0bb3e5c80ff9b1910b3e4832913';
 
+// Token-specific XCH rates (amount of XCH per 1 token)
+// Based on current TBitSwap/Dexie rates and historical sales data
+const TOKEN_RATES: Record<string, number> = {
+  // PIZZA: 550,000 PIZZA = ~1.57 XCH, so 1 PIZZA = 0.00000285 XCH
+  'PIZZA': 0.00000285,
+  '$PIZZA': 0.00000285,
+  // G4M: 366,666 G4M = ~0.64 XCH, so 1 G4M = 0.00000175 XCH
+  'G4M': 0.00000175,
+  '$G4M': 0.00000175,
+  // BEPE: 70,000 BEPE = ~1.428 XCH, so 1 BEPE = 0.0000204 XCH
+  'BEPE': 0.0000204,
+  '$BEPE': 0.0000204,
+  // Love token: 11,111 ❤️ = ~1.31 XCH, so 1 ❤️ = 0.000118 XCH
+  '❤️': 0.000118,
+  '$LOVE': 0.000118,
+  'LOVE': 0.000118,
+  // HOA: 6300 HOA = ~2 XCH, so 1 HOA = 0.000318 XCH
+  'HOA': 0.000318,
+  '$HOA': 0.000318,
+  // 🪄⚡️ token: 5555 = ~0.77 XCH, so rate = 0.000138 XCH
+  '🪄⚡️': 0.000138,
+  // NeckCoin: High-value token ~3 XCH per token
+  'NeckCoin': 3.006,
+  '$NECKCOIN': 3.006,
+  // Wizard token (✨❤️‍🔥🧙‍♂️): High-value token ~2.926 XCH per token
+  '✨❤️‍🔥🧙‍♂️': 2.926,
+  // SPROUT: 110,000 SPROUT = ~1.025 XCH, so 1 SPROUT = 0.00000932 XCH
+  'SPROUT': 0.00000932,
+  '$SPROUT': 0.00000932,
+};
+
 // ============ Cache Management ============
 
 let priceCache: PriceCache = {
@@ -317,12 +348,24 @@ export function getCatPrice(date: Date): number {
 }
 
 /**
+ * Get the XCH rate for a specific token
+ */
+export function getTokenRate(tokenType?: string): number {
+  if (tokenType && TOKEN_RATES[tokenType]) {
+    return TOKEN_RATES[tokenType];
+  }
+  // Return a more conservative default rate for unknown CAT tokens
+  return 0.000001; // Very low default - better to undercount than overcount
+}
+
+/**
  * Convert a sale to XCH equivalent and USD value
  */
 export async function convertSalePrice(
   amount: number,
   currency: 'XCH' | 'CAT',
-  saleDate: Date
+  saleDate: Date,
+  tokenType?: string // Optional: specific token type for accurate conversion
 ): Promise<SalePriceInfo> {
   const xchPrice = await getXchPrice(saleDate);
 
@@ -336,9 +379,9 @@ export async function convertSalePrice(
     };
   }
 
-  // CAT sale - convert to XCH
-  const catPrice = getCatPrice(saleDate);
-  const xchEquivalent = amount * catPrice;
+  // CAT sale - use token-specific rate if available, otherwise use generic CAT price
+  const tokenRate = tokenType ? getTokenRate(tokenType) : getCatPrice(saleDate);
+  const xchEquivalent = amount * tokenRate;
 
   return {
     originalAmount: amount,
@@ -346,7 +389,7 @@ export async function convertSalePrice(
     xchEquivalent,
     usdValue: xchEquivalent * xchPrice,
     xchPriceAtSale: xchPrice,
-    catPriceAtSale: catPrice,
+    catPriceAtSale: tokenRate,
   };
 }
 

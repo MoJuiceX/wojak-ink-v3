@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { loadSettings, type AppSettings } from '../utils/settingsUtils';
+import { useSettings } from './SettingsContext';
 
 interface AudioContextType {
   // Background music controls
@@ -13,9 +13,6 @@ interface AudioContextType {
   // Sound effects controls
   isSoundEffectsEnabled: boolean;
   playSound: (soundId: string) => void;
-
-  // Settings sync
-  updateFromSettings: (settings: AppSettings) => void;
 }
 
 const AudioContext = createContext<AudioContextType | null>(null);
@@ -38,8 +35,12 @@ interface AudioProviderProps {
 }
 
 export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
-  const [isBackgroundMusicEnabled, setIsBackgroundMusicEnabled] = useState(true);
-  const [isSoundEffectsEnabled, setIsSoundEffectsEnabled] = useState(true);
+  const { settings } = useSettings();
+
+  // Derive enabled states from SettingsContext
+  const isBackgroundMusicEnabled = settings.audio.backgroundMusicEnabled;
+  const isSoundEffectsEnabled = settings.audio.soundEffectsEnabled;
+
   const [isBackgroundMusicPlaying, setIsBackgroundMusicPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<string>(MUSIC_TRACKS.default);
 
@@ -47,18 +48,15 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const bgMusicRef = useRef<HTMLAudioElement | null>(null);
   const soundPoolRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
-  // Initialize from saved settings
-  useEffect(() => {
-    const settings = loadSettings();
-    setIsBackgroundMusicEnabled(settings.backgroundMusic);
-    setIsSoundEffectsEnabled(settings.soundEffects);
-  }, []);
+  // Compute effective volumes
+  const musicVolume = settings.audio.backgroundMusicVolume;
+  const sfxVolume = settings.audio.soundEffectsVolume;
 
   // Initialize background music audio element
   useEffect(() => {
     bgMusicRef.current = new Audio();
     bgMusicRef.current.loop = true;
-    bgMusicRef.current.volume = 0.3; // Default volume
+    bgMusicRef.current.volume = musicVolume;
 
     return () => {
       if (bgMusicRef.current) {
@@ -67,6 +65,13 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       }
     };
   }, []);
+
+  // Update music volume when settings change
+  useEffect(() => {
+    if (bgMusicRef.current) {
+      bgMusicRef.current.volume = musicVolume;
+    }
+  }, [musicVolume]);
 
   // Update track when currentTrack changes
   useEffect(() => {
@@ -128,20 +133,15 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
     let audio = soundPoolRef.current.get(soundId);
     if (!audio) {
       audio = new Audio(soundPath);
-      audio.volume = 0.5;
       soundPoolRef.current.set(soundId, audio);
     }
 
-    // Reset and play
+    // Update volume and play
+    audio.volume = sfxVolume;
     audio.currentTime = 0;
     audio.play().catch(err => {
       console.log(`Failed to play sound ${soundId}:`, err);
     });
-  };
-
-  const updateFromSettings = (settings: AppSettings) => {
-    setIsBackgroundMusicEnabled(settings.backgroundMusic);
-    setIsSoundEffectsEnabled(settings.soundEffects);
   };
 
   return (
@@ -154,7 +154,6 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
         setBackgroundMusicTrack,
         isSoundEffectsEnabled,
         playSound,
-        updateFromSettings,
       }}
     >
       {children}

@@ -9,6 +9,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { useTheme } from '@/hooks/useTheme';
 import { themeOrder, themes } from '@/config/themes';
+
 interface ThemeSwitcherProps {
   /** Display variant */
   variant?: 'dropdown' | 'segmented' | 'icon-only';
@@ -136,7 +137,7 @@ export function ThemeSwitcher({
         aria-label="Theme selection"
         onKeyDown={handleKeyDown}
       >
-        {themeOrder.map((id) => {
+        {themeOrder.map((id, index) => {
           const t = themes[id];
           const isActive = id === themeId;
 
@@ -161,9 +162,13 @@ export function ThemeSwitcher({
                   transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                 />
               )}
-              <span className="relative z-10 flex items-center justify-center">
-                <span className="text-lg">{t.icon}</span>
-              </span>
+              <motion.span
+                className="relative z-10 flex items-center justify-center text-lg"
+                animate={iconControls}
+                transition={{ delay: index * 0.05 }}
+              >
+                {t.icon}
+              </motion.span>
             </motion.button>
           );
         })}

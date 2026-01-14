@@ -44,8 +44,6 @@ interface NFTTakeEntry {
 // ============ Cache ============
 
 let nftTakesCache: Record<string, NFTTakeEntry> | null = null;
-// let traitInsightsCache: TraitInsight[] | null = null; // Kept for future use
-let traitStatsCache: AttributeStats[] | null = null;
 
 // ============ Loaders ============
 
@@ -126,6 +124,25 @@ async function loadMetadata(): Promise<MetadataEntry[]> {
   }
 }
 
+/**
+ * Get proper NFT name based on base character from metadata
+ * e.g., "Alien Wojak #3666", "Bepe Soyjak #3768", "Papa Tang #0785"
+ */
+function getNftName(edition: number, metadata: MetadataEntry[]): string {
+  const paddedId = String(edition).padStart(4, '0');
+  const nftMetadata = metadata.find(m => m.edition === edition);
+
+  if (nftMetadata) {
+    const baseAttr = nftMetadata.attributes.find(a => a.trait_type === 'Base');
+    if (baseAttr) {
+      return `${baseAttr.value} #${paddedId}`;
+    }
+  }
+
+  // Fallback to generic name if metadata not found
+  return `Wojak #${paddedId}`;
+}
+
 // Types for attribute stats JSON (pre-generated from CSV)
 interface AttributeStatsJSON {
   generatedAt: string;
@@ -171,14 +188,61 @@ async function loadAttributeStatsJSON(): Promise<AttributeStatsJSON | null> {
 }
 
 async function loadTraitStats(): Promise<AttributeStats[]> {
-  if (traitStatsCache) return traitStatsCache;
+  // Don't use cache - always merge live sales with static data
+  // TanStack Query handles caching at a higher level
 
   // Try to load from pre-generated JSON first (our fallback/baseline data)
   const jsonData = await loadAttributeStatsJSON();
 
   if (jsonData) {
-    // Load trait rankings for NFT counts
-    const traitRankings = await loadTraitRankings();
+    // Load trait rankings for NFT counts and metadata for live sales merge
+    const [traitRankings, metadata] = await Promise.all([
+      loadTraitRankings(),
+      loadMetadata(),
+    ]);
+
+    // Build NFT ID -> traits lookup for merging live sales
+    const nftTraitsMap = new Map<number, Record<string, string>>();
+    for (const nft of metadata) {
+      const traits: Record<string, string> = {};
+      for (const attr of nft.attributes) {
+        traits[attr.trait_type] = attr.value;
+      }
+      nftTraitsMap.set(nft.edition, traits);
+    }
+
+    // Get live sales from databank
+    const liveSales = getRecentSales(10000);
+
+    // Get the timestamp of the JSON generation to filter only newer sales
+    const jsonGeneratedAt = new Date(jsonData.generatedAt).getTime();
+
+    // Filter to only sales that happened after JSON was generated
+    const newSales = liveSales.filter(sale => sale.timestamp > jsonGeneratedAt);
+
+    // Build a map of new sales per attribute
+    const newSalesMap = new Map<string, Array<{
+      nftId: number;
+      price: number;
+      date: Date;
+    }>>();
+
+    for (const sale of newSales) {
+      const nftTraits = nftTraitsMap.get(sale.nftId);
+      if (!nftTraits) continue;
+
+      for (const [category, value] of Object.entries(nftTraits)) {
+        const key = `${category}|${value}`;
+        if (!newSalesMap.has(key)) {
+          newSalesMap.set(key, []);
+        }
+        newSalesMap.get(key)!.push({
+          nftId: sale.nftId,
+          price: sale.xchEquivalent,
+          date: new Date(sale.timestamp),
+        });
+      }
+    }
 
     const stats: AttributeStats[] = [];
 
@@ -187,44 +251,105 @@ async function loadTraitStats(): Promise<AttributeStats[]> {
       const traitData = traitRankings.lookup[attr.category]?.[attr.value];
       const count = traitData?.count || 0;
 
+      // Get any new sales for this attribute
+      const attrKey = `${attr.category}|${attr.value}`;
+      const attrNewSales = newSalesMap.get(attrKey) || [];
+
+      // Merge existing sales with new sales
+      const existingSales = attr.sales.map(sale => ({
+        nftId: String(sale.nftEdition),
+        nftImage: getNftImageUrl(sale.nftEdition),
+        price: sale.priceXCH,
+        date: new Date(sale.date),
+      }));
+
+      const mergedSales = [
+        ...attrNewSales.map(s => ({
+          nftId: String(s.nftId),
+          nftImage: getNftImageUrl(s.nftId),
+          price: s.price,
+          date: s.date,
+        })),
+        ...existingSales,
+      ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+      // Recalculate stats including new sales
+      const allPrices = [
+        ...attrNewSales.map(s => s.price),
+        ...attr.sales.map(s => s.priceXCH),
+      ];
+
+      const totalSales = allPrices.length;
+      const avgPrice = totalSales > 0
+        ? allPrices.reduce((sum, p) => sum + p, 0) / totalSales
+        : 0;
+      const minPrice = totalSales > 0 ? Math.min(...allPrices) : 0;
+      const maxPrice = totalSales > 0 ? Math.max(...allPrices) : 0;
+
+      // Determine last sale date (most recent from merged sales)
+      const lastSaleDate = mergedSales.length > 0 ? mergedSales[0].date : undefined;
+
       stats.push({
         category: attr.category,
         value: attr.value,
         count,
         rarity: count > 0 ? (count / COLLECTION_SIZE) * 100 : 0,
-        totalSales: attr.totalSales,
-        avgPrice: attr.avgPrice,
-        minPrice: attr.minPrice,
-        maxPrice: attr.maxPrice,
-        lastSalePrice: attr.lastSalePrice,
-        lastSaleDate: attr.lastSaleDate ? new Date(attr.lastSaleDate) : undefined,
-        // Map individual sales for detail view
-        recentSales: attr.sales.map(sale => ({
-          nftId: String(sale.nftEdition),
-          nftImage: getNftImageUrl(sale.nftEdition),
-          price: sale.priceXCH,
-          date: new Date(sale.date),
-        })),
+        totalSales,
+        avgPrice,
+        minPrice,
+        maxPrice,
+        lastSalePrice: mergedSales.length > 0 ? mergedSales[0].price : 0,
+        lastSaleDate,
+        recentSales: mergedSales,
       });
     }
 
-    // Also add attributes with no sales from trait rankings
+    // Also add attributes with no sales from trait rankings (check new sales too)
     for (const [category, traits] of Object.entries(traitRankings.lookup)) {
       for (const [value, data] of Object.entries(traits)) {
         const key = `${category}|${value}`;
         if (!jsonData.attributes[key]) {
-          stats.push({
-            category,
-            value,
-            count: data.count,
-            rarity: (data.count / COLLECTION_SIZE) * 100,
-            totalSales: 0,
-            avgPrice: 0,
-            minPrice: 0,
-            maxPrice: 0,
-            lastSaleDate: undefined,
-            recentSales: [],
-          });
+          // Check if there are new live sales for this attribute
+          const attrNewSales = newSalesMap.get(key) || [];
+
+          if (attrNewSales.length > 0) {
+            // This attribute now has sales from live data
+            const prices = attrNewSales.map(s => s.price);
+            const mergedSales = attrNewSales
+              .map(s => ({
+                nftId: String(s.nftId),
+                nftImage: getNftImageUrl(s.nftId),
+                price: s.price,
+                date: s.date,
+              }))
+              .sort((a, b) => b.date.getTime() - a.date.getTime());
+
+            stats.push({
+              category,
+              value,
+              count: data.count,
+              rarity: (data.count / COLLECTION_SIZE) * 100,
+              totalSales: prices.length,
+              avgPrice: prices.reduce((sum, p) => sum + p, 0) / prices.length,
+              minPrice: Math.min(...prices),
+              maxPrice: Math.max(...prices),
+              lastSaleDate: mergedSales[0]?.date,
+              recentSales: mergedSales,
+            });
+          } else {
+            stats.push({
+              category,
+              value,
+              count: data.count,
+              rarity: (data.count / COLLECTION_SIZE) * 100,
+              totalSales: 0,
+              avgPrice: 0,
+              minPrice: 0,
+              maxPrice: 0,
+              lastSaleDate: undefined,
+              recentSales: [],
+            });
+          }
         }
       }
     }
@@ -240,8 +365,7 @@ async function loadTraitStats(): Promise<AttributeStats[]> {
       return b.avgPrice - a.avgPrice;
     });
 
-    traitStatsCache = stats;
-    return traitStatsCache;
+    return stats;
   }
 
   // Fallback: Load from trait rankings and salesDatabank (dynamic calculation)
@@ -327,17 +451,17 @@ async function loadTraitStats(): Promise<AttributeStats[]> {
     return a.rarity - b.rarity;
   });
 
-  traitStatsCache = stats;
-  return traitStatsCache;
+  return stats;
 }
 
 // ============ Data Generators ============
 
 async function generateHeatMapData(): Promise<HeatMapCell[][]> {
-  // Load real listings and NFT takes for rarity data
-  const [listingsResult, takes] = await Promise.all([
+  // Load real listings, NFT takes for rarity data, and metadata for names
+  const [listingsResult, takes, metadata] = await Promise.all([
     marketService.fetchAllListings(),
     loadNftTakes(),
+    loadMetadata(),
   ]);
 
   const listings = listingsResult.listings;
@@ -407,7 +531,7 @@ async function generateHeatMapData(): Promise<HeatMapCell[][]> {
         nfts: matchingListings.map(l => ({
           id: `WFP-${l.nftId.padStart(4, '0')}`,
           tokenId: l.launcherId || `nft1${l.nftId.padStart(4, '0')}`,
-          name: l.name || `Wojak #${l.nftId.padStart(4, '0')}`,
+          name: l.name || getNftName(parseInt(l.nftId, 10), metadata),
           characterType: 'wojak' as const,
           imageUrl: getNftImageUrl(l.nftId),
           thumbnailUrl: getNftImageUrl(l.nftId),
@@ -481,7 +605,10 @@ class BigPulpService implements IBigPulpService {
   async searchNFT(id: number): Promise<NFTAnalysis | null> {
     if (id < 1 || id > COLLECTION_SIZE) return null;
 
-    const takes = await loadNftTakes();
+    const [takes, metadata] = await Promise.all([
+      loadNftTakes(),
+      loadMetadata(),
+    ]);
     const take = takes[String(id)];
     const rank = take?.open_rarity_rank || id;
 
@@ -491,7 +618,7 @@ class BigPulpService implements IBigPulpService {
       nft: {
         id: `WFP-${paddedId}`,
         tokenId: `nft1${paddedId}`,
-        name: `Wojak #${paddedId}`,
+        name: getNftName(id, metadata),
         characterType: 'wojak',
         imageUrl: getNftImageUrl(id),
         thumbnailUrl: getNftImageUrl(id),
@@ -508,7 +635,7 @@ class BigPulpService implements IBigPulpService {
       market: {
         isListed: false,
         floorPrice: 0.55,
-        floorPriceUSD: 0.55 * 30, // Approximate XCH price
+        floorPriceUSD: 0.55 * 5.34, // Approximate XCH price
       },
       badges: take?.flags?.is_top_10 ? [{
         id: 'top-10',
@@ -569,7 +696,7 @@ class BigPulpService implements IBigPulpService {
       : 0;
 
     // XCH to USD conversion (approximate, could fetch from CoinGecko)
-    const xchUsdPrice = 30; // TODO: Fetch real price
+    const xchUsdPrice = 5.34; // TODO: Fetch real price
 
     return {
       listedCount: listings.length,
@@ -601,16 +728,19 @@ class BigPulpService implements IBigPulpService {
   }
 
   async getTopSales(): Promise<NFTSale[]> {
-    // Get real recent sales from the databank
-    const recentSales = getRecentSales(20);
+    // Get ALL sales from the databank to find true highest sales
+    const allSales = getRecentSales(10000);
 
-    if (recentSales.length === 0) {
+    if (allSales.length === 0) {
       // Return empty array if no sales data available
       return [];
     }
 
+    // Load metadata to get proper NFT names
+    const metadata = await loadMetadata();
+
     // Sort by price (highest first) and take top 10
-    const topSales = [...recentSales]
+    const topSales = [...allSales]
       .sort((a, b) => b.xchEquivalent - a.xchEquivalent)
       .slice(0, 10);
 
@@ -620,7 +750,7 @@ class BigPulpService implements IBigPulpService {
         nft: {
           id: `WFP-${paddedId}`,
           tokenId: `nft1${paddedId}`,
-          name: `Wojak #${paddedId}`,
+          name: getNftName(sale.nftId, metadata),
           characterType: 'wojak' as const,
           imageUrl: getNftImageUrl(sale.nftId),
           thumbnailUrl: getNftImageUrl(sale.nftId),
@@ -637,6 +767,8 @@ class BigPulpService implements IBigPulpService {
   async getRarestFinds(): Promise<NFTBasic[]> {
     // Load NFT takes to get real rarity rankings
     const takes = await loadNftTakes();
+    // Load metadata to get proper NFT names
+    const metadata = await loadMetadata();
 
     // Convert to array and sort by rarity rank
     const rankedNfts = Object.entries(takes)
@@ -652,7 +784,7 @@ class BigPulpService implements IBigPulpService {
       return {
         id: `WFP-${paddedId}`,
         tokenId: `nft1${paddedId}`,
-        name: `Wojak #${paddedId}`,
+        name: getNftName(id, metadata),
         characterType: 'wojak' as const,
         imageUrl: getNftImageUrl(id),
         thumbnailUrl: getNftImageUrl(id),

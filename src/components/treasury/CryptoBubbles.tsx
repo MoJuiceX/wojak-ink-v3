@@ -450,9 +450,21 @@ export function CryptoBubbles({
     return () => window.removeEventListener('devicemotion', handleMotion);
   }, [resetAllBubbles]);
 
-  // Initialize bubbles when tokens change and container is ready
+  // Track if bubbles have been initialized
+  const bubblesInitializedRef = useRef(false);
+
+  // Initialize bubbles when tokens change and container is ready (only once per token set)
   useEffect(() => {
     if (isLoading || tokens.length === 0 || !isContainerReady) return;
+
+    // Create a stable token key to detect actual token changes vs just re-renders
+    const tokenKey = tokens.map(t => t.id).sort().join(',');
+    const currentTokenKey = bubblesRef.current.map(b => b.id).sort().join(',');
+
+    // Only reinitialize if tokens actually changed, not on container resize
+    if (bubblesInitializedRef.current && tokenKey === currentTokenKey) {
+      return;
+    }
 
     const visibleTokens = tokens.filter((t) => t.valueUSD >= 1);
     const values = visibleTokens.map((t) => t.valueUSD);
@@ -491,6 +503,7 @@ export function CryptoBubbles({
 
     bubblesRef.current = initialBubbles;
     setBubbles(initialBubbles);
+    bubblesInitializedRef.current = true;
   }, [tokens, containerSize.width, containerSize.height, isLoading, isContainerReady]);
 
   // Physics simulation

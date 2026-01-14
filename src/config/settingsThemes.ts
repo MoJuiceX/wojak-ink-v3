@@ -9,42 +9,9 @@ import type { SettingsThemeConfig, SettingsState } from '@/types/settings';
 
 export const SETTINGS_THEMES: SettingsThemeConfig[] = [
   {
-    id: 'system',
-    name: 'System',
-    description: 'Match your device settings',
-    icon: '💻',
-    preview: {
-      background: 'linear-gradient(135deg, #1a1a1a 50%, #ffffff 50%)',
-      foreground: '#888888',
-      accent: '#ff6b00',
-    },
-  },
-  {
-    id: 'dark',
-    name: 'Midnight Void',
-    description: 'Deep immersive darkness for night browsing',
-    icon: '🌙',
-    preview: {
-      background: '#0a0a0f',
-      foreground: '#f8f9fa',
-      accent: '#ff6b00',
-    },
-  },
-  {
-    id: 'light',
-    name: 'Clean Canvas',
-    description: 'Bright and accessible for daytime viewing',
-    icon: '☀️',
-    preview: {
-      background: '#fafafa',
-      foreground: '#1a1a1f',
-      accent: '#e55a00',
-    },
-  },
-  {
     id: 'tang-orange',
     name: 'Tang Gang',
-    description: 'Full cyberpunk orange experience',
+    description: 'Cyberpunk orange',
     icon: '🍊',
     preview: {
       background: '#0d0400',
@@ -58,8 +25,8 @@ export const SETTINGS_THEMES: SettingsThemeConfig[] = [
   {
     id: 'chia-green',
     name: 'Chia Native',
-    description: 'Embrace the blockchain aesthetic',
-    icon: '🌿',
+    description: 'Blockchain green',
+    icon: '🌱',
     preview: {
       background: '#000f08',
       foreground: '#e8fff0',
@@ -69,12 +36,45 @@ export const SETTINGS_THEMES: SettingsThemeConfig[] = [
     hasGlow: true,
     isSpecial: true,
   },
+  {
+    id: 'void',
+    name: 'Void',
+    description: 'Pure black OLED',
+    icon: '💎',
+    preview: {
+      background: '#000000',
+      foreground: '#ffffff',
+      accent: '#ff6b00',
+    },
+  },
+  {
+    id: 'dark',
+    name: 'Midnight',
+    description: 'Deep darkness',
+    icon: '🌙',
+    preview: {
+      background: '#0a0a0f',
+      foreground: '#f8f9fa',
+      accent: '#ff6b00',
+    },
+  },
+  {
+    id: 'light',
+    name: 'Clean Canvas',
+    description: 'Bright and clean',
+    icon: '☀️',
+    preview: {
+      background: '#fafafa',
+      foreground: '#1a1a1f',
+      accent: '#e55a00',
+    },
+  },
 ];
 
 export const DEFAULT_SETTINGS: SettingsState = {
   theme: {
-    selected: 'system',
-    resolved: 'dark',
+    selected: 'tang-orange',
+    resolved: 'tang-orange',
     systemPreference: 'dark',
   },
   audio: {
@@ -101,29 +101,29 @@ export const DEFAULT_SETTINGS: SettingsState = {
   },
 };
 
-export const APP_VERSION = '2.0.0';
-export const APP_BUILD_DATE = '2025.01.11';
+export const APP_VERSION = '4.0';
+export const APP_BUILD_DATE = '2026.01.07';
 
 export const SOCIAL_LINKS = [
   {
     id: 'twitter',
     name: 'Twitter/X',
-    handle: '@WojakInk',
+    handle: '@MoJuiceX',
     icon: '𝕏',
-    url: 'https://twitter.com/WojakInk',
+    url: 'https://x.com/MoJuiceX',
   },
   {
-    id: 'discord',
-    name: 'Discord',
+    id: 'tanggang',
+    name: 'Tang Gang',
     handle: 'Join Community',
-    icon: '💬',
-    url: 'https://discord.gg/tanggang',
+    icon: '🍊',
+    url: 'https://tanggang.life/',
   },
   {
     id: 'mintgarden',
     name: 'MintGarden',
     handle: 'View Collection',
-    icon: '🌿',
-    url: 'https://mintgarden.io/collections/wojak-farmers-plot',
+    icon: '🌱',
+    url: 'https://mintgarden.io/collections/wojak-farmers-plot-col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah',
   },
 ];

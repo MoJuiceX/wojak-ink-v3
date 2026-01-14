@@ -8,7 +8,59 @@
 import type { ThemeConfig, ThemeId } from '@/types/theme';
 
 /**
- * DARK THEME - "Midnight Void"
+ * VOID THEME - "Pure Black"
+ * OLED-optimized pure black for battery saving and true blacks.
+ */
+export const voidTheme: ThemeConfig = {
+  id: 'void',
+  name: 'Void',
+  description: 'Pure black for OLED displays',
+  icon: '💎',
+  isDark: true,
+  colors: {
+    // Background hierarchy - pure black
+    bgPrimary: '#000000',
+    bgSecondary: '#080808',
+    bgTertiary: '#101010',
+    bgElevated: '#181818',
+
+    // Text hierarchy
+    textPrimary: '#ffffff',
+    textSecondary: '#a0a0a0',
+    textMuted: '#606060',
+    textAccent: '#ff6b00',
+
+    // Brand colors
+    brandPrimary: '#ff6b00',
+    brandGlow: '#ff8c00',
+    brandDeep: '#cc5500',
+
+    // Surface effects
+    glassBg: 'rgba(255, 255, 255, 0.03)',
+    glassHover: 'rgba(255, 255, 255, 0.06)',
+    border: 'rgba(255, 255, 255, 0.1)',
+    borderGlow: 'rgba(255, 107, 0, 0.3)',
+
+    // Header background
+    headerBg: 'rgba(0, 0, 0, 0.9)',
+    headerBgScrolled: 'rgba(0, 0, 0, 0.98)',
+
+    // Glow system
+    glowPrimary: '0 0 20px rgba(255, 107, 0, 0.5)',
+    glowIntense: '0 0 40px rgba(255, 107, 0, 0.4), 0 0 80px rgba(255, 107, 0, 0.2)',
+    glowSubtle: '0 0 10px rgba(255, 107, 0, 0.3)',
+    glowText: '0 0 30px rgba(255, 107, 0, 0.6)',
+
+    // Gradients
+    gradientHero: 'linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #000000 100%)',
+    gradientCard: 'linear-gradient(180deg, rgba(255,107,0,0.05) 0%, transparent 100%)',
+    gradientAccent: 'linear-gradient(90deg, #ff6b00 0%, #ff8c00 100%)',
+    gradientMesh: 'radial-gradient(ellipse at 20% 50%, rgba(255,107,0,0.08) 0%, transparent 50%)',
+  },
+};
+
+/**
+ * DARK THEME - "Midnight"
  * The flagship experience. Deep, immersive darkness that makes NFT artwork pop.
  */
 export const darkTheme: ThemeConfig = {
@@ -220,6 +272,7 @@ export const lightTheme: ThemeConfig = {
  */
 export const themes: Record<ThemeId, ThemeConfig> = {
   dark: darkTheme,
+  void: voidTheme,
   light: lightTheme,
   'tang-orange': tangOrangeTheme,
   'chia-green': chiaGreenTheme,
@@ -228,7 +281,7 @@ export const themes: Record<ThemeId, ThemeConfig> = {
 /**
  * Theme order for cycling through themes
  */
-export const themeOrder: ThemeId[] = ['dark', 'tang-orange', 'chia-green', 'light'];
+export const themeOrder: ThemeId[] = ['dark', 'void', 'light', 'tang-orange', 'chia-green'];
 
 /**
  * Get the next theme in the cycle

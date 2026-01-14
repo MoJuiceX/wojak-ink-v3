@@ -50,30 +50,26 @@ export function ThemeCard({ theme, isSelected, onSelect }: ThemeCardProps) {
           : 'none',
       }}
     >
-      {/* Preview swatch */}
-      <div className="flex items-start gap-3">
+      {/* Preview swatch with centered emoji */}
+      <div className="flex justify-center">
         <div className="relative">
           <div
-            className="w-16 h-16 rounded-full flex-shrink-0 overflow-hidden"
+            className="w-16 h-16 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center"
             style={{
               background: theme.preview.gradient || theme.preview.background,
               border: `2px solid ${theme.preview.accent}`,
             }}
           >
-            {/* Inner swatch showing foreground/accent */}
-            <div
-              className="absolute inset-3 rounded-full"
-              style={{
-                background: theme.preview.accent,
-                opacity: 0.3,
-              }}
-            />
+            {/* Centered emoji */}
+            <span className="text-2xl" role="img" aria-hidden="true">
+              {theme.icon}
+            </span>
           </div>
 
           {/* Glow effect for special themes */}
           {theme.hasGlow && !prefersReducedMotion && (
             <motion.div
-              className="absolute inset-0 rounded-full"
+              className="absolute inset-0 rounded-full pointer-events-none"
               variants={themePreviewGlowVariants}
               initial="initial"
               animate="animate"
@@ -83,33 +79,30 @@ export function ThemeCard({ theme, isSelected, onSelect }: ThemeCardProps) {
               }}
             />
           )}
-        </div>
 
-        {/* Theme icon */}
-        <div className="absolute top-3 right-3 flex items-center gap-1">
-          <span className="text-lg" role="img" aria-hidden="true">
-            {theme.icon}
-          </span>
+          {/* Special sparkle indicator */}
           {theme.isSpecial && (
-            <Sparkles
-              size={12}
-              style={{ color: theme.preview.accent }}
-              aria-hidden="true"
-            />
+            <div className="absolute -top-1 -right-1">
+              <Sparkles
+                size={14}
+                style={{ color: theme.preview.accent }}
+                aria-hidden="true"
+              />
+            </div>
           )}
         </div>
       </div>
 
       {/* Theme info */}
-      <div className="mt-3">
+      <div className="mt-3 text-center">
         <h3
-          className="text-sm font-semibold"
+          className="text-sm font-semibold whitespace-nowrap"
           style={{ color: 'var(--color-text-primary)' }}
         >
           {theme.name}
         </h3>
         <p
-          className="text-xs mt-0.5 line-clamp-2"
+          className="text-xs mt-0.5 whitespace-nowrap"
           style={{ color: 'var(--color-text-muted)' }}
         >
           {theme.description}

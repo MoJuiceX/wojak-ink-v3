@@ -11,6 +11,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useState,
   type ReactNode,
 } from 'react';
 import type {
@@ -32,6 +33,25 @@ import {
   getErrorMessage,
   getWelcomeMessage,
 } from '@/config/bigpulpResponses';
+
+// Type for the NFT data from big_pulp_v3_output.json
+interface BigPulpNFTData {
+  edition: number;
+  name: string;
+  open_rarity_rank: number;
+  hp_count: number;
+  image_ipfs: string;
+  launcher_id: string;
+  mintgarden_url: string;
+  traits: Record<string, string>;
+  hp_traits: string[];
+  named_combos: string[];
+  cultures: string[];
+  is_five_hp: boolean;
+  description: string;
+  is_homie_edition?: boolean;
+  homie_name?: string;
+}
 import {
   useBigPulpMarketStats,
   useBigPulpHeatMap,
@@ -55,6 +75,17 @@ interface BigPulpContextState {
   // BigPulp Character
   bigPulp: BigPulpState;
 
+  // NFT Data from big_pulp_v9_output.json
+  currentNftDescription: string | null;
+  currentNftHeadTrait: string | null;
+  currentNftTraits: Record<string, string> | null;
+  currentNftHpTraits: string[] | null;
+  currentNftNamedCombos: string[] | null;
+  currentNftCultures: string[] | null;
+  currentNftIsFiveHp: boolean;
+  currentNftIsHomieEdition: boolean;
+  currentNftHomieName: string | null;
+
   // Tab State
   activeTab: BigPulpTab;
   isModalOpen: boolean; // Mobile modal
@@ -76,10 +107,22 @@ interface BigPulpContextState {
 
 // ============ Action Types ============
 
+interface V9NftPayload {
+  traits: Record<string, string> | null;
+  description: string | null;
+  headTrait: string | null;
+  hpTraits: string[] | null;
+  namedCombos: string[] | null;
+  cultures: string[] | null;
+  isFiveHp: boolean;
+  isHomieEdition: boolean;
+  homieName: string | null;
+}
+
 type BigPulpAction =
   | { type: 'SET_SEARCH_QUERY'; payload: string }
   | { type: 'START_SEARCH' }
-  | { type: 'SEARCH_SUCCESS'; payload: NFTAnalysis }
+  | { type: 'SEARCH_SUCCESS'; payload: { analysis: NFTAnalysis } & V9NftPayload }
   | { type: 'SEARCH_ERROR'; payload: string }
   | { type: 'CLEAR_SEARCH' }
   | { type: 'SET_TAB'; payload: BigPulpTab }
@@ -92,7 +135,8 @@ type BigPulpAction =
   | { type: 'SET_BIGPULP_HEAD_VARIANT'; payload: string }
   | { type: 'LOAD_MARKET_DATA'; payload: { stats: MarketStats; heatMap: HeatMapCell[][]; distribution: PriceDistribution } }
   | { type: 'LOAD_ATTRIBUTES'; payload: AttributeStats[] }
-  | { type: 'LOAD_ASK_DATA'; payload: { topSales: NFTSale[]; rarestFinds: NFTBasic[] } };
+  | { type: 'LOAD_ASK_DATA'; payload: { topSales: NFTSale[]; rarestFinds: NFTBasic[] } }
+  | { type: 'UPDATE_NFT_TRAITS'; payload: V9NftPayload };
 
 // ============ Initial State ============
 
@@ -110,6 +154,15 @@ const initialState: BigPulpContextState = {
   isLoading: false,
   error: null,
   bigPulp: initialBigPulpState,
+  currentNftDescription: null,
+  currentNftHeadTrait: null,
+  currentNftTraits: null,
+  currentNftHpTraits: null,
+  currentNftNamedCombos: null,
+  currentNftCultures: null,
+  currentNftIsFiveHp: false,
+  currentNftIsHomieEdition: false,
+  currentNftHomieName: null,
   activeTab: 'market',
   isModalOpen: false,
   marketStats: null,
@@ -151,18 +204,30 @@ function bigPulpReducer(
       };
 
     case 'SEARCH_SUCCESS': {
-      const response = generateBigPulpResponse(action.payload);
+      const { analysis, description, headTrait, traits, hpTraits, namedCombos, cultures, isFiveHp, isHomieEdition, homieName } = action.payload;
+      // Use description from big_pulp_v9_output.json if available, otherwise fallback to generated response
+      const response = generateBigPulpResponse(analysis);
+      const message = description || response.message;
       return {
         ...state,
         isLoading: false,
-        currentAnalysis: action.payload,
+        currentAnalysis: analysis,
+        currentNftDescription: description,
+        currentNftHeadTrait: headTrait,
+        currentNftTraits: traits,
+        currentNftHpTraits: hpTraits,
+        currentNftNamedCombos: namedCombos,
+        currentNftCultures: cultures,
+        currentNftIsFiveHp: isFiveHp,
+        currentNftIsHomieEdition: isHomieEdition,
+        currentNftHomieName: homieName,
         error: null,
         bigPulp: {
           mood: response.mood,
           headVariant: response.headVariant || 'default',
-          message: response.message,
+          message: message,
           isTyping: true,
-          messageQueue: response.followUp || [],
+          messageQueue: [], // No follow-up when using description
         },
       };
     }
@@ -187,6 +252,15 @@ function bigPulpReducer(
         currentAnalysis: null,
         searchQuery: '',
         error: null,
+        currentNftDescription: null,
+        currentNftHeadTrait: null,
+        currentNftTraits: null,
+        currentNftHpTraits: null,
+        currentNftNamedCombos: null,
+        currentNftCultures: null,
+        currentNftIsFiveHp: false,
+        currentNftIsHomieEdition: false,
+        currentNftHomieName: null,
         bigPulp: {
           ...initialBigPulpState,
           message: getWelcomeMessage(),
@@ -281,6 +355,20 @@ function bigPulpReducer(
         rarestFinds: action.payload.rarestFinds,
       };
 
+    case 'UPDATE_NFT_TRAITS':
+      return {
+        ...state,
+        currentNftTraits: action.payload.traits,
+        currentNftDescription: action.payload.description,
+        currentNftHeadTrait: action.payload.headTrait,
+        currentNftHpTraits: action.payload.hpTraits,
+        currentNftNamedCombos: action.payload.namedCombos,
+        currentNftCultures: action.payload.cultures,
+        currentNftIsFiveHp: action.payload.isFiveHp,
+        currentNftIsHomieEdition: action.payload.isHomieEdition,
+        currentNftHomieName: action.payload.homieName,
+      };
+
     default:
       return state;
   }
@@ -329,6 +417,21 @@ export function BigPulpProvider({
   mockData: _mockData = true,
 }: BigPulpProviderProps) {
   const [state, dispatch] = useReducer(bigPulpReducer, initialState);
+
+  // NFT data from big_pulp_v9_output.json
+  const [nftDataMap, setNftDataMap] = useState<Record<string, BigPulpNFTData> | null>(null);
+
+  // Load big_pulp_v9_output.json on mount
+  useEffect(() => {
+    fetch('/assets/BigPulp/bigPv9/big_pulp_v9_output.json')
+      .then(res => res.json())
+      .then((data: Record<string, BigPulpNFTData>) => {
+        setNftDataMap(data);
+      })
+      .catch(err => {
+        console.error('Failed to load big_pulp_v9_output.json:', err);
+      });
+  }, []);
 
   // Use TanStack Query hooks for data fetching
   const { data: marketStatsData, isLoading: isMarketStatsLoading } = useBigPulpMarketStats();
@@ -382,6 +485,34 @@ export function BigPulpProvider({
     }
   }, [topSalesData, rarestFindsData]);
 
+  // Helper to extract V9 payload from NFT data
+  const getV9Payload = useCallback((nftData: BigPulpNFTData | undefined): V9NftPayload => ({
+    traits: nftData?.traits || null,
+    description: nftData?.description || null,
+    headTrait: nftData?.traits?.Head || null,
+    hpTraits: nftData?.hp_traits || null,
+    namedCombos: nftData?.named_combos || null,
+    cultures: nftData?.cultures || null,
+    isFiveHp: nftData?.is_five_hp || false,
+    isHomieEdition: nftData?.is_homie_edition || false,
+    homieName: nftData?.homie_name || null,
+  }), []);
+
+  // Update traits when nftDataMap loads (if we already have an analysis)
+  useEffect(() => {
+    if (nftDataMap && state.currentAnalysis && !state.currentNftTraits) {
+      // Extract NFT ID from the analysis
+      const nftIdStr = state.currentAnalysis.nft.id.replace('WFP-', '').replace(/^0+/, '') || '0';
+      const nftData = nftDataMap[nftIdStr];
+      if (nftData) {
+        dispatch({
+          type: 'UPDATE_NFT_TRAITS',
+          payload: getV9Payload(nftData),
+        });
+      }
+    }
+  }, [nftDataMap, state.currentAnalysis, state.currentNftTraits, getV9Payload]);
+
   // Search actions
   const setSearchQuery = useCallback((query: string) => {
     dispatch({ type: 'SET_SEARCH_QUERY', payload: query });
@@ -400,7 +531,12 @@ export function BigPulpProvider({
       try {
         const analysis = await searchMutation.mutateAsync(numId);
         if (analysis) {
-          dispatch({ type: 'SEARCH_SUCCESS', payload: analysis });
+          // Get data from big_pulp_v9_output.json
+          const nftData = nftDataMap?.[String(numId)];
+          dispatch({
+            type: 'SEARCH_SUCCESS',
+            payload: { analysis, ...getV9Payload(nftData) }
+          });
         } else {
           dispatch({ type: 'SEARCH_ERROR', payload: 'NFT not found' });
         }
@@ -408,7 +544,7 @@ export function BigPulpProvider({
         dispatch({ type: 'SEARCH_ERROR', payload: 'NFT not found' });
       }
     },
-    [searchMutation]
+    [searchMutation, nftDataMap, getV9Payload]
   );
 
   const surpriseMe = useCallback(async () => {
@@ -416,12 +552,19 @@ export function BigPulpProvider({
 
     try {
       const analysis = await randomMutation.mutateAsync();
-      dispatch({ type: 'SET_SEARCH_QUERY', payload: analysis.nft.id.replace('WFP-', '') });
-      dispatch({ type: 'SEARCH_SUCCESS', payload: analysis });
+      const nftIdStr = analysis.nft.id.replace('WFP-', '');
+      dispatch({ type: 'SET_SEARCH_QUERY', payload: nftIdStr });
+
+      // Get data from big_pulp_v9_output.json
+      const nftData = nftDataMap?.[nftIdStr];
+      dispatch({
+        type: 'SEARCH_SUCCESS',
+        payload: { analysis, ...getV9Payload(nftData) }
+      });
     } catch {
       dispatch({ type: 'SEARCH_ERROR', payload: 'Failed to get random NFT' });
     }
-  }, [randomMutation]);
+  }, [randomMutation, nftDataMap, getV9Payload]);
 
   const clearSearch = useCallback(() => {
     dispatch({ type: 'CLEAR_SEARCH' });

@@ -5,7 +5,7 @@
  */
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { Gamepad2, Keyboard } from 'lucide-react';
+import { Gamepad2 } from 'lucide-react';
 import type { MiniGame } from '@/types/media';
 import { GameCard } from './GameCard';
 import { gameGridVariants } from '@/config/mediaAnimations';
@@ -49,33 +49,17 @@ export function GamesGrid({ games, onGameSelect, isLoading = false }: GamesGridP
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Gamepad2
-            size={24}
-            style={{ color: 'var(--color-brand-primary)' }}
-          />
-          <h2
-            className="text-xl font-bold"
-            style={{ color: 'var(--color-text-primary)' }}
-          >
-            Mini Games
-          </h2>
-        </div>
-
-        {/* Accessibility legend button */}
-        <button
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs transition-colors"
-          style={{
-            background: 'var(--color-glass-bg)',
-            color: 'var(--color-text-muted)',
-            border: '1px solid var(--color-border)',
-          }}
-          title="Keyboard accessible games"
+      <div className="flex items-center gap-2">
+        <Gamepad2
+          size={24}
+          style={{ color: 'var(--color-brand-primary)' }}
+        />
+        <h2
+          className="text-xl font-bold"
+          style={{ color: 'var(--color-text-primary)' }}
         >
-          <Keyboard size={14} />
-          <span className="hidden sm:inline">Accessibility</span>
-        </button>
+          Mini Games
+        </h2>
       </div>
 
       {/* Games grid */}

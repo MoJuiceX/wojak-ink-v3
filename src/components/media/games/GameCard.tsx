@@ -7,7 +7,6 @@
 import { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import type { MiniGame } from '@/types/media';
-import { ACCESSIBILITY_ICONS, DIFFICULTY_COLORS } from '@/config/games';
 import { gameCardVariants } from '@/config/mediaAnimations';
 
 interface GameCardProps {
@@ -17,11 +16,6 @@ interface GameCardProps {
 
 export const GameCard = memo(function GameCard({ game, onClick }: GameCardProps) {
   const prefersReducedMotion = useReducedMotion();
-
-  const accessibilityIcons = Object.entries(game.accessibilityFeatures)
-    .filter(([, enabled]) => enabled)
-    .map(([key]) => ACCESSIBILITY_ICONS[key as keyof typeof ACCESSIBILITY_ICONS])
-    .slice(0, 4);
 
   return (
     <motion.button
@@ -52,45 +46,11 @@ export const GameCard = memo(function GameCard({ game, onClick }: GameCardProps)
 
       {/* Name */}
       <h3
-        className="text-base font-semibold mb-1"
+        className="text-base font-semibold"
         style={{ color: 'var(--color-text-primary)' }}
       >
         {game.name}
       </h3>
-
-      {/* Difficulty & Time */}
-      {game.difficulty && (
-        <div
-          className="flex items-center gap-2 text-xs mb-2"
-          style={{ color: 'var(--color-text-muted)' }}
-        >
-          <span
-            className="px-1.5 py-0.5 rounded text-[10px] font-medium"
-            style={{
-              background: `${DIFFICULTY_COLORS[game.difficulty]}20`,
-              color: DIFFICULTY_COLORS[game.difficulty],
-            }}
-          >
-            {game.difficulty.charAt(0).toUpperCase() + game.difficulty.slice(1)}
-          </span>
-          {game.estimatedPlayTime && (
-            <span>{game.estimatedPlayTime}</span>
-          )}
-        </div>
-      )}
-
-      {/* Accessibility icons */}
-      <div className="flex gap-1 mt-1">
-        {accessibilityIcons.map((iconInfo, index) => (
-          <span
-            key={index}
-            title={iconInfo.label}
-            className="text-sm opacity-60"
-          >
-            {iconInfo.icon}
-          </span>
-        ))}
-      </div>
 
       {/* Status badge */}
       {game.status === 'coming-soon' && (

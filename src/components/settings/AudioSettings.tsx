@@ -1,7 +1,7 @@
 /**
  * Audio Settings Component
  *
- * Audio control section with master, music, and SFX controls.
+ * Audio control section with music and SFX controls.
  */
 
 import { motion, useReducedMotion } from 'framer-motion';
@@ -12,8 +12,6 @@ import type { AudioSettings as AudioSettingsType } from '@/types/settings';
 
 interface AudioSettingsProps {
   audio: AudioSettingsType;
-  onMasterVolumeChange: (volume: number) => void;
-  onMasterToggle: () => void;
   onMusicVolumeChange: (volume: number) => void;
   onMusicToggle: () => void;
   onSfxVolumeChange: (volume: number) => void;
@@ -22,8 +20,6 @@ interface AudioSettingsProps {
 
 export function AudioSettings({
   audio,
-  onMasterVolumeChange,
-  onMasterToggle,
   onMusicVolumeChange,
   onMusicToggle,
   onSfxVolumeChange,
@@ -54,20 +50,11 @@ export function AudioSettings({
       {/* Audio Controls */}
       <div className="space-y-3">
         <VolumeSlider
-          id="master-audio"
-          label="Master Audio"
-          volume={audio.masterVolume}
-          enabled={audio.masterEnabled}
-          onVolumeChange={onMasterVolumeChange}
-          onToggle={onMasterToggle}
-        />
-
-        <VolumeSlider
           id="background-music"
           label="Background Music"
-          description="Ambient tracks while browsing"
+          description="Music and video audio"
           volume={audio.backgroundMusicVolume}
-          enabled={audio.backgroundMusicEnabled && audio.masterEnabled}
+          enabled={audio.backgroundMusicEnabled}
           onVolumeChange={onMusicVolumeChange}
           onToggle={onMusicToggle}
         />
@@ -75,9 +62,9 @@ export function AudioSettings({
         <VolumeSlider
           id="sound-effects"
           label="Sound Effects"
-          description="UI interactions and notifications"
+          description="Game sounds"
           volume={audio.soundEffectsVolume}
-          enabled={audio.soundEffectsEnabled && audio.masterEnabled}
+          enabled={audio.soundEffectsEnabled}
           onVolumeChange={onSfxVolumeChange}
           onToggle={onSfxToggle}
         />

@@ -83,23 +83,27 @@ export function NFTSearchInput({
   const variants = prefersReducedMotion ? undefined : searchInputVariants;
 
   return (
-    <div className="space-y-2">
-      <div className="flex gap-3">
+    <div
+      className="space-y-1 rounded-xl p-2"
+      style={{ background: 'rgba(0, 0, 0, 0.75)' }}
+    >
+      <div className="flex gap-1.5 items-start">
         {/* Search input */}
         <motion.div
-          className="flex-1 relative"
+          className="relative"
+          style={{ flex: '1 1 0', minWidth: 0 }}
           variants={variants}
           animate={error ? 'error' : isFocused ? 'focused' : 'idle'}
         >
           <div
-            className="flex items-center gap-2 rounded-xl px-4 py-3 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors"
             style={{
               background: 'var(--color-glass-bg)',
-              border: `2px solid ${error ? 'var(--color-error, #ef4444)' : isFocused ? 'var(--color-brand-primary)' : 'var(--color-border)'}`,
+              border: `1px solid ${error ? 'var(--color-error, #ef4444)' : isFocused ? 'var(--color-brand-primary)' : 'var(--color-border)'}`,
             }}
           >
             <Search
-              size={20}
+              size={14}
               style={{
                 color: isFocused
                   ? 'var(--color-brand-primary)'
@@ -107,12 +111,12 @@ export function NFTSearchInput({
               }}
             />
             <Hash
-              size={18}
+              size={12}
               style={{
                 color: isFocused
                   ? 'var(--color-brand-primary)'
                   : 'var(--color-text-muted)',
-                marginLeft: '-4px',
+                marginLeft: '-2px',
               }}
             />
             <input
@@ -129,8 +133,8 @@ export function NFTSearchInput({
               disabled={isLoading}
               aria-label="Search NFT by ID number"
               aria-describedby={error ? 'search-error' : undefined}
-              className="flex-1 bg-transparent outline-none text-lg font-mono placeholder:opacity-40"
-              style={{ color: 'var(--color-text-primary)', marginLeft: '-4px' }}
+              className="flex-1 bg-transparent outline-none text-sm font-mono placeholder:opacity-40"
+              style={{ color: 'var(--color-text-primary)', marginLeft: '-2px' }}
             />
             <AnimatePresence mode="wait">
               {isLoading && (
@@ -140,7 +144,7 @@ export function NFTSearchInput({
                   exit={{ opacity: 0, scale: 0.8 }}
                 >
                   <Loader2
-                    size={20}
+                    size={14}
                     className="animate-spin"
                     style={{ color: 'var(--color-brand-primary)' }}
                   />
@@ -152,17 +156,19 @@ export function NFTSearchInput({
 
         {/* Random dice button - blue like Generator */}
         <button
-          className="w-12 h-12 flex items-center justify-center rounded-xl transition-colors"
+          className="flex items-center justify-center rounded-lg transition-colors flex-shrink-0"
           style={{
             background: '#3B82F6',
             border: '1px solid #3B82F6',
+            width: '40px',
+            height: '40px',
           }}
           onClick={handleSurprise}
           disabled={isLoading}
           aria-label="Get random NFT"
         >
           <motion.span
-            className="text-xl block"
+            className="text-base block"
             variants={prefersReducedMotion ? undefined : diceRollVariants}
             animate={isRolling || isLoading ? 'rolling' : 'idle'}
           >
@@ -188,13 +194,6 @@ export function NFTSearchInput({
         )}
       </AnimatePresence>
 
-      {/* Tagline */}
-      <p
-        className="text-xs px-1 font-medium"
-        style={{ color: 'var(--color-text-muted)' }}
-      >
-        AI-Powered NFT Analysis And Market Insights
-      </p>
     </div>
   );
 }

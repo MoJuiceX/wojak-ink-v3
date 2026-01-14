@@ -55,13 +55,13 @@ export function useBigPulpPriceDistribution() {
 }
 
 /**
- * Fetch attribute stats
+ * Fetch attribute stats (merges live sales with static data)
  */
 export function useBigPulpAttributes() {
   return useQuery({
     queryKey: bigPulpKeys.attributes(),
     queryFn: () => bigpulpService.getAttributeStats(),
-    ...DATA_CACHE_MAP.traitRarity, // Static data
+    ...DATA_CACHE_MAP.traitSales, // Volatile - refresh often for live sales
   });
 }
 

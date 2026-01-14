@@ -24,6 +24,7 @@ import type {
   PlayerSize,
   RepeatMode,
 } from '@/types/media';
+import { useSettings } from './SettingsContext';
 
 // ============ Initial States ============
 
@@ -77,6 +78,8 @@ const initialPreferences: MediaPreferences = {
 type MediaAction =
   // Video actions
   | { type: 'SET_VIDEO'; video: VideoItem }
+  | { type: 'SET_VIDEO_QUEUE'; videos: VideoItem[]; startIndex?: number }
+  | { type: 'NEXT_VIDEO' }
   | { type: 'PLAY_VIDEO' }
   | { type: 'PAUSE_VIDEO' }
   | { type: 'CLOSE_VIDEO' }
@@ -128,6 +131,52 @@ function mediaReducer(state: MediaState, action: MediaAction): MediaState {
           duration: action.video.duration,
         },
       };
+
+    case 'SET_VIDEO_QUEUE': {
+      const startIndex = action.startIndex ?? 0;
+      return {
+        ...state,
+        videoPlayer: {
+          ...state.videoPlayer,
+          queue: action.videos,
+          queueIndex: startIndex,
+          currentVideo: action.videos[startIndex] || null,
+          currentTime: 0,
+          duration: action.videos[startIndex]?.duration || 0,
+        },
+      };
+    }
+
+    case 'NEXT_VIDEO': {
+      const { queue, queueIndex } = state.videoPlayer;
+      if (queue.length === 0) return state;
+
+      const nextIndex = queueIndex + 1;
+      if (nextIndex >= queue.length) {
+        // End of queue, loop to start
+        return {
+          ...state,
+          videoPlayer: {
+            ...state.videoPlayer,
+            queueIndex: 0,
+            currentVideo: queue[0],
+            currentTime: 0,
+            duration: queue[0]?.duration || 0,
+          },
+        };
+      }
+
+      return {
+        ...state,
+        videoPlayer: {
+          ...state.videoPlayer,
+          queueIndex: nextIndex,
+          currentVideo: queue[nextIndex],
+          currentTime: 0,
+          duration: queue[nextIndex]?.duration || 0,
+        },
+      };
+    }
 
     case 'PLAY_VIDEO':
       return {
@@ -389,6 +438,21 @@ export function MediaProvider({ children }: MediaProviderProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Get settings from SettingsContext
+  const { settings } = useSettings();
+
+  // Calculate effective volumes from settings
+  const musicEnabled = settings.audio.backgroundMusicEnabled;
+  const musicVolume = settings.audio.backgroundMusicVolume;
+
+  // Sync music volume with settings - just control volume, don't pause
+  // This way music keeps playing silently when muted and becomes audible when unmuted
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = musicEnabled ? musicVolume : 0;
+    }
+  }, [musicVolume, musicEnabled]);
+
   // Load preferences from localStorage
   useEffect(() => {
     try {
@@ -493,6 +557,15 @@ export function MediaProvider({ children }: MediaProviderProps) {
   const playVideo = useCallback((video: VideoItem) => {
     dispatch({ type: 'SET_VIDEO', video });
     dispatch({ type: 'PLAY_VIDEO' });
+  }, []);
+
+  const setVideoQueue = useCallback((videos: VideoItem[], startIndex?: number) => {
+    dispatch({ type: 'SET_VIDEO_QUEUE', videos, startIndex });
+    dispatch({ type: 'PLAY_VIDEO' });
+  }, []);
+
+  const nextVideo = useCallback(() => {
+    dispatch({ type: 'NEXT_VIDEO' });
   }, []);
 
   const pauseVideo = useCallback(() => {
@@ -607,6 +680,8 @@ export function MediaProvider({ children }: MediaProviderProps) {
     () => ({
       videoPlayer: state.videoPlayer,
       playVideo,
+      setVideoQueue,
+      nextVideo,
       pauseVideo,
       closeVideoPlayer,
       setVideoVolume,
@@ -637,6 +712,8 @@ export function MediaProvider({ children }: MediaProviderProps) {
       state.musicPlayer,
       state.preferences,
       playVideo,
+      setVideoQueue,
+      nextVideo,
       pauseVideo,
       closeVideoPlayer,
       setVideoVolume,

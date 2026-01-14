@@ -199,6 +199,8 @@ export interface MediaContextValue {
   // Video
   videoPlayer: VideoPlayerState;
   playVideo: (video: VideoItem) => void;
+  setVideoQueue: (videos: VideoItem[], startIndex?: number) => void;
+  nextVideo: () => void;
   pauseVideo: () => void;
   closeVideoPlayer: () => void;
   setVideoVolume: (volume: number) => void;

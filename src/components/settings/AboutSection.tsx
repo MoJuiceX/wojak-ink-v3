@@ -95,13 +95,13 @@ export function AboutSection() {
           className="text-sm mb-2"
           style={{ color: 'var(--color-text-secondary)' }}
         >
-          4,200 Wojak Farmers Plot on Chia Blockchain
+          🍊 4,200 Wojak Farmers Plot NFTs on Chia 🌱
         </p>
         <p
           className="text-sm"
           style={{ color: 'var(--color-text-muted)' }}
         >
-          A Tang Gang Production
+          An Orange Labs production
         </p>
 
         {/* Divider */}
@@ -155,16 +155,10 @@ export function AboutSection() {
 
         {/* Credits */}
         <p
-          className="text-xs mb-1"
-          style={{ color: 'var(--color-text-secondary)' }}
-        >
-          Built with Tang Gang Studios
-        </p>
-        <p
           className="text-xs"
           style={{ color: 'var(--color-text-muted)' }}
         >
-          2024-2025 Wojak.ink. All rights reserved.
+          2026 Wojak.ink. All rights reserved.
         </p>
 
         {/* Admin Action */}

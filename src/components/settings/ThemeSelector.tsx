@@ -35,12 +35,9 @@ export function ThemeSelector({ selectedTheme, onThemeChange }: ThemeSelectorPro
           className="text-lg font-bold"
           style={{ color: 'var(--color-text-primary)' }}
         >
-          Choose Your Vibe
+          What's your Vibe?
         </h2>
       </div>
-      <p style={{ color: 'var(--color-text-muted)' }} className="text-sm">
-        Select a theme that matches your style
-      </p>
 
       {/* Theme Grid */}
       <motion.div
@@ -49,7 +46,7 @@ export function ThemeSelector({ selectedTheme, onThemeChange }: ThemeSelectorPro
         variants={prefersReducedMotion ? undefined : staggerContainerVariants}
         initial="initial"
         animate="animate"
-        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"
+        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4"
       >
         {SETTINGS_THEMES.map((theme) => (
           <ThemeCard

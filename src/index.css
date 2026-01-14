@@ -239,6 +239,56 @@
 }
 
 /* ----------------------------------------
+   VOID THEME - "Pure Black"
+   ---------------------------------------- */
+[data-theme="void"] {
+  /* Background Hierarchy - Pure black for OLED */
+  --color-bg-primary: #000000;
+  --color-bg-secondary: #080808;
+  --color-bg-tertiary: #101010;
+  --color-bg-elevated: #181818;
+
+  /* Text Hierarchy */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a0a0a0;
+  --color-text-muted: #606060;
+  --color-text-accent: #ff6b00;
+
+  /* Brand Colors */
+  --color-brand-primary: #ff6b00;
+  --color-brand-glow: #ff8c00;
+  --color-brand-deep: #cc5500;
+
+  /* Surface Effects */
+  --color-glass-bg: rgba(255, 255, 255, 0.03);
+  --color-glass-hover: rgba(255, 255, 255, 0.06);
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-glow: rgba(255, 107, 0, 0.3);
+
+  /* Header Background */
+  --color-header-bg: rgba(0, 0, 0, 0.9);
+  --color-header-bg-scrolled: rgba(0, 0, 0, 0.98);
+
+  /* Glow System */
+  --glow-primary: 0 0 20px rgba(255, 107, 0, 0.5);
+  --glow-intense: 0 0 40px rgba(255, 107, 0, 0.4), 0 0 80px rgba(255, 107, 0, 0.2);
+  --glow-subtle: 0 0 10px rgba(255, 107, 0, 0.3);
+  --glow-text: 0 0 30px rgba(255, 107, 0, 0.6);
+
+  /* Gradients */
+  --gradient-hero: linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #000000 100%);
+  --gradient-card: linear-gradient(180deg, rgba(255, 107, 0, 0.05) 0%, transparent 100%);
+  --gradient-accent: linear-gradient(90deg, #ff6b00 0%, #ff8c00 100%);
+  --gradient-mesh: radial-gradient(ellipse at 20% 50%, rgba(255, 107, 0, 0.08) 0%, transparent 50%);
+
+  /* Grid Color */
+  --grid-color: rgba(255, 107, 0, 0.03);
+  --grid-color-strong: rgba(255, 107, 0, 0.06);
+
+  color-scheme: dark;
+}
+
+/* ----------------------------------------
    LIGHT THEME - "Clean Canvas"
    ---------------------------------------- */
 [data-theme="light"] {

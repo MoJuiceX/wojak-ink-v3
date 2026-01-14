@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { initializeSalesDatabank, getSalesCount } from '@/services/salesDatabank';
+import { initializeSalesDatabank, getSalesCount, fixSuspiciousSales } from '@/services/salesDatabank';
 import { syncDexieSales } from '@/services/dexieSalesService';
 
 interface SalesProviderProps {
@@ -47,18 +47,35 @@ export function SalesProvider({ children }: SalesProviderProps) {
 
     console.log('[SalesProvider] Loaded', count, 'cached sales');
 
+    // Fix any sales with incorrect token conversion rates (one-time migration)
+    fixSuspiciousSales().then(fixed => {
+      if (fixed > 0) {
+        console.log('[SalesProvider] Fixed', fixed, 'sales with incorrect token rates');
+      }
+    });
+
     // Check if auto-sync is needed (more than 24 hours since last sync)
     if (hoursSinceSync >= AUTO_SYNC_INTERVAL_HOURS) {
       console.log('[SalesProvider] Last sync was', Math.round(hoursSinceSync), 'hours ago - starting daily sync...');
 
       // Delay sync to not block initial render
       const timer = setTimeout(async () => {
+        console.log('[SalesProvider] Triggering sync now...');
         try {
           const result = await syncDexieSales();
           markSyncComplete();
           console.log('[SalesProvider] Daily sync complete:', result);
+          console.log('[SalesProvider] Total sales now:', getSalesCount());
+
+          // Fix any newly imported sales with incorrect token rates
+          if (result.imported > 0) {
+            const fixed = await fixSuspiciousSales();
+            if (fixed > 0) {
+              console.log('[SalesProvider] Fixed', fixed, 'newly imported sales');
+            }
+          }
         } catch (error) {
-          console.warn('[SalesProvider] Daily sync failed:', error);
+          console.error('[SalesProvider] Daily sync failed:', error);
         }
       }, 3000);
 

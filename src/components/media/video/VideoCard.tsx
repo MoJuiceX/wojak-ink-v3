@@ -77,17 +77,6 @@ export const VideoCard = memo(function VideoCard({ video, onClick }: VideoCardPr
           </div>
         </motion.div>
 
-        {/* Duration badge */}
-        <div
-          className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded text-xs font-medium"
-          style={{
-            background: 'rgba(0, 0, 0, 0.8)',
-            color: 'white',
-          }}
-        >
-          {video.durationFormatted}
-        </div>
-
         {/* Accessibility badges */}
         <div className="absolute bottom-2 left-2 flex gap-1">
           {video.hasCaptions && (

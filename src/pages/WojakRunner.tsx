@@ -1,16 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect, useRef } from 'react';
-import {
-  IonContent,
-  IonHeader,
-  IonPage,
-  IonTitle,
-  IonToolbar,
-  IonButton,
-  IonIcon,
-  IonButtons,
-} from '@ionic/react';
-import { informationCircleOutline, close } from 'ionicons/icons';
+import { useGameSounds } from '@/hooks/useGameSounds';
 import './WojakRunner.css';
 
 interface Obstacle {
@@ -26,13 +16,24 @@ interface Collectible {
   y: number;
 }
 
+interface LeaderboardEntry {
+  name: string;
+  score: number;
+  date: string;
+}
+
 const _LANES = [0, 1, 2];
 const LANE_WIDTH = 80;
 const PLAYER_SIZE = 50;
 const OBSTACLE_SIZE = 45;
 const COLLECTIBLE_SIZE = 35;
 
+// Sad images for game over screen (1-19)
+const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/games/sad_runner_${i + 1}.png`);
+
 const WojakRunner: React.FC = () => {
+  const { playCollect, playSpeedUp, playGameOver } = useGameSounds();
+
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
   const [playerLane, setPlayerLane] = useState(1);
   const [obstacles, setObstacles] = useState<Obstacle[]>([]);
@@ -43,6 +44,12 @@ const WojakRunner: React.FC = () => {
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('wojakRunnerHighScore') || '0', 10);
   });
+  const [playerName, setPlayerName] = useState('');
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(() => {
+    const saved = localStorage.getItem('wojakRunnerLeaderboard');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [sadImage, setSadImage] = useState('');
 
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
@@ -50,7 +57,18 @@ const WojakRunner: React.FC = () => {
   const collectibleIdRef = useRef(0);
   const touchStartXRef = useRef(0);
   const lastSpawnRef = useRef(0);
-  const [showInfo, setShowInfo] = useState(false);
+
+  // Sound refs for use in game loop
+  const playCollectRef = useRef(playCollect);
+  const playSpeedUpRef = useRef(playSpeedUp);
+  const playGameOverRef = useRef(playGameOver);
+
+  // Keep refs updated
+  useEffect(() => {
+    playCollectRef.current = playCollect;
+    playSpeedUpRef.current = playSpeedUp;
+    playGameOverRef.current = playGameOver;
+  }, [playCollect, playSpeedUp, playGameOver]);
 
   const startGame = () => {
     setPlayerLane(1);
@@ -62,7 +80,38 @@ const WojakRunner: React.FC = () => {
     obstacleIdRef.current = 0;
     collectibleIdRef.current = 0;
     lastSpawnRef.current = 0;
+    setPlayerName('');
     setGameState('playing');
+  };
+
+  const goToMenu = () => {
+    setGameState('idle');
+    setPlayerName('');
+  };
+
+  const saveScore = () => {
+    if (!playerName.trim()) return;
+
+    const finalScore = score + Math.floor(distance / 10);
+    const newEntry: LeaderboardEntry = {
+      name: playerName.trim(),
+      score: finalScore,
+      date: new Date().toISOString().split('T')[0],
+    };
+
+    const updatedLeaderboard = [...leaderboard, newEntry]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+
+    setLeaderboard(updatedLeaderboard);
+    localStorage.setItem('wojakRunnerLeaderboard', JSON.stringify(updatedLeaderboard));
+    setPlayerName('');
+    goToMenu();
+  };
+
+  const skipSaveScore = () => {
+    setPlayerName('');
+    goToMenu();
   };
 
   // Swipe controls
@@ -113,6 +162,7 @@ const WojakRunner: React.FC = () => {
         const newDist = prev + 1;
         if (newDist % 500 === 0) {
           setSpeed(s => Math.min(s + 0.5, 15));
+          playSpeedUpRef.current();
         }
         return newDist;
       });
@@ -164,8 +214,8 @@ const WojakRunner: React.FC = () => {
           .filter(c => c.y < height + COLLECTIBLE_SIZE)
       );
 
-      // Collision detection
-      const playerY = height - 120;
+      // Collision detection - player is now at bottom: 60px
+      const playerY = height - 60 - PLAYER_SIZE;
       const _playerX = playerLane * LANE_WIDTH + LANE_WIDTH / 2;
 
       // Check obstacle collision
@@ -176,6 +226,9 @@ const WojakRunner: React.FC = () => {
             obstacleY + OBSTACLE_SIZE > playerY &&
             obstacleY < playerY + PLAYER_SIZE
           ) {
+            // Select random sad image
+            playGameOverRef.current();
+            setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
             setGameState('gameover');
             const finalScore = score + Math.floor(distance / 10);
             if (finalScore > highScore) {
@@ -196,6 +249,7 @@ const WojakRunner: React.FC = () => {
               collectibleY + COLLECTIBLE_SIZE > playerY &&
               collectibleY < playerY + PLAYER_SIZE
             ) {
+              playCollectRef.current();
               setScore(s => s + 10);
               return; // Don't add to remaining
             }
@@ -222,68 +276,125 @@ const WojakRunner: React.FC = () => {
   const laneOffset = (width - LANE_WIDTH * 3) / 2;
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonButtons slot="start">
-            <IonButton onClick={() => setShowInfo(true)}>
-              <IonIcon icon={informationCircleOutline} />
-            </IonButton>
-          </IonButtons>
-          <IonTitle>Wojak Runner</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent fullscreen className="runner-content" scrollY={false}>
-        {gameState === 'playing' && (
-          <div className="runner-hud">
-            <div className="hud-item">
-              <span className="hud-label">Score</span>
-              <span className="hud-value">{totalScore}</span>
-            </div>
-            <div className="hud-item">
-              <span className="hud-label">Best</span>
-              <span className="hud-value">{highScore}</span>
-            </div>
+    <div className={`runner-container ${gameState === 'playing' ? 'playing-mode' : ''}`}>
+      {/* Title Bar HUD - shown during gameplay */}
+      {gameState === 'playing' && (
+        <div className="runner-titlebar">
+          <div className="titlebar-item">
+            <span className="hud-label">Score</span>
+            <span className="hud-value">{totalScore}</span>
           </div>
-        )}
+          <div className="titlebar-item">
+            <span className="hud-label">Best</span>
+            <span className="hud-value">{highScore}</span>
+          </div>
+          <div className="titlebar-item">
+            <span className="hud-label">Speed</span>
+            <span className="hud-value">{speed.toFixed(1)}x</span>
+          </div>
+        </div>
+      )}
 
+      <div className="runner-content">
         <div
           ref={gameAreaRef}
-          className="runner-area"
+          className={`runner-area ${gameState === 'playing' ? 'playing' : ''}`}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
+          {/* Main Menu - Horizontal split layout */}
           {gameState === 'idle' && (
-            <div className="game-menu">
-              <div className="game-title">Wojak Runner</div>
-              <div className="game-emoji">🏃</div>
-              <p className="game-desc">Swipe left/right to dodge!</p>
-              <p className="game-desc">Collect oranges for points</p>
-              {highScore > 0 && (
-                <p className="high-score">High Score: {highScore}</p>
-              )}
-              <IonButton onClick={startGame} className="play-btn">
-                Play
-              </IonButton>
+            <div className="game-menu-split">
+              {/* Left side - Title and Play */}
+              <div className="menu-left">
+                <div className="game-title">Wojak Runner</div>
+                <div className="game-emoji">🏃</div>
+                <p className="game-desc">Swipe left/right to dodge!</p>
+                <p className="game-desc">🐫 Camels and 🐻 bears will kill you!</p>
+                <p className="game-desc">Collect 🍊 oranges for points</p>
+                <button onClick={startGame} className="play-btn">
+                  Play
+                </button>
+              </div>
+
+              {/* Right side - Leaderboard */}
+              <div className="menu-right">
+                <div className="leaderboard">
+                  <h3 className="leaderboard-title">Leaderboard</h3>
+                  <div className="leaderboard-list">
+                    {Array.from({ length: 10 }, (_, index) => {
+                      const entry = leaderboard[index];
+                      return (
+                        <div key={index} className="leaderboard-entry">
+                          <span className="leaderboard-rank">#{index + 1}</span>
+                          <span className="leaderboard-name">{entry?.name || '---'}</span>
+                          <span className="leaderboard-score">{entry?.score || '-'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
+          {/* Game Over - Save Score Screen */}
           {gameState === 'gameover' && (
-            <div className="game-menu">
-              <div className="game-title">Game Over!</div>
-              <div className="final-score">
-                <span className="score-label">Score</span>
-                <span className="score-value">{totalScore}</span>
+            <div className="game-over-screen">
+              {/* Left side - Sad Image */}
+              <div className="game-over-left">
+                {sadImage ? (
+                  <img
+                    src={sadImage}
+                    alt="Game Over"
+                    className="sad-image-large"
+                  />
+                ) : (
+                  <div className="game-over-emoji">💀</div>
+                )}
               </div>
-              {totalScore >= highScore && totalScore > 0 && (
-                <div className="new-record">New Record!</div>
-              )}
-              <div className="high-score-display">
-                Best: {highScore}
+
+              {/* Right side - Content */}
+              <div className="game-over-right">
+                <div className="game-over-title">Game Over!</div>
+
+                <div className="game-over-reason">
+                  You crashed into an obstacle!
+                </div>
+
+                <div className="game-over-score">
+                  <span className="game-over-score-value">{totalScore}</span>
+                  <span className="game-over-score-label">points</span>
+                </div>
+
+                {totalScore > highScore && (
+                  <div className="game-over-record">🌟 New High Score! 🌟</div>
+                )}
+
+                <div className="game-over-form">
+                  <input
+                    type="text"
+                    className="game-over-input"
+                    placeholder="Enter your name"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    maxLength={15}
+                    onKeyDown={(e) => e.key === 'Enter' && saveScore()}
+                  />
+                  <div className="game-over-buttons">
+                    <button
+                      onClick={saveScore}
+                      className="game-over-save"
+                      disabled={!playerName.trim()}
+                    >
+                      Save Score
+                    </button>
+                    <button onClick={skipSaveScore} className="game-over-skip">
+                      Skip
+                    </button>
+                  </div>
+                </div>
               </div>
-              <IonButton onClick={startGame} className="play-btn">
-                Play Again
-              </IonButton>
             </div>
           )}
 
@@ -336,31 +447,8 @@ const WojakRunner: React.FC = () => {
             </>
           )}
         </div>
-
-        {/* Info Modal */}
-        {showInfo && (
-          <div className="info-overlay" onClick={() => setShowInfo(false)}>
-            <div className="info-modal" onClick={(e) => e.stopPropagation()}>
-              <button className="info-close" onClick={() => setShowInfo(false)}>
-                <IonIcon icon={close} />
-              </button>
-              <h2>How to Play</h2>
-              <div className="info-content">
-                <p><strong>Goal:</strong> Run as far as you can while dodging obstacles!</p>
-                <p><strong>Controls:</strong> Swipe left/right to change lanes.</p>
-                <p><strong>Scoring:</strong></p>
-                <ul>
-                  <li>🍊 Collect oranges for +10 points</li>
-                  <li>Distance traveled adds to score</li>
-                  <li>🐫🐻 Avoid camels and bears!</li>
-                  <li>Speed increases over time</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
-      </IonContent>
-    </IonPage>
+      </div>
+    </div>
   );
 };
 

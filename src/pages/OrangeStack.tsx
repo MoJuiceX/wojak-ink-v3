@@ -2,15 +2,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   IonContent,
-  IonHeader,
   IonPage,
-  IonTitle,
-  IonToolbar,
   IonButton,
-  IonIcon,
-  IonButtons,
 } from '@ionic/react';
-import { informationCircleOutline, close } from 'ionicons/icons';
+import { useGameSounds } from '@/hooks/useGameSounds';
 import './OrangeStack.css';
 
 interface Block {
@@ -20,8 +15,18 @@ interface Block {
   y: number;
 }
 
-const BLOCK_HEIGHT = 30;
-const INITIAL_WIDTH = 140; // Wider blocks for easier start
+interface LeaderboardEntry {
+  name: string;
+  score: number;
+  level: number;
+  date: string;
+}
+
+const BLOCK_HEIGHT = 40;
+const INITIAL_WIDTH = 160; // Wider blocks for easier start
+
+// Sad images for game over screen (1-19)
+const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/games/sad_runner_${i + 1}.png`);
 
 // Level configurations - easy to hard
 const LEVEL_CONFIG = {
@@ -30,7 +35,21 @@ const LEVEL_CONFIG = {
   3: { startSpeed: 3.5, speedIncrease: 0.15, blocksToComplete: 15, minBlockWidth: 15 },
 };
 
+// Scoring configuration
+const SCORING = {
+  basePoints: 10,           // Points per successful block
+  perfectBonus: 50,         // Perfect alignment (no trimming)
+  nearPerfectBonus: 20,     // Within 5px of perfect
+  speedBonusMax: 30,        // Max bonus for fast drops
+  speedBonusTime: 2000,     // Drop within 2 seconds for full speed bonus
+  bounceMultiplier: 1,      // Points lost per bounce
+  comboMultiplier: 0.1,     // Each consecutive good drop adds 10% multiplier
+  levelBonus: 100,          // Bonus per level completed
+};
+
 const OrangeStack: React.FC = () => {
+  const { playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver } = useGameSounds();
+
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'levelComplete' | 'gameover'>('idle');
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [currentBlock, setCurrentBlock] = useState<Block | null>(null);
@@ -42,13 +61,24 @@ const OrangeStack: React.FC = () => {
   });
   const [speed, setSpeed] = useState(1.5);
   const [direction, setDirection] = useState(1);
+  const [playerName, setPlayerName] = useState('');
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(() => {
+    const saved = localStorage.getItem('orangeStackLeaderboard');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Scoring state
+  const [bounceCount, setBounceCount] = useState(0);
+  const [combo, setCombo] = useState(0);
+  const [lastDropBonus, setLastDropBonus] = useState('');
+  const [sadImage, setSadImage] = useState('');
 
   const gameAreaRef = useRef<HTMLDivElement>(null);
+  const blockSpawnTimeRef = useRef<number>(0);
   const animationRef = useRef<number | undefined>(undefined);
   const blockIdRef = useRef(0);
   const currentBlockRef = useRef<Block | null>(null);
   const blocksRef = useRef<Block[]>([]);
-  const [showInfo, setShowInfo] = useState(false);
 
   // Keep blocksRef in sync with blocks state
   useEffect(() => {
@@ -65,12 +95,17 @@ const OrangeStack: React.FC = () => {
     };
 
     const config = LEVEL_CONFIG[1];
-    setBlocks([baseBlock]);
+    const newBlocks = [baseBlock];
+    setBlocks(newBlocks);
+    blocksRef.current = newBlocks; // Sync ref immediately for accurate collision detection
     setScore(0);
     setLevel(1);
     setLevelScore(0);
     setSpeed(config.startSpeed);
     setDirection(1);
+    setBounceCount(0);
+    setCombo(0);
+    setLastDropBonus('');
     spawnNewBlock(baseBlock.width, baseBlock.x);
     setGameState('playing');
   };
@@ -80,6 +115,10 @@ const OrangeStack: React.FC = () => {
     const newLevel = Math.min(level + 1, 3) as 1 | 2 | 3;
     const config = LEVEL_CONFIG[newLevel];
 
+    // Add level completion bonus
+    const levelBonus = SCORING.levelBonus * level;
+    setScore(prev => prev + levelBonus);
+
     // Reset blocks but keep a wider base for the new level
     const baseBlock: Block = {
       id: blockIdRef.current++,
@@ -88,13 +127,43 @@ const OrangeStack: React.FC = () => {
       y: 0,
     };
 
-    setBlocks([baseBlock]);
+    const newBlocks = [baseBlock];
+    setBlocks(newBlocks);
+    blocksRef.current = newBlocks; // Sync ref immediately
     setLevel(newLevel);
     setLevelScore(0);
     setSpeed(config.startSpeed);
     setDirection(1);
+    setBounceCount(0);
+    setCombo(0);
+    setLastDropBonus('');
     spawnNewBlock(baseBlock.width, baseBlock.x);
     setGameState('playing');
+  };
+
+  const saveScore = () => {
+    if (!playerName.trim() || score === 0) return;
+
+    const newEntry: LeaderboardEntry = {
+      name: playerName.trim(),
+      score,
+      level,
+      date: new Date().toISOString().split('T')[0],
+    };
+
+    const updatedLeaderboard = [...leaderboard, newEntry]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+
+    setLeaderboard(updatedLeaderboard);
+    localStorage.setItem('orangeStackLeaderboard', JSON.stringify(updatedLeaderboard));
+    setPlayerName('');
+    goToMenu();
+  };
+
+  const goToMenu = () => {
+    setGameState('idle');
+    setPlayerName('');
   };
 
   const spawnNewBlock = useCallback((width: number, _lastX?: number) => {
@@ -107,6 +176,8 @@ const OrangeStack: React.FC = () => {
     setCurrentBlock(newBlock);
     currentBlockRef.current = newBlock;
     setDirection(1);
+    blockSpawnTimeRef.current = Date.now();
+    setBounceCount(0); // Reset bounce count for new block
   }, []);
 
   const dropBlock = useCallback(() => {
@@ -130,6 +201,8 @@ const OrangeStack: React.FC = () => {
 
     if (overlapWidth <= 0) {
       // No overlap - game over
+      playGameOver();
+      setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
       setGameState('gameover');
       if (score > highScore) {
         setHighScore(score);
@@ -146,30 +219,72 @@ const OrangeStack: React.FC = () => {
       y: currentBlocks.length,
     };
 
-    const newScore = score + 1;
-    const newLevelScore = levelScore + 1;
+    // Calculate alignment accuracy
+    const trimmedAmount = block.width - overlapWidth;
+    const isPerfect = trimmedAmount === 0;
+    const isNearPerfect = trimmedAmount > 0 && trimmedAmount <= 5;
+    const isGoodDrop = overlapWidth >= block.width * 0.9; // 90%+ accuracy
 
-    setBlocks(prev => [...prev, newBlock]);
-    setScore(newScore);
-    setLevelScore(newLevelScore);
-    setSpeed(prev => prev + config.speedIncrease);
+    // Calculate time bonus (faster = more points)
+    const dropTime = Date.now() - blockSpawnTimeRef.current;
+    const timeBonus = Math.max(0, Math.floor(SCORING.speedBonusMax * (1 - dropTime / SCORING.speedBonusTime)));
 
-    // Check if block is too small
-    if (overlapWidth < config.minBlockWidth) {
-      setGameState('gameover');
-      if (newScore > highScore) {
-        setHighScore(newScore);
-        localStorage.setItem('orangeStackHighScore', String(newScore));
-      }
-      return;
+    // Calculate bounce penalty
+    const bouncePenalty = bounceCount * SCORING.bounceMultiplier;
+
+    // Update combo
+    const newCombo = isGoodDrop ? combo + 1 : 0;
+    const comboMultiplier = 1 + (newCombo * SCORING.comboMultiplier);
+
+    // Calculate total points for this drop
+    let dropPoints = SCORING.basePoints;
+    let bonusText = '';
+
+    if (isPerfect) {
+      dropPoints += SCORING.perfectBonus;
+      bonusText = 'PERFECT! ';
+      playPerfectBonus();
+    } else if (isNearPerfect) {
+      dropPoints += SCORING.nearPerfectBonus;
+      bonusText = 'Great! ';
+      playBlockLand();
+    } else {
+      playBlockLand();
     }
 
-    // Check for level complete
+    dropPoints += timeBonus;
+    dropPoints -= bouncePenalty;
+    dropPoints = Math.floor(dropPoints * comboMultiplier);
+    dropPoints = Math.max(1, dropPoints); // Minimum 1 point
+
+    if (newCombo >= 3) {
+      bonusText += `${newCombo}x Combo!`;
+      playCombo(newCombo);
+    }
+
+    const newScore = score + dropPoints;
+    const newLevelScore = levelScore + 1;
+
+    setBlocks(prev => {
+      const updated = [...prev, newBlock];
+      blocksRef.current = updated; // Sync ref immediately
+      return updated;
+    });
+    setScore(newScore);
+    setLevelScore(newLevelScore);
+    setCombo(newCombo);
+    setLastDropBonus(bonusText);
+    setSpeed(prev => prev + config.speedIncrease);
+
+    // Check for level complete FIRST (before minBlockWidth check)
     if (newLevelScore >= config.blocksToComplete) {
       if (level < 3) {
+        playWinSound();
         setGameState('levelComplete');
       } else {
-        // Won the game!
+        // Won the game! - no sad image for winners
+        playWinSound();
+        setSadImage('');
         setGameState('gameover');
         if (newScore > highScore) {
           setHighScore(newScore);
@@ -179,9 +294,29 @@ const OrangeStack: React.FC = () => {
       return;
     }
 
+    // Check if block is too small (only if level not complete)
+    if (overlapWidth < config.minBlockWidth) {
+      playGameOver();
+      setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
+      setGameState('gameover');
+      if (newScore > highScore) {
+        setHighScore(newScore);
+        localStorage.setItem('orangeStackHighScore', String(newScore));
+      }
+      return;
+    }
+
     // Spawn next block
     spawnNewBlock(overlapWidth, overlapLeft);
-  }, [gameState, score, levelScore, level, highScore, spawnNewBlock]);
+  }, [gameState, score, levelScore, level, highScore, spawnNewBlock, bounceCount, combo, playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver]);
+
+  // Clear bonus text after a short time
+  useEffect(() => {
+    if (lastDropBonus) {
+      const timer = setTimeout(() => setLastDropBonus(''), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [lastDropBonus]);
 
   // Animation loop
   useEffect(() => {
@@ -196,15 +331,17 @@ const OrangeStack: React.FC = () => {
         let newX = prev.x + speed * direction;
         let newDirection = direction;
 
-        // Bounce off walls
+        // Bounce off walls - increment bounce count
         if (newX + prev.width > areaWidth) {
           newX = areaWidth - prev.width;
           newDirection = -1;
           setDirection(-1);
+          setBounceCount(b => b + 1);
         } else if (newX < 0) {
           newX = 0;
           newDirection = 1;
           setDirection(1);
+          setBounceCount(b => b + 1);
         }
 
         const updated = { ...prev, x: newX };
@@ -238,32 +375,33 @@ const OrangeStack: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonButtons slot="start">
-            <IonButton onClick={() => setShowInfo(true)}>
-              <IonIcon icon={informationCircleOutline} />
-            </IonButton>
-          </IonButtons>
-          <IonTitle>Orange Stack</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent fullscreen className="stack-content" scrollY={false}>
         {gameState === 'playing' && (
-          <div className="stack-hud">
-            <div className="hud-item">
-              <span className="hud-label">Level</span>
-              <span className="hud-value">{level}</span>
+          <>
+            <div className="stack-hud">
+              <div className="hud-item">
+                <span className="hud-label">Level</span>
+                <span className="hud-value">{level}</span>
+              </div>
+              <div className="hud-item">
+                <span className="hud-label">Progress</span>
+                <span className="hud-value">{levelScore}/{LEVEL_CONFIG[level as 1 | 2 | 3].blocksToComplete}</span>
+              </div>
+              <div className="hud-item">
+                <span className="hud-label">Score</span>
+                <span className="hud-value">{score}</span>
+              </div>
+              {combo >= 2 && (
+                <div className="hud-item combo">
+                  <span className="hud-label">Combo</span>
+                  <span className="hud-value">{combo}x</span>
+                </div>
+              )}
             </div>
-            <div className="hud-item">
-              <span className="hud-label">Progress</span>
-              <span className="hud-value">{levelScore}/{LEVEL_CONFIG[level as 1 | 2 | 3].blocksToComplete}</span>
-            </div>
-            <div className="hud-item">
-              <span className="hud-label">Score</span>
-              <span className="hud-value">{score}</span>
-            </div>
-          </div>
+            {lastDropBonus && (
+              <div className="drop-bonus">{lastDropBonus}</div>
+            )}
+          </>
         )}
 
         <div
@@ -273,17 +411,36 @@ const OrangeStack: React.FC = () => {
           onTouchStart={(e) => { e.preventDefault(); handleTap(); }}
         >
           {gameState === 'idle' && (
-            <div className="game-menu">
-              <div className="game-title">Orange Stack</div>
-              <div className="game-emoji">&#x1F34A;</div>
-              <p className="game-desc">Tap to stack oranges!</p>
-              <p className="game-desc">Align perfectly for high scores</p>
-              {highScore > 0 && (
-                <p className="high-score">High Score: {highScore}</p>
-              )}
-              <IonButton onClick={startGame} className="play-btn">
-                Play
-              </IonButton>
+            <div className="game-menu-split">
+              {/* Left side - Title and Play */}
+              <div className="menu-left">
+                <div className="game-title">Orange Stack</div>
+                <img src="/assets/games/stack.png" alt="Orange Stack" className="game-image" />
+                <p className="game-desc">Tap to stack oranges!</p>
+                <p className="game-desc">Complete 3 levels to win!</p>
+                <IonButton onClick={startGame} className="play-btn">
+                  Play
+                </IonButton>
+              </div>
+
+              {/* Right side - Leaderboard */}
+              <div className="menu-right">
+                <div className="leaderboard">
+                  <h3 className="leaderboard-title">Leaderboard</h3>
+                  <div className="leaderboard-list">
+                    {Array.from({ length: 10 }, (_, index) => {
+                      const entry = leaderboard[index];
+                      return (
+                        <div key={index} className="leaderboard-entry">
+                          <span className="leaderboard-rank">#{index + 1}</span>
+                          <span className="leaderboard-name">{entry?.name || '---'}</span>
+                          <span className="leaderboard-score">{entry?.score || '-'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -310,22 +467,60 @@ const OrangeStack: React.FC = () => {
           )}
 
           {gameState === 'gameover' && (
-            <div className="game-menu">
-              <div className="game-title">{level === 3 && levelScore >= LEVEL_CONFIG[3].blocksToComplete ? 'You Win!' : 'Game Over!'}</div>
-              <div className="final-score">
-                <span className="score-label">Final Score</span>
-                <span className="score-value">{score}</span>
+            <div className="game-over-screen">
+              {/* Left side - Image or Emoji */}
+              <div className="game-over-left">
+                {sadImage ? (
+                  <img
+                    src={sadImage}
+                    alt="Game Over"
+                    className="sad-image-large"
+                  />
+                ) : (
+                  <div className="game-over-emoji">🏆</div>
+                )}
               </div>
-              <div className="level-reached">Level {level}</div>
-              {score === highScore && score > 0 && (
-                <div className="new-record">New Record!</div>
-              )}
-              <div className="high-score-display">
-                Best: {highScore}
+
+              {/* Right side - Score and form */}
+              <div className="game-over-right">
+                <div className="game-over-title">{level === 3 && levelScore >= LEVEL_CONFIG[3].blocksToComplete ? 'You Win!' : 'Game Over!'}</div>
+                <div className="game-over-reason">Reached Level {level}</div>
+                <div className="game-over-score">
+                  <span className="game-over-score-value">{score}</span>
+                  <span className="game-over-score-label">total points</span>
+                </div>
+
+                {score > 0 ? (
+                  <div className="game-over-form">
+                    <input
+                      type="text"
+                      className="game-over-input"
+                      placeholder="Enter your name"
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value)}
+                      maxLength={15}
+                      onKeyDown={(e) => e.key === 'Enter' && saveScore()}
+                    />
+                    <div className="game-over-buttons">
+                      <button onClick={saveScore} className="game-over-save" disabled={!playerName.trim()}>
+                        Save Score
+                      </button>
+                      <button onClick={goToMenu} className="game-over-skip">
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="game-over-buttons-single">
+                    <IonButton onClick={startGame} className="play-btn">
+                      Try Again
+                    </IonButton>
+                    <button onClick={goToMenu} className="game-over-skip">
+                      Menu
+                    </button>
+                  </div>
+                )}
               </div>
-              <IonButton onClick={startGame} className="play-btn">
-                Play Again
-              </IonButton>
             </div>
           )}
 
@@ -368,28 +563,6 @@ const OrangeStack: React.FC = () => {
           )}
         </div>
 
-        {/* Info Modal */}
-        {showInfo && (
-          <div className="info-overlay" onClick={() => setShowInfo(false)}>
-            <div className="info-modal" onClick={(e) => e.stopPropagation()}>
-              <button className="info-close" onClick={() => setShowInfo(false)}>
-                <IonIcon icon={close} />
-              </button>
-              <h2>How to Play</h2>
-              <div className="info-content">
-                <p><strong>Goal:</strong> Complete all 3 levels by stacking blocks!</p>
-                <p><strong>Controls:</strong> Tap anywhere to drop the moving block.</p>
-                <p><strong>Levels:</strong></p>
-                <ul>
-                  <li>Level 1: Slow speed, 8 blocks</li>
-                  <li>Level 2: Medium speed, 10 blocks</li>
-                  <li>Level 3: Fast speed, 15 blocks</li>
-                </ul>
-                <p><strong>Tips:</strong> Align precisely - overhang gets trimmed!</p>
-              </div>
-            </div>
-          </div>
-        )}
       </IonContent>
     </IonPage>
   );

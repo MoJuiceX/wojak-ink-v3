@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './StartupSequence.css'
 import BootSequence, { TANGY_BOOT_LINES } from './BootSequence'
+import { prefetchTreasuryWithImages } from '@/services/treasuryApi'
 
 interface StartupSequenceProps {
   onComplete: () => void
@@ -68,9 +69,18 @@ export default function StartupSequence({ onComplete }: StartupSequenceProps) {
       setLoadingFading(false)
 
       let ps1FadeStarted = false
+      let prefetchStarted = false
 
       for (let i = 0; i <= 100; i += 2) {
         setProgress(i)
+
+        // Start treasury prefetch at 10% - loads data while user watches progress bar
+        if (i >= 10 && !prefetchStarted) {
+          prefetchStarted = true
+          prefetchTreasuryWithImages().catch(() => {
+            // Silently fail - will retry when user visits Treasury
+          })
+        }
 
         // Start PS1 fadeout at 10% for a long obvious fadeout
         if (i >= 10 && !ps1FadeStarted) {

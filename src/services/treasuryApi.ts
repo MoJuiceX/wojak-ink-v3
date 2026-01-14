@@ -440,6 +440,57 @@ export function preloadTokenLogos(): void {
 }
 
 /**
+ * Preload NFT collection preview images from cached data
+ * Call this after prefetchWalletData() completes
+ */
+export function preloadNftImages(): void {
+  if (!cachedData || !cachedData.nft_collections) return;
+
+  const imageUrls: string[] = [];
+
+  // Collect all preview images from collections
+  cachedData.nft_collections.forEach(collection => {
+    // Collection preview image
+    if (collection.preview_image) {
+      imageUrls.push(collection.preview_image);
+    }
+    // Individual NFT images (limit to first 4 per collection to avoid too many requests)
+    collection.nfts.slice(0, 4).forEach(nft => {
+      if (nft.image_url) {
+        imageUrls.push(nft.image_url);
+      }
+    });
+  });
+
+  // Preload unique images
+  const uniqueUrls = [...new Set(imageUrls)];
+  uniqueUrls.forEach(url => {
+    const img = new Image();
+    img.src = url;
+  });
+
+  console.debug(`[Treasury] Preloading ${uniqueUrls.length} NFT images`);
+}
+
+/**
+ * Prefetch all treasury data and preload images
+ * Designed to be called during boot sequence
+ * Returns a promise that resolves when data is fetched (images load in background)
+ */
+export async function prefetchTreasuryWithImages(): Promise<void> {
+  try {
+    // Fetch wallet data (includes NFT collections)
+    await fetchWalletData(true, true);
+
+    // Preload images in background (non-blocking)
+    preloadTokenLogos();
+    preloadNftImages();
+  } catch (error) {
+    console.warn('[Treasury] Prefetch failed, will retry on Treasury visit:', error);
+  }
+}
+
+/**
  * Get wallet explorer URL
  */
 export function getWalletExplorerUrl(): string {

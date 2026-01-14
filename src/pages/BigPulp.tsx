@@ -6,7 +6,6 @@
 
 import { useCallback, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { X } from 'lucide-react';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useLayout } from '@/hooks/useLayout';
 import { BigPulpProvider, useBigPulp } from '@/contexts/BigPulpContext';
@@ -14,7 +13,6 @@ import {
   NFTSearchInput,
   NFTPreviewCard,
   BigPulpCharacter,
-  AnalysisBadges,
   TabNavigation,
   MarketTab,
   AskTab,
@@ -23,7 +21,7 @@ import {
 
 
 
-function LeftPanel() {
+function TopLeftPanel() {
   const {
     searchQuery,
     setSearchQuery,
@@ -31,8 +29,8 @@ function LeftPanel() {
     surpriseMe,
     isLoading,
     error,
-    currentAnalysis,
     bigPulp,
+    currentNftHeadTrait,
     onTypingComplete,
     skipMessage,
   } = useBigPulp();
@@ -45,40 +43,63 @@ function LeftPanel() {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Search input */}
-      <NFTSearchInput
-        value={searchQuery}
-        onChange={setSearchQuery}
-        onSearch={handleSearch}
-        onSurprise={surpriseMe}
-        isLoading={isLoading}
-        error={error || undefined}
-      />
-
-      {/* NFT Preview Card */}
-      <NFTPreviewCard analysis={currentAnalysis} isLoading={isLoading} />
-
-      {/* BigPulp Character */}
+    <div className="relative h-full">
+      {/* BigPulp Character with Orange Grove background */}
       <BigPulpCharacter
-        state={bigPulp}
-        onMessageComplete={onTypingComplete}
+        message={bigPulp.message}
+        isTyping={bigPulp.isTyping}
+        headTrait={currentNftHeadTrait || undefined}
+        onTypingComplete={onTypingComplete}
         onSkipMessage={skipMessage}
       />
 
-      {/* Analysis Badges */}
-      {currentAnalysis && (
-        <AnalysisBadges
-          badges={currentAnalysis.badges}
-          provenance={currentAnalysis.provenance}
-          rareCombos={currentAnalysis.rareCombos}
+      {/* Search input - overlaid on top of Orange Grove, aligned with speech bubble */}
+      <div className="absolute top-3" style={{ zIndex: 10, left: '35px', width: '280px' }}>
+        <NFTSearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          onSearch={handleSearch}
+          onSurprise={surpriseMe}
+          isLoading={isLoading}
+          error={error || undefined}
         />
-      )}
+      </div>
     </div>
   );
 }
 
-function RightPanel() {
+function TopRightPanel() {
+  const {
+    currentAnalysis,
+    isLoading,
+    currentNftTraits,
+    currentNftHpTraits,
+    currentNftNamedCombos,
+    currentNftCultures,
+    currentNftIsFiveHp,
+    currentNftIsHomieEdition,
+    currentNftHomieName,
+  } = useBigPulp();
+
+  return (
+    <div className="h-full overflow-hidden">
+      {/* NFT Preview Card - constrained to container */}
+      <NFTPreviewCard
+        analysis={currentAnalysis}
+        isLoading={isLoading}
+        traits={currentNftTraits}
+        hpTraits={currentNftHpTraits}
+        namedCombos={currentNftNamedCombos}
+        cultures={currentNftCultures}
+        isFiveHp={currentNftIsFiveHp}
+        isHomieEdition={currentNftIsHomieEdition}
+        homieName={currentNftHomieName}
+      />
+    </div>
+  );
+}
+
+function BottomPanel() {
   const {
     activeTab,
     setActiveTab,
@@ -101,12 +122,18 @@ function RightPanel() {
   }, []);
 
   return (
-    <div className="flex flex-col h-full">
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{
+        background: 'var(--color-glass-bg)',
+        border: '1px solid var(--color-border)',
+      }}
+    >
       {/* Tab navigation */}
       <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Tab content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="p-4">
         <AnimatePresence mode="wait">
           {activeTab === 'market' && (
             <motion.div
@@ -174,121 +201,16 @@ function RightPanel() {
 }
 
 function MobileLayout() {
-  const { activeTab, setActiveTab, isModalOpen, toggleModal } = useBigPulp();
-  const prefersReducedMotion = useReducedMotion();
-
   return (
     <div className="space-y-6">
-      {/* Left panel content */}
-      <LeftPanel />
+      {/* Search + BigPulp Character */}
+      <TopLeftPanel />
 
-      {/* Tab buttons to open modal */}
-      <div className="flex gap-3">
-        <button
-          className="flex-1 py-3 rounded-xl font-medium text-sm transition-colors"
-          style={{
-            background: 'var(--color-glass-bg)',
-            border: '1px solid var(--color-border)',
-            color: 'var(--color-text-secondary)',
-          }}
-          onClick={() => {
-            setActiveTab('market');
-            toggleModal(true);
-          }}
-        >
-          View Market
-        </button>
-        <button
-          className="flex-1 py-3 rounded-xl font-medium text-sm transition-colors"
-          style={{
-            background: 'var(--color-glass-bg)',
-            border: '1px solid var(--color-border)',
-            color: 'var(--color-text-secondary)',
-          }}
-          onClick={() => {
-            setActiveTab('ask');
-            toggleModal(true);
-          }}
-        >
-          askBigPulp
-        </button>
-        <button
-          className="flex-1 py-3 rounded-xl font-medium text-sm transition-colors"
-          style={{
-            background: 'var(--color-glass-bg)',
-            border: '1px solid var(--color-border)',
-            color: 'var(--color-text-secondary)',
-          }}
-          onClick={() => {
-            setActiveTab('attributes');
-            toggleModal(true);
-          }}
-        >
-          Attributes
-        </button>
-      </div>
+      {/* NFT Preview + Badges */}
+      <TopRightPanel />
 
-      {/* Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              className="fixed inset-0 z-40"
-              style={{ background: 'rgba(0, 0, 0, 0.7)' }}
-              initial={prefersReducedMotion ? {} : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={prefersReducedMotion ? {} : { opacity: 0 }}
-              onClick={() => toggleModal(false)}
-            />
-
-            {/* Modal content */}
-            <motion.div
-              className="fixed inset-x-4 top-16 bottom-20 z-50 rounded-2xl overflow-hidden flex flex-col"
-              style={{
-                background: 'var(--color-bg-secondary)',
-                border: '1px solid var(--color-border)',
-              }}
-              initial={prefersReducedMotion ? {} : { opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={prefersReducedMotion ? {} : { opacity: 0, y: 50 }}
-            >
-              {/* Modal header */}
-              <div
-                className="flex items-center justify-between p-4"
-                style={{ borderBottom: '1px solid var(--color-border)' }}
-              >
-                <h3
-                  className="font-semibold"
-                  style={{ color: 'var(--color-text-primary)' }}
-                >
-                  {activeTab === 'market'
-                    ? 'Market Analysis'
-                    : activeTab === 'ask'
-                      ? 'Ask BigPulp'
-                      : 'Attributes'}
-                </h3>
-                <button
-                  className="p-2 rounded-lg transition-colors"
-                  style={{
-                    background: 'var(--color-glass-bg)',
-                    color: 'var(--color-text-secondary)',
-                  }}
-                  onClick={() => toggleModal(false)}
-                  aria-label="Close modal"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Modal body */}
-              <div className="flex-1 overflow-hidden">
-                <RightPanel />
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* Market/Ask/Attributes - Full width white box */}
+      <BottomPanel />
     </div>
   );
 }
@@ -296,39 +218,24 @@ function MobileLayout() {
 function DesktopLayout() {
   return (
     <div
-      className="flex gap-6 min-h-[calc(100vh-200px)]"
+      className="space-y-6"
       style={{ maxWidth: '1400px', margin: '0 auto' }}
     >
-      {/* Left Panel - 50% width */}
-      <div
-        className="flex-1 overflow-y-auto"
-        style={{ minWidth: 0 }}
-      >
-        <LeftPanel />
+      {/* Top Row: Search/BigPulp (left) | NFT Preview (right) - same height */}
+      <div className="flex gap-6" style={{ height: '400px' }}>
+        {/* Left Panel - BigPulp with search overlay */}
+        <div className="flex-1" style={{ minWidth: 0, height: '100%' }}>
+          <TopLeftPanel />
+        </div>
+
+        {/* Right Panel - NFT Preview - same height */}
+        <div className="flex-1" style={{ minWidth: 0, height: '100%' }}>
+          <TopRightPanel />
+        </div>
       </div>
 
-      {/* Divider with glow */}
-      <div
-        className="w-px flex-shrink-0 relative"
-        style={{ background: 'var(--color-brand-primary)' }}
-      >
-        <div
-          className="absolute inset-0 blur-md"
-          style={{ background: 'var(--color-brand-glow)' }}
-        />
-      </div>
-
-      {/* Right Panel - 50% width */}
-      <div
-        className="flex-1 rounded-2xl overflow-hidden"
-        style={{
-          background: 'var(--color-glass-bg)',
-          border: '1px solid var(--color-border)',
-          minWidth: 0,
-        }}
-      >
-        <RightPanel />
-      </div>
+      {/* Bottom Row: Market/Ask/Attributes - Full width */}
+      <BottomPanel />
     </div>
   );
 }
@@ -348,7 +255,7 @@ function BigPulpContent() {
 
   return (
     <PageTransition>
-      <div className="min-h-full" style={{ padding: contentPadding }}>
+      <div style={{ padding: contentPadding, minHeight: isDesktop ? 'calc(100dvh - 64px)' : 'auto' }}>
         {/* Responsive layout - no header needed, title is in browser tab */}
         {isDesktop ? <DesktopLayout /> : <MobileLayout />}
       </div>

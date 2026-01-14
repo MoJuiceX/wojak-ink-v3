@@ -1,217 +1,197 @@
 /**
  * BigPulpCharacter Component
  *
- * Animated BigPulp character with speech bubble and typing animation.
+ * Two-layer animated BigPulp character with Orange Grove background
+ * and speech bubble with typing animation.
  */
 
-import { useCallback } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import type { BigPulpState } from '@/types/bigpulp';
-import { useTypingAnimation } from '@/hooks/useTypingAnimation';
-import {
-  characterIdleVariants,
-  speechBubbleVariants,
-  speechBubbleTransition,
-  TYPING_CONFIG,
-} from '@/config/bigpulpAnimations';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import '../../components/BigPulpCharacter.css';
 
 interface BigPulpCharacterProps {
-  state: BigPulpState;
-  onMessageComplete?: () => void;
+  message: string;
+  isTyping?: boolean;
+  headTrait?: string;
+  onTypingComplete?: () => void;
   onSkipMessage?: () => void;
-  compact?: boolean;
 }
 
-// BigPulp character image variants
-const BIGPULP_VARIANTS: Record<string, string> = {
-  default: '/assets/BigPulp/art/BigP_base.png',
-  crown: '/assets/BigPulp/art/BigP_crown.png',
-  beret: '/assets/BigPulp/art/BigP_beret.png',
-  fedora: '/assets/BigPulp/art/BigP_Fedora.png',
-  viking: '/assets/BigPulp/art/BigP_viking.png',
-  propeller: '/assets/BigPulp/art/BigP_propeller.png',
-  tin: '/assets/BigPulp/art/BigP_tin.png',
-  clown: '/assets/BigPulp/art/BigP_clown.png',
-  'super-wojak': '/assets/BigPulp/art/BigP_super_wojak.png',
-  'wiz-orange': '/assets/BigPulp/art/BigP_wiz_orange.png',
-  'wiz-blue': '/assets/BigPulp/art/BigP_wiz_blue.png',
-  'wiz-pink': '/assets/BigPulp/art/BigP_wiz_pink.png',
-  'wiz-red': '/assets/BigPulp/art/BigP_wiz_red.png',
-  'wiz-yellow': '/assets/BigPulp/art/BigP_wiz_yellow.png',
-  'wiz-dark-blue': '/assets/BigPulp/art/BigP_wiz_dark_blue.png',
+// Head trait to BigPulp image mapping
+const HEAD_TO_BIGPULP: Record<string, string> = {
+  'Crown': 'BigP_crown.png',
+  'Clown': 'BigP_clown.png',
+  'Military Beret': 'BigP_beret.png',
+  'Viking Helmet': 'BigP_viking.png',
+  'Tin Foil Hat': 'BigP_tin.png',
+  'Super Wojak Hat': 'BigP_super_wojak.png',
+  'Propeller Hat': 'BigP_propeller.png',
+  'Fedora': 'BigP_Fedora.png',
 };
 
-// BigPulp mood to expression mapping (for overlay emoji)
-const MOOD_EXPRESSIONS: Record<string, string> = {
-  neutral: '😐',
-  excited: '🤩',
-  thinking: '🤔',
-  impressed: '😮',
-  suspicious: '🤨',
-  chill: '😎',
-};
+// Wizard hat colors (random selection)
+const WIZARD_COLORS = [
+  'BigP_wiz_orange.png',
+  'BigP_wiz_red.png',
+  'BigP_wiz_pink.png',
+  'BigP_wiz_blue.png',
+  'BigP_wiz_yellow.png',
+  'BigP_wiz_dark_blue.png',
+];
+
+// All images for random fallback
+const ALL_BIGPULP_IMAGES = [
+  'BigP_crown.png',
+  'BigP_clown.png',
+  'BigP_beret.png',
+  'BigP_viking.png',
+  'BigP_tin.png',
+  'BigP_super_wojak.png',
+  'BigP_propeller.png',
+  'BigP_Fedora.png',
+  ...WIZARD_COLORS,
+];
 
 export function BigPulpCharacter({
-  state,
-  onMessageComplete,
+  message,
+  isTyping = false,
+  headTrait,
+  onTypingComplete,
   onSkipMessage,
-  compact = false,
 }: BigPulpCharacterProps) {
-  const prefersReducedMotion = useReducedMotion();
+  const [displayedText, setDisplayedText] = useState('');
+  const [isAnimatingText, setIsAnimatingText] = useState(false);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const typingTimerRef = useRef<number | null>(null);
 
-  // Typing animation for current message
-  const { displayedText, isTyping, cursorVisible, skip } = useTypingAnimation(
-    state.message,
-    {
-      onComplete: () => {
-        // Advance queue after delay if there are more messages
-        if (state.messageQueue.length > 0) {
-          setTimeout(() => {
-            onMessageComplete?.();
-          }, TYPING_CONFIG.messageDelay);
-        } else {
-          onMessageComplete?.();
-        }
-      },
+  // Determine which BigPulp image to use based on head trait
+  const bigPulpImage = useMemo(() => {
+    if (!headTrait) {
+      // No trait provided - pick random
+      return ALL_BIGPULP_IMAGES[Math.floor(Math.random() * ALL_BIGPULP_IMAGES.length)];
     }
-  );
 
-  // Handle click to skip message
-  const handleBubbleClick = useCallback(() => {
+    // Check for Wizard Hat - pick random wizard color
+    if (headTrait === 'Wizard Hat') {
+      return WIZARD_COLORS[Math.floor(Math.random() * WIZARD_COLORS.length)];
+    }
+
+    // Check for direct match
+    if (HEAD_TO_BIGPULP[headTrait]) {
+      return HEAD_TO_BIGPULP[headTrait];
+    }
+
+    // No match - pick random
+    return ALL_BIGPULP_IMAGES[Math.floor(Math.random() * ALL_BIGPULP_IMAGES.length)];
+  }, [headTrait]);
+
+  // Typing animation effect
+  useEffect(() => {
+    // Clear any existing timer
+    if (typingTimerRef.current) {
+      clearInterval(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+
+    if (!message) {
+      setDisplayedText('');
+      return;
+    }
+
     if (isTyping) {
-      skip();
-    } else if (state.messageQueue.length > 0) {
+      setIsAnimatingText(true);
+      setDisplayedText('');
+      let index = 0;
+      const typingSpeed = 20; // ms per character
+
+      typingTimerRef.current = window.setInterval(() => {
+        if (index < message.length) {
+          setDisplayedText(message.slice(0, index + 1));
+          index++;
+        } else {
+          if (typingTimerRef.current) {
+            clearInterval(typingTimerRef.current);
+            typingTimerRef.current = null;
+          }
+          setIsAnimatingText(false);
+          onTypingComplete?.();
+        }
+      }, typingSpeed);
+
+      return () => {
+        if (typingTimerRef.current) {
+          clearInterval(typingTimerRef.current);
+          typingTimerRef.current = null;
+        }
+      };
+    } else {
+      setDisplayedText(message);
+      setIsAnimatingText(false);
+    }
+  }, [message, isTyping, onTypingComplete]);
+
+  // Check for overflow (scrollable content)
+  useEffect(() => {
+    const el = contentRef.current;
+    if (el) {
+      setHasOverflow(el.scrollHeight > el.clientHeight);
+    }
+  }, [displayedText]);
+
+  // Handle click to skip typing
+  const handleBubbleClick = () => {
+    if (isAnimatingText && typingTimerRef.current) {
+      // Skip to end of message
+      clearInterval(typingTimerRef.current);
+      typingTimerRef.current = null;
+      setDisplayedText(message);
+      setIsAnimatingText(false);
+      onTypingComplete?.();
+    } else {
       onSkipMessage?.();
     }
-  }, [isTyping, skip, state.messageQueue.length, onSkipMessage]);
-
-  // Handle keyboard skip
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        handleBubbleClick();
-      }
-    },
-    [handleBubbleClick]
-  );
-
-  const characterSize = compact ? 80 : 160;
-  const bubbleMaxWidth = compact ? 180 : 280;
-
-  // Get the appropriate character image
-  const characterImage = BIGPULP_VARIANTS[state.headVariant] || BIGPULP_VARIANTS.default;
+  };
 
   return (
-    <div
-      className={`flex items-start gap-4 ${compact ? 'flex-row' : 'flex-col sm:flex-row'}`}
-    >
-      {/* Character with orange gradient background */}
-      <motion.div
-        className="relative flex-shrink-0 rounded-2xl overflow-hidden"
-        style={{
-          width: characterSize,
-          height: characterSize,
-          background: 'linear-gradient(135deg, #FF6B00 0%, #FF8C00 25%, #FFA500 50%, #32CD32 75%, #228B22 100%)',
+    <div className="bigpulp-character-container">
+      {/* Speech Bubble - positioned at top */}
+      <div
+        className={`speech-bubble ${displayedText ? 'visible' : ''} ${hasOverflow ? 'has-overflow' : ''}`}
+        onClick={handleBubbleClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleBubbleClick();
+          }
         }}
-        variants={prefersReducedMotion ? undefined : characterIdleVariants}
-        animate="idle"
+        aria-live="polite"
       >
-        {/* Character image */}
-        <motion.img
-          key={characterImage}
-          src={characterImage}
-          alt="BigPulp character"
-          className="absolute inset-0 w-full h-full object-contain"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        />
+        <div className="speech-content" ref={contentRef}>
+          {displayedText}
+          {isAnimatingText && <span className="typing-cursor">|</span>}
+        </div>
+        <div className="speech-tail" />
+      </div>
 
-        {/* Mood expression overlay */}
-        <motion.div
-          className="absolute top-1 right-1 p-1 rounded-full"
-          style={{
-            fontSize: characterSize * 0.15,
-            background: 'rgba(0,0,0,0.5)',
-          }}
-          key={state.mood}
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.2 }}
-        >
-          <span role="img" aria-label={`${state.mood} expression`}>
-            {MOOD_EXPRESSIONS[state.mood] || MOOD_EXPRESSIONS.neutral}
-          </span>
-        </motion.div>
-      </motion.div>
-
-      {/* Speech bubble */}
-      <AnimatePresence mode="wait">
-        <motion.button
-          key={state.message}
-          className="relative text-left p-4 rounded-2xl cursor-pointer transition-colors"
-          style={{
-            background: 'var(--color-glass-bg)',
-            border: '1px solid var(--color-border)',
-            maxWidth: bubbleMaxWidth,
-            minHeight: compact ? 50 : 70,
-          }}
-          onClick={handleBubbleClick}
-          onKeyDown={handleKeyDown}
-          variants={prefersReducedMotion ? undefined : speechBubbleVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={speechBubbleTransition}
-          whileHover={prefersReducedMotion ? undefined : { scale: 1.02 }}
-          whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
-          aria-live="polite"
-          aria-label={`BigPulp says: ${state.message}`}
-        >
-          {/* Bubble tail */}
-          <div
-            className="absolute top-4 -left-2 w-3 h-3 transform rotate-45"
-            style={{
-              background: 'var(--color-glass-bg)',
-              borderLeft: '1px solid var(--color-border)',
-              borderBottom: '1px solid var(--color-border)',
-            }}
+      {/* Character with two layers */}
+      <div className="bigpulp-character">
+        <div className="character-layers">
+          {/* Layer 1: Static base (feet) */}
+          <img
+            src="/assets/BigPulp/art/BigP_base.png"
+            alt="BigPulp base"
+            className="bigpulp-layer bigpulp-layer-static"
           />
-
-          {/* Message text */}
-          <p
-            className="text-sm relative z-10"
-            style={{ color: 'var(--color-text-primary)' }}
-          >
-            {displayedText}
-            {cursorVisible && (
-              <span
-                className="inline-block ml-0.5"
-                style={{ color: 'var(--color-brand-primary)' }}
-              >
-                ▌
-              </span>
-            )}
-          </p>
-
-          {/* Hidden full text for screen readers */}
-          <span className="sr-only">{state.message}</span>
-
-          {/* Queue indicator */}
-          {state.messageQueue.length > 0 && !isTyping && (
-            <motion.div
-              className="absolute bottom-1 right-2 text-xs"
-              style={{ color: 'var(--color-text-muted)' }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              Tap for more ({state.messageQueue.length})
-            </motion.div>
-          )}
-        </motion.button>
-      </AnimatePresence>
+          {/* Layer 2: Moving character (floats up and down) */}
+          <img
+            src={`/assets/BigPulp/art/${bigPulpImage}`}
+            alt="BigPulp"
+            className="bigpulp-layer bigpulp-layer-moving"
+          />
+        </div>
+      </div>
     </div>
   );
 }

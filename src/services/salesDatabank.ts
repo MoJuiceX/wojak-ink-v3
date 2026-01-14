@@ -308,3 +308,72 @@ export function clearDatabank(): void {
 export function getSalesCount(): number {
   return databank.sales.length;
 }
+
+/**
+ * Fix suspicious CAT token sales with wrong conversion rates
+ * This targets sales where CAT amounts were converted with wrong rates
+ *
+ * Known patterns:
+ * - PIZZA sales: 550,000 PIZZA should be ~1.57 XCH, not 25+ XCH
+ * - G4M sales: 366,666 G4M should be ~0.64 XCH, not 16+ XCH
+ * - SPROUT sales: 110,000 SPROUT should be ~1.02 XCH, not 5+ XCH
+ * - Any CAT sale showing >3 XCH with huge original amounts is likely wrong
+ */
+export async function fixSuspiciousSales(): Promise<number> {
+  try {
+    const { getXchPrice } = await import('./historicalPriceService');
+
+    let fixedCount = 0;
+
+    // Token rate estimates based on amount ranges
+    // Different token types tend to have different value per token
+    const getEstimatedRate = (amount: number): number => {
+      // SPROUT-like (100k-200k range): ~0.00000932 XCH per token
+      if (amount >= 100000 && amount < 200000) return 0.00000932;
+      // G4M-like (300k-400k range): ~0.00000175 XCH per token
+      if (amount >= 300000 && amount < 500000) return 0.00000175;
+      // PIZZA-like (500k+ range): ~0.00000285 XCH per token
+      if (amount >= 500000) return 0.00000285;
+      // Default conservative rate for unknown ranges
+      return 0.000005;
+    };
+
+    for (const sale of databank.sales) {
+      try {
+        if (sale.currency !== 'CAT') continue;
+
+        // Check if this looks like a miscalculated token sale
+        // Pattern: huge original amount (>50k) + high XCH equivalent (>2)
+        if (sale.amount > 50000 && sale.xchEquivalent > 2) {
+          // Use estimated rate based on amount range
+          const estimatedRate = getEstimatedRate(sale.amount);
+          const newXchEquivalent = sale.amount * estimatedRate;
+
+          // Only fix if the new value is significantly lower (at least 40% reduction)
+          if (newXchEquivalent < sale.xchEquivalent * 0.6) {
+            const xchPrice = await getXchPrice(new Date(sale.timestamp));
+
+            console.log(`[SalesDatabank] Fixing NFT ${sale.nftId}: ${sale.xchEquivalent.toFixed(2)} XCH -> ${newXchEquivalent.toFixed(4)} XCH (${sale.amount} tokens @ ${estimatedRate} rate)`);
+
+            sale.xchEquivalent = newXchEquivalent;
+            sale.usdValue = newXchEquivalent * xchPrice;
+            fixedCount++;
+          }
+        }
+      } catch (saleError) {
+        console.warn(`[SalesDatabank] Error fixing sale for NFT ${sale.nftId}:`, saleError);
+      }
+    }
+
+    if (fixedCount > 0) {
+      rebuildIndexes();
+      saveDatabank();
+      console.log(`[SalesDatabank] Fixed ${fixedCount} suspicious sales`);
+    }
+
+    return fixedCount;
+  } catch (error) {
+    console.error('[SalesDatabank] Error in fixSuspiciousSales:', error);
+    return 0;
+  }
+}

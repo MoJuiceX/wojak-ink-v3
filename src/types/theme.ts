@@ -5,7 +5,7 @@
  * Supports 4 core themes with full color token architecture.
  */
 
-export type ThemeId = 'dark' | 'light' | 'tang-orange' | 'chia-green';
+export type ThemeId = 'dark' | 'void' | 'light' | 'tang-orange' | 'chia-green';
 
 export interface ThemeColors {
   // Background hierarchy

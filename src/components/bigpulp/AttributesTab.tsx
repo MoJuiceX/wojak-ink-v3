@@ -551,25 +551,6 @@ export function AttributesTab({
     >
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-3">
-        {/* Search */}
-        <div
-          className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg"
-          style={{
-            background: 'var(--color-glass-bg)',
-            border: '1px solid var(--color-border)',
-          }}
-        >
-          <Search size={16} style={{ color: 'var(--color-text-muted)' }} />
-          <input
-            type="text"
-            placeholder="Search attributes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-sm"
-            style={{ color: 'var(--color-text-primary)' }}
-          />
-        </div>
-
         {/* Category filter */}
         <select
           value={selectedCategory || ''}
@@ -588,12 +569,26 @@ export function AttributesTab({
             </option>
           ))}
         </select>
-      </div>
 
-      {/* Results count */}
-      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-        Showing {filteredAttributes.length} of {attributes.length} attributes
-      </p>
+        {/* Search */}
+        <div
+          className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg"
+          style={{
+            background: 'var(--color-glass-bg)',
+            border: '1px solid var(--color-border)',
+          }}
+        >
+          <Search size={16} style={{ color: 'var(--color-text-muted)' }} />
+          <input
+            type="text"
+            placeholder="Search attributes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 bg-transparent outline-none text-sm"
+            style={{ color: 'var(--color-text-primary)' }}
+          />
+        </div>
+      </div>
 
       {/* Table */}
       <div
