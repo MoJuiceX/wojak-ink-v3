@@ -40,15 +40,34 @@ const KnifeGame = lazy(() => import('./pages/KnifeGame'));
 // Skip boot sequence in development for faster testing
 const SKIP_BOOT_IN_DEV = true;
 
+// Check if boot sequence was already shown this session (e.g., before OAuth redirect)
+const hasSeenBoot = () => {
+  try {
+    return sessionStorage.getItem('wojak_boot_complete') === 'true';
+  } catch {
+    return false;
+  }
+};
+
+const markBootComplete = () => {
+  try {
+    sessionStorage.setItem('wojak_boot_complete', 'true');
+  } catch {
+    // Ignore storage errors
+  }
+};
+
 // Inner app component with access to router
 function AppContent() {
-  // In dev mode, skip boot sequence entirely
+  // Skip boot if: dev mode, or user already saw it this session
   const [isStartupComplete, setIsStartupComplete] = useState(
-    import.meta.env.DEV && SKIP_BOOT_IN_DEV
+    (import.meta.env.DEV && SKIP_BOOT_IN_DEV) || hasSeenBoot()
   );
   const navigate = useNavigate();
 
   const handleStartupComplete = () => {
+    // Mark boot as complete for this session
+    markBootComplete();
     // Navigate to Gallery FIRST, before showing content
     navigate('/gallery', { replace: true });
     // Small delay ensures navigation completes before content becomes visible
