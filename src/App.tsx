@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { ClerkProvider } from '@clerk/clerk-react';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { LayoutProvider } from '@/contexts/LayoutContext';
@@ -15,6 +16,9 @@ import { PreloadProvider } from '@/components/preload/PreloadProvider';
 import { SalesProvider } from '@/providers/SalesProvider';
 import { GlobalVideoPlayer } from '@/components/media/video/GlobalVideoPlayer';
 import StartupSequence from '@/components/StartupSequence';
+
+// Clerk publishable key from environment
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 // Lazy load all pages for code splitting
 const Gallery = lazy(() => import('./pages/Gallery'));
@@ -190,6 +194,14 @@ function AppContent() {
 }
 
 function App() {
+  // Warn in development if Clerk key is missing
+  if (!CLERK_PUBLISHABLE_KEY) {
+    console.warn(
+      '[Clerk] Missing VITE_CLERK_PUBLISHABLE_KEY. Auth features will be disabled.\n' +
+      'Add it to .env.local - see .env.example for details.'
+    );
+  }
+
   return (
     <QueryProvider>
       <SalesProvider>
@@ -199,7 +211,13 @@ function App() {
             <AudioProvider>
             <MediaProvider>
             <BrowserRouter>
-              <AppContent />
+              {CLERK_PUBLISHABLE_KEY ? (
+                <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+                  <AppContent />
+                </ClerkProvider>
+              ) : (
+                <AppContent />
+              )}
             </BrowserRouter>
             </MediaProvider>
             </AudioProvider>
