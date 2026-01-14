@@ -36,6 +36,9 @@ export interface NFTBasic {
   imageUrl: string;
   thumbnailUrl: string;
   traits?: NFTTrait[];
+  // Optional price fields (for listed NFTs)
+  priceXch?: number;
+  priceUsd?: number;
 }
 
 export interface NFTTrait {
@@ -162,8 +165,7 @@ export type HeatMapViewMode =
   | 'sleepy-deals' // Good value (low price, decent rarity)
   | 'delusion-zones' // Overpriced (high price, low rarity)
   | 'floor-snipes' // Near floor price
-  | 'rare-reasonable' // Rare but reasonably priced
-  | 'whale-territory'; // High price, high rarity
+  | 'whale-territory'; // High price listings
 
 export interface PriceDistribution {
   bins: PriceDistributionBin[];

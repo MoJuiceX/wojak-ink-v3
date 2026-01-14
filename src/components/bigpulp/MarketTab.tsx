@@ -19,6 +19,8 @@ import {
   statsContainerVariants,
   tabContentVariants,
 } from '@/config/bigpulpAnimations';
+import type { CacheMetadata } from '@/services/heatmapCache';
+import type { BadgeOption } from './HeatMap';
 
 interface MarketTabProps {
   stats: MarketStats | null;
@@ -27,6 +29,14 @@ interface MarketTabProps {
   viewMode: HeatMapViewMode;
   onViewModeChange: (mode: HeatMapViewMode) => void;
   isLoading?: boolean;
+  // Cache state for heatmap
+  heatmapCacheMetadata?: CacheMetadata | null;
+  isHeatmapRefetching?: boolean;
+  onHeatmapRefresh?: () => void;
+  // Badge filtering
+  badges?: BadgeOption[];
+  selectedBadge?: string | null;
+  onBadgeChange?: (badge: string | null) => void;
 }
 
 type VisualizationType = 'heatmap' | 'distribution';
@@ -224,6 +234,12 @@ export function MarketTab({
   viewMode,
   onViewModeChange,
   isLoading = false,
+  heatmapCacheMetadata,
+  isHeatmapRefetching,
+  onHeatmapRefresh,
+  badges,
+  selectedBadge,
+  onBadgeChange,
 }: MarketTabProps) {
   const prefersReducedMotion = useReducedMotion();
   const [visualizationType, setVisualizationType] =
@@ -353,6 +369,12 @@ export function MarketTab({
               viewMode={viewMode}
               onViewModeChange={onViewModeChange}
               onCellClick={handleCellClick}
+              cacheMetadata={heatmapCacheMetadata}
+              isRefetching={isHeatmapRefetching}
+              onRefresh={onHeatmapRefresh}
+              badges={badges}
+              selectedBadge={selectedBadge}
+              onBadgeChange={onBadgeChange}
             />
           </motion.div>
         )}

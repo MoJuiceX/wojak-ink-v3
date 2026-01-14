@@ -24,7 +24,7 @@ interface TabConfig {
 
 const TABS: TabConfig[] = [
   { id: 'market', label: 'Market', icon: BarChart3 },
-  { id: 'ask', label: 'askBigPulp', icon: HelpCircle },
+  { id: 'ask', label: 'Ask Big Pulp', icon: HelpCircle },
   { id: 'attributes', label: 'Attributes', icon: List },
 ];
 

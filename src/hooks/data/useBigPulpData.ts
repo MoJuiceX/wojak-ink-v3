@@ -2,11 +2,25 @@
  * BigPulp Data Hooks
  *
  * TanStack Query hooks for BigPulp intelligence data.
+ * Implements stale-while-revalidate with localStorage persistence for resilience.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { bigpulpService } from '@/services/bigpulpService';
 import { DATA_CACHE_MAP } from '@/config/query/cacheConfig';
+import {
+  loadHeatmapFromCache,
+  saveHeatmapToCache,
+  getCacheMetadata,
+  formatCacheAge,
+} from '@/services/heatmapCache';
+import type { CacheMetadata } from '@/services/heatmapCache';
+import type { HeatMapCell } from '@/types/bigpulp';
+
+// Re-export cache utilities for external use
+export { formatCacheAge };
+export type { CacheMetadata };
 
 // Query keys
 export const bigPulpKeys = {
@@ -33,14 +47,62 @@ export function useBigPulpMarketStats() {
 }
 
 /**
- * Fetch heat map data
+ * Fetch heat map data with localStorage persistence
+ *
+ * Implements stale-while-revalidate pattern:
+ * 1. Return cached data immediately (if available)
+ * 2. Fetch fresh data in background
+ * 3. Update cache on success
+ * 4. Fall back to cache on API failure
  */
 export function useBigPulpHeatMap() {
-  return useQuery({
+  // Load initial data from cache for instant display
+  const cachedData = useMemo(() => {
+    const cached = loadHeatmapFromCache();
+    return cached?.data;
+  }, []);
+
+  const query = useQuery({
     queryKey: bigPulpKeys.heatMap(),
-    queryFn: () => bigpulpService.getHeatMapData(),
-    ...DATA_CACHE_MAP.priceHistory, // Semi-static
+    queryFn: async (): Promise<HeatMapCell[][]> => {
+      try {
+        const freshData = await bigpulpService.getHeatMapData();
+        // Save fresh data to cache on success
+        saveHeatmapToCache(freshData);
+        return freshData;
+      } catch (error) {
+        // On failure, try to use cached data
+        const cached = loadHeatmapFromCache();
+        if (cached) {
+          console.log('[useBigPulpHeatMap] API failed, using cached data');
+          return cached.data;
+        }
+        // No cache available, rethrow
+        throw error;
+      }
+    },
+    // Use cached data as placeholder while fetching
+    placeholderData: cachedData,
+    // Keep data fresh for 5 minutes, then refetch in background
+    ...DATA_CACHE_MAP.priceHistory,
+    // Retry with exponential backoff on failure
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
+
+  return query;
+}
+
+/**
+ * Get heatmap cache metadata (staleness, age, source)
+ * Use this to show "Last updated X ago" or "Using cached data" indicators
+ */
+export function useHeatmapCacheMetadata(): CacheMetadata | null {
+  return useMemo(() => {
+    const cached = loadHeatmapFromCache();
+    if (!cached) return null;
+    return getCacheMetadata(cached);
+  }, []);
 }
 
 /**

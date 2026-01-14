@@ -1,4 +1,5 @@
 // @ts-nocheck
+// UPDATED: amber colors + dynamic columns v2
 import { useState, useEffect, useMemo } from 'react';
 import {
   IonButton,
@@ -45,38 +46,41 @@ interface ComboBadge {
 }
 
 const HEATMAP_MODES: { key: HeatmapMode; label: string; description: string }[] = [
-  { key: 'all', label: 'All Listings', description: 'Show all listed NFTs' },
-  { key: 'sleepy', label: 'Find Sleepy Deals', description: 'Rare NFTs at low prices' },
-  { key: 'delusion', label: 'Spot Delusion Zones', description: 'Overpriced listings' },
-  { key: 'floor', label: 'Snipe Near Floor', description: 'NFTs at floor price' },
+  { key: 'all', label: 'All', description: 'Show all listed NFTs' },
+  { key: 'sleepy', label: 'Sleepy Deals', description: 'Rare NFTs at low prices' },
+  { key: 'delusion', label: 'Delusion', description: 'Overpriced listings' },
+  { key: 'floor', label: 'Floor', description: 'NFTs at floor price' },
   { key: 'rare', label: 'Rare & Reasonable', description: 'Top rarity, fair price' },
-  { key: 'whale', label: 'Whale Territory', description: 'Premium rare NFTs' },
+  { key: 'whale', label: 'Whale', description: 'Premium rare NFTs' },
 ];
 
-// Rarity ranges (percentile-based)
+// Rarity ranges (percentile-based) - cleaner labels
 const RARITY_RANGES = [
-  { label: '0-10% (rarest)', min: 0, max: 10 },
-  { label: '10-20%', min: 10, max: 20 },
-  { label: '20-30%', min: 20, max: 30 },
-  { label: '30-40%', min: 30, max: 40 },
-  { label: '40-50%', min: 40, max: 50 },
-  { label: '50-60%', min: 50, max: 60 },
-  { label: '60-70%', min: 60, max: 70 },
-  { label: '70-80%', min: 70, max: 80 },
-  { label: '80-90%', min: 80, max: 90 },
-  { label: '90-100% (common)', min: 90, max: 100 },
+  { label: 'Top 10%', min: 0, max: 10 },
+  { label: '20%', min: 10, max: 20 },
+  { label: '30%', min: 20, max: 30 },
+  { label: '40%', min: 30, max: 40 },
+  { label: '50%', min: 40, max: 50 },
+  { label: '60%', min: 50, max: 60 },
+  { label: '70%', min: 60, max: 70 },
+  { label: '80%', min: 70, max: 80 },
+  { label: '90%', min: 80, max: 90 },
+  { label: 'Bottom 10%', min: 90, max: 100 },
 ];
 
-// Price multiple ranges (relative to floor)
-const PRICE_RANGES = [
-  { label: '1-1.1x', min: 1, max: 1.1 },
-  { label: '1.1-1.25x', min: 1.1, max: 1.25 },
-  { label: '1.25-1.5x', min: 1.25, max: 1.5 },
-  { label: '1.5-2x', min: 1.5, max: 2 },
-  { label: '2-3x', min: 2, max: 3 },
-  { label: '3-5x', min: 3, max: 5 },
-  { label: '5-10x', min: 5, max: 10 },
-  { label: '10x+', min: 10, max: Infinity },
+// Price ranges in absolute XCH (logarithmic scale)
+// Empty ranges will be filtered out dynamically
+const PRICE_BUCKETS = [
+  { min: 0, max: 1, label: '0-1' },
+  { min: 1, max: 2, label: '1-2' },
+  { min: 2, max: 3, label: '2-3' },
+  { min: 3, max: 4, label: '3-4' },
+  { min: 4, max: 5, label: '4-5' },
+  { min: 5, max: 7, label: '5-7' },
+  { min: 7, max: 10, label: '7-10' },
+  { min: 10, max: 15, label: '10-15' },
+  { min: 15, max: 25, label: '15-25' },
+  { min: 25, max: Infinity, label: '25+' },
 ];
 
 const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) => {
@@ -196,37 +200,47 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
     return calculateFloorPrice(listings);
   }, [listings]);
 
-  // Build heatmap grid
+  // Determine which price buckets have listings (for dynamic columns)
+  const activePriceBuckets = useMemo(() => {
+    return PRICE_BUCKETS.filter(bucket => {
+      return listings.some(listing => {
+        const price = listing.priceXch;
+        return price >= bucket.min && (bucket.max === Infinity ? true : price < bucket.max);
+      });
+    });
+  }, [listings]);
+
+  // Build heatmap grid with only active price columns
   const heatmapGrid = useMemo(() => {
-    if (!floorPrice || floorPrice === 0) return [];
+    if (listings.length === 0) return [];
 
     const grid: HeatmapCell[][] = [];
 
     for (const rarityRange of RARITY_RANGES) {
       const row: HeatmapCell[] = [];
 
-      for (const priceRange of PRICE_RANGES) {
+      for (const priceBucket of activePriceBuckets) {
         const cellListings = listings.filter(listing => {
           const rank = ranks[listing.nftId];
           if (!rank) return false;
 
           const percentile = (rank / 4200) * 100;
-          const priceMultiple = listing.priceXch / floorPrice;
+          const price = listing.priceXch;
 
           const inRarityRange = percentile >= rarityRange.min && percentile < rarityRange.max;
-          const inPriceRange = priceMultiple >= priceRange.min &&
-            (priceRange.max === Infinity ? true : priceMultiple < priceRange.max);
+          const inPriceRange = price >= priceBucket.min &&
+            (priceBucket.max === Infinity ? true : price < priceBucket.max);
 
           return inRarityRange && inPriceRange;
         });
 
         row.push({
           rarityRange: rarityRange.label,
-          priceRange: priceRange.label,
+          priceRange: priceBucket.label,
           rarityMin: rarityRange.min,
           rarityMax: rarityRange.max,
-          priceMin: priceRange.min,
-          priceMax: priceRange.max,
+          priceMin: priceBucket.min,
+          priceMax: priceBucket.max,
           listings: cellListings,
           count: cellListings.length
         });
@@ -236,11 +250,19 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
     }
 
     return grid;
-  }, [listings, ranks, floorPrice]);
+  }, [listings, ranks, activePriceBuckets]);
 
-  // Apply mode filtering
+  // Apply mode filtering (using absolute XCH prices and floor reference)
   const filteredGrid = useMemo(() => {
     if (mode === 'all') return heatmapGrid;
+
+    // Calculate thresholds based on floor price
+    const cheapThreshold = floorPrice * 2;      // < 2x floor = cheap
+    const expensiveThreshold = floorPrice * 5;  // > 5x floor = expensive
+    const nearFloorMax = floorPrice * 1.5;      // < 1.5x floor = near floor
+    const reasonableMin = floorPrice * 1.5;
+    const reasonableMax = floorPrice * 3;
+    const premiumThreshold = floorPrice * 3;    // > 3x floor = premium
 
     return heatmapGrid.map(row =>
       row.map(cell => {
@@ -249,30 +271,30 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
         switch (mode) {
           case 'sleepy':
             // Rare (top 30%) + cheap (< 2x floor)
-            highlight = cell.rarityMax <= 30 && cell.priceMax <= 2;
+            highlight = cell.rarityMax <= 30 && cell.priceMax <= cheapThreshold;
             break;
           case 'delusion':
             // Any rarity + expensive (> 5x floor)
-            highlight = cell.priceMin >= 5;
+            highlight = cell.priceMin >= expensiveThreshold;
             break;
           case 'floor':
-            // Any rarity + near floor (< 1.25x)
-            highlight = cell.priceMax <= 1.25;
+            // Any rarity + near floor (< 1.5x)
+            highlight = cell.priceMax <= nearFloorMax;
             break;
           case 'rare':
-            // Rare (top 20%) + reasonable (1.5-3x)
-            highlight = cell.rarityMax <= 20 && cell.priceMin >= 1.5 && cell.priceMax <= 3;
+            // Rare (top 20%) + reasonable (1.5-3x floor)
+            highlight = cell.rarityMax <= 20 && cell.priceMin >= reasonableMin && cell.priceMax <= reasonableMax;
             break;
           case 'whale':
-            // Very rare (top 10%) + premium (> 3x)
-            highlight = cell.rarityMax <= 10 && cell.priceMin >= 3;
+            // Very rare (top 10%) + premium (> 3x floor)
+            highlight = cell.rarityMax <= 10 && cell.priceMin >= premiumThreshold;
             break;
         }
 
         return { ...cell, highlight };
       })
     );
-  }, [heatmapGrid, mode]);
+  }, [heatmapGrid, mode, floorPrice]);
 
   // Get max count for color scaling
   const maxCount = useMemo(() => {
@@ -292,47 +314,51 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
     return badges;
   };
 
-  // Price distribution for bar chart (aggregates all rarity levels)
+  // Price distribution for bar chart (aggregates all rarity levels, only active buckets)
   const priceDistribution = useMemo(() => {
-    if (!floorPrice || floorPrice === 0) return [];
+    if (listings.length === 0) return [];
 
-    return PRICE_RANGES.map(priceRange => {
+    return activePriceBuckets.map(priceBucket => {
       const matchingListings = listings.filter(listing => {
-        const priceMultiple = listing.priceXch / floorPrice;
-        return priceMultiple >= priceRange.min &&
-          (priceRange.max === Infinity ? true : priceMultiple < priceRange.max);
+        const price = listing.priceXch;
+        return price >= priceBucket.min &&
+          (priceBucket.max === Infinity ? true : price < priceBucket.max);
       });
 
       return {
-        label: priceRange.label,
+        label: priceBucket.label,
         count: matchingListings.length,
         listings: matchingListings
       };
     });
-  }, [listings, floorPrice]);
+  }, [listings, activePriceBuckets]);
 
   // Max count for bar chart scaling
   const maxBarCount = useMemo(() => {
     return Math.max(...priceDistribution.map(d => d.count), 1);
   }, [priceDistribution]);
 
-  // Get cell background color based on count (theme-aware)
+  // Amber color scheme for heatmap intensity
+  // Uses logarithmic scaling for better differentiation with outliers
   const getCellColor = (count: number, highlight?: boolean) => {
     if (count === 0) return 'transparent';
 
-    const intensity = Math.min(count / maxCount, 1);
-    const alpha = 0.2 + intensity * 0.6;
+    // Logarithmic scaling for better visual differentiation
+    const logCount = Math.log(count + 1);
+    const logMax = Math.log(maxCount + 1);
+    const intensity = Math.min(logCount / logMax, 1);
 
-    // Read CSS variables for theme-aware colors
-    const rootStyles = getComputedStyle(document.documentElement);
-    const cellRgb = rootStyles.getPropertyValue('--heatmap-cell-rgb').trim() || '99, 102, 241';
-    const highlightRgb = rootStyles.getPropertyValue('--heatmap-highlight-rgb').trim() || '255, 140, 0';
+    // Amber color scale: from subtle (low count) to vivid (high count)
+    const alpha = 0.15 + intensity * 0.75; // Range: 0.15 to 0.90
 
-    if (highlight) {
-      return `rgba(${highlightRgb}, ${alpha})`;
-    }
+    const color = highlight
+      ? `rgba(255, 200, 50, ${Math.min(alpha + 0.1, 1)})`  // Bright gold for highlights
+      : `rgba(255, 149, 0, ${alpha})`;                     // Standard amber
 
-    return `rgba(${cellRgb}, ${alpha})`;
+    // Debug log (remove after testing)
+    if (count > 0) console.log(`[Heatmap] count=${count}, color=${color}`);
+
+    return color;
   };
 
   // Preload images for all listings so they show instantly when clicking cells
@@ -446,12 +472,12 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
         {viewType === 'heatmap' && (
           <>
             <div className="heatmap-container">
-              {/* Price headers */}
+              {/* Price headers - only show active (non-empty) columns */}
               <div className="heatmap-header">
                 <div className="header-spacer" />
-                {PRICE_RANGES.map(p => (
-                  <div key={p.label} className="header-cell">
-                    {p.label}
+                {activePriceBuckets.map(bucket => (
+                  <div key={bucket.label} className="header-cell">
+                    {bucket.label}
                   </div>
                 ))}
               </div>
@@ -490,6 +516,12 @@ const MarketHeatmap: React.FC<MarketHeatmapProps> = ({ rankData, onNftClick }) =
                   })}
                 </div>
               ))}
+
+              {/* Axis labels */}
+              <div className="heatmap-axis-labels">
+                <span className="axis-label-left">Rarity ↓</span>
+                <span className="axis-label-right">Price (XCH) →</span>
+              </div>
             </div>
 
             {/* Legend */}

@@ -4,8 +4,9 @@
  * NFT analysis platform with AI-powered character guide.
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import type { HeatMapCell } from '@/types/bigpulp';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useLayout } from '@/hooks/useLayout';
 import { BigPulpProvider, useBigPulp } from '@/contexts/BigPulpContext';
@@ -18,6 +19,7 @@ import {
   AskTab,
   AttributesTab,
 } from '@/components/bigpulp';
+import { ALL_BADGES_FILTER } from '@/components/bigpulp/HeatMap';
 
 
 
@@ -114,8 +116,65 @@ function BottomPanel() {
     isMarketLoading,
     isAskLoading,
     isAttributesLoading,
+    // Heatmap cache state
+    heatmapCacheMetadata,
+    isHeatmapRefetching,
+    refetchHeatmap,
+    // Badge filtering
+    badges,
+    selectedBadge,
+    setSelectedBadge,
+    badgeMapping,
   } = useBigPulp();
   const prefersReducedMotion = useReducedMotion();
+
+  // Filter heatmap data by selected badge
+  const filteredHeatMapData = useMemo((): HeatMapCell[][] | null => {
+    if (!heatMapData) return null;
+    // null = no filter, show all NFTs
+    if (selectedBadge === null || !badgeMapping) return heatMapData;
+
+    // Create a set of NFT IDs that match the badge filter
+    const nftIdsWithBadge = new Set<string>();
+
+    if (selectedBadge === ALL_BADGES_FILTER) {
+      // "All Badges" - include NFTs that have ANY badge
+      for (const nftId of Object.keys(badgeMapping.nft_badges)) {
+        nftIdsWithBadge.add(nftId);
+      }
+    } else {
+      // Specific badge - include only NFTs with that badge
+      for (const [nftId, entry] of Object.entries(badgeMapping.nft_badges)) {
+        if (entry.badges.some(b => b.badge === selectedBadge)) {
+          nftIdsWithBadge.add(nftId);
+        }
+      }
+    }
+
+    // Filter each cell's NFTs and recalculate count/intensity
+    return heatMapData.map(row =>
+      row.map(cell => {
+        // Extract numeric ID from NFT id (e.g., "WFP-361" -> "361")
+        const filteredNfts = cell.nfts.filter(nft => {
+          const numericId = nft.id.replace(/\D/g, '');
+          return nftIdsWithBadge.has(numericId);
+        });
+
+        const newCount = filteredNfts.length;
+        // Recalculate intensity based on new count (rough approximation)
+        const maxCountInCell = 15; // Approximate max for intensity calculation
+        const newIntensity = newCount > 0 ? Math.min(newCount / maxCountInCell, 1) : 0;
+
+        return {
+          ...cell,
+          nfts: filteredNfts,
+          count: newCount,
+          intensity: newIntensity,
+          label: `${cell.rarityBin.label}, ${cell.priceBin.label}: ${newCount} NFTs`,
+        };
+      })
+    );
+  }, [heatMapData, selectedBadge, badgeMapping]);
 
   const handleAttributeClick = useCallback(() => {
     // TODO: Handle attribute click for drill-down
@@ -147,11 +206,17 @@ function BottomPanel() {
             >
               <MarketTab
                 stats={marketStats}
-                heatMapData={heatMapData}
+                heatMapData={filteredHeatMapData}
                 priceDistribution={priceDistribution}
                 viewMode={heatMapViewMode}
                 onViewModeChange={setHeatMapViewMode}
                 isLoading={isMarketLoading}
+                heatmapCacheMetadata={heatmapCacheMetadata}
+                isHeatmapRefetching={isHeatmapRefetching}
+                onHeatmapRefresh={refetchHeatmap}
+                badges={badges}
+                selectedBadge={selectedBadge}
+                onBadgeChange={setSelectedBadge}
               />
             </motion.div>
           )}
@@ -194,6 +259,7 @@ function BottomPanel() {
               />
             </motion.div>
           )}
+
         </AnimatePresence>
       </div>
     </div>

@@ -18,6 +18,7 @@ import { COLLECTION_SIZE, getNftImageUrl } from './constants';
 import { marketService } from './marketService';
 import { getRecentSales, type SaleRecord } from './salesDatabank';
 import { fetchCollectionStats } from './parseBotService';
+import { getCurrentXchPrice } from './historicalPriceService';
 
 // ============ Types for JSON Data ============
 
@@ -456,12 +457,113 @@ async function loadTraitStats(): Promise<AttributeStats[]> {
 
 // ============ Data Generators ============
 
+/**
+ * Pretty number options for price increments
+ */
+const PRETTY_INCREMENTS = [0.1, 0.25, 0.5, 1, 2, 5, 10, 20, 50];
+
+/**
+ * Round to the nearest "pretty" increment
+ */
+function roundToNearestPretty(value: number): number {
+  // Find the closest pretty increment
+  let closest = PRETTY_INCREMENTS[0];
+  let minDiff = Math.abs(value - closest);
+
+  for (const inc of PRETTY_INCREMENTS) {
+    const diff = Math.abs(value - inc);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = inc;
+    }
+  }
+
+  return closest;
+}
+
+/**
+ * Round a price down to a pretty boundary
+ */
+function roundDownToPretty(price: number, increment: number): number {
+  return Math.floor(price / increment) * increment;
+}
+
+/**
+ * Calculate equal-width price bins using hybrid approach:
+ * 1. Get floor price and 90th percentile
+ * 2. Calculate optimal increment = (p90 - floor) / 7
+ * 3. Round to pretty number
+ * 4. Generate 8 equal-width columns + open-ended last column
+ *
+ * This runs automatically whenever market data is refreshed.
+ */
+function calculateDynamicPriceBins(prices: number[]): { boundaries: number[]; labels: string[] } {
+  if (prices.length === 0) {
+    // Fallback to default bins if no listings
+    return {
+      boundaries: [0, 1, 2, 3, 4, 5, 6, 10, Infinity],
+      labels: ['0-1', '1-2', '2-3', '3-4', '4-5', '5-6', '6-10', '10+'],
+    };
+  }
+
+  // Sort prices ascending
+  const sorted = [...prices].sort((a, b) => a - b);
+  const n = sorted.length;
+
+  // Get floor (minimum) and 90th percentile
+  const floor = sorted[0];
+  const p90Index = Math.floor(0.9 * n);
+  const p90 = sorted[Math.min(p90Index, n - 1)];
+
+  // Calculate raw increment to cover floor to p90 in 7 columns
+  // (8th column will be open-ended for the expensive tail)
+  const rawIncrement = (p90 - floor) / 7;
+
+  // Round to nearest pretty increment
+  const increment = roundToNearestPretty(rawIncrement);
+
+  // Start from floor rounded down to pretty boundary
+  const start = roundDownToPretty(floor, increment);
+
+  // Generate 8 boundaries (7 equal-width columns + open-ended)
+  const boundaries: number[] = [];
+  for (let i = 0; i < 8; i++) {
+    boundaries.push(start + i * increment);
+  }
+  boundaries.push(Infinity); // Open-ended last column
+
+  // Generate labels
+  const labels = boundaries.slice(0, -1).map((min, i) => {
+    const max = boundaries[i + 1];
+    if (max === Infinity) {
+      return `${min}+`;
+    }
+    // Format numbers nicely (remove unnecessary decimals)
+    const minStr = min % 1 === 0 ? min.toString() : min.toFixed(1);
+    const maxStr = max % 1 === 0 ? max.toString() : max.toFixed(1);
+    return `${minStr}-${maxStr}`;
+  });
+
+  console.log('[HeatMap] Dynamic price bins calculated:', {
+    floor: floor.toFixed(2),
+    p90: p90.toFixed(2),
+    rawIncrement: rawIncrement.toFixed(2),
+    increment,
+    boundaries: boundaries.slice(0, -1),
+    labels,
+    totalListings: n,
+  });
+
+  return { boundaries, labels };
+}
+
 async function generateHeatMapData(): Promise<HeatMapCell[][]> {
-  // Load real listings, NFT takes for rarity data, and metadata for names
-  const [listingsResult, takes, metadata] = await Promise.all([
+  // Load real listings, NFT takes for rarity data, metadata for names, and current XCH price
+  const [listingsResult, takes, metadata, xchPriceUsd] = await Promise.all([
     marketService.fetchAllListings(),
     loadNftTakes(),
     loadMetadata(),
+    getCurrentXchPrice(),
   ]);
 
   const listings = listingsResult.listings;
@@ -472,9 +574,9 @@ async function generateHeatMapData(): Promise<HeatMapCell[][]> {
     rarityMap.set(id, entry.open_rarity_rank);
   }
 
-  // Price bin boundaries (8 bins: 0-1, 1-2, 2-3, 3-4, 4-5, 5-6, 6-10, 10+)
-  const priceBins = [0, 1, 2, 3, 4, 5, 6, 10, Infinity];
-  const priceLabels = ['0-1', '1-2', '2-3', '3-4', '4-5', '5-6', '6-10', '10+'];
+  // Calculate dynamic price bins based on actual listing distribution
+  const allPrices = listings.map(l => l.priceXch);
+  const { boundaries: priceBins, labels: priceLabels } = calculateDynamicPriceBins(allPrices);
 
   // Rarity bin boundaries (10 bins: Top 10%, 20%, ..., 90%, Bottom 10%)
   const rarityBinDefs = [
@@ -535,6 +637,8 @@ async function generateHeatMapData(): Promise<HeatMapCell[][]> {
           characterType: 'wojak' as const,
           imageUrl: getNftImageUrl(l.nftId),
           thumbnailUrl: getNftImageUrl(l.nftId),
+          priceXch: l.priceXch,
+          priceUsd: l.priceXch * xchPriceUsd,
         })),
         intensity,
         label: `${count} NFTs, ${rarityBinDefs[row].label}, price ${priceLabels[col]} XCH`,

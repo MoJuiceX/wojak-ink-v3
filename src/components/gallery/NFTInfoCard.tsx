@@ -17,6 +17,13 @@ import { useTraitRankings, type TooltipData } from '@/hooks/useTraitRankings';
 import { fetchNFTOwnerByEdition, type NFTOwnerInfo } from '@/services/parseBotService';
 import { useSalesHistory } from '@/hooks/useSalesHistory';
 import { useXchPrice } from '@/hooks/data/useTreasuryData';
+import {
+  getCachedNFTBadges,
+  getCachedBadgeSystem,
+  preloadBadgeData,
+  type NFTBadgeEntry,
+  type BadgeSystem,
+} from '@/services/badgeService';
 
 type InfoTab = 'main' | 'metadata' | 'history';
 
@@ -29,7 +36,7 @@ interface NFTInfoCardProps {
 
 const tabs: { id: InfoTab; label: string }[] = [
   { id: 'main', label: 'Main' },
-  { id: 'metadata', label: 'Metadata' },
+  { id: 'metadata', label: 'Attributes' },
   { id: 'history', label: 'History' },
 ];
 
@@ -43,10 +50,14 @@ function MainTabContent({
   nft,
   ownerInfo,
   onOpenExternal,
+  badges,
+  badgeSystem,
 }: {
   nft: NFT;
   ownerInfo: NFTOwnerInfo | null;
   onOpenExternal: () => void;
+  badges: NFTBadgeEntry | null;
+  badgeSystem: BadgeSystem | null;
 }) {
   const { data: xchPrice } = useXchPrice();
 
@@ -76,6 +87,42 @@ function MainTabContent({
           </span>
         </div>
       </div>
+
+      {/* Badges */}
+      {badges && badges.badges.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {badges.badges.map((badge) => {
+            const def = badgeSystem?.badges[badge.badge];
+            return (
+              <span
+                key={badge.badge}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                style={{
+                  background: 'var(--color-glass-bg)',
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-text-secondary)',
+                }}
+              >
+                <span>{def?.emoji || '🏅'}</span>
+                <span>{badge.badge}</span>
+              </span>
+            );
+          })}
+          {badges.flags.includes('HOAMI Edition') && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+              style={{
+                background: 'rgba(168, 85, 247, 0.2)',
+                border: '1px solid rgba(168, 85, 247, 0.5)',
+                color: '#a855f7',
+              }}
+            >
+              <span>💜</span>
+              <span>HOAMI</span>
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Owner */}
       <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
@@ -364,19 +411,14 @@ function MetadataTabContent({ nft }: { nft: NFT }) {
   );
 }
 
+// Collection mint date (WFP minted Dec 2023)
+const COLLECTION_MINT_DATE = new Date('2023-12-15T00:00:00Z').getTime();
+
 function HistoryTabContent({ nftId }: { nftId: number }) {
-  const { sales, isLoading, hasSales } = useSalesHistory(nftId);
+  const { sales, isLoading } = useSalesHistory(nftId);
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-
-    if (hours < 1) return 'Just now';
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -395,28 +437,15 @@ function HistoryTabContent({ nftId }: { nftId: number }) {
     );
   }
 
-  if (!hasSales) {
-    return (
-      <div
-        className="py-8 text-center text-sm"
-        style={{ color: 'var(--color-text-muted)' }}
-      >
-        No sales history yet
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-1 max-h-48 overflow-y-auto">
+      {/* Sales history */}
       {sales.map((sale, index) => (
         <div
           key={`${sale.nftId}-${sale.timestamp}`}
           className="py-2"
           style={{
-            borderBottom:
-              index < sales.length - 1
-                ? '1px solid var(--color-border)'
-                : 'none',
+            borderBottom: '1px solid var(--color-border)',
           }}
         >
           <div className="flex items-center justify-between">
@@ -443,6 +472,24 @@ function HistoryTabContent({ nftId }: { nftId: number }) {
           )}
         </div>
       ))}
+
+      {/* Mint entry - always shown */}
+      <div className="py-2">
+        <div className="flex items-center justify-between">
+          <span
+            className="text-sm font-medium"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
+            Minted
+          </span>
+          <span
+            className="text-xs"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            {formatDate(COLLECTION_MINT_DATE)}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -455,6 +502,9 @@ export function NFTInfoCard({
 }: NFTInfoCardProps) {
   // Fetch owner info via Parse.bot
   const [ownerInfo, setOwnerInfo] = useState<NFTOwnerInfo | null>(null);
+  // Badge data
+  const [badges, setBadges] = useState<NFTBadgeEntry | null>(null);
+  const [badgeSystem, setBadgeSystem] = useState<BadgeSystem | null>(null);
 
   useEffect(() => {
     setOwnerInfo(null);
@@ -462,6 +512,17 @@ export function NFTInfoCard({
     fetchNFTOwnerByEdition(edition)
       .then((info) => setOwnerInfo(info))
       .catch((err) => console.error('[NFTInfoCard] Error fetching owner:', err));
+  }, [nft.tokenId]);
+
+  // Load badge data
+  useEffect(() => {
+    // Ensure badge data is preloaded
+    preloadBadgeData().then(() => {
+      const nftBadges = getCachedNFTBadges(nft.tokenId);
+      const system = getCachedBadgeSystem();
+      setBadges(nftBadges);
+      setBadgeSystem(system);
+    });
   }, [nft.tokenId]);
 
   return (
@@ -523,6 +584,8 @@ export function NFTInfoCard({
                 nft={nft}
                 ownerInfo={ownerInfo}
                 onOpenExternal={onOpenExternal}
+                badges={badges}
+                badgeSystem={badgeSystem}
               />
             )}
             {activeTab === 'metadata' && <MetadataTabContent nft={nft} />}

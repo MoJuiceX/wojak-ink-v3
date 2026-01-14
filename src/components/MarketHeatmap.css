@@ -167,6 +167,22 @@
   font-weight: 800;
 }
 
+/* Axis Labels */
+.heatmap-axis-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 4px 0;
+  margin-top: 4px;
+}
+
+.axis-label-left,
+.axis-label-right {
+  font-size: 10px;
+  color: var(--heatmap-text-muted);
+  font-weight: 500;
+  opacity: 0.7;
+}
+
 /* Legend */
 .heatmap-legend {
   display: flex;
@@ -196,16 +212,17 @@
   height: 14px;
 }
 
+/* Amber color scheme for legend */
 .legend-item.low {
-  background: rgba(var(--heatmap-cell-rgb), 0.25);
+  background: rgba(255, 149, 0, 0.20);
 }
 
 .legend-item.mid {
-  background: rgba(var(--heatmap-cell-rgb), 0.55);
+  background: rgba(255, 149, 0, 0.50);
 }
 
 .legend-item.high {
-  background: rgba(var(--heatmap-cell-rgb), 0.85);
+  background: rgba(255, 149, 0, 0.85);
 }
 
 .legend-labels {
@@ -371,8 +388,8 @@
 .distribution-bar {
   width: 100%;
   background: linear-gradient(180deg,
-    rgba(var(--heatmap-cell-rgb), 0.9) 0%,
-    rgba(var(--heatmap-cell-rgb), 0.6) 100%
+    rgba(255, 149, 0, 0.9) 0%,
+    rgba(255, 149, 0, 0.6) 100%
   );
   border-radius: 6px 6px 2px 2px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

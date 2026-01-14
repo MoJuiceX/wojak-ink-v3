@@ -61,7 +61,11 @@ import {
   useBigPulpRarestFinds,
   useSearchNFTMutation,
   useRandomAnalysisMutation,
+  useHeatmapCacheMetadata,
 } from '@/hooks/data/useBigPulpData';
+import type { CacheMetadata } from '@/services/heatmapCache';
+import { loadBadgeSystem, loadBadgeMapping, type BadgeMapping } from '@/services/badgeService';
+import type { BadgeOption } from '@/components/bigpulp/HeatMap';
 
 // ============ State Types ============
 
@@ -401,6 +405,17 @@ interface BigPulpContextValue extends BigPulpContextState {
   isMarketLoading: boolean;
   isAskLoading: boolean;
   isAttributesLoading: boolean;
+
+  // Heatmap cache state
+  heatmapCacheMetadata: CacheMetadata | null;
+  isHeatmapRefetching: boolean;
+  refetchHeatmap: () => void;
+
+  // Badge filtering
+  badges: BadgeOption[];
+  selectedBadge: string | null;
+  setSelectedBadge: (badge: string | null) => void;
+  badgeMapping: BadgeMapping | null;
 }
 
 const BigPulpContext = createContext<BigPulpContextValue | null>(null);
@@ -421,6 +436,11 @@ export function BigPulpProvider({
   // NFT data from big_pulp_v9_output.json
   const [nftDataMap, setNftDataMap] = useState<Record<string, BigPulpNFTData> | null>(null);
 
+  // Badge state
+  const [badges, setBadges] = useState<BadgeOption[]>([]);
+  const [selectedBadge, setSelectedBadge] = useState<string | null>(null);
+  const [badgeMapping, setBadgeMapping] = useState<BadgeMapping | null>(null);
+
   // Load big_pulp_v9_output.json on mount
   useEffect(() => {
     fetch('/assets/BigPulp/bigPv9/big_pulp_v9_output.json')
@@ -433,13 +453,80 @@ export function BigPulpProvider({
       });
   }, []);
 
+  // Load badge data on mount
+  useEffect(() => {
+    async function loadBadges() {
+      try {
+        const [system, mapping] = await Promise.all([
+          loadBadgeSystem(),
+          loadBadgeMapping(),
+        ]);
+
+        // Convert badge definitions to BadgeOptions sorted by count
+        const badgeOptions: BadgeOption[] = Object.entries(system.badges)
+          .map(([name, def]) => ({ name, count: def.count, listedCount: 0 }))
+          .sort((a, b) => b.count - a.count);
+
+        setBadges(badgeOptions);
+        setBadgeMapping(mapping);
+      } catch (err) {
+        console.error('Failed to load badge data:', err);
+      }
+    }
+    loadBadges();
+  }, []);
+
   // Use TanStack Query hooks for data fetching
   const { data: marketStatsData, isLoading: isMarketStatsLoading } = useBigPulpMarketStats();
-  const { data: heatMapData, isLoading: isHeatMapLoading } = useBigPulpHeatMap();
+  const {
+    data: heatMapData,
+    isLoading: isHeatMapLoading,
+    isRefetching: isHeatmapRefetching,
+    refetch: refetchHeatmap,
+  } = useBigPulpHeatMap();
   const { data: priceDistributionData, isLoading: isDistributionLoading } = useBigPulpPriceDistribution();
   const { data: attributesData, isLoading: isAttributesLoading } = useBigPulpAttributes();
   const { data: topSalesData, isLoading: isTopSalesLoading } = useBigPulpTopSales();
   const { data: rarestFindsData, isLoading: isRarestLoading } = useBigPulpRarestFinds();
+
+  // Get heatmap cache metadata for staleness indicator
+  const heatmapCacheMetadata = useHeatmapCacheMetadata();
+
+  // Update badge listed counts when heatmap data changes
+  useEffect(() => {
+    if (!heatMapData || !badgeMapping) return;
+
+    // Collect all listed NFT IDs from heatmap data
+    const listedNftIds = new Set<string>();
+    for (const row of heatMapData) {
+      for (const cell of row) {
+        for (const nft of cell.nfts) {
+          // Extract numeric ID from NFT id (e.g., "WFP-361" -> "361")
+          const numericId = nft.id.replace(/\D/g, '');
+          listedNftIds.add(numericId);
+        }
+      }
+    }
+
+    // Count listed NFTs for each badge by iterating through badge mapping
+    const badgeListedCounts: Record<string, number> = {};
+    for (const [nftId, entry] of Object.entries(badgeMapping.nft_badges)) {
+      if (listedNftIds.has(nftId)) {
+        for (const badgeInfo of entry.badges) {
+          badgeListedCounts[badgeInfo.badge] = (badgeListedCounts[badgeInfo.badge] || 0) + 1;
+        }
+      }
+    }
+
+    // Update badges with listed counts
+    setBadges(prevBadges => {
+      if (prevBadges.length === 0) return prevBadges;
+      return prevBadges.map(badge => ({
+        ...badge,
+        listedCount: badgeListedCounts[badge.name] || 0,
+      }));
+    });
+  }, [heatMapData, badgeMapping]);
 
   // Combined loading states
   const isMarketLoading = isMarketStatsLoading || isHeatMapLoading || isDistributionLoading;
@@ -598,6 +685,11 @@ export function BigPulpProvider({
     dispatch({ type: 'ADVANCE_MESSAGE_QUEUE' });
   }, []);
 
+  // Wrap refetch in a stable callback
+  const handleRefetchHeatmap = useCallback(() => {
+    refetchHeatmap();
+  }, [refetchHeatmap]);
+
   const value = useMemo<BigPulpContextValue>(
     () => ({
       ...state,
@@ -614,6 +706,15 @@ export function BigPulpProvider({
       isMarketLoading,
       isAskLoading,
       isAttributesLoading,
+      // Heatmap cache state
+      heatmapCacheMetadata,
+      isHeatmapRefetching,
+      refetchHeatmap: handleRefetchHeatmap,
+      // Badge filtering
+      badges,
+      selectedBadge,
+      setSelectedBadge,
+      badgeMapping,
     }),
     [
       state,
@@ -630,6 +731,12 @@ export function BigPulpProvider({
       isMarketLoading,
       isAskLoading,
       isAttributesLoading,
+      heatmapCacheMetadata,
+      isHeatmapRefetching,
+      handleRefetchHeatmap,
+      badges,
+      selectedBadge,
+      badgeMapping,
     ]
   );
 

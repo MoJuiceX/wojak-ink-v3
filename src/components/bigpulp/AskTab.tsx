@@ -4,10 +4,19 @@
  * Collection stats and expandable info sections.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ChevronDown, BookOpen, Gem, Trophy, Sparkles, BarChart3 } from 'lucide-react';
+import { ChevronDown, BookOpen, Gem, Trophy, Sparkles, BarChart3, Award } from 'lucide-react';
 import { useXchPrice } from '@/hooks/data/useTreasuryData';
+import {
+  loadBadgeSystem,
+  loadBadgeMapping,
+  type BadgeSystem,
+  type BadgeMapping,
+  type NFTBadgeInfo,
+} from '@/services/badgeService';
+import { useBigPulp } from '@/contexts/BigPulpContext';
+import { getNftImageUrl } from '@/services/constants';
 import type {
   MarketStats,
   AttributeStats,
@@ -31,7 +40,7 @@ interface AskTabProps {
   isLoading?: boolean;
 }
 
-type SectionId = 'provenance' | 'attributes' | 'sales' | 'rarest';
+type SectionId = 'provenance' | 'attributes' | 'sales' | 'rarest' | 'badges';
 
 interface SectionConfig {
   id: SectionId;
@@ -44,6 +53,7 @@ const SECTIONS: SectionConfig[] = [
   { id: 'attributes', icon: Gem, title: 'Top 10 Valuable Attributes' },
   { id: 'sales', icon: Trophy, title: 'Top 10 Highest Sales' },
   { id: 'rarest', icon: Sparkles, title: 'Rarest Finds' },
+  { id: 'badges', icon: Award, title: 'Badge Gallery' },
 ];
 
 function StatCard({
@@ -461,6 +471,283 @@ function RarestFindsContent({ nfts }: { nfts: NFTBasic[] }) {
   );
 }
 
+// Metadata entry type
+interface MetadataEntry {
+  edition: number;
+  open_rarity_rank: number;
+  attributes: Array<{ trait_type: string; value: string }>;
+}
+
+// Helper to get NFT name from metadata (matches bigpulpService.ts format)
+function getNftName(edition: number, metadata: MetadataEntry[]): string {
+  const paddedId = String(edition).padStart(4, '0');
+  const nftMetadata = metadata.find(m => m.edition === edition);
+
+  if (nftMetadata) {
+    const baseAttr = nftMetadata.attributes.find(a => a.trait_type === 'Base');
+    if (baseAttr) {
+      return `${baseAttr.value} #${paddedId}`;
+    }
+  }
+
+  // Fallback to generic name if metadata not found
+  return `Wojak #${paddedId}`;
+}
+
+// Hook to load NFT metadata for ranks and names
+function useNftMetadata(): {
+  ranks: Record<string, number>;
+  names: Record<string, string>;
+  metadata: MetadataEntry[];
+} {
+  const [data, setData] = useState<{
+    ranks: Record<string, number>;
+    names: Record<string, string>;
+    metadata: MetadataEntry[];
+  }>({
+    ranks: {},
+    names: {},
+    metadata: [],
+  });
+
+  useEffect(() => {
+    fetch('/assets/nft-data/metadata.json')
+      .then(res => res.json())
+      .then((metadata: MetadataEntry[]) => {
+        const ranks: Record<string, number> = {};
+        const names: Record<string, string> = {};
+        for (const nft of metadata) {
+          const id = String(nft.edition);
+          ranks[id] = nft.open_rarity_rank;
+          names[id] = getNftName(nft.edition, metadata);
+        }
+        setData({ ranks, names, metadata });
+      })
+      .catch(err => console.error('Failed to load NFT metadata:', err));
+  }, []);
+
+  return data;
+}
+
+interface NFTWithBadgeInfo {
+  id: string;
+  qualification: NFTBadgeInfo['qualification'];
+  matched: string[];
+  flags: string[];
+}
+
+function BadgeGalleryContent() {
+  const prefersReducedMotion = useReducedMotion();
+  const [badgeSystem, setBadgeSystem] = useState<BadgeSystem | null>(null);
+  const [badgeMapping, setBadgeMapping] = useState<BadgeMapping | null>(null);
+  const [expandedBadge, setExpandedBadge] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { ranks, names } = useNftMetadata();
+  const { searchNFT, setSearchQuery } = useBigPulp();
+
+  // Handle NFT click - search and scroll to BigPulp
+  const handleNftClick = useCallback((nftId: string) => {
+    // Set the search query and trigger search
+    setSearchQuery(nftId);
+    searchNFT(nftId);
+
+    // Scroll to top of page where BigPulp's take is displayed
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [searchNFT, setSearchQuery]);
+
+  // Load badge data
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [system, mapping] = await Promise.all([
+          loadBadgeSystem(),
+          loadBadgeMapping(),
+        ]);
+        setBadgeSystem(system);
+        setBadgeMapping(mapping);
+      } catch (err) {
+        console.error('Failed to load badge data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  // Group NFTs by badge
+  const nftsByBadge = useMemo(() => {
+    if (!badgeMapping) return {};
+
+    const grouped: Record<string, NFTWithBadgeInfo[]> = {};
+
+    for (const [nftId, entry] of Object.entries(badgeMapping.nft_badges)) {
+      for (const badgeInfo of entry.badges) {
+        if (!grouped[badgeInfo.badge]) {
+          grouped[badgeInfo.badge] = [];
+        }
+        grouped[badgeInfo.badge].push({
+          id: nftId,
+          qualification: badgeInfo.qualification,
+          matched: badgeInfo.matched,
+          flags: entry.flags || [],
+        });
+      }
+    }
+
+    return grouped;
+  }, [badgeMapping]);
+
+  if (loading || !badgeSystem) {
+    return (
+      <div className="pt-4 text-center">
+        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          Loading badge gallery...
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pt-4 space-y-3">
+      {/* Summary */}
+      <div
+        className="p-3 rounded-lg text-center"
+        style={{ background: 'var(--color-bg-tertiary)' }}
+      >
+        <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+          <span className="font-bold" style={{ color: 'var(--color-brand-primary)' }}>
+            {badgeSystem.nfts_with_badges.toLocaleString()}
+          </span>
+          {' '}NFTs with badges ({badgeSystem.coverage_percent}% of collection)
+        </p>
+      </div>
+
+      {/* Badge sections - sorted by rarity */}
+      {badgeSystem.badges_ranked_by_rarity.map((badge) => {
+        const definition = badgeSystem.badges[badge.name];
+        const nfts = nftsByBadge[badge.name] || [];
+        const isExpanded = expandedBadge === badge.name;
+
+        // Sort NFTs by rarity rank
+        const sortedNfts = [...nfts].sort((a, b) => {
+          const rankA = ranks[a.id] ?? 9999;
+          const rankB = ranks[b.id] ?? 9999;
+          return rankA - rankB;
+        });
+
+        return (
+          <div
+            key={badge.name}
+            className="rounded-lg overflow-hidden"
+            style={{
+              background: 'var(--color-bg-tertiary)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            {/* Badge header */}
+            <button
+              className="w-full flex items-center justify-between p-3 text-left transition-colors hover:bg-white/5"
+              onClick={() => setExpandedBadge(isExpanded ? null : badge.name)}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">{badge.emoji}</span>
+                <span
+                  className="font-medium text-sm"
+                  style={{ color: 'var(--color-text-primary)' }}
+                >
+                  {badge.name}
+                </span>
+                <span
+                  className="text-xs"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  ({badge.count})
+                </span>
+              </div>
+              <motion.div
+                animate={{ rotate: isExpanded ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown size={16} style={{ color: 'var(--color-text-muted)' }} />
+              </motion.div>
+            </button>
+
+            {/* Expanded content */}
+            <AnimatePresence initial={false}>
+              {isExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <div
+                    className="p-3 pt-0"
+                    style={{ borderTop: '1px solid var(--color-border)' }}
+                  >
+                    {/* Lore */}
+                    <p
+                      className="text-xs italic mt-2 mb-3"
+                      style={{ color: 'var(--color-text-muted)' }}
+                    >
+                      {definition?.lore || ''}
+                    </p>
+
+                    {/* NFT Grid */}
+                    <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                      {sortedNfts.map((nft) => (
+                        <div
+                          key={nft.id}
+                          className="relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-transform duration-200 hover:scale-105 hover:z-10"
+                          style={{ background: 'var(--color-glass-bg)' }}
+                          title={`${names[nft.id] || `Wojak #${nft.id.padStart(4, '0')}`}`}
+                          onClick={() => handleNftClick(nft.id)}
+                        >
+                          {/* NFT Image */}
+                          <img
+                            src={getNftImageUrl(nft.id)}
+                            alt={names[nft.id] || `Wojak #${nft.id.padStart(4, '0')}`}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          {/* NFT ID badge - bottom left */}
+                          <div
+                            className="absolute bottom-0.5 left-0.5 px-1 py-0.5 rounded text-[8px] font-bold"
+                            style={{
+                              background: 'rgba(0,0,0,0.7)',
+                              color: 'var(--color-text-primary)',
+                            }}
+                          >
+                            #{nft.id.padStart(4, '0')}
+                          </div>
+                          {/* HOAMI Edition indicator */}
+                          {nft.flags.includes('HOAMI Edition') && (
+                            <div
+                              className="absolute top-0.5 right-0.5 px-1 py-0.5 rounded text-[8px]"
+                              style={{
+                                background: 'rgba(168, 85, 247, 0.9)',
+                                color: 'white',
+                              }}
+                              title="HOAMI Edition"
+                            >
+                              💜
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function StatCardSkeleton() {
   return (
     <div
@@ -693,6 +980,14 @@ export function AskTab({
           onToggle={() => handleToggle('rarest')}
         >
           <RarestFindsContent nfts={rarestFinds} />
+        </ExpandableSection>
+
+        <ExpandableSection
+          section={SECTIONS[4]}
+          isExpanded={expandedSection === 'badges'}
+          onToggle={() => handleToggle('badges')}
+        >
+          <BadgeGalleryContent />
         </ExpandableSection>
       </div>
     </motion.div>

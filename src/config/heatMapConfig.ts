@@ -55,18 +55,50 @@ export const PRICE_BINS: PriceBin[] = [
   { index: 7, label: '10+', minPrice: 10, maxPrice: Infinity },
 ];
 
-// ============ Color Palette (Color-blind safe) ============
+// ============ Color Palettes ============
+
+// Amber/Orange palette (default for most themes)
+const AMBER_INTENSITY = [
+  'transparent',           // 0 (empty cell)
+  'rgba(255, 149, 0, 0.20)', // 1 NFT
+  'rgba(255, 149, 0, 0.35)', // 2-3 NFTs
+  'rgba(255, 149, 0, 0.50)', // 4-5 NFTs
+  'rgba(255, 149, 0, 0.65)', // 6-7 NFTs
+  'rgba(255, 149, 0, 0.80)', // 8-9 NFTs
+  'rgba(255, 149, 0, 0.95)', // 10+ NFTs
+];
+
+// Green palette (for chia-green theme)
+const GREEN_INTENSITY = [
+  'transparent',           // 0 (empty cell)
+  'rgba(34, 197, 94, 0.20)', // 1 NFT
+  'rgba(34, 197, 94, 0.35)', // 2-3 NFTs
+  'rgba(34, 197, 94, 0.50)', // 4-5 NFTs
+  'rgba(34, 197, 94, 0.65)', // 6-7 NFTs
+  'rgba(34, 197, 94, 0.80)', // 8-9 NFTs
+  'rgba(34, 197, 94, 0.95)', // 10+ NFTs
+];
+
+// Themes that use the green palette
+const GREEN_THEMES = ['chia-green'];
+
+/**
+ * Check if a theme should use green colors
+ */
+export function isGreenTheme(themeId: string): boolean {
+  return GREEN_THEMES.includes(themeId);
+}
+
+/**
+ * Get the intensity color palette for a theme
+ */
+export function getIntensityPalette(themeId: string): readonly string[] {
+  return isGreenTheme(themeId) ? GREEN_INTENSITY : AMBER_INTENSITY;
+}
 
 export const HEATMAP_COLORS = {
-  // Sequential orange palette (single hue)
-  intensity: [
-    'var(--color-bg-tertiary)', // 0
-    '#3d2200', // 0.2
-    '#7a4400', // 0.4
-    '#b86600', // 0.6
-    '#f58800', // 0.8
-    '#ffaa00', // 1.0
-  ],
+  // Default intensity palette (amber)
+  intensity: AMBER_INTENSITY,
 
   // View mode overlays
   viewModeOverlays: {
@@ -84,13 +116,29 @@ export const HEATMAP_COLORS = {
 
 /**
  * Get color for intensity value (0-1)
+ * Uses logarithmic scaling for better visual differentiation with small counts
+ * @param intensity - Value between 0-1
+ * @param themeId - Optional theme ID to determine color palette
  */
-export function getColorForIntensity(intensity: number): string {
-  const index = Math.min(
-    Math.floor(intensity * (HEATMAP_COLORS.intensity.length - 1)),
-    HEATMAP_COLORS.intensity.length - 1
-  );
-  return HEATMAP_COLORS.intensity[index];
+export function getColorForIntensity(intensity: number, themeId?: string): string {
+  const palette = themeId ? getIntensityPalette(themeId) : HEATMAP_COLORS.intensity;
+
+  if (intensity === 0) return palette[0];
+
+  // Convert intensity back to approximate count (intensity = count/50)
+  const approxCount = intensity * 50;
+
+  // Use stepped thresholds for clearer differentiation
+  // 1 NFT = index 1, 2-3 = index 2, 4-5 = index 3, 6-7 = index 4, 8-9 = index 5, 10+ = index 6
+  let index: number;
+  if (approxCount >= 10) index = 6;
+  else if (approxCount >= 8) index = 5;
+  else if (approxCount >= 6) index = 4;
+  else if (approxCount >= 4) index = 3;
+  else if (approxCount >= 2) index = 2;
+  else index = 1;
+
+  return palette[index];
 }
 
 /**
@@ -128,28 +176,21 @@ export const VIEW_MODES: ViewModeConfig[] = [
   },
   {
     id: 'delusion-zones',
-    label: 'Delusion',
+    label: "This better be 'high provenance' or else...",
     description: 'Overpriced: low rarity, high price',
     // Bottom 40% rarity (bins 6-9), high price (bins 5-7)
     filter: (r, p) => r >= 6 && p >= 5,
   },
   {
     id: 'floor-snipes',
-    label: 'Floor',
+    label: 'Floor Price',
     description: 'Near floor price listings',
     // First price column only (0-1 XCH)
     filter: (_, p) => p === 0,
   },
   {
-    id: 'rare-reasonable',
-    label: 'Rare & Reasonable',
-    description: 'Rare but reasonably priced',
-    // Top 20% rarity (bins 0-1), below 3 XCH (bins 0-2)
-    filter: (r, p) => r <= 1 && p <= 2,
-  },
-  {
     id: 'whale-territory',
-    label: 'Whale',
+    label: 'Moon Territory',
     description: 'High price listings',
     // High price (bins 6-7 = 6+ XCH)
     filter: (_, p) => p >= 6,

@@ -41,6 +41,13 @@ import { fetchNFTOwnerByEdition, type NFTOwnerInfo } from '@/services/parseBotSe
 import { useTraitRankings, type TooltipData } from '@/hooks/useTraitRankings';
 import { useSalesHistory } from '@/hooks/useSalesHistory';
 import { useXchPrice } from '@/hooks/data/useTreasuryData';
+import {
+  getCachedNFTBadges,
+  getCachedBadgeSystem,
+  preloadBadgeData,
+  type NFTBadgeEntry,
+  type BadgeSystem,
+} from '@/services/badgeService';
 
 // Sort helper types and functions
 type SortBase = 'id' | 'rarity' | 'price';
@@ -69,11 +76,10 @@ interface DesktopExplorerPanelProps {
   onClose: () => void;
 }
 
-type DetailTab = 'traits' | 'activity' | 'history';
+type DetailTab = 'traits' | 'history';
 
 const tabs: { id: DetailTab; label: string }[] = [
   { id: 'traits', label: 'Attributes' },
-  { id: 'activity', label: 'Activity' },
   { id: 'history', label: 'History' },
 ];
 
@@ -384,19 +390,14 @@ function ActivityTab({ nft }: { nft: NFT }) {
 }
 
 // History Tab Content - Sales only
+// Collection mint date (WFP minted Dec 2023)
+const COLLECTION_MINT_DATE = new Date('2023-12-15T00:00:00Z').getTime();
+
 function HistoryTab({ nftId }: { nftId: number }) {
-  const { sales, isLoading, hasSales } = useSalesHistory(nftId);
+  const { sales, isLoading } = useSalesHistory(nftId);
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-
-    if (hours < 1) return 'Just now';
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -415,20 +416,10 @@ function HistoryTab({ nftId }: { nftId: number }) {
     );
   }
 
-  if (!hasSales) {
-    return (
-      <div
-        className="py-12 text-center text-sm"
-        style={{ color: 'var(--color-text-muted)' }}
-      >
-        No sales history yet
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-      {sales.map((sale, index) => (
+      {/* Sales history */}
+      {sales.map((sale) => (
         <div
           key={`${sale.nftId}-${sale.timestamp}`}
           className="flex items-center justify-between p-3 rounded-lg"
@@ -461,6 +452,28 @@ function HistoryTab({ nftId }: { nftId: number }) {
           </span>
         </div>
       ))}
+
+      {/* Mint entry - always shown */}
+      <div
+        className="flex items-center justify-between p-3 rounded-lg"
+        style={{
+          background: 'var(--color-bg-tertiary)',
+          border: '1px solid var(--color-border)',
+        }}
+      >
+        <p
+          className="font-medium text-sm"
+          style={{ color: 'var(--color-text-primary)' }}
+        >
+          Minted
+        </p>
+        <span
+          className="text-xs"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
+          {formatDate(COLLECTION_MINT_DATE)}
+        </span>
+      </div>
     </div>
   );
 }
@@ -480,6 +493,9 @@ export function DesktopExplorerPanel({
 
   // Real owner info from Parse.bot
   const [ownerInfo, setOwnerInfo] = useState<NFTOwnerInfo | null>(null);
+  // Badge data
+  const [badges, setBadges] = useState<NFTBadgeEntry | null>(null);
+  const [badgeSystem, setBadgeSystem] = useState<BadgeSystem | null>(null);
 
   const {
     filteredNfts,
@@ -537,6 +553,21 @@ export function DesktopExplorerPanel({
       setOwnerInfo(info);
     }).catch((err) => {
       console.error('[DesktopExplorerPanel] Error fetching owner via Parse.bot:', err);
+    });
+  }, [currentNft, isOpen]);
+
+  // Load badge data
+  useEffect(() => {
+    if (!currentNft || !isOpen) {
+      setBadges(null);
+      return;
+    }
+
+    preloadBadgeData().then(() => {
+      const nftBadges = getCachedNFTBadges(currentNft.tokenId);
+      const system = getCachedBadgeSystem();
+      setBadges(nftBadges);
+      setBadgeSystem(system);
     });
   }, [currentNft, isOpen]);
 
@@ -994,6 +1025,42 @@ export function DesktopExplorerPanel({
                     </span>
                   </div>
 
+                  {/* Badges */}
+                  {badges && badges.badges.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-4">
+                      {badges.badges.map((badge) => {
+                        const def = badgeSystem?.badges[badge.badge];
+                        return (
+                          <span
+                            key={badge.badge}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                            style={{
+                              background: 'var(--color-glass-bg)',
+                              border: '1px solid var(--color-border)',
+                              color: 'var(--color-text-secondary)',
+                            }}
+                          >
+                            <span>{def?.emoji || '🏅'}</span>
+                            <span>{badge.badge}</span>
+                          </span>
+                        );
+                      })}
+                      {badges.flags.includes('HOAMI Edition') && (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                          style={{
+                            background: 'rgba(168, 85, 247, 0.2)',
+                            border: '1px solid rgba(168, 85, 247, 0.5)',
+                            color: '#a855f7',
+                          }}
+                        >
+                          <span>💜</span>
+                          <span>HOAMI</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Tabs */}
                   <div
                     className="flex gap-1 mb-4 p-1 rounded-lg"
@@ -1035,7 +1102,6 @@ export function DesktopExplorerPanel({
                         transition={{ duration: 0.15 }}
                       >
                         {activeTab === 'traits' && <AttributesTab nft={currentNft} getTooltipData={getTooltipData} />}
-                        {activeTab === 'activity' && <ActivityTab nft={currentNft} />}
                         {activeTab === 'history' && <HistoryTab nftId={currentNft.tokenId} />}
                       </motion.div>
                     </AnimatePresence>
