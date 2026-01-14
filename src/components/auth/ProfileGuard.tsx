@@ -41,8 +41,8 @@ function ClerkProfileGuard({ children }: ProfileGuardProps) {
         if (response.ok) {
           const data = await response.json();
 
-          // Redirect to onboarding if missing xHandle
-          if (!data.profile?.xHandle) {
+          // Redirect to onboarding if missing displayName (required field)
+          if (!data.profile?.displayName) {
             navigate('/onboarding', { replace: true });
           }
         }

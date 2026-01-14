@@ -2,7 +2,7 @@
  * Onboarding Page
  *
  * First-time user profile setup.
- * Only accessible when signed in via Clerk.
+ * Collects display name, X handle, and wallet address.
  */
 
 import { useState } from 'react';
@@ -16,6 +16,7 @@ import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 interface FormErrors {
   displayName?: string;
   xHandle?: string;
+  walletAddress?: string;
 }
 
 export default function Onboarding() {
@@ -26,6 +27,7 @@ export default function Onboarding() {
 
   const [displayName, setDisplayName] = useState('');
   const [xHandle, setXHandle] = useState('');
+  const [walletAddress, setWalletAddress] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -33,17 +35,25 @@ export default function Onboarding() {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    // Validate displayName (optional, but if provided must be 3-20 chars)
-    if (displayName && (displayName.length < 3 || displayName.length > 20)) {
+    // Validate displayName (required, 3-20 chars)
+    if (!displayName.trim()) {
+      newErrors.displayName = 'Display name is required';
+    } else if (displayName.length < 3 || displayName.length > 20) {
       newErrors.displayName = 'Display name must be 3-20 characters';
     }
 
-    // Validate xHandle (required, alphanumeric + underscore, 1-15 chars)
+    // Validate xHandle (optional, alphanumeric + underscore, 1-15 chars)
     const cleanHandle = xHandle.replace(/^@/, '');
-    if (!cleanHandle) {
-      newErrors.xHandle = 'X handle is required';
-    } else if (!/^[a-zA-Z0-9_]{1,15}$/.test(cleanHandle)) {
+    if (cleanHandle && !/^[a-zA-Z0-9_]{1,15}$/.test(cleanHandle)) {
       newErrors.xHandle = 'Handle must be 1-15 alphanumeric characters or underscores';
+    }
+
+    // Validate walletAddress (optional, xch prefix, 62 chars)
+    if (walletAddress.trim()) {
+      const wallet = walletAddress.trim().toLowerCase();
+      if (!wallet.startsWith('xch') || wallet.length !== 62) {
+        newErrors.walletAddress = 'Enter a valid Chia address (xch...)';
+      }
     }
 
     setErrors(newErrors);
@@ -62,8 +72,9 @@ export default function Onboarding() {
       const response = await authenticatedFetch('/api/profile', {
         method: 'POST',
         body: JSON.stringify({
-          displayName: displayName || undefined,
-          xHandle: xHandle.replace(/^@/, ''),
+          displayName: displayName.trim(),
+          xHandle: xHandle.replace(/^@/, '') || undefined,
+          walletAddress: walletAddress.trim() || undefined,
         }),
       });
 
@@ -101,18 +112,21 @@ export default function Onboarding() {
               border: '1px solid var(--color-border)',
             }}
           >
-            <h1
-              className="text-2xl font-bold mb-2"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              Welcome to Wojak.ink
-            </h1>
-            <p
-              className="mb-6"
-              style={{ color: 'var(--color-text-secondary)' }}
-            >
-              Set up your profile to get started.
-            </p>
+            {/* Header */}
+            <div className="text-center mb-6">
+              <h1
+                className="text-2xl font-bold mb-2"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                Welcome to the tribe!
+              </h1>
+              <p
+                className="text-sm"
+                style={{ color: 'var(--color-text-secondary)' }}
+              >
+                Set up your Wojak profile to get started
+              </p>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Display Name */}
@@ -122,7 +136,7 @@ export default function Onboarding() {
                   className="block text-sm font-medium mb-1"
                   style={{ color: 'var(--color-text-secondary)' }}
                 >
-                  Display Name (optional)
+                  Display Name *
                 </label>
                 <input
                   id="displayName"
@@ -153,7 +167,7 @@ export default function Onboarding() {
                   className="block text-sm font-medium mb-1"
                   style={{ color: 'var(--color-text-secondary)' }}
                 >
-                  X Handle
+                  X Handle (optional)
                 </label>
                 <div className="relative">
                   <span
@@ -185,6 +199,43 @@ export default function Onboarding() {
                 )}
               </div>
 
+              {/* Wallet Address */}
+              <div>
+                <label
+                  htmlFor="walletAddress"
+                  className="block text-sm font-medium mb-1"
+                  style={{ color: 'var(--color-text-secondary)' }}
+                >
+                  Chia Wallet Address (optional)
+                </label>
+                <input
+                  id="walletAddress"
+                  type="text"
+                  value={walletAddress}
+                  onChange={(e) => setWalletAddress(e.target.value)}
+                  placeholder="xch1..."
+                  className="w-full px-3 py-2 rounded-lg text-base font-mono text-sm"
+                  style={{
+                    background: 'var(--color-bg-primary)',
+                    border: errors.walletAddress
+                      ? '1px solid var(--color-error, #ef4444)'
+                      : '1px solid var(--color-border)',
+                    color: 'var(--color-text-primary)',
+                  }}
+                />
+                {errors.walletAddress && (
+                  <p className="text-sm mt-1" style={{ color: 'var(--color-error, #ef4444)' }}>
+                    {errors.walletAddress}
+                  </p>
+                )}
+                <p
+                  className="text-xs mt-1"
+                  style={{ color: 'var(--color-text-tertiary)' }}
+                >
+                  Link your wallet to see your Wojaks in your profile
+                </p>
+              </div>
+
               {/* Submit Error */}
               {submitError && (
                 <div
@@ -210,7 +261,17 @@ export default function Onboarding() {
                   cursor: isSubmitting ? 'not-allowed' : 'pointer',
                 }}
               >
-                {isSubmitting ? 'Saving...' : 'Get Started'}
+                {isSubmitting ? 'Saving...' : 'Join the Tribe'}
+              </button>
+
+              {/* Skip for now */}
+              <button
+                type="button"
+                onClick={() => navigate('/gallery', { replace: true })}
+                className="w-full py-2 text-sm"
+                style={{ color: 'var(--color-text-tertiary)' }}
+              >
+                Skip for now
               </button>
             </form>
           </div>

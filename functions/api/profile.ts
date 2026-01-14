@@ -15,6 +15,7 @@ interface Env {
 interface ProfileData {
   displayName?: string;
   xHandle?: string;
+  walletAddress?: string;
 }
 
 // CORS headers
@@ -44,9 +45,9 @@ async function ensureUser(db: D1Database, userId: string): Promise<void> {
  */
 async function getProfile(db: D1Database, userId: string) {
   const result = await db
-    .prepare('SELECT display_name, x_handle, updated_at FROM profiles WHERE user_id = ?')
+    .prepare('SELECT display_name, x_handle, wallet_address, updated_at FROM profiles WHERE user_id = ?')
     .bind(userId)
-    .first<{ display_name: string | null; x_handle: string | null; updated_at: string }>();
+    .first<{ display_name: string | null; x_handle: string | null; wallet_address: string | null; updated_at: string }>();
 
   return result;
 }
@@ -62,7 +63,7 @@ function validateProfileData(data: ProfileData): { valid: boolean; error?: strin
     }
   }
 
-  // Validate xHandle (required for save, alphanumeric + underscore, max 15 chars)
+  // Validate xHandle (optional, alphanumeric + underscore, max 15 chars)
   if (data.xHandle !== undefined && data.xHandle !== null && data.xHandle !== '') {
     // Remove @ if present
     const handle = data.xHandle.replace(/^@/, '');
@@ -73,6 +74,18 @@ function validateProfileData(data: ProfileData): { valid: boolean; error?: strin
 
     // Update the data with cleaned handle
     data.xHandle = handle;
+  }
+
+  // Validate walletAddress (optional, xch prefix, 62 chars)
+  if (data.walletAddress !== undefined && data.walletAddress !== null && data.walletAddress !== '') {
+    const wallet = data.walletAddress.trim().toLowerCase();
+
+    if (!wallet.startsWith('xch') || wallet.length !== 62) {
+      return { valid: false, error: 'Wallet address must be a valid Chia address (xch...)' };
+    }
+
+    // Update with cleaned address
+    data.walletAddress = wallet;
   }
 
   return { valid: true };
@@ -88,19 +101,22 @@ async function upsertProfile(
 ): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO profiles (user_id, display_name, x_handle, updated_at)
-       VALUES (?, ?, ?, datetime('now'))
+      `INSERT INTO profiles (user_id, display_name, x_handle, wallet_address, updated_at)
+       VALUES (?, ?, ?, ?, datetime('now'))
        ON CONFLICT(user_id) DO UPDATE SET
          display_name = COALESCE(?, display_name),
          x_handle = COALESCE(?, x_handle),
+         wallet_address = COALESCE(?, wallet_address),
          updated_at = datetime('now')`
     )
     .bind(
       userId,
       data.displayName || null,
       data.xHandle || null,
+      data.walletAddress || null,
       data.displayName !== undefined ? data.displayName || null : null,
-      data.xHandle !== undefined ? data.xHandle || null : null
+      data.xHandle !== undefined ? data.xHandle || null : null,
+      data.walletAddress !== undefined ? data.walletAddress || null : null
     )
     .run();
 }
@@ -156,6 +172,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             ? {
                 displayName: profile.display_name,
                 xHandle: profile.x_handle,
+                walletAddress: profile.wallet_address,
                 updatedAt: profile.updated_at,
               }
             : null,
@@ -199,6 +216,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             ? {
                 displayName: profile.display_name,
                 xHandle: profile.x_handle,
+                walletAddress: profile.wallet_address,
                 updatedAt: profile.updated_at,
               }
             : null,
