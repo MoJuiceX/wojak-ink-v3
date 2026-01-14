@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { initializeSalesDatabank, getSalesCount, fixSuspiciousSales } from '@/services/salesDatabank';
 import { syncDexieSales } from '@/services/dexieSalesService';
 
@@ -35,6 +36,7 @@ export function markSyncComplete(): void {
 
 export function SalesProvider({ children }: SalesProviderProps) {
   const hasInitialized = useRef(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -54,7 +56,7 @@ export function SalesProvider({ children }: SalesProviderProps) {
       }
     });
 
-    // Check if auto-sync is needed (more than 24 hours since last sync)
+    // Check if auto-sync is needed (more than 6 hours since last sync)
     if (hoursSinceSync >= AUTO_SYNC_INTERVAL_HOURS) {
       console.log('[SalesProvider] Last sync was', Math.round(hoursSinceSync), 'hours ago - starting daily sync...');
 
@@ -74,6 +76,10 @@ export function SalesProvider({ children }: SalesProviderProps) {
               console.log('[SalesProvider] Fixed', fixed, 'newly imported sales');
             }
           }
+
+          // Invalidate BigPulp queries so they refetch with new sales data
+          console.log('[SalesProvider] Invalidating BigPulp queries to refresh with new data...');
+          queryClient.invalidateQueries({ queryKey: ['bigPulp'] });
         } catch (error) {
           console.error('[SalesProvider] Daily sync failed:', error);
         }
@@ -83,7 +89,7 @@ export function SalesProvider({ children }: SalesProviderProps) {
     } else {
       console.log('[SalesProvider] Last sync:', Math.round(hoursSinceSync), 'hours ago - skipping (next sync in', Math.round(AUTO_SYNC_INTERVAL_HOURS - hoursSinceSync), 'hours)');
     }
-  }, []);
+  }, [queryClient]);
 
   return <>{children}</>;
 }

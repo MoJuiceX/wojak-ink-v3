@@ -114,6 +114,26 @@ git merge experiment-name          # Merge when ready
 
 ---
 
+### 2026-01-14 - Fixed "No Sales Available" in BigPulp Top 10
+**The problem:**
+- BigPulp page loads and calls `getTopSales()`
+- Sales databank is empty (sync delayed 3 seconds)
+- TanStack Query caches empty array for 1 minute
+- Sync completes with 750+ sales but cached empty result persists
+- User sees "No sales available"
+
+**The fix:**
+- After sync completes, invalidate BigPulp queries
+- Added `queryClient.invalidateQueries({ queryKey: ['bigPulp'] })` in SalesProvider
+- This forces BigPulp components to refetch with new data
+
+**File changed:** `src/providers/SalesProvider.tsx`
+
+**Key learning:**
+When async data loads after initial render, invalidate queries that depend on it.
+
+---
+
 ### 2026-01-14 - Documentation Pipeline (/sync-docs)
 **What we did:**
 - Created `/sync-docs` skill for automated documentation

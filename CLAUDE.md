@@ -272,6 +272,7 @@ These are defined in `historicalPriceService.ts`:
 |-------|-------|-----|
 | Sales showing wrong XCH values | CAT token rate missing | Add rate to `TOKEN_RATES` in `historicalPriceService.ts` |
 | "No sales data available" | localStorage cleared | Wait for auto-sync or run `syncDexieSales()` manually |
+| BigPulp shows empty after reload | Query cached before sync | SalesProvider now invalidates queries after sync |
 | NFT shows "Wojak #XXXX" | Not using metadata | Use `getNftName()` with loaded metadata |
 | fixSuspiciousSales not working | Ran before sync | Ensure it runs AFTER `syncDexieSales()` completes |
 | XCH price wrong | Hardcoded value | Use `useXchPrice()` hook |
