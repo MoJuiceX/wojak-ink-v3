@@ -12,6 +12,8 @@ import { AudioProvider } from '@/contexts/AudioContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PageSkeleton } from '@/components/layout/PageSkeleton';
 import { ToastContainer } from '@/components/ui/Toast';
+import { ProfileGuard } from '@/components/auth/ProfileGuard';
+import { RequireAuth } from '@/components/auth/RequireAuth';
 import { PreloadProvider } from '@/components/preload/PreloadProvider';
 import { SalesProvider } from '@/providers/SalesProvider';
 import { GlobalVideoPlayer } from '@/components/media/video/GlobalVideoPlayer';
@@ -27,6 +29,9 @@ const BigPulp = lazy(() => import('./pages/BigPulp'));
 const Generator = lazy(() => import('./pages/Generator'));
 const Media = lazy(() => import('./pages/Media'));
 const Settings = lazy(() => import('./pages/Settings'));
+
+// Auth
+const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 // Games
 const OrangeStack = lazy(() => import('./pages/OrangeStack'));
@@ -183,7 +188,19 @@ function AppContent() {
                   }
                 />
               </Route>
+              {/* Auth Routes - Outside AppLayout */}
+              <Route
+                path="onboarding"
+                element={
+                  <RequireAuth>
+                    <Suspense fallback={<PageSkeleton type="settings" />}>
+                      <Onboarding />
+                    </Suspense>
+                  </RequireAuth>
+                }
+              />
             </Routes>
+            <ProfileGuard />
             <ToastContainer />
             <GlobalVideoPlayer />
           </div>
