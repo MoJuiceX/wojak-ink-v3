@@ -112,9 +112,14 @@ workers/
 | `src/components/MarketHeatmap.tsx` | Price distribution heatmap |
 | `src/services/tradeValuesService.ts` | Trade data + collection stats API |
 | `src/services/marketApi.ts` | Market listings from Dexie/MintGarden |
+| `src/services/bigpulpService.ts` | BigPulp data: top sales, rarest finds, NFT analysis |
+| `src/services/salesDatabank.ts` | Sales history storage, CAT token fixes |
+| `src/services/historicalPriceService.ts` | XCH/USD prices, CAT token rates |
+| `src/services/dexieSalesService.ts` | Fetches sales from Dexie API |
+| `src/providers/SalesProvider.tsx` | Initializes sales databank, auto-sync |
 | `vite.config.ts` | Dev server config including API proxies |
 | `public/assets/BigPulp/nft_takes_v2.json` | Big Pulp commentary for each NFT |
-| `public/assets/BigPulp/did_you_know.json` | Optional facts (~33% of NFTs) |
+| `public/assets/nft-data/metadata.json` | NFT metadata (base character, attributes) |
 
 ---
 
@@ -125,6 +130,67 @@ In development, these proxies bypass CORS:
 - `/dexie-api` → `https://api.dexie.space`
 
 Production uses direct API calls.
+
+---
+
+## Sales Data & CAT Tokens
+
+### How Sales Work
+- Sales are fetched from Dexie API and stored in localStorage (`salesDatabank`)
+- `SalesProvider` auto-syncs every 6 hours
+- CAT token sales need conversion to XCH equivalent using token-specific rates
+
+### CAT Token Rates (XCH per 1 token)
+These are defined in `historicalPriceService.ts`:
+| Token | Rate | Example |
+|-------|------|---------|
+| PIZZA | 0.00000286 | 550,000 PIZZA = ~1.57 XCH |
+| SPROUT | 0.00000932 | 110,000 SPROUT = ~1.02 XCH |
+| G4M | 0.00000175 | 366,666 G4M = ~0.64 XCH |
+| BEPE | 0.0000204 | 70,000 BEPE = ~1.43 XCH |
+| HOA | 0.000318 | 6,300 HOA = ~2 XCH |
+| NeckCoin | 3.006 | High-value token |
+
+### NFT Naming
+- NFTs have a "Base" attribute in metadata (Alien Wojak, Papa Tang, Soyjak, etc.)
+- Use `getNftName()` helper in `bigpulpService.ts` to get proper names
+- Display as "Alien Wojak #3666" not "Wojak #3666"
+
+---
+
+## Lessons Learned
+
+### XCH Price
+- **Never hardcode XCH price** - it changes daily
+- Use `useXchPrice()` hook for real-time price from CoinGecko
+- The title bar already shows current XCH price
+
+### CAT Token Sales
+- Dexie API returns raw token amounts without conversion rates
+- Sales with large token amounts (>50k) and high XCH values (>2) are likely miscalculated
+- `fixSuspiciousSales()` in `salesDatabank.ts` auto-corrects bad conversions
+- Must run `fixSuspiciousSales()` AFTER sync completes, not before
+
+### Top 10 Highest Sales
+- Use `getRecentSales(10000)` to get ALL sales, not just recent 20
+- Sort by `xchEquivalent` descending to find true highest sales
+
+### Sales Sync Timing
+- `SalesProvider` runs `fixSuspiciousSales()` on load AND after sync
+- If localStorage is cleared, sync takes 10-15 seconds to fetch 750+ trades
+- Manual sync: `syncDexieSales()` from `dexieSalesService.ts`
+
+---
+
+## Common Issues & Fixes
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| Sales showing wrong XCH values | CAT token rate missing | Add rate to `TOKEN_RATES` in `historicalPriceService.ts` |
+| "No sales data available" | localStorage cleared | Wait for auto-sync or run `syncDexieSales()` manually |
+| NFT shows "Wojak #XXXX" | Not using metadata | Use `getNftName()` with loaded metadata |
+| fixSuspiciousSales not working | Ran before sync | Ensure it runs AFTER `syncDexieSales()` completes |
+| XCH price wrong | Hardcoded value | Use `useXchPrice()` hook |
 
 ---
 
