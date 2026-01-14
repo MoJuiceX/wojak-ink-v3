@@ -90,6 +90,16 @@ npx wrangler pages deploy dist --project-name=wojak-ink  # Deploy to production
 - Push to GitHub without explicit permission
 - Deploy to production without explicit permission
 - Auto-commit changes
+- Create new folders for "redesigns" or "versions" - use git branches instead
+
+### Git Branches (Not Folders!)
+```bash
+git checkout -b experiment    # Create branch for experiments
+git checkout main             # Go back to stable
+git merge experiment          # Merge when ready
+git branch -d experiment      # Delete branch after merge
+```
+One folder (`~/wojak-ink`), multiple branches. Never duplicate the repo folder.
 
 ---
 

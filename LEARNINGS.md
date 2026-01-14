@@ -62,4 +62,33 @@ The article about "context as moat" applies directly to CLAUDE.md:
 
 ---
 
+### 2026-01-14 - Git Workflow: Branches Not Folders
+**What happened:**
+- Had two folders: `wojak-ink-mobile` and `wojak-ink-redesign`
+- Both were clones of the same repo, causing confusion
+- One folder was stale, the other had all the work
+
+**What we learned:**
+- NEVER create a new folder for a "redesign" or "version"
+- Use git branches instead: `git checkout -b redesign`
+- One folder, multiple branches = the git way
+- Duplicate folders lead to stale code and confusion
+
+**The fix:**
+```bash
+# For experiments/redesigns:
+git checkout -b experiment-name    # Create branch
+git checkout main                  # Go back to stable
+git merge experiment-name          # Merge when ready
+```
+
+**Cleanup done:**
+- Renamed `wojak-ink-redesign` → `wojak-ink`
+- Deleted stale `wojak-ink-mobile`
+- New project path: `/Users/abit_hex/wojak-ink`
+
+**Added to CLAUDE.md:** ✅ Done
+
+---
+
 <!-- Add new learnings above this line -->
