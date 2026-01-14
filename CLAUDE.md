@@ -19,7 +19,8 @@ This is automatic behavior - do NOT wait for the user to ask:
 1. **Announce:** "Let me capture what we learned before this context compresses."
 2. **Update LEARNINGS.md:** Add specific entry with date, what was fixed, what was learned
 3. **Update CLAUDE.md:** If the learning is reusable across sessions, add it to the appropriate section
-4. **Commit the updates:** `git add LEARNINGS.md CLAUDE.md && git commit -m "docs: capture session learnings"`
+4. **Run /sync-docs:** Updates README.md and PROJECT_DOCUMENTATION.md automatically
+5. **Commit and push:** `git add -A && git commit -m "docs: capture session learnings" && git push`
 
 ### Why This Matters:
 After compression, detailed debugging steps and specific fixes are lost forever.
@@ -126,6 +127,7 @@ One folder (`~/wojak-ink`), multiple branches. Never duplicate the repo folder.
 | add-token | `/add-token` | Add CAT token conversion rate |
 | status | `/status` | System health check |
 | analyze | `/analyze [id]` | Quick NFT lookup |
+| sync-docs | `/sync-docs` | Update README + PROJECT_DOC, commit, push |
 
 ---
 

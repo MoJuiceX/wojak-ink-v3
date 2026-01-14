@@ -114,6 +114,34 @@ git merge experiment-name          # Merge when ready
 
 ---
 
+### 2026-01-14 - Documentation Pipeline (/sync-docs)
+**What we did:**
+- Created `/sync-docs` skill for automated documentation
+- Created expandable README.md with `<details>` sections
+- Created PROJECT_DOCUMENTATION.md for LLM handoff
+- Updated CLAUDE.md compression workflow to include /sync-docs
+
+**The Pipeline:**
+```
+Session Work → Compression Trigger
+       │
+       ▼
+  LEARNINGS.md → README.md + PROJECT_DOC.md → git push
+```
+
+**Files created:**
+- `~/.claude/skills/sync-docs/SKILL.md` - Skill definition
+- `/Users/abit_hex/wojak-ink/README.md` - Expandable GitHub readme
+- `/Users/abit_hex/wojak-ink/PROJECT_DOCUMENTATION.md` - Comprehensive LLM doc
+
+**How it works:**
+1. Before compression, run `/sync-docs`
+2. Skill updates README.md (Recent Updates section from LEARNINGS.md)
+3. Skill updates PROJECT_DOCUMENTATION.md (full context)
+4. Commits and pushes to GitHub
+
+---
+
 ### 2026-01-14 - Full Codebase Exploration & Architecture Documentation
 **What we did:**
 - Deep exploration of entire codebase (59,810 lines)
