@@ -2,6 +2,29 @@
 
 > Project memory file - always in context. Keep concise.
 
+## Context Management (MANDATORY)
+
+**CRITICAL: Before conversation compression, you MUST capture learnings.**
+
+This is automatic behavior - do NOT wait for the user to ask:
+
+### Triggers (act on ANY of these):
+- Conversation has 20+ back-and-forth exchanges
+- Major bug was fixed or feature completed
+- New pattern/gotcha was discovered
+- User says "that's working now" or similar
+- You sense the conversation is getting long
+
+### Actions (do ALL of these):
+1. **Announce:** "Let me capture what we learned before this context compresses."
+2. **Update LEARNINGS.md:** Add specific entry with date, what was fixed, what was learned
+3. **Update CLAUDE.md:** If the learning is reusable across sessions, add it to the appropriate section
+4. **Commit the updates:** `git add LEARNINGS.md CLAUDE.md && git commit -m "docs: capture session learnings"`
+
+### Why This Matters:
+After compression, detailed debugging steps and specific fixes are lost forever.
+Capturing BEFORE compression preserves the full context for future sessions.
+
 ## What Is This
 
 Mobile-first web app for Wojak Farmers Plot NFT collection (4200 NFTs on Chia blockchain). Production app for real NFT collectors.
