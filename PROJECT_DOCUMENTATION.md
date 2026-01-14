@@ -550,9 +550,15 @@ npm run build && npx wrangler pages deploy dist --project-name=wojak-ink
 
 <!-- FROM LEARNINGS.md -->
 
+### 2026-01-14 (Latest)
+- Fixed BigPulp "No sales available" bug
+  - Issue: TanStack Query cached empty result before sync completed
+  - Fix: SalesProvider now invalidates BigPulp queries after sync
+  - File: `src/providers/SalesProvider.tsx`
+
 ### 2026-01-14
 - Full codebase exploration (59,810 lines documented)
-- Created 7 custom Claude Code skills
+- Created 7 custom Claude Code skills (/deploy, /dev, /sync-sales, /add-token, /status, /analyze, /sync-docs)
 - Added API architecture documentation
 - Built automated docs pipeline (/sync-docs)
 

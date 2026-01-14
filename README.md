@@ -291,12 +291,12 @@ Theme selection, audio controls, and app configuration.
 <!-- AUTO-GENERATED FROM LEARNINGS.md -->
 | Date | Update |
 |------|--------|
-| 2026-01-14 | Full codebase exploration, documented API architecture |
-| 2026-01-14 | Created 6 custom Claude Code skills (/deploy, /dev, /sync-sales, /add-token, /status, /analyze) |
+| 2026-01-14 | Fixed BigPulp "No sales" bug - invalidate queries after sync |
+| 2026-01-14 | Created /sync-docs pipeline for automated documentation |
+| 2026-01-14 | Created 7 custom Claude Code skills |
+| 2026-01-14 | Full codebase exploration (59,810 lines documented) |
 | 2026-01-14 | Added Context7 plugin for live documentation |
-| 2026-01-14 | Git workflow: branches not folders |
 | 2026-01-14 | Fixed CAT token rates (SPROUT, PIZZA, G4M) |
-| 2026-01-14 | Created context management system (LEARNINGS.md) |
 <!-- END AUTO-GENERATED -->
 
 ---
