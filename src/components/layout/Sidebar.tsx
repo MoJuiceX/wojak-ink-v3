@@ -16,6 +16,7 @@ import { NavItem } from './NavItem';
 import { Logo } from './Logo';
 import { ThemeSwitcher } from '@/components/theme/ThemeSwitcher';
 import { GallerySidebarControls } from './GallerySidebarControls';
+import { UserAccountButton } from '@/components/auth/UserAccountButton';
 import type { SidebarPinnedState } from '@/contexts/LayoutContext';
 
 interface SidebarProps {
@@ -227,6 +228,29 @@ export function Sidebar({
         onMouseEnter={handleExpandableZoneEnter}
       >
         <GallerySidebarControls showLabels={showExpanded} />
+      </div>
+
+      {/* Separator */}
+      <div
+        className="flex-shrink-0 mx-3"
+        style={{
+          height: 1,
+          background: 'var(--color-border)',
+        }}
+      />
+
+      {/* User account button - hovering here expands the sidebar */}
+      <div
+        className="flex-shrink-0"
+        style={{
+          paddingTop: 8,
+          paddingBottom: 8,
+          paddingLeft: LAYOUT.sidebar.paddingX,
+          paddingRight: LAYOUT.sidebar.paddingX,
+        }}
+        onMouseEnter={handleExpandableZoneEnter}
+      >
+        <UserAccountButton showLabel={showExpanded} />
       </div>
 
       {/* Footer with theme switcher - hovering here expands the sidebar */}
