@@ -91,4 +91,27 @@ git merge experiment-name          # Merge when ready
 
 ---
 
+### 2026-01-14 - Context7 Plugin Installed
+**What it does:**
+- Fetches live, up-to-date documentation for any library
+- Better than Claude's training data (which can be outdated)
+- Works with Ionic, React, Vite, TanStack Query, etc.
+
+**How to use:**
+```
+/docs ionic react          # Explicit lookup
+/docs vite proxy           # Specific topic
+"How do I use IonModal?"   # Natural question (auto-triggers)
+```
+
+**When it auto-triggers:**
+- Questions about library APIs
+- Setup questions for frameworks
+- Code generation involving specific libraries
+- Mentions of React, Ionic, Vite, Prisma, etc.
+
+**Added to CLAUDE.md:** ✅ Done
+
+---
+
 <!-- Add new learnings above this line -->

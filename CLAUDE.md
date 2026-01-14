@@ -42,6 +42,16 @@ Mobile-first web app for Wojak Farmers Plot NFT collection (4200 NFTs on Chia bl
 | Backend | Cloudflare Workers (trade data aggregation) |
 | APIs | MintGarden, Dexie, SpaceScan, CoinGecko |
 
+### Context7 Plugin (Auto Documentation)
+Use `/docs [library]` or ask naturally about any library. Context7 fetches live, up-to-date documentation.
+
+**Common lookups for this project:**
+- `/docs ionic react` - Ionic components (IonModal, IonCard, etc.)
+- `/docs vite` - Build config, proxies, env variables
+- `/docs tanstack query` - Data fetching hooks
+- `/docs framer motion` - Animations
+- `/docs cloudflare workers` - Worker APIs
+
 ---
 
 ## Project Decisions & Conventions
