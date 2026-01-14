@@ -114,4 +114,29 @@ git merge experiment-name          # Merge when ready
 
 ---
 
+### 2026-01-14 - Custom Skills Created
+**What we did:**
+- Created 4 custom skills in `~/.claude/skills/`
+
+**Skills:**
+| Skill | Command | What it does |
+|-------|---------|--------------|
+| deploy | `/deploy` | Build + deploy to Cloudflare Pages |
+| dev | `/dev` | Start dev server with --host for phone testing |
+| sync-sales | `/sync-sales` | Debug sales data issues, run manual sync |
+| add-token | `/add-token` | Add new CAT token conversion rate |
+
+**Location:** `~/.claude/skills/[skill-name]/SKILL.md`
+
+**Usage examples:**
+```
+/deploy           # Build and deploy to production
+/deploy --check   # Build only (dry run)
+/dev              # Start dev server
+/sync-sales       # Diagnose sales issues
+/add-token PIZZA  # Guide to add token rate
+```
+
+---
+
 <!-- Add new learnings above this line -->
