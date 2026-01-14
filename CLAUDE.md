@@ -37,10 +37,16 @@ Mobile-first web app for Wojak Farmers Plot NFT collection (4200 NFTs on Chia bl
 
 | Layer | Tech |
 |-------|------|
-| Frontend | Ionic + React |
+| Frontend | Ionic + React 19, TanStack Query, Zustand, Framer Motion |
 | Hosting | Cloudflare Pages |
-| Backend | Cloudflare Workers (trade data aggregation) |
-| APIs | MintGarden, Dexie, SpaceScan, CoinGecko |
+| Backend | Cloudflare Workers (trade data aggregation, cron every 30 min) |
+| APIs | MintGarden, Dexie, SpaceScan, CoinGecko, Parse.bot (fallback) |
+
+### Codebase Stats
+- **59,810 lines** of production code
+- 6 main pages + 6 mini-games
+- 70+ components, 28+ custom hooks
+- 4,200 NFTs across 14 character types
 
 ### Context7 Plugin (Auto Documentation)
 Use `/docs [library]` or ask naturally about any library. Context7 fetches live, up-to-date documentation.
@@ -111,6 +117,16 @@ git branch -d experiment      # Delete branch after merge
 ```
 One folder (`~/wojak-ink`), multiple branches. Never duplicate the repo folder.
 
+### Custom Skills (in ~/.claude/skills/)
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| deploy | `/deploy` | Build + deploy to Cloudflare Pages |
+| dev | `/dev` | Start dev server with --host |
+| sync-sales | `/sync-sales` | Debug sales data issues |
+| add-token | `/add-token` | Add CAT token conversion rate |
+| status | `/status` | System health check |
+| analyze | `/analyze [id]` | Quick NFT lookup |
+
 ---
 
 ## Features
@@ -166,13 +182,36 @@ workers/
 
 ---
 
-## API Proxies (Dev Mode)
+## API Architecture
 
-In development, these proxies bypass CORS:
+### Rate Limits (CRITICAL)
+| API | Rate Limit | Notes |
+|-----|------------|-------|
+| MintGarden | 2 req/s | NFT listings |
+| Dexie | 2 req/s | Sales history |
+| SpaceScan | **1 req/20s** | VERY strict! 30s backoff on 429 |
+| CoinGecko | 1 req/2s | XCH price |
+| Parse.bot | Paid | Fallback when Dexie fails |
+
+### 3-Tier API Fallback
+1. **Primary:** Free Dexie.space API
+2. **Cache:** localStorage backup (24h valid)
+3. **Fallback:** Parse.bot paid API (if cache stale)
+
+### Caching Strategy
+| Data | Cache Location | TTL |
+|------|---------------|-----|
+| Sales history | localStorage | 6 hours (auto-sync) |
+| NFT metadata | Static JSON | Immutable |
+| Market listings | TanStack Query | 1-10 min |
+| XCH price | TanStack Query | 6 hours |
+| Treasury data | localStorage + Query | 30 min |
+
+### Dev Proxies (vite.config.ts)
 - `/mintgarden-api` → `https://api.mintgarden.io`
 - `/dexie-api` → `https://api.dexie.space`
-
-Production uses direct API calls.
+- `/spacescan-api` → `https://api.spacescan.io`
+- `/coingecko-api` → `https://api.coingecko.com`
 
 ---
 

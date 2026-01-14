@@ -114,6 +114,36 @@ git merge experiment-name          # Merge when ready
 
 ---
 
+### 2026-01-14 - Full Codebase Exploration & Architecture Documentation
+**What we did:**
+- Deep exploration of entire codebase (59,810 lines)
+- Documented API architecture, rate limits, caching strategy
+- Created 2 new skills: `/status` and `/analyze`
+- Updated CLAUDE.md with critical architecture knowledge
+
+**Key discoveries:**
+- 5 external APIs with different rate limits (SpaceScan is VERY strict: 1 req/20s)
+- 3-tier fallback system: Dexie → localStorage → Parse.bot
+- Smart rate limiter in `src/utils/rateLimiter.ts` (450 lines)
+- Preload coordinator predicts user actions and preloads images
+
+**Architecture patterns:**
+- TanStack Query for volatile data (listings, prices)
+- localStorage for persistent data (sales, favorites, settings)
+- Zustand for global state (4 stores)
+- 11 React Contexts for feature-specific state
+
+**What NOT to add:**
+- Repomix plugin (codebase is well-organized)
+- PR review tools (solo developer)
+- Complex sync debugging (uses localStorage, not IndexedDB)
+
+**New skills added:**
+- `/status` - Quick health check (sales count, cache status, sync time)
+- `/analyze [id]` - NFT lookup (traits, sales, BigPulp commentary)
+
+---
+
 ### 2026-01-14 - Custom Skills Created
 **What we did:**
 - Created 4 custom skills in `~/.claude/skills/`
