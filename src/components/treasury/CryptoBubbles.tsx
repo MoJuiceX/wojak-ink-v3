@@ -235,6 +235,7 @@ export function CryptoBubbles({
 }: CryptoBubblesProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>(0);
+  const frameCountRef = useRef(0);
   const particleAnimationRef = useRef<number>(0);
   const confettiAnimationRef = useRef<number>(0);
   const bubblesRef = useRef<Bubble[]>([]);
@@ -604,10 +605,15 @@ export function CryptoBubbles({
         }
       }
 
-      setBubbles([...currentBubbles]);
+      // Only update React state every 2 frames to reduce re-renders
+      frameCountRef.current++;
+      if (frameCountRef.current % 2 === 0) {
+        setBubbles([...currentBubbles]);
+      }
       animationRef.current = requestAnimationFrame(animate);
     };
 
+    frameCountRef.current = 0;
     animationRef.current = requestAnimationFrame(animate);
 
     return () => {
