@@ -25,10 +25,35 @@ if (!CLERK_PUBLISHABLE_KEY) {
   )
 }
 
+// Clerk appearance customization - orange theme
+const clerkAppearance = {
+  elements: {
+    userButtonPopoverCard: {
+      backgroundColor: '#ffffff',
+    },
+    userButtonPopoverActionButton: {
+      color: '#ea580c',
+    },
+    userButtonPopoverActionButtonText: {
+      color: '#ea580c',
+    },
+    userButtonPopoverActionButtonIcon: {
+      color: '#ea580c',
+    },
+    userButtonPopoverFooter: {
+      backgroundColor: '#fff7ed',
+    },
+  },
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {CLERK_PUBLISHABLE_KEY ? (
-      <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
+      <ClerkProvider
+        publishableKey={CLERK_PUBLISHABLE_KEY}
+        afterSignOutUrl="/"
+        appearance={clerkAppearance}
+      >
         <App />
       </ClerkProvider>
     ) : (
