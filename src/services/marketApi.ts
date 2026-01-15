@@ -10,12 +10,12 @@ import { mintgardenQueue } from '../utils/rateLimiter';
 // Collection ID for Wojak Farmers Plot
 export const COLLECTION_ID = 'col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah';
 
-// Use Vite proxy in development to avoid CORS issues
+// Use Vite proxy in development, Cloudflare proxy in production
 const isDev = import.meta.env.DEV;
 
-// API Base URLs
-const MINTGARDEN_API = isDev ? '/mintgarden-api' : 'https://api.mintgarden.io';
-const DEXIE_API = isDev ? '/dexie-api/v1' : 'https://api.dexie.space/v1';
+// API Base URLs - always use proxies to avoid CORS
+const MINTGARDEN_API = isDev ? '/mintgarden-api' : '/api/mintgarden';
+const DEXIE_API = isDev ? '/dexie-api/v1' : '/api/dexie/v1';
 
 /**
  * NFT History Cache

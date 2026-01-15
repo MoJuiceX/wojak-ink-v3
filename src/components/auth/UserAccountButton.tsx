@@ -1,14 +1,15 @@
 /**
  * UserAccountButton Component
  *
- * Shows sign-in button when signed out, user menu when signed in.
+ * Shows sign-in button when signed out, navigates to Account page when signed in.
  * Uses Clerk for authentication (Google sign-in).
  */
 
-import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/clerk-react';
-import { User, UserPen } from 'lucide-react';
+import { SignedIn, SignedOut, SignInButton, useAuth, useUser } from '@clerk/clerk-react';
+import { User } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 
 // Check if Clerk is configured
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -20,8 +21,12 @@ interface UserAccountButtonProps {
 // Inner component that uses Clerk hooks (only rendered when Clerk is available)
 function ClerkUserButton({ showLabel }: { showLabel: boolean }) {
   const auth = useAuth();
+  const { user } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { unreadMessages } = useUserProfile();
   const isClerkLoaded = auth.isLoaded;
+  const isActive = location.pathname === '/account';
 
   // If Clerk isn't loaded yet, show loading state
   if (!isClerkLoaded) {
@@ -59,38 +64,48 @@ function ClerkUserButton({ showLabel }: { showLabel: boolean }) {
         </SignInButton>
       </SignedOut>
 
-      {/* Signed In: Show user button */}
+      {/* Signed In: Navigate to Account page */}
       <SignedIn>
-        <div
-          className="flex items-center gap-3 px-3 py-2"
-          style={{ color: 'var(--color-text-secondary)' }}
+        <motion.button
+          onClick={() => navigate('/account')}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg w-full transition-colors"
+          style={{
+            color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+            background: isActive ? 'var(--color-glass-hover)' : 'transparent',
+          }}
+          whileHover={{
+            background: 'var(--color-glass-hover)',
+            color: 'var(--color-text-primary)',
+          }}
+          whileTap={{ scale: 0.98 }}
+          title="Account"
         >
-          <UserButton
-            appearance={{
-              elements: {
-                avatarBox: 'w-8 h-8',
-                userButtonPopoverCard: 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)]',
-                userButtonPopoverActions: 'bg-[var(--color-bg-secondary)]',
-                userButtonPopoverActionButton: 'text-[var(--color-text-primary)] hover:bg-[var(--color-glass-hover)]',
-                userButtonPopoverFooter: 'hidden',
-              },
-            }}
-            afterSignOutUrl="/"
-          >
-            <UserButton.MenuItems>
-              <UserButton.Action
-                label="Edit Profile"
-                labelIcon={<UserPen size={16} />}
-                onClick={() => navigate('/onboarding')}
+          <div className="relative">
+            {user?.imageUrl ? (
+              <img
+                src={user.imageUrl}
+                alt="Profile"
+                className="w-8 h-8 rounded-full"
               />
-            </UserButton.MenuItems>
-          </UserButton>
+            ) : (
+              <User size={20} />
+            )}
+            {/* Unread messages badge */}
+            {unreadMessages > 0 && (
+              <span
+                className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold"
+                style={{ background: '#ef4444', color: '#fff' }}
+              >
+                {unreadMessages > 9 ? '!' : unreadMessages}
+              </span>
+            )}
+          </div>
           {showLabel && (
-            <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+            <span className="text-sm font-medium">
               Account
             </span>
           )}
-        </div>
+        </motion.button>
       </SignedIn>
     </>
   );

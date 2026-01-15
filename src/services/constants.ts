@@ -24,13 +24,13 @@ export const CAT_DECIMALS = 3;
 
 const isDev = import.meta.env.DEV;
 
-// Market APIs
-export const MINTGARDEN_API = isDev ? '/mintgarden-api' : 'https://api.mintgarden.io';
-export const DEXIE_API = isDev ? '/dexie-api/v1' : 'https://api.dexie.space/v1';
+// Market APIs - always use proxies to avoid CORS
+export const MINTGARDEN_API = isDev ? '/mintgarden-api' : '/api/mintgarden';
+export const DEXIE_API = isDev ? '/dexie-api/v1' : '/api/dexie/v1';
 
-// Treasury APIs
-export const SPACESCAN_API = isDev ? '/spacescan-api' : 'https://api.spacescan.io';
-export const COINGECKO_API = isDev ? '/coingecko-api' : 'https://api.coingecko.com';
+// Treasury APIs - always use proxies to avoid CORS
+export const SPACESCAN_API = isDev ? '/spacescan-api' : '/api/spacescan';
+export const COINGECKO_API = isDev ? '/coingecko-api' : '/api/coingecko';
 
 // Cloudflare Worker (trade data aggregation)
 export const WORKER_API = 'https://wojak-mobile-trade-fetcher.abitsolvesthis.workers.dev';

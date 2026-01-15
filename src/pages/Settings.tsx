@@ -13,9 +13,8 @@ import {
   ThemeSelector,
   AudioSettings,
   AboutSection,
-  WalletSettings,
 } from '@/components/settings';
-import { settingsPageVariants, settingsSectionVariants } from '@/config/settingsAnimations';
+import { settingsPageVariants } from '@/config/settingsAnimations';
 
 export default function Settings() {
   const { contentPadding, isDesktop } = useLayout();
@@ -69,15 +68,6 @@ export default function Settings() {
           ) : (
             /* Mobile: Single column layout */
             <>
-              {/* Wallet Settings - Mobile only */}
-              <WalletSettings />
-
-              {/* Divider */}
-              <div
-                className="h-px"
-                style={{ background: 'var(--color-border)' }}
-              />
-
               {/* Theme Selection */}
               <ThemeSelector
                 selectedTheme={settings.theme.selected}

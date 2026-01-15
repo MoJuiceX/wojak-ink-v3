@@ -10,12 +10,12 @@
 import { importSales, getSalesCount, type RawSaleRecord } from './salesDatabank';
 import { getHoursSinceLastSync } from '@/providers/SalesProvider';
 
-// Dexie.space direct API (FREE)
-const DEXIE_API = '/dexie-api/v1';
+// Dexie.space API via Cloudflare proxy (FREE)
+const DEXIE_API = '/api/dexie/v1';
 
-// Parse.bot API endpoint (PAID FALLBACK)
+// Parse.bot API endpoint via Cloudflare proxy (PAID FALLBACK)
 const PARSEBOT_SCRAPER_ID = '8237e8bc-a98d-48a1-8b6c-ebcea8ab0c36';
-const PARSEBOT_API = `/parsebot-api/scraper/${PARSEBOT_SCRAPER_ID}`;
+const PARSEBOT_API = `/api/parsebot/scraper/${PARSEBOT_SCRAPER_ID}`;
 
 // Wojak Farmers Plot collection ID
 const COLLECTION_ID = 'col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah';

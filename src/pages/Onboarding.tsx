@@ -5,32 +5,73 @@
  * Collects display name, X handle, and wallet address.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
+import { Wallet, Loader2 } from 'lucide-react';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useLayout } from '@/hooks/useLayout';
-import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
+import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useSageWallet } from '@/sage-wallet';
+
+// Wojak Farmers Plot collection ID
+const WOJAK_COLLECTION_ID = 'col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah';
 
 interface FormErrors {
   displayName?: string;
   xHandle?: string;
-  walletAddress?: string;
 }
 
 export default function Onboarding() {
   const { contentPadding, isDesktop } = useLayout();
   const navigate = useNavigate();
   const { user } = useUser();
-  const { authenticatedFetch } = useAuthenticatedFetch();
+  const { updateProfile, refreshProfile } = useUserProfile();
+
+  // Use the new Sage Wallet hook
+  const {
+    status: walletStatus,
+    address: walletAddress,
+    isInitialized: walletInitialized,
+    connect: connectWallet,
+    getNFTs,
+  } = useSageWallet();
 
   const [displayName, setDisplayName] = useState('');
   const [xHandle, setXHandle] = useState('');
-  const [walletAddress, setWalletAddress] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [nftCount, setNftCount] = useState<number | null>(null);
+  const [isLoadingNfts, setIsLoadingNfts] = useState(false);
+
+  const isWalletConnected = walletStatus === 'connected' && !!walletAddress;
+  const isWalletConnecting = walletStatus === 'connecting';
+
+  // Fetch NFTs when wallet connects
+  useEffect(() => {
+    const fetchNfts = async () => {
+      if (!isWalletConnected || !walletAddress) {
+        setNftCount(null);
+        return;
+      }
+
+      setIsLoadingNfts(true);
+      try {
+        const nfts = await getNFTs(WOJAK_COLLECTION_ID);
+        setNftCount(nfts.length);
+        console.log('[Onboarding] Found', nfts.length, 'Wojak Farmer NFTs');
+      } catch (error) {
+        console.error('[Onboarding] NFT fetch error:', error);
+        setNftCount(0);
+      } finally {
+        setIsLoadingNfts(false);
+      }
+    };
+
+    fetchNfts();
+  }, [isWalletConnected, walletAddress, getNFTs]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -48,14 +89,6 @@ export default function Onboarding() {
       newErrors.xHandle = 'Handle must be 1-15 alphanumeric characters or underscores';
     }
 
-    // Validate walletAddress (optional, xch prefix, 62 chars)
-    if (walletAddress.trim()) {
-      const wallet = walletAddress.trim().toLowerCase();
-      if (!wallet.startsWith('xch') || wallet.length !== 62) {
-        newErrors.walletAddress = 'Enter a valid Chia address (xch...)';
-      }
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -69,19 +102,17 @@ export default function Onboarding() {
     setSubmitError(null);
 
     try {
-      const response = await authenticatedFetch('/api/profile', {
-        method: 'POST',
-        body: JSON.stringify({
-          displayName: displayName.trim(),
-          xHandle: xHandle.replace(/^@/, '') || undefined,
-          walletAddress: walletAddress.trim() || undefined,
-        }),
+      const success = await updateProfile({
+        displayName: displayName.trim(),
+        xHandle: xHandle.replace(/^@/, '') || null,
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to save profile');
+      if (!success) {
+        throw new Error('Failed to save profile');
       }
+
+      // Refresh profile state to update needsOnboarding flag
+      await refreshProfile();
 
       // Success - navigate to gallery
       navigate('/gallery', { replace: true });
@@ -89,6 +120,14 @@ export default function Onboarding() {
       setSubmitError(err instanceof Error ? err.message : 'Failed to save profile');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleConnectWallet = async () => {
+    try {
+      await connectWallet();
+    } catch (error) {
+      console.error('[Onboarding] Wallet connect error:', error);
     }
   };
 
@@ -121,13 +160,13 @@ export default function Onboarding() {
                 className="text-2xl font-bold mb-2"
                 style={{ color: 'var(--color-text-primary)' }}
               >
-                Welcome to the tribe!
+                Welcome to the Grove
               </h1>
               <p
                 className="text-sm"
                 style={{ color: 'var(--color-text-secondary)' }}
               >
-                Set up your Wojak profile to get started
+                Set up your profile to get started...
               </p>
             </div>
 
@@ -202,40 +241,75 @@ export default function Onboarding() {
                 )}
               </div>
 
-              {/* Wallet Address */}
+              {/* Wallet Connection */}
               <div>
                 <label
-                  htmlFor="walletAddress"
                   className="block text-sm font-medium mb-1"
                   style={{ color: 'var(--color-text-secondary)' }}
                 >
-                  Chia Wallet Address (optional)
+                  Sage Wallet (optional)
                 </label>
-                <input
-                  id="walletAddress"
-                  type="text"
-                  value={walletAddress}
-                  onChange={(e) => setWalletAddress(e.target.value)}
-                  placeholder="xch1..."
-                  className="w-full px-3 py-2 rounded-lg text-base font-mono text-sm"
-                  style={{
-                    background: 'var(--color-bg-primary)',
-                    border: errors.walletAddress
-                      ? '1px solid var(--color-error, #ef4444)'
-                      : '1px solid var(--color-border)',
-                    color: 'var(--color-text-primary)',
-                  }}
-                />
-                {errors.walletAddress && (
-                  <p className="text-sm mt-1" style={{ color: 'var(--color-error, #ef4444)' }}>
-                    {errors.walletAddress}
-                  </p>
+                {isWalletConnected ? (
+                  <div className="space-y-2">
+                    <div
+                      className="px-3 py-2 rounded-lg flex items-center gap-2"
+                      style={{
+                        background: 'var(--color-bg-primary)',
+                        border: '1px solid #22c55e',
+                      }}
+                    >
+                      <Wallet size={18} style={{ color: '#22c55e' }} />
+                      <span style={{ color: 'var(--color-text-primary)' }} className="flex-1 text-sm">
+                        {walletAddress.slice(0, 10)}...{walletAddress.slice(-6)}
+                      </span>
+                      <span style={{ color: '#22c55e' }}>✓</span>
+                    </div>
+                    {isLoadingNfts ? (
+                      <p className="text-sm flex items-center gap-2" style={{ color: 'var(--color-text-secondary)' }}>
+                        <Loader2 size={14} className="animate-spin" />
+                        Checking for Wojak Farmer NFTs...
+                      </p>
+                    ) : nftCount !== null && nftCount > 0 ? (
+                      <p className="text-sm" style={{ color: '#22c55e' }}>
+                        Found {nftCount} Wojak Farmer NFT{nftCount !== 1 ? 's' : ''}
+                      </p>
+                    ) : (
+                      <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
+                        No Wojak Farmer NFTs found in wallet
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleConnectWallet}
+                    disabled={!walletInitialized || isWalletConnecting}
+                    className="w-full px-3 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                    style={{
+                      background: 'var(--color-brand-primary)',
+                      color: '#fff',
+                    }}
+                  >
+                    {isWalletConnecting ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        <Wallet size={18} />
+                        Connect Sage Wallet
+                      </>
+                    )}
+                  </button>
                 )}
                 <p
                   className="text-xs mt-1"
                   style={{ color: 'var(--color-text-tertiary)' }}
                 >
-                  Link your wallet to see your Wojaks in your profile
+                  {isWalletConnected
+                    ? 'Connected via WalletConnect'
+                    : 'Connect to verify NFT ownership'}
                 </p>
               </div>
 
@@ -256,7 +330,7 @@ export default function Onboarding() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3 rounded-lg font-medium text-base transition-opacity"
+                className="w-full py-3 rounded-full font-medium text-base transition-opacity"
                 style={{
                   background: 'var(--color-primary)',
                   color: 'var(--color-primary-foreground, #fff)',
@@ -264,7 +338,7 @@ export default function Onboarding() {
                   cursor: isSubmitting ? 'not-allowed' : 'pointer',
                 }}
               >
-                {isSubmitting ? 'Saving...' : 'Join the Tribe'}
+                {isSubmitting ? 'Saving...' : 'Save'}
               </button>
 
               {/* Skip for now */}

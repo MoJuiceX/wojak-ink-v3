@@ -29,8 +29,8 @@ export interface SalePriceInfo {
 // ============ Constants ============
 
 const STORAGE_KEY = 'wojak_price_cache_v1';
-const COINGECKO_API = import.meta.env.DEV ? '/coingecko-api' : 'https://api.coingecko.com';
-const DEXIE_API = import.meta.env.DEV ? '/dexie-api/v1' : 'https://api.dexie.space/v1';
+const COINGECKO_API = import.meta.env.DEV ? '/coingecko-api' : '/api/coingecko';
+const DEXIE_API = import.meta.env.DEV ? '/dexie-api/v1' : '/api/dexie/v1';
 
 // CAT token asset ID (update this with the actual CAT token ID)
 const CAT_ASSET_ID = 'a628c1c2c6fcb74d53746157e438e108eab5c0bb3e5c80ff9b1910b3e4832913';

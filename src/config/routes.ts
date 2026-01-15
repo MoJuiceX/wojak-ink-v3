@@ -101,8 +101,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Account',
     shortLabel: 'Account',
     icon: User,
-    disabled: true,
-    tooltip: 'Soon',
   },
 ];
 

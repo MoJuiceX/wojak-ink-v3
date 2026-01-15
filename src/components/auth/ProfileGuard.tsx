@@ -1,14 +1,13 @@
 /**
  * ProfileGuard Component
  *
- * Silently checks if authenticated user needs to complete onboarding.
- * Renders children immediately while checking in background.
+ * Redirects authenticated users to onboarding if they haven't completed their profile.
+ * Uses UserProfileContext for state management.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
-import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
+import { useUserProfileOptional } from '@/contexts/UserProfileContext';
 
 // Check if Clerk is configured
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -17,55 +16,35 @@ interface ProfileGuardProps {
   children?: React.ReactNode;
 }
 
-function ClerkProfileGuard({ children }: ProfileGuardProps) {
+export function ProfileGuard({ children }: ProfileGuardProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isSignedIn, isLoaded } = useAuth();
-  const { authenticatedFetch } = useAuthenticatedFetch();
-  const checkedRef = useRef(false);
+  const userProfile = useUserProfileOptional();
 
   useEffect(() => {
-    // Only check once per session, and only when signed in
-    if (!isLoaded || !isSignedIn || checkedRef.current) return;
+    // Skip if Clerk not configured or context not available
+    if (!CLERK_ENABLED || !userProfile) return;
 
-    // Don't check if already on onboarding page
-    if (location.pathname === '/onboarding') {
-      checkedRef.current = true;
-      return;
+    // Skip if not signed in or still loading
+    if (!userProfile.isSignedIn || !userProfile.isLoaded) return;
+
+    // Don't redirect if already on onboarding page
+    if (location.pathname === '/onboarding') return;
+
+    // Redirect to onboarding if profile is incomplete
+    if (userProfile.needsOnboarding) {
+      console.log('[ProfileGuard] User needs onboarding, redirecting...');
+      navigate('/onboarding', { replace: true });
     }
-
-    const checkProfile = async () => {
-      try {
-        const response = await authenticatedFetch('/api/profile');
-
-        if (response.ok) {
-          const data = await response.json();
-
-          // Redirect to onboarding if missing displayName (required field)
-          if (!data.profile?.displayName) {
-            navigate('/onboarding', { replace: true });
-          }
-        }
-      } catch (error) {
-        console.error('[ProfileGuard] Error checking profile:', error);
-      } finally {
-        checkedRef.current = true;
-      }
-    };
-
-    checkProfile();
-  }, [isLoaded, isSignedIn, location.pathname, authenticatedFetch, navigate]);
+  }, [
+    userProfile?.isSignedIn,
+    userProfile?.isLoaded,
+    userProfile?.needsOnboarding,
+    location.pathname,
+    navigate,
+  ]);
 
   return <>{children}</>;
-}
-
-export function ProfileGuard({ children }: ProfileGuardProps) {
-  // If Clerk is not configured, render children directly
-  if (!CLERK_ENABLED) {
-    return <>{children}</>;
-  }
-
-  return <ClerkProfileGuard>{children}</ClerkProfileGuard>;
 }
 
 export default ProfileGuard;

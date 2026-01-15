@@ -13,7 +13,9 @@ import { PageSkeleton } from '@/components/layout/PageSkeleton';
 import { ToastContainer } from '@/components/ui/Toast';
 import { ProfileGuard } from '@/components/auth/ProfileGuard';
 import { RequireAuth } from '@/components/auth/RequireAuth';
+import { UserProfileProvider } from '@/contexts/UserProfileContext';
 import { PreloadProvider } from '@/components/preload/PreloadProvider';
+import { SageWalletProvider } from '@/sage-wallet';
 import { SalesProvider } from '@/providers/SalesProvider';
 import { GlobalVideoPlayer } from '@/components/media/video/GlobalVideoPlayer';
 import StartupSequence from '@/components/StartupSequence';
@@ -28,6 +30,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 
 // Auth
 const Onboarding = lazy(() => import('./pages/Onboarding'));
+const Account = lazy(() => import('./pages/Account'));
 
 // Games
 const OrangeStack = lazy(() => import('./pages/OrangeStack'));
@@ -153,6 +156,14 @@ function AppContent() {
                     </Suspense>
                   }
                 />
+                <Route
+                  path="account"
+                  element={
+                    <Suspense fallback={<PageSkeleton type="settings" />}>
+                      <Account />
+                    </Suspense>
+                  }
+                />
                 {/* Game Routes - all under /media/games/* */}
                 <Route
                   path="media/games/stack"
@@ -235,7 +246,20 @@ function App() {
             <AudioProvider>
             <MediaProvider>
             <BrowserRouter>
-              <AppContent />
+              <SageWalletProvider
+                config={{
+                  metadata: {
+                    name: 'Wojak.ink',
+                    description: 'Wojak Farmers Plot NFT Explorer',
+                    url: 'https://wojak.ink',
+                    icons: ['https://wojak.ink/assets/icons/Wojak_logo.png'],
+                  },
+                }}
+              >
+                <UserProfileProvider>
+                  <AppContent />
+                </UserProfileProvider>
+              </SageWalletProvider>
             </BrowserRouter>
             </MediaProvider>
             </AudioProvider>

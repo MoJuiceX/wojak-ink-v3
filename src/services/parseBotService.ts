@@ -9,9 +9,9 @@ const SCRAPER_ID = '3e7e6f3c-882b-4235-a9df-d1c183f09db9';
 const isDev = import.meta.env.DEV;
 
 // In development: use Vite proxy (API key injected by proxy)
-// In production: use Cloudflare Worker (API key stored as secret)
+// In production: use Cloudflare Pages Function proxy (API key stored as env var)
 const DEV_PROXY_BASE = '/parsebot-api';
-const PROD_WORKER_URL = 'https://wojak-parsebot-proxy.abitsolvesthis.workers.dev';
+const PROD_PROXY_BASE = '/api/parsebot';
 
 // Collection URL for Wojak Farmers (with correct collection ID)
 export const COLLECTION_URL = 'https://mintgarden.io/collections/wojak-farmers-plot-col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah';
@@ -181,12 +181,8 @@ function buildDevUrl(endpoint: string): string {
 }
 
 function buildProdUrl(endpoint: string): string {
-  // Worker uses simplified endpoints: /collection-stats, /nft-details, /nft-owner
-  const endpointMap: Record<string, string> = {
-    'fetch_collection_stats': '/collection-stats',
-    'fetch_nft_details': '/nft-details',
-  };
-  return `${PROD_WORKER_URL}${endpointMap[endpoint] || `/${endpoint}`}`;
+  // Use Cloudflare Pages Function proxy - same format as dev
+  return `${PROD_PROXY_BASE}/scraper/${SCRAPER_ID}/${endpoint}`;
 }
 
 async function postRequest<T>(endpoint: string, body: Record<string, unknown>): Promise<T> {
