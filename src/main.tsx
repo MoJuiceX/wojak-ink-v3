@@ -25,23 +25,41 @@ if (!CLERK_PUBLISHABLE_KEY) {
   )
 }
 
-// Clerk appearance customization - orange theme
+// Clerk appearance customization - orange theme with white background
 const clerkAppearance = {
   elements: {
+    // Card background
     userButtonPopoverCard: {
       backgroundColor: '#ffffff',
+      border: '1px solid #e5e7eb',
     },
+    // All action buttons
     userButtonPopoverActionButton: {
-      color: '#ea580c',
+      color: '#ea580c !important',
     },
     userButtonPopoverActionButtonText: {
-      color: '#ea580c',
+      color: '#ea580c !important',
     },
     userButtonPopoverActionButtonIcon: {
-      color: '#ea580c',
+      color: '#ea580c !important',
     },
+    // Custom menu items
+    userButtonPopoverCustomItemButton: {
+      color: '#ea580c !important',
+    },
+    // Footer
     userButtonPopoverFooter: {
       backgroundColor: '#fff7ed',
+    },
+    // Menu items
+    menuButton: {
+      color: '#ea580c !important',
+    },
+    menuList: {
+      backgroundColor: '#ffffff',
+    },
+    menuItem: {
+      color: '#ea580c !important',
     },
   },
 }
