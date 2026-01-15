@@ -6,8 +6,9 @@
  */
 
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/clerk-react';
-import { User } from 'lucide-react';
+import { User, UserPen } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 // Check if Clerk is configured
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -19,6 +20,7 @@ interface UserAccountButtonProps {
 // Inner component that uses Clerk hooks (only rendered when Clerk is available)
 function ClerkUserButton({ showLabel }: { showLabel: boolean }) {
   const auth = useAuth();
+  const navigate = useNavigate();
   const isClerkLoaded = auth.isLoaded;
 
   // If Clerk isn't loaded yet, show loading state
@@ -74,7 +76,15 @@ function ClerkUserButton({ showLabel }: { showLabel: boolean }) {
               },
             }}
             afterSignOutUrl="/"
-          />
+          >
+            <UserButton.MenuItems>
+              <UserButton.Action
+                label="Edit Profile"
+                labelIcon={<UserPen size={16} />}
+                onClick={() => navigate('/onboarding')}
+              />
+            </UserButton.MenuItems>
+          </UserButton>
           {showLabel && (
             <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
               Account
