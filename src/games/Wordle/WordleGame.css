@@ -1,0 +1,750 @@
+/**
+ * Orange Wordle Game Styles - Citrus Edition
+ */
+
+/* ============================================================================
+   CONTAINER
+   ============================================================================ */
+
+.wordle-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  padding: 16px;
+  background: linear-gradient(180deg, #1a1a2e 0%, #121213 100%);
+  box-sizing: border-box;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  position: relative;
+}
+
+/* ============================================================================
+   HEADER (base styles - layout is below in HEADER LAYOUT section)
+   ============================================================================ */
+
+.wordle-title {
+  font-size: 36px;
+  font-weight: bold;
+  color: #ff6b00;
+  margin: 0;
+  letter-spacing: 4px;
+  text-shadow: 0 2px 10px rgba(255, 107, 0, 0.3);
+}
+
+.wordle-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-top: 4px;
+}
+
+/* ============================================================================
+   TOAST NOTIFICATION
+   ============================================================================ */
+
+.wordle-toast {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  color: #121213;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 14px;
+  z-index: 100;
+  animation: toast-fade 2s ease forwards;
+}
+
+@keyframes toast-fade {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  10% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ============================================================================
+   GAME BOARD
+   ============================================================================ */
+
+.wordle-board {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 24px;
+}
+
+.wordle-row {
+  display: flex;
+  gap: 5px;
+}
+
+/* Row shake animation */
+.wordle-row.shake {
+  animation: row-shake 0.5s ease;
+}
+
+@keyframes row-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-10px);
+  }
+  40% {
+    transform: translateX(10px);
+  }
+  60% {
+    transform: translateX(-10px);
+  }
+  80% {
+    transform: translateX(10px);
+  }
+}
+
+/* ============================================================================
+   TILES
+   ============================================================================ */
+
+.wordle-tile {
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: white;
+  background: transparent;
+  border: 2px solid #3a3a3c;
+  box-sizing: border-box;
+  transition: border-color 0.1s ease;
+}
+
+/* Tile states */
+.wordle-tile.tbd {
+  border-color: #565758;
+  animation: tile-pop 100ms ease-out;
+}
+
+.wordle-tile.correct {
+  background: #ff6b00;
+  border-color: #ff6b00;
+}
+
+.wordle-tile.present {
+  background: #b59f3b;
+  border-color: #b59f3b;
+}
+
+.wordle-tile.absent {
+  background: #3a3a3c;
+  border-color: #3a3a3c;
+}
+
+/* Pop animation on type */
+.wordle-tile.pop {
+  animation: tile-pop 100ms ease-out;
+}
+
+@keyframes tile-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Flip animation for reveal */
+.wordle-tile.flip {
+  animation: tile-flip 0.6s ease forwards;
+}
+
+@keyframes tile-flip {
+  0% {
+    transform: rotateX(0deg);
+  }
+  50% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+/* Win bounce animation */
+.wordle-tile.win {
+  animation: tile-win 0.5s ease forwards;
+}
+
+@keyframes tile-win {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+/* ============================================================================
+   KEYBOARD
+   ============================================================================ */
+
+.wordle-keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.keyboard-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.wordle-key {
+  background: #818384;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 16px 0;
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  min-width: 43px;
+  flex: 1;
+  max-width: 43px;
+  transition: background 0.1s ease, transform 0.1s ease;
+}
+
+.wordle-key:active {
+  transform: scale(0.95);
+}
+
+.wordle-key.key-wide {
+  min-width: 65px;
+  max-width: 65px;
+  font-size: 12px;
+}
+
+/* Key states */
+.wordle-key.key-correct {
+  background: #ff6b00;
+}
+
+.wordle-key.key-present {
+  background: #b59f3b;
+}
+
+.wordle-key.key-absent {
+  background: #3a3a3c;
+}
+
+/* ============================================================================
+   INSTRUCTIONS
+   ============================================================================ */
+
+.wordle-instructions {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.wordle-instructions p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+/* ============================================================================
+   GAME OVER OVERLAY
+   ============================================================================ */
+
+.wordle-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18, 18, 19, 0.9);
+  z-index: 200;
+  animation: overlay-fade 0.3s ease;
+}
+
+@keyframes overlay-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.wordle-modal {
+  background: #1a1a2e;
+  border: 1px solid #3a3a3c;
+  border-radius: 12px;
+  padding: 32px;
+  text-align: center;
+  max-width: 300px;
+  animation: modal-scale 0.3s ease;
+}
+
+@keyframes modal-scale {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.wordle-modal h2 {
+  font-size: 28px;
+  color: white;
+  margin: 0 0 16px 0;
+}
+
+.wordle-modal p {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 24px 0;
+}
+
+.wordle-modal strong {
+  color: #ff6b00;
+  letter-spacing: 2px;
+}
+
+.wordle-btn {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+  color: white;
+  border: none;
+  padding: 14px 32px;
+  font-size: 16px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.wordle-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
+}
+
+.wordle-btn:active {
+  transform: scale(0.98);
+}
+
+/* ============================================================================
+   RESPONSIVE - MOBILE
+   ============================================================================ */
+
+@media (max-width: 420px) {
+  .wordle-container {
+    padding: 12px 8px;
+  }
+
+  .wordle-title {
+    font-size: 28px;
+    letter-spacing: 2px;
+  }
+
+  .wordle-board {
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+
+  .wordle-row {
+    gap: 4px;
+  }
+
+  .wordle-tile {
+    width: 52px;
+    height: 52px;
+    font-size: 26px;
+  }
+
+  .wordle-keyboard {
+    gap: 6px;
+  }
+
+  .keyboard-row {
+    gap: 4px;
+  }
+
+  .wordle-key {
+    padding: 14px 0;
+    font-size: 12px;
+    min-width: 32px;
+    max-width: 36px;
+  }
+
+  .wordle-key.key-wide {
+    min-width: 52px;
+    max-width: 58px;
+    font-size: 11px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 360px) {
+  .wordle-tile {
+    width: 46px;
+    height: 46px;
+    font-size: 22px;
+  }
+
+  .wordle-key {
+    min-width: 28px;
+    max-width: 32px;
+    padding: 12px 0;
+    font-size: 11px;
+  }
+
+  .wordle-key.key-wide {
+    min-width: 46px;
+    max-width: 52px;
+  }
+}
+
+/* Short screens */
+@media (max-height: 650px) {
+  .wordle-header {
+    margin-bottom: 8px;
+  }
+
+  .wordle-title {
+    font-size: 24px;
+  }
+
+  .wordle-tile {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+  }
+
+  .wordle-board {
+    margin-bottom: 12px;
+  }
+
+  .wordle-key {
+    padding: 12px 0;
+  }
+}
+
+/* ============================================================================
+   CONFETTI (for Phase 4)
+   ============================================================================ */
+
+.confetti-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 150;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  top: -20px;
+  animation: confetti-fall 3s ease-out forwards;
+}
+
+@keyframes confetti-fall {
+  to {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* ============================================================================
+   HEADER LAYOUT
+   ============================================================================ */
+
+.wordle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 500px;
+  margin-bottom: 16px;
+}
+
+.wordle-header-left,
+.wordle-header-right {
+  width: 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.wordle-header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wordle-stats-btn {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.wordle-stats-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================================================
+   MODAL BUTTONS
+   ============================================================================ */
+
+.wordle-modal-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.wordle-btn.secondary {
+  background: transparent;
+  border: 2px solid #ff6b00;
+  color: #ff6b00;
+}
+
+.wordle-btn.secondary:hover {
+  background: rgba(255, 107, 0, 0.1);
+  box-shadow: none;
+}
+
+/* ============================================================================
+   STATS MODAL
+   ============================================================================ */
+
+.stats-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18, 18, 19, 0.95);
+  z-index: 250;
+  animation: overlay-fade 0.3s ease;
+}
+
+.stats-modal {
+  background: #1a1a2e;
+  border: 1px solid #3a3a3c;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  width: 90%;
+  max-width: 340px;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: modal-scale 0.3s ease;
+}
+
+.stats-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0 0 20px 0;
+}
+
+/* Stats Row - 4 stat boxes */
+.stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 55px;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: bold;
+  color: white;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  margin-top: 4px;
+  text-align: center;
+}
+
+/* Distribution Chart */
+.distribution-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 12px 0;
+  text-align: left;
+}
+
+.distribution-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.distribution-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.distribution-guess {
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+  width: 14px;
+  text-align: right;
+}
+
+.distribution-bar-container {
+  flex: 1;
+  display: flex;
+}
+
+.distribution-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 8px;
+  background: #3a3a3c;
+  border-radius: 2px;
+  min-width: 24px;
+  transition: width 0.3s ease;
+}
+
+.distribution-bar.has-value {
+  background: #818384;
+}
+
+.distribution-bar.highlight {
+  background: #ff6b00;
+}
+
+.distribution-count {
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+}
+
+/* Game Result Message */
+.stats-result {
+  margin-bottom: 16px;
+}
+
+.result-win {
+  font-size: 16px;
+  color: #ff6b00;
+  margin: 0;
+  font-weight: bold;
+}
+
+.result-lose {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+/* Stats Close Button */
+.stats-close-btn {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  font-size: 14px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stats-close-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
+}
+
+.stats-close-btn:active {
+  transform: scale(0.98);
+}
+
+/* ============================================================================
+   STATS RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 360px) {
+  .stats-modal {
+    padding: 16px;
+  }
+
+  .stats-row {
+    gap: 8px;
+  }
+
+  .stat-item {
+    min-width: 48px;
+  }
+
+  .stat-value {
+    font-size: 26px;
+  }
+
+  .stat-label {
+    font-size: 9px;
+  }
+}

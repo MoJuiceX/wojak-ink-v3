@@ -60,6 +60,9 @@ export const DATA_CACHE_MAP = {
   // Trait data
   traitRarity: CACHE_CONFIG.static,
   traitSales: CACHE_CONFIG.volatile,
+
+  // Leaderboard data
+  leaderboard: CACHE_CONFIG.volatile,
 } as const;
 
 export type CacheCategory = keyof typeof CACHE_CONFIG;

@@ -322,7 +322,7 @@ export async function getXchPrice(date: Date): Promise<number> {
     return priceCache.xchUsd[closest];
   }
 
-  console.warn('[PriceService] No XCH price found for', dateStr, '- using default');
+  // Silently use default price when no historical data available
   return 25; // Fallback default
 }
 
@@ -343,7 +343,7 @@ export function getCatPrice(date: Date): number {
     return priceCache.catXch[closest];
   }
 
-  console.warn('[PriceService] No CAT price found for', dateStr, '- using default');
+  // Silently use default price when no historical data available
   return 0.00005; // Fallback default
 }
 

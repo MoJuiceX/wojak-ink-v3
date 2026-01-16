@@ -1,25 +1,27 @@
 /**
  * ProfileGuard Component
  *
- * Redirects authenticated users to onboarding if they haven't completed their profile.
+ * Shows onboarding modal for authenticated users who haven't completed their profile.
  * Uses UserProfileContext for state management.
  */
 
-import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useUserProfileOptional } from '@/contexts/UserProfileContext';
+import OnboardingModal from '@/components/auth/OnboardingModal';
 
 // Check if Clerk is configured
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+// Storage key for skipped onboarding
+const ONBOARDING_SKIPPED_KEY = 'wojak_onboarding_skipped';
 
 interface ProfileGuardProps {
   children?: React.ReactNode;
 }
 
 export function ProfileGuard({ children }: ProfileGuardProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
   const userProfile = useUserProfileOptional();
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     // Skip if Clerk not configured or context not available
@@ -28,23 +30,40 @@ export function ProfileGuard({ children }: ProfileGuardProps) {
     // Skip if not signed in or still loading
     if (!userProfile.isSignedIn || !userProfile.isLoaded) return;
 
-    // Don't redirect if already on onboarding page
-    if (location.pathname === '/onboarding') return;
+    // Check if user previously skipped onboarding
+    const wasSkipped = localStorage.getItem(ONBOARDING_SKIPPED_KEY) === 'true';
 
-    // Redirect to onboarding if profile is incomplete
-    if (userProfile.needsOnboarding) {
-      console.log('[ProfileGuard] User needs onboarding, redirecting...');
-      navigate('/onboarding', { replace: true });
+    // Show onboarding modal if profile is incomplete and not skipped
+    if (userProfile.needsOnboarding && !wasSkipped) {
+      setShowOnboarding(true);
+    } else {
+      setShowOnboarding(false);
     }
   }, [
     userProfile?.isSignedIn,
     userProfile?.isLoaded,
     userProfile?.needsOnboarding,
-    location.pathname,
-    navigate,
   ]);
 
-  return <>{children}</>;
+  const handleSkip = () => {
+    localStorage.setItem(ONBOARDING_SKIPPED_KEY, 'true');
+    setShowOnboarding(false);
+  };
+
+  const handleComplete = () => {
+    // Clear skipped flag on successful completion
+    localStorage.removeItem(ONBOARDING_SKIPPED_KEY);
+    setShowOnboarding(false);
+  };
+
+  return (
+    <>
+      {children}
+      {showOnboarding && (
+        <OnboardingModal onSkip={handleSkip} onComplete={handleComplete} />
+      )}
+    </>
+  );
 }
 
 export default ProfileGuard;

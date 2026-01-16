@@ -10,8 +10,8 @@
 import { importSales, getSalesCount, type RawSaleRecord } from './salesDatabank';
 import { getHoursSinceLastSync } from '@/providers/SalesProvider';
 
-// Dexie.space API via Cloudflare proxy (FREE)
-const DEXIE_API = '/api/dexie/v1';
+// Dexie.space API - use Vite proxy in dev, Cloudflare function in production
+const DEXIE_API = import.meta.env.DEV ? '/dexie-api/v1' : '/api/dexie/v1';
 
 // Parse.bot API endpoint via Cloudflare proxy (PAID FALLBACK)
 const PARSEBOT_SCRAPER_ID = '8237e8bc-a98d-48a1-8b6c-ebcea8ab0c36';
@@ -265,7 +265,7 @@ function parseTrades(offers: DexieOffer[]): ParsedSale[] {
     // Extract edition number from name
     const edition = extractEditionFromName(nft.name);
     if (!edition) {
-      console.warn('[DexieSales] Could not extract edition from:', nft.name);
+      // Silently skip NFTs that don't match Wojak naming pattern (e.g., "Wizard XCHmas")
       continue;
     }
 

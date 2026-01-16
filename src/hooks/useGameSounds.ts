@@ -381,6 +381,56 @@ const createSpeedUpSound = () => {
   osc.stop(ctx.currentTime + 0.2);
 };
 
+// Running footstep sound for continuous rhythm
+const createFootstepSound = (pitch: number = 1) => {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  // Create a quick "thump" for footstep
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  // Low frequency thud
+  osc.frequency.setValueAtTime(80 * pitch, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(40 * pitch, ctx.currentTime + 0.05);
+  osc.type = 'sine';
+
+  gain.gain.setValueAtTime(0.06 * volumeMultiplier, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001 * volumeMultiplier, ctx.currentTime + 0.08);
+
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + 0.08);
+};
+
+// Running rhythm loop state
+let runningLoopInterval: number | null = null;
+let runningLoopStep = 0;
+
+const startRunningLoop = (bpm: number = 180) => {
+  if (runningLoopInterval) return; // Already running
+
+  const intervalMs = (60 / bpm) * 1000 / 2; // Divide by 2 for left-right footsteps
+  runningLoopStep = 0;
+
+  runningLoopInterval = window.setInterval(() => {
+    // Alternate left/right foot with slightly different pitch
+    const pitch = runningLoopStep % 2 === 0 ? 1.0 : 1.1;
+    createFootstepSound(pitch);
+    runningLoopStep++;
+  }, intervalMs);
+};
+
+const stopRunningLoop = () => {
+  if (runningLoopInterval) {
+    clearInterval(runningLoopInterval);
+    runningLoopInterval = null;
+    runningLoopStep = 0;
+  }
+};
+
 // Memory Match sounds
 const createCardFlipSound = () => {
   const ctx = getAudioContext();
@@ -585,6 +635,22 @@ export function useGameSounds() {
     if (isSoundEffectsEnabled) createGameOverSound();
   }, [isSoundEffectsEnabled]);
 
+  // Running footstep loop for continuous movement sound
+  const startRunning = useCallback((bpm: number = 180) => {
+    if (isSoundEffectsEnabled) startRunningLoop(bpm);
+  }, [isSoundEffectsEnabled]);
+
+  const stopRunning = useCallback(() => {
+    stopRunningLoop();
+  }, []);
+
+  // Cleanup running loop on unmount
+  useEffect(() => {
+    return () => {
+      stopRunningLoop();
+    };
+  }, []);
+
   return {
     // Win/level complete
     playWinSound,
@@ -603,6 +669,8 @@ export function useGameSounds() {
     playCollect,
     playWhoosh,
     playSpeedUp,
+    startRunning,
+    stopRunning,
 
     // Memory Match
     playCardFlip,

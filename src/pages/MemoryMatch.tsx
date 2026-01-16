@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameSounds } from '@/hooks/useGameSounds';
+import { useLeaderboard } from '@/hooks/data/useLeaderboard';
+import { useAudio } from '@/contexts/AudioContext';
 import './MemoryMatch.css';
 
 interface NFTMetadata {
@@ -10,31 +12,33 @@ interface NFTMetadata {
   attributes?: { trait_type: string; value: string }[];
 }
 
-// Round configuration - pairs, time in seconds, and optional base filter
+// Round configuration - pairs and optional base filter
+// Time increases by 20% each round (calculated dynamically)
 // Only use pair counts that create FULL rectangular grids (no partial rows)
 // Valid grids: 4x3, 4x4, 6x3, 5x4, 6x4, 6x5, 6x6, 6x7, 6x8, 6x9
-const ROUND_CONFIG: { pairs: number; time: number; baseFilter?: string }[] = [
+const ROUND_CONFIG: { pairs: number; baseFilter?: string }[] = [
   // Progressive difficulty - full grids only
-  { pairs: 6, time: 35 },      // Round 1: 12 cards (4x3)
-  { pairs: 8, time: 45 },      // Round 2: 16 cards (4x4)
-  { pairs: 9, time: 50 },      // Round 3: 18 cards (6x3)
-  { pairs: 10, time: 55 },     // Round 4: 20 cards (5x4)
-  { pairs: 12, time: 65 },     // Round 5: 24 cards (6x4)
-  { pairs: 15, time: 80 },     // Round 6: 30 cards (6x5)
-  { pairs: 18, time: 95 },     // Round 7: 36 cards (6x6)
-  { pairs: 21, time: 110 },    // Round 8: 42 cards (6x7)
-  { pairs: 24, time: 125 },    // Round 9: 48 cards (6x8)
-  { pairs: 27, time: 140 },    // Round 10: 54 cards (6x9) - MAX size
-  // Max cards with decreasing time
-  { pairs: 27, time: 130 },    // Round 11: 54 cards - less time
-  { pairs: 27, time: 120 },    // Round 12: 54 cards - even less
-  // Now add similar-looking NFT filters for extra difficulty
-  { pairs: 27, time: 130, baseFilter: 'Alien Baddie' },  // Round 13
-  { pairs: 27, time: 130, baseFilter: 'Alien Waifu' },   // Round 14
-  { pairs: 27, time: 125, baseFilter: 'Bepe Baddie' },   // Round 15
-  { pairs: 27, time: 125, baseFilter: 'Bepe Waifu' },    // Round 16
-  { pairs: 27, time: 120, baseFilter: 'Wojak' },         // Round 17+
+  { pairs: 6 },       // Round 1: 12 cards (4x3)
+  { pairs: 8 },       // Round 2: 16 cards (4x4)
+  { pairs: 9 },       // Round 3: 18 cards (6x3)
+  { pairs: 10 },      // Round 4: 20 cards (5x4)
+  { pairs: 12 },      // Round 5: 24 cards (6x4)
+  { pairs: 15 },      // Round 6: 30 cards (6x5)
+  { pairs: 18 },      // Round 7: 36 cards (6x6)
+  { pairs: 21 },      // Round 8: 42 cards (6x7)
+  { pairs: 24 },      // Round 9: 48 cards (6x8)
+  { pairs: 27 },      // Round 10: 54 cards (6x9) - MAX size
+  // Similar-looking NFT filters for extra difficulty
+  { pairs: 27, baseFilter: 'Alien Baddie' },  // Round 11
+  { pairs: 27, baseFilter: 'Alien Waifu' },   // Round 12
+  { pairs: 27, baseFilter: 'Bepe Baddie' },   // Round 13
+  { pairs: 27, baseFilter: 'Bepe Waifu' },    // Round 14
+  { pairs: 27, baseFilter: 'Wojak' },         // Round 15+
 ];
+
+// Base time for round 1, increases 20% each round
+const BASE_TIME = 35;
+const TIME_INCREASE_PER_ROUND = 1.20; // 20% more time each round
 
 interface Card {
   id: number;
@@ -45,7 +49,7 @@ interface Card {
   isMatched: boolean;
 }
 
-interface LeaderboardEntry {
+interface LocalLeaderboardEntry {
   name: string;
   score: number;
   date: string;
@@ -55,7 +59,19 @@ interface LeaderboardEntry {
 const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/games/sad_runner_${i + 1}.png`);
 
 const MemoryMatch: React.FC = () => {
-  const { playCardFlip, playMatchFound, playMismatch, playWinSound, playGameOver } = useGameSounds();
+  const { playCardFlip, playMatchFound, playWinSound, playGameOver } = useGameSounds();
+
+  // Global leaderboard hook
+  const {
+    leaderboard: globalLeaderboard,
+    submitScore,
+    isSignedIn,
+    userDisplayName,
+    isSubmitting,
+  } = useLeaderboard('memory-match');
+
+  // Background music controls
+  const { isBackgroundMusicPlaying, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
 
   const [gameState, setGameState] = useState<'idle' | 'loading' | 'playing' | 'roundComplete' | 'gameover'>('idle');
   const [cards, setCards] = useState<Card[]>([]);
@@ -75,20 +91,33 @@ const MemoryMatch: React.FC = () => {
   // Dev mode - pauses timer and game logic for layout testing
   const [devMode, setDevMode] = useState(false);
 
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(() => {
+  const [localLeaderboard, setLocalLeaderboard] = useState<LocalLeaderboardEntry[]>(() => {
     const saved = localStorage.getItem('memoryMatchLeaderboard');
     return saved ? JSON.parse(saved) : [];
   });
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const [highScore, setHighScore] = useState(() => {
+    return parseInt(localStorage.getItem('memoryMatchHighScore') || '0', 10);
+  });
+  const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
+  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   // Get current round config (cycle back if beyond defined rounds)
-  const getRoundConfig = (r: number) => {
+  // Time increases by 20% each round
+  const getRoundConfig = (r: number): { pairs: number; time: number; baseFilter?: string } => {
     const index = Math.min(r - 1, ROUND_CONFIG.length - 1);
-    return ROUND_CONFIG[index];
+    const config = ROUND_CONFIG[index];
+    // Calculate time: base * 1.2^(round-1)
+    const time = Math.floor(BASE_TIME * Math.pow(TIME_INCREASE_PER_ROUND, r - 1));
+    return { ...config, time };
   };
 
   // Preloaded cards for instant next game
   const preloadedCardsRef = useRef<Card[] | null>(null);
   const isPreloadingRef = useRef(false);
+
+  // Track flipped cards with ref to avoid race conditions with rapid clicks
+  const flippedCardsRef = useRef<number[]>([]);
 
   // Load metadata on mount
   useEffect(() => {
@@ -190,6 +219,14 @@ const MemoryMatch: React.FC = () => {
     }
   }, [metadata, gameState, preloadNextRound]);
 
+  // Auto-start game when metadata is loaded (unified intro from GameModal)
+  useEffect(() => {
+    if (metadata.length > 0 && gameState === 'idle') {
+      startGame();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metadata]);
+
   // Start a new game from round 1
   const startGame = async () => {
     if (metadata.length === 0) {
@@ -200,6 +237,8 @@ const MemoryMatch: React.FC = () => {
     setDevMode(false); // Disable dev mode for normal gameplay
     setRound(1);
     setTotalScore(0);
+    setScoreSubmitted(false);
+    setIsNewPersonalBest(false);
     await startRound(1, true);
   };
 
@@ -221,6 +260,7 @@ const MemoryMatch: React.FC = () => {
 
     setCards(newCards);
     setFlippedCards([]);
+    flippedCardsRef.current = []; // Reset ref too
     setMoves(0);
     setMatches(0);
     setTimeLeft(config.time);
@@ -266,29 +306,64 @@ const MemoryMatch: React.FC = () => {
     setGameState('roundComplete');
   };
 
-  const saveScore = () => {
+  // Save score to local leaderboard (for guests)
+  const saveScoreLocal = () => {
     if (!playerName.trim()) return;
 
-    const newEntry: LeaderboardEntry = {
+    const newEntry: LocalLeaderboardEntry = {
       name: playerName.trim(),
       score: totalScore,
       date: new Date().toISOString().split('T')[0],
     };
 
-    const updatedLeaderboard = [...leaderboard, newEntry]
+    const updatedLeaderboard = [...localLeaderboard, newEntry]
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
 
-    setLeaderboard(updatedLeaderboard);
+    setLocalLeaderboard(updatedLeaderboard);
     localStorage.setItem('memoryMatchLeaderboard', JSON.stringify(updatedLeaderboard));
     setPlayerName('');
     goToMenu();
   };
 
+  // Auto-submit score to global leaderboard (for signed-in users)
+  const submitScoreGlobal = useCallback(async (finalScore: number, finalRound: number) => {
+    if (!isSignedIn || scoreSubmitted || finalScore === 0) return;
+
+    // Update local high score
+    if (finalScore > highScore) {
+      setHighScore(finalScore);
+      localStorage.setItem('memoryMatchHighScore', String(finalScore));
+    }
+
+    setScoreSubmitted(true);
+    const result = await submitScore(finalScore, finalRound, {
+      roundsCompleted: finalRound - 1,
+    });
+
+    if (result.success) {
+      console.log('[MemoryMatch] Score submitted:', result);
+      if (result.isNewHighScore) {
+        setIsNewPersonalBest(true);
+      }
+    } else {
+      console.error('[MemoryMatch] Failed to submit score:', result.error);
+    }
+  }, [isSignedIn, scoreSubmitted, submitScore, highScore]);
+
   const skipSaveScore = () => {
     setPlayerName('');
     goToMenu();
   };
+
+  // Merge global and local leaderboard for display
+  const displayLeaderboard = globalLeaderboard.length > 0
+    ? globalLeaderboard.map(entry => ({
+        name: entry.displayName,
+        score: entry.score,
+        date: entry.date,
+      }))
+    : localLeaderboard;
 
   // Retry start when metadata loads (only for initial load, not dev mode)
   useEffect(() => {
@@ -297,22 +372,40 @@ const MemoryMatch: React.FC = () => {
     }
   }, [metadata, gameState, devMode, cards.length]);
 
+  // Keep flippedCardsRef in sync with state
+  useEffect(() => {
+    flippedCardsRef.current = flippedCards;
+  }, [flippedCards]);
+
   const handleCardClick = (cardId: number) => {
     if (gameState !== 'playing' || isChecking) return;
 
+    // Use ref for immediate, synchronous checks to prevent race conditions
+    const currentFlipped = flippedCardsRef.current;
+
+    // Prevent clicking same card twice or more than 2 cards
+    if (currentFlipped.includes(cardId)) return;
+    if (currentFlipped.length >= 2) return;
+
+    // Check card state from current cards array
     const card = cards.find(c => c.id === cardId);
-    if (!card || card.isFlipped || card.isMatched) return;
-    if (flippedCards.length >= 2) return;
+    if (!card || card.isMatched) return;
+
+    // Additional safety: if card shows as flipped but not in our tracking, skip it
+    // (This handles edge case where state got out of sync)
+    if (card.isFlipped && !currentFlipped.includes(cardId)) return;
 
     // Play flip sound
     playCardFlip();
 
-    // Flip the card
+    // Update ref IMMEDIATELY (synchronous) to prevent race conditions
+    const newFlipped = [...currentFlipped, cardId];
+    flippedCardsRef.current = newFlipped;
+
+    // Flip the card in state
     setCards(prev =>
       prev.map(c => (c.id === cardId ? { ...c, isFlipped: true } : c))
     );
-
-    const newFlipped = [...flippedCards, cardId];
     setFlippedCards(newFlipped);
 
     // Check for match when 2 cards are flipped
@@ -321,10 +414,31 @@ const MemoryMatch: React.FC = () => {
       setIsChecking(true);
 
       const [firstId, secondId] = newFlipped;
+
+      // Find cards using functional approach to ensure we have latest state
+      // We need to compare nftIds, which don't change, so we can use current cards
       const firstCard = cards.find(c => c.id === firstId);
       const secondCard = cards.find(c => c.id === secondId);
 
-      if (firstCard && secondCard && firstCard.nftId === secondCard.nftId) {
+      // Safety check: both cards must exist and have different IDs (not same card clicked twice)
+      if (!firstCard || !secondCard || firstId === secondId) {
+        // Invalid state - reset
+        setTimeout(() => {
+          setCards(prev =>
+            prev.map(c =>
+              c.id === firstId || c.id === secondId
+                ? { ...c, isFlipped: false }
+                : c
+            )
+          );
+          flippedCardsRef.current = [];
+          setFlippedCards([]);
+          setIsChecking(false);
+        }, 500);
+        return;
+      }
+
+      if (firstCard.nftId === secondCard.nftId) {
         // Match found
         setTimeout(() => {
           playMatchFound();
@@ -336,13 +450,13 @@ const MemoryMatch: React.FC = () => {
             )
           );
           setMatches(prev => prev + 1);
+          flippedCardsRef.current = [];
           setFlippedCards([]);
           setIsChecking(false);
         }, 800);
       } else {
-        // No match - flip back
+        // No match - flip back (no negative sound to keep experience pleasant)
         setTimeout(() => {
-          playMismatch();
           setCards(prev =>
             prev.map(c =>
               c.id === firstId || c.id === secondId
@@ -350,6 +464,7 @@ const MemoryMatch: React.FC = () => {
                 : c
             )
           );
+          flippedCardsRef.current = [];
           setFlippedCards([]);
           setIsChecking(false);
         }, 1200);
@@ -384,6 +499,13 @@ const MemoryMatch: React.FC = () => {
 
     return () => clearInterval(timer);
   }, [gameState, devMode, playGameOver]);
+
+  // Auto-submit score for signed-in users when game ends
+  useEffect(() => {
+    if (gameState === 'gameover' && isSignedIn && totalScore > 0 && !scoreSubmitted) {
+      submitScoreGlobal(totalScore, round);
+    }
+  }, [gameState, isSignedIn, totalScore, round, scoreSubmitted, submitScoreGlobal]);
 
   const currentConfig = getRoundConfig(round);
   const requiredPairs = currentConfig.pairs;
@@ -463,68 +585,9 @@ const MemoryMatch: React.FC = () => {
         </div>
       )}
 
-      {/* HUD - fixed above lightbox */}
-      {gameState === 'playing' && (
-        <div className="memory-hud-external">
-          <div className="hud-group">
-            <div className="hud-item">
-              <span className="hud-label">Round</span>
-              <span className="hud-value">{round}</span>
-            </div>
-            <div className="hud-item">
-              <span className="hud-label">Score</span>
-              <span className="hud-value">{totalScore}</span>
-            </div>
-          </div>
-          <div className="hud-group">
-            <div className="hud-item">
-              <span className="hud-label">Time</span>
-              <span className="hud-value" style={{ color: timeLeft <= 10 ? '#ef4444' : undefined }}>{timeLeft}s</span>
-            </div>
-            <div className="hud-item">
-              <span className="hud-label">Pairs</span>
-              <span className="hud-value">{matches}/{requiredPairs}</span>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="memory-content">
         <div className="memory-area">
-          {/* Main Menu - Split layout */}
-          {gameState === 'idle' && (
-            <div className="game-menu-split">
-              {/* Left side - Title and Play */}
-              <div className="menu-left">
-                <div className="game-title">Memory Match</div>
-                <div className="game-emoji">🧠</div>
-                <p className="game-desc">Match Wojak NFTs!</p>
-                <p className="game-desc">Survive as many rounds as you can!</p>
-                <button onClick={startGame} className="play-btn">
-                  Play
-                </button>
-              </div>
-
-              {/* Right side - Leaderboard */}
-              <div className="menu-right">
-                <div className="leaderboard">
-                  <h3 className="leaderboard-title">Leaderboard</h3>
-                  <div className="leaderboard-list">
-                    {Array.from({ length: 10 }, (_, index) => {
-                      const entry = leaderboard[index];
-                      return (
-                        <div key={index} className="leaderboard-entry">
-                          <span className="leaderboard-rank">#{index + 1}</span>
-                          <span className="leaderboard-name">{entry?.name || '---'}</span>
-                          <span className="leaderboard-score">{entry?.score || '-'}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Main Menu removed - now handled by unified GameModal intro screen */}
 
           {gameState === 'loading' && (
             <div className="game-menu">
@@ -571,6 +634,27 @@ const MemoryMatch: React.FC = () => {
                 ) : (
                   <div className="game-over-emoji">⏰</div>
                 )}
+
+                {/* Slide-in Leaderboard Panel */}
+                <div className={`leaderboard-slide-panel ${showLeaderboardPanel ? 'open' : ''}`}>
+                  <div className="leaderboard-panel-header">
+                    <h3>{globalLeaderboard.length > 0 ? 'Global Leaderboard' : 'Leaderboard'}</h3>
+                    <button className="leaderboard-close-btn" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                  </div>
+                  <div className="leaderboard-panel-list">
+                    {Array.from({ length: 10 }, (_, index) => {
+                      const entry = displayLeaderboard[index];
+                      const isCurrentUser = entry && totalScore === entry.score;
+                      return (
+                        <div key={index} className={`leaderboard-panel-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                          <span className="leaderboard-panel-rank">#{index + 1}</span>
+                          <span className="leaderboard-panel-name">{entry?.name || '---'}</span>
+                          <span className="leaderboard-panel-score">{entry?.score || '-'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               {/* Right side - Content */}
@@ -586,30 +670,71 @@ const MemoryMatch: React.FC = () => {
                   <span className="game-over-score-label">total points</span>
                 </div>
 
+                {/* New Personal Best celebration */}
+                {(isNewPersonalBest || totalScore > highScore) && totalScore > 0 && (
+                  <div className="game-over-record">🌟 New Personal Best! 🌟</div>
+                )}
+
                 {totalScore > 0 ? (
-                  <div className="game-over-form">
-                    <input
-                      type="text"
-                      className="game-over-input"
-                      placeholder="Enter your name"
-                      value={playerName}
-                      onChange={(e) => setPlayerName(e.target.value)}
-                      maxLength={15}
-                      onKeyDown={(e) => e.key === 'Enter' && saveScore()}
-                    />
-                    <div className="game-over-buttons">
+                  isSignedIn ? (
+                    // Signed-in user - auto-submitted
+                    <div className="game-over-form">
+                      <div className="game-over-submitted">
+                        {isSubmitting ? (
+                          <span>Saving score...</span>
+                        ) : scoreSubmitted ? (
+                          <span>Score saved as {userDisplayName || 'Anonymous'}!</span>
+                        ) : null}
+                      </div>
+                      <div className="game-over-buttons">
+                        <button onClick={startGame} className="play-btn">
+                          Play Again
+                        </button>
+                        <button onClick={goToMenu} className="play-btn" style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                          Menu
+                        </button>
+                      </div>
+                      {/* Leaderboard button */}
                       <button
-                        onClick={saveScore}
-                        className="game-over-save"
-                        disabled={!playerName.trim()}
+                        className="leaderboard-toggle-btn"
+                        onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
                       >
-                        Save Score
-                      </button>
-                      <button onClick={skipSaveScore} className="game-over-skip">
-                        Skip
+                        {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
                       </button>
                     </div>
-                  </div>
+                  ) : (
+                    // Guest - show name input
+                    <div className="game-over-form">
+                      <input
+                        type="text"
+                        className="game-over-input"
+                        placeholder="Enter your name"
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                        maxLength={15}
+                        onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
+                      />
+                      <div className="game-over-buttons">
+                        <button
+                          onClick={saveScoreLocal}
+                          className="game-over-save"
+                          disabled={!playerName.trim()}
+                        >
+                          Save Score
+                        </button>
+                        <button onClick={skipSaveScore} className="game-over-skip">
+                          Skip
+                        </button>
+                      </div>
+                      {/* Leaderboard button */}
+                      <button
+                        className="leaderboard-toggle-btn"
+                        onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                      >
+                        {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
+                      </button>
+                    </div>
+                  )
                 ) : (
                   <div className="game-over-buttons-single">
                     <button onClick={startGame} className="play-btn">
@@ -642,37 +767,70 @@ const MemoryMatch: React.FC = () => {
             const grid = gridMap[totalCards] || { cols: Math.ceil(totalCards / 6), rows: 6 };
             const { cols, rows } = grid;
             return (
-              <div
-                className="cards-grid"
-                style={{
-                  '--cols': cols,
-                  '--rows': rows,
-                } as React.CSSProperties}
-              >
-                {cards.map(card => (
-                <div
-                  key={card.id}
-                  className={`memory-card ${card.isFlipped ? 'flipped' : ''} ${card.isMatched ? 'matched' : ''}`}
-                  onClick={() => handleCardClick(card.id)}
-                >
-                  <div className="card-inner">
-                    <div className="card-front">
-                      <img
-                        src="/assets/games/Memory_card.png"
-                        alt=""
-                        className="card-back-image"
-                      />
-                    </div>
-                    <div className="card-back">
-                      <img
-                        src={card.image}
-                        alt={card.name}
-                        className="nft-image"
-                      />
-                    </div>
+              <div className="game-layout">
+                {/* Stats Panel - LEFT side */}
+                <div className="stats-panel">
+                  <div className={`stat-item round-stat`}>
+                    <span className="stat-label">Round</span>
+                    <span className="stat-value">{round}</span>
+                  </div>
+                  <div className={`stat-item score-stat`}>
+                    <span className="stat-label">Score</span>
+                    <span className="stat-value">{totalScore}</span>
+                  </div>
+                  <div className={`stat-item ${timeLeft <= 10 ? 'time-warning' : ''}`}>
+                    <span className="stat-label">Time</span>
+                    <span className="stat-value">{timeLeft}s</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Pairs</span>
+                    <span className="stat-value">{matches}/{requiredPairs}</span>
                   </div>
                 </div>
-              ))}
+
+                {/* Fixed-size Lightbox */}
+                <div className="lightbox-wrapper">
+                  {/* Music toggle button */}
+                  <button
+                    className="music-toggle-btn"
+                    onClick={() => isBackgroundMusicPlaying ? pauseBackgroundMusic() : playBackgroundMusic()}
+                  >
+                    {isBackgroundMusicPlaying ? '🔊' : '🔇'}
+                  </button>
+
+                  <div
+                    className="cards-grid"
+                    style={{
+                      '--cols': cols,
+                      '--rows': rows,
+                    } as React.CSSProperties}
+                  >
+                    {cards.map(card => (
+                      <div
+                        key={card.id}
+                        className={`memory-card ${card.isFlipped ? 'flipped' : ''} ${card.isMatched ? 'matched' : ''}`}
+                        onClick={() => handleCardClick(card.id)}
+                      >
+                        <div className="card-inner">
+                          <div className="card-front">
+                            <img
+                              src="/assets/games/Memory_card.png"
+                              alt=""
+                              className="card-back-image"
+                            />
+                          </div>
+                          <div className="card-back">
+                            <img
+                              src={card.image}
+                              alt={card.name}
+                              className="nft-image"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             );
           })()}

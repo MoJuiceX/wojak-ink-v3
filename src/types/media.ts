@@ -31,6 +31,10 @@ export interface MiniGame {
   // Instructions
   instructions: GameInstruction[];
   controls: GameControl[];
+
+  // Intro screen
+  shortDescription?: string; // Short tagline for intro screen (1-2 sentences)
+  introBackground?: string; // Custom background image path (defaults to Orange Grove)
 }
 
 export type GameStatus = 'available' | 'coming-soon' | 'maintenance';

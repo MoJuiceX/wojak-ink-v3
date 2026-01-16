@@ -19,6 +19,8 @@ import {
   Loader2,
   ChevronRight,
   Bell,
+  Flame,
+  Trophy,
 } from 'lucide-react';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useLayout } from '@/hooks/useLayout';
@@ -331,6 +333,71 @@ export default function Account() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Play Streak Stats */}
+                  {(profile?.currentStreak || profile?.longestStreak) ? (
+                    <div className="px-6 pb-6 flex gap-4">
+                      {/* Current Streak */}
+                      <div
+                        className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg"
+                        style={{
+                          background: 'var(--color-bg-tertiary)',
+                          border: '1px solid var(--color-border)',
+                        }}
+                      >
+                        <Flame
+                          size={24}
+                          style={{
+                            color: profile.currentStreak > 0 ? '#f97316' : 'var(--color-text-muted)',
+                          }}
+                        />
+                        <div>
+                          <p
+                            className="text-xl font-bold"
+                            style={{ color: profile.currentStreak > 0 ? '#f97316' : 'var(--color-text-muted)' }}
+                          >
+                            {profile.currentStreak || 0}
+                          </p>
+                          <p
+                            className="text-xs"
+                            style={{ color: 'var(--color-text-tertiary)' }}
+                          >
+                            Day Streak
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Longest Streak */}
+                      <div
+                        className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg"
+                        style={{
+                          background: 'var(--color-bg-tertiary)',
+                          border: '1px solid var(--color-border)',
+                        }}
+                      >
+                        <Trophy
+                          size={24}
+                          style={{
+                            color: profile.longestStreak > 0 ? '#ffd700' : 'var(--color-text-muted)',
+                          }}
+                        />
+                        <div>
+                          <p
+                            className="text-xl font-bold"
+                            style={{ color: profile.longestStreak > 0 ? '#ffd700' : 'var(--color-text-muted)' }}
+                          >
+                            {profile.longestStreak || 0}
+                          </p>
+                          <p
+                            className="text-xs"
+                            style={{ color: 'var(--color-text-tertiary)' }}
+                          >
+                            Best Streak
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
 
                   {/* Profile Fields */}
                   <div className="p-6 space-y-4">

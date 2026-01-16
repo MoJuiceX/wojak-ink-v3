@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAudio } from '@/contexts/AudioContext';
+import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 // import { useMedia } from '@/contexts/MediaContext'; // Temporarily disabled
 import './OrangeJuggle.css';
 
@@ -88,7 +89,7 @@ interface GameObject {
   pattern?: CamelPattern; // Movement pattern for camels
 }
 
-interface LeaderboardEntry {
+interface LocalLeaderboardEntry {
   name: string;
   score: number;
   level: number;
@@ -100,8 +101,17 @@ type GameMode = 'campaign';
 
 const OrangeJuggle: React.FC = () => {
   // Audio context for sound effects
-  const { isSoundEffectsEnabled } = useAudio();
+  const { isSoundEffectsEnabled, isBackgroundMusicPlaying, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
   // const { videoPlayer, musicPlayer } = useMedia(); // Temporarily disabled
+
+  // Global leaderboard hook
+  const {
+    leaderboard: globalLeaderboard,
+    submitScore,
+    isSignedIn,
+    userDisplayName,
+    isSubmitting,
+  } = useLeaderboard('orange-juggle');
 
   // Sad images for camel loss screen
   const SAD_IMAGES = [
@@ -130,7 +140,7 @@ const OrangeJuggle: React.FC = () => {
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('orangeJuggleHighScore') || '0', 10);
   });
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(() => {
+  const [localLeaderboard, setLocalLeaderboard] = useState<LocalLeaderboardEntry[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('orangeJuggleLeaderboard') || '[]');
     } catch {
@@ -138,6 +148,9 @@ const OrangeJuggle: React.FC = () => {
     }
   });
   const [playerName, setPlayerName] = useState('');
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
+  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   // Game objects
   const [objects, setObjects] = useState<GameObject[]>([]);
@@ -173,6 +186,14 @@ const OrangeJuggle: React.FC = () => {
   // Initialize bounce sound effect
   useEffect(() => {
     bounceSoundRef.current = createBounceSound();
+  }, []);
+
+  // Auto-start game on mount (unified intro from GameModal)
+  useEffect(() => {
+    if (gameState === 'menu' && !gameMode) {
+      startGame('campaign');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Background music disabled for now - can re-enable later
@@ -286,6 +307,8 @@ const OrangeJuggle: React.FC = () => {
     setGameState('playing');
     setScore(0);
     setCombo(0);
+    setScoreSubmitted(false);
+    setIsNewPersonalBest(false);
     objectsRef.current = [];
     setObjects([]);
     // Reset refs
@@ -343,6 +366,7 @@ const OrangeJuggle: React.FC = () => {
     }
 
     setLevel(nextLevel);
+    setScoreSubmitted(false);
     objectsRef.current = [];
     setObjects([]);
     setCombo(0);
@@ -684,7 +708,11 @@ const OrangeJuggle: React.FC = () => {
       // Process collision results - score points!
       if (hitOrange || hitGolden) {
         comboRef.current = Math.min(comboRef.current + 1, 10);
-        const points = hitGolden ? 50 * comboRef.current : 10 * comboRef.current;
+        let points = hitGolden ? 50 * comboRef.current : 10 * comboRef.current;
+        // 2x multiplier when controls are reversed (rum effect) - risk/reward!
+        if (isReversedRef.current) {
+          points *= 2;
+        }
         scoreRef.current += points;
         setScore(scoreRef.current);
         setCombo(comboRef.current);
@@ -861,10 +889,30 @@ const OrangeJuggle: React.FC = () => {
     }
   };
 
-  const saveScore = () => {
+  // Submit score to global leaderboard (for signed-in users)
+  const submitScoreGlobal = useCallback(
+    async (finalScore: number, finalLevel: number) => {
+      if (!isSignedIn || scoreSubmitted || finalScore === 0) return;
+      setScoreSubmitted(true);
+      const result = await submitScore(finalScore, finalLevel, {
+        lostByCamel,
+        completed: finalLevel >= 5,
+      });
+      if (result.success) {
+        console.log('[OrangeJuggle] Score submitted:', result);
+        if (result.isNewHighScore) {
+          setIsNewPersonalBest(true);
+        }
+      }
+    },
+    [isSignedIn, scoreSubmitted, submitScore, lostByCamel]
+  );
+
+  // Save score locally (for guests)
+  const saveScoreLocal = () => {
     if (!playerName.trim()) return;
 
-    const newEntry: LeaderboardEntry = {
+    const newEntry: LocalLeaderboardEntry = {
       name: playerName.trim(),
       score: score,
       level: level,
@@ -872,11 +920,11 @@ const OrangeJuggle: React.FC = () => {
     };
 
     // Add to leaderboard and sort by score (highest first)
-    const updatedLeaderboard = [...leaderboard, newEntry]
+    const updatedLeaderboard = [...localLeaderboard, newEntry]
       .sort((a, b) => b.score - a.score)
       .slice(0, 10); // Keep top 10
 
-    setLeaderboard(updatedLeaderboard);
+    setLocalLeaderboard(updatedLeaderboard);
     localStorage.setItem('orangeJuggleLeaderboard', JSON.stringify(updatedLeaderboard));
     setPlayerName('');
     goToMenu();
@@ -887,171 +935,76 @@ const OrangeJuggle: React.FC = () => {
     goToMenu();
   };
 
+  // Display leaderboard: prefer global, fallback to local
+  const displayLeaderboard =
+    globalLeaderboard.length > 0
+      ? globalLeaderboard.map((entry) => ({
+          name: entry.displayName,
+          score: entry.score,
+          level: entry.level,
+          date: entry.date,
+        }))
+      : localLeaderboard;
+
+  // Auto-submit score for signed-in users when game ends
+  useEffect(() => {
+    if (gameState === 'saveScore' && isSignedIn && score > 0 && !scoreSubmitted) {
+      submitScoreGlobal(score, level);
+    }
+  }, [gameState, isSignedIn, score, level, scoreSubmitted, submitScoreGlobal]);
+
   const config = getLevelConfig();
 
   return (
     <div className={`juggle-container ${gameState === 'playing' ? 'playing-mode' : ''}`}>
-      {/* Title Bar HUD - shown during gameplay */}
+      {/* PLAYING STATE: Game Layout with Stats Panel on LEFT */}
       {gameState === 'playing' && (
-        <div className="juggle-titlebar">
-          <div className="titlebar-left">
-            <div className="level-badge">Level {level}</div>
-            {/* Show banana count */}
-            {bananaCount > 0 && (
-              <div className="powerup-indicator banana">
-                {'🍌'.repeat(bananaCount)}
+        <div className="game-layout">
+          {/* Stats Panel - LEFT side (FIXED 4 items, never changes) */}
+          <div className="stats-panel">
+            <div className="stat-item level-stat">
+              <span className="stat-label">Level</span>
+              <span className="stat-value">{level}</span>
+            </div>
+            <div className={`stat-item score-stat ${isReversed ? 'multiplied' : ''}`}>
+              <span className="stat-label">Score</span>
+              <span className="stat-value">{score}</span>
+              {/* Badges are absolute positioned so they don't shift layout */}
+              {isReversed && <span className="multiplier-badge">2X</span>}
+              {combo > 1 && <span className="combo-badge">x{combo}</span>}
+            </div>
+            <div className={`stat-item time-stat ${timeLeft <= 10 ? 'time-warning' : ''}`}>
+              <span className="stat-label">Time</span>
+              <span className="stat-value">{timeLeft}s</span>
+            </div>
+            <div className="stat-item goal-stat">
+              <span className="stat-label">Goal</span>
+              <span className="stat-value">{config.targetScore.toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* Lightbox = Game Area (game fills entire lightbox) */}
+          <div
+            ref={gameAreaRef}
+            className="lightbox-wrapper"
+          >
+            {/* Music toggle button */}
+            <button
+              className="music-toggle-btn"
+              onClick={() => isBackgroundMusicPlaying ? pauseBackgroundMusic() : playBackgroundMusic()}
+            >
+              {isBackgroundMusicPlaying ? '🔊' : '🔇'}
+            </button>
+
+            {/* Power-up overlay (floats in corner, doesn't affect layout) */}
+            {(bananaCount > 0 || rumCount > 0) && (
+              <div className="powerup-overlay">
+                {bananaCount > 0 && <span className="powerup-indicator banana">{'🍌'.repeat(bananaCount)}</span>}
+                {rumCount > 0 && <span className={`powerup-indicator rum ${isReversed ? 'reversed' : ''}`}>{'🥃'.repeat(rumCount)}{isReversed && ' 🔄'}</span>}
               </div>
             )}
-            {/* Show rum count */}
-            {rumCount > 0 && (
-              <div className={`powerup-indicator rum ${isReversed ? 'reversed' : ''}`}>
-                {'🥃'.repeat(rumCount)} {isReversed && '🔄'}
-              </div>
-            )}
-          </div>
-          <div className="titlebar-center">
-            <span className="score">{score}</span>
-            {combo > 1 && (
-              <span className="combo">x{combo}</span>
-            )}
-          </div>
-          <div className="titlebar-right">
-            <span className="timer">⏱ {timeLeft}s</span>
-            <span className="goal">Goal: {config.targetScore}</span>
-          </div>
-        </div>
-      )}
-      <div className="juggle-content">
-
-        <div
-          ref={gameAreaRef}
-          className={`juggle-area ${gameState === 'playing' ? 'playing' : ''}`}
-        >
-          {/* Main Menu - Horizontal split layout */}
-          {gameState === 'menu' && !gameMode && (
-            <div className="game-menu-split">
-              {/* Left side - Emoji and title */}
-              <div className="menu-left">
-                <div className="game-title">Juggle the Orange</div>
-                <div className="game-emoji">🦧🍊</div>
-                <p className="game-desc">Juggle oranges! Avoid camels!</p>
-                <div className="mode-buttons">
-                  <button onClick={() => startGame('campaign')} className="play-btn">
-                    Play
-                  </button>
-                </div>
-              </div>
-
-              {/* Right side - Leaderboard */}
-              <div className="menu-right">
-                <div className="leaderboard">
-                  <h3 className="leaderboard-title">Leaderboard</h3>
-                  <div className="leaderboard-list">
-                    {Array.from({ length: 10 }, (_, index) => {
-                      const entry = leaderboard[index];
-                      return (
-                        <div key={index} className="leaderboard-entry">
-                          <span className="leaderboard-rank">#{index + 1}</span>
-                          <span className="leaderboard-name">{entry?.name || '---'}</span>
-                          <span className="leaderboard-score">{entry?.score || '-'}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Level Complete */}
-          {gameState === 'levelComplete' && (
-            <div className="game-menu">
-              <div className="game-title">Level {level} Complete!</div>
-              <div className="game-emoji">🎉</div>
-              <div className="final-score">
-                <span className="score-label">Score</span>
-                <span className="score-value">{score}</span>
-              </div>
-              <button onClick={startNextLevel} className="play-btn">
-                Next Level
-              </button>
-            </div>
-          )}
-
-
-          {/* Save Score Screen */}
-          {gameState === 'saveScore' && (
-            <div className="game-over-screen">
-              {/* Left side - Image */}
-              <div className="game-over-left">
-                {sadImage ? (
-                  <img src={sadImage} alt="Sad wojak" className="sad-image-large" />
-                ) : (
-                  <div className="game-over-emoji">
-                    {level >= 5 && score >= (LEVEL_CONFIG[5].targetScore) ? '🏆' : '🍊'}
-                  </div>
-                )}
-              </div>
-
-              {/* Right side - Content */}
-              <div className="game-over-right">
-                <div className="game-over-title">
-                  {level >= 5 && score >= (LEVEL_CONFIG[5].targetScore)
-                    ? 'You Won!'
-                    : lostByCamel
-                      ? 'Camel Got You!'
-                      : 'Not Enough Points!'}
-                </div>
-
-                <div className="game-over-reason">
-                  {level >= 5 && score >= (LEVEL_CONFIG[5].targetScore)
-                    ? 'You completed all levels!'
-                    : lostByCamel
-                      ? 'You touched a camel and lost all progress!'
-                      : `Needed ${LEVEL_CONFIG[level as keyof typeof LEVEL_CONFIG].targetScore.toLocaleString()} points`}
-                </div>
-
-                <div className="game-over-score">
-                  <span className="game-over-score-value">{score}</span>
-                  <span className="game-over-level">Level {level}</span>
-                </div>
-
-                {score > highScore && (
-                  <div className="game-over-record">🌟 New High Score! 🌟</div>
-                )}
-
-                <div className="game-over-form">
-                  <input
-                    type="text"
-                    className="game-over-input"
-                    placeholder="Enter your name"
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    maxLength={15}
-                    onKeyDown={(e) => e.key === 'Enter' && saveScore()}
-                  />
-                  <div className="game-over-buttons">
-                    <button
-                      onClick={saveScore}
-                      className="game-over-save"
-                      disabled={!playerName.trim()}
-                    >
-                      Save Score
-                    </button>
-                    <button onClick={skipSaveScore} className="game-over-skip">
-                      Skip
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Game Objects */}
-          {gameState === 'playing' && (
-            <>
+              {/* Game Objects */}
               {objects.map(obj => {
-                // Get size based on object type
                 const objSize = obj.type === 'camel' ? CAMEL_SIZE
                   : (obj.type === 'banana' || obj.type === 'rum') ? POWERUP_SIZE
                   : ORANGE_SIZE;
@@ -1075,26 +1028,175 @@ const OrangeJuggle: React.FC = () => {
                 );
               })}
 
-              {/* Paddle (Orangutan) - sprite animation runs via CSS */}
-              <div
-                className={`paddle ${orangutanBounce ? 'bounce' : ''}`}
-                style={{
-                  left: paddleX,
-                  top: paddleY,
-                  width: PADDLE_SIZE,
-                  height: PADDLE_SIZE,
-                }}
-              >
-                <div className="juggle-sprite" />
-              </div>
+            {/* Paddle (Orangutan) */}
+            <div
+              className={`paddle ${orangutanBounce ? 'bounce' : ''}`}
+              style={{
+                left: paddleX,
+                top: paddleY,
+                width: PADDLE_SIZE,
+                height: PADDLE_SIZE,
+              }}
+            >
+              <div className="juggle-sprite" />
+            </div>
 
-              {/* Danger zone indicator */}
-              <div className="danger-zone" />
-            </>
-          )}
+            {/* Danger zone indicator */}
+            <div className="danger-zone" />
+          </div>
         </div>
+      )}
 
-      </div>
+      {/* NON-PLAYING STATES: Menu, Level Complete, Save Score */}
+      {gameState !== 'playing' && (
+        <div className="juggle-content">
+          <div
+            ref={gameState !== 'playing' ? gameAreaRef : undefined}
+            className="juggle-area"
+          >
+            {/* Level Complete */}
+            {gameState === 'levelComplete' && (
+              <div className="game-menu">
+                <div className="game-title">Level {level} Complete!</div>
+                <div className="game-emoji">🎉</div>
+                <div className="final-score">
+                  <span className="score-label">Score</span>
+                  <span className="score-value">{score}</span>
+                </div>
+                <button onClick={startNextLevel} className="play-btn">
+                  Next Level
+                </button>
+              </div>
+            )}
+
+            {/* Save Score Screen */}
+            {gameState === 'saveScore' && (
+              <div className="game-over-screen">
+                {/* Left side - Image */}
+                <div className="game-over-left">
+                  {sadImage ? (
+                    <img src={sadImage} alt="Sad wojak" className="sad-image-large" />
+                  ) : (
+                    <div className="game-over-emoji">
+                      {level >= 5 && score >= (LEVEL_CONFIG[5].targetScore) ? '🏆' : '🍊'}
+                    </div>
+                  )}
+
+                  {/* Slide-in Leaderboard Panel */}
+                  <div className={`leaderboard-slide-panel ${showLeaderboardPanel ? 'open' : ''}`}>
+                    <div className="leaderboard-panel-header">
+                      <h3>{globalLeaderboard.length > 0 ? 'Global Leaderboard' : 'Leaderboard'}</h3>
+                      <button className="leaderboard-close-btn" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                    </div>
+                    <div className="leaderboard-panel-list">
+                      {Array.from({ length: 10 }, (_, index) => {
+                        const entry = displayLeaderboard[index];
+                        const isCurrentUser = entry && score === entry.score;
+                        return (
+                          <div key={index} className={`leaderboard-panel-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                            <span className="leaderboard-panel-rank">#{index + 1}</span>
+                            <span className="leaderboard-panel-name">{entry?.name || '---'}</span>
+                            <span className="leaderboard-panel-score">{entry?.score || '-'}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right side - Content */}
+                <div className="game-over-right">
+                  <div className="game-over-title">
+                    {level >= 5 && score >= (LEVEL_CONFIG[5].targetScore)
+                      ? 'You Won!'
+                      : lostByCamel
+                        ? 'Camel Got You!'
+                        : 'Not Enough Points!'}
+                  </div>
+
+                  <div className="game-over-reason">
+                    {level >= 5 && score >= (LEVEL_CONFIG[5].targetScore)
+                      ? 'You completed all levels!'
+                      : lostByCamel
+                        ? 'You touched a camel and lost all progress!'
+                        : `Needed ${LEVEL_CONFIG[level as keyof typeof LEVEL_CONFIG].targetScore.toLocaleString()} points`}
+                  </div>
+
+                  <div className="game-over-score">
+                    <span className="game-over-score-value">{score}</span>
+                    <span className="game-over-level">Level {level}</span>
+                  </div>
+
+                  {/* New Personal Best celebration */}
+                  {(isNewPersonalBest || score >= highScore) && score > 0 && (
+                    <div className="game-over-record">🌟 New Personal Best! 🌟</div>
+                  )}
+
+                  {/* Signed-in users: auto-saved */}
+                  {isSignedIn ? (
+                    <div className="game-over-form">
+                      <div className="game-over-saved">
+                        {isSubmitting ? (
+                          <span>Saving score...</span>
+                        ) : (
+                          <span>Score saved as {userDisplayName}!</span>
+                        )}
+                      </div>
+                      <div className="game-over-buttons">
+                        <button onClick={() => startGame('campaign')} className="game-over-save">
+                          Play Again
+                        </button>
+                        <button onClick={goToMenu} className="game-over-skip">
+                          Menu
+                        </button>
+                      </div>
+                      {/* Leaderboard button */}
+                      <button
+                        className="leaderboard-toggle-btn"
+                        onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                      >
+                        {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
+                      </button>
+                    </div>
+                  ) : (
+                    /* Guests: name input form */
+                    <div className="game-over-form">
+                      <input
+                        type="text"
+                        className="game-over-input"
+                        placeholder="Enter your name"
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                        maxLength={15}
+                        onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
+                      />
+                      <div className="game-over-buttons">
+                        <button
+                          onClick={saveScoreLocal}
+                          className="game-over-save"
+                          disabled={!playerName.trim()}
+                        >
+                          Save Score
+                        </button>
+                        <button onClick={skipSaveScore} className="game-over-skip">
+                          Skip
+                        </button>
+                      </div>
+                      {/* Leaderboard button */}
+                      <button
+                        className="leaderboard-toggle-btn"
+                        onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                      >
+                        {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

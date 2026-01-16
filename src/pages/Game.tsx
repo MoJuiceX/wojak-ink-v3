@@ -11,6 +11,8 @@ import {
   IonButtons,
 } from '@ionic/react';
 import { informationCircleOutline, close } from 'ionicons/icons';
+import { useLeaderboard } from '@/hooks/data/useLeaderboard';
+import { useAudio } from '@/contexts/AudioContext';
 import './Game.css';
 
 type FruitType = 'orange' | 'camel' | 'golden';
@@ -44,6 +46,13 @@ interface TrailPoint {
   age: number;
 }
 
+interface LocalLeaderboardEntry {
+  name: string;
+  score: number;
+  level: number;
+  date: string;
+}
+
 const LEVEL_DURATION = 30;
 const GRAVITY = 0.3;
 const TRAIL_FADE_SPEED = 3;
@@ -56,10 +65,29 @@ const LEVEL_CONFIG = {
 };
 
 const Game: React.FC = () => {
+  // Global leaderboard hook
+  const {
+    leaderboard: globalLeaderboard,
+    submitScore,
+    isSignedIn,
+    userDisplayName,
+    isSubmitting,
+  } = useLeaderboard('orange-slice');
+
+  // Background music controls
+  const { isBackgroundMusicPlaying, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
+
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'levelComplete' | 'gameover'>('idle');
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('orangeSliceHighScore') || '0', 10);
+  });
+  const [localLeaderboard, setLocalLeaderboard] = useState<LocalLeaderboardEntry[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('orangeSliceLeaderboard') || '[]');
+    } catch {
+      return [];
+    }
   });
   const [level, setLevel] = useState(1);
   const [timeLeft, setTimeLeft] = useState(LEVEL_DURATION);
@@ -68,6 +96,10 @@ const Game: React.FC = () => {
   const [combo, setCombo] = useState(0);
   const [lastSliceTime, setLastSliceTime] = useState(0);
   const [showPenalty, setShowPenalty] = useState(false);
+  const [playerName, setPlayerName] = useState('');
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
+  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -89,6 +121,10 @@ const Game: React.FC = () => {
     setSlicedHalves([]);
     setCombo(0);
     setShowPenalty(false);
+    setScoreSubmitted(false);
+    setIsNewPersonalBest(false);
+    setPlayerName('');
+    setShowLeaderboardPanel(false);
     orangeIdRef.current = 0;
     sliceIdRef.current = 0;
     trailRef.current = [];
@@ -511,6 +547,69 @@ const Game: React.FC = () => {
     }
   }, [gameState, score, highScore]);
 
+  // Submit score to global leaderboard (for signed-in users)
+  const submitScoreGlobal = useCallback(
+    async (finalScore: number, finalLevel: number) => {
+      if (!isSignedIn || scoreSubmitted || finalScore === 0) return;
+      setScoreSubmitted(true);
+      const result = await submitScore(finalScore, finalLevel, {
+        completed: finalLevel >= 3,
+      });
+      if (result.success) {
+        console.log('[OrangeSlice] Score submitted:', result);
+        if (result.isNewHighScore) {
+          setIsNewPersonalBest(true);
+        }
+      }
+    },
+    [isSignedIn, scoreSubmitted, submitScore]
+  );
+
+  // Save score locally (for guests)
+  const saveScoreLocal = () => {
+    if (!playerName.trim()) return;
+
+    const newEntry: LocalLeaderboardEntry = {
+      name: playerName.trim(),
+      score: score,
+      level: level,
+      date: new Date().toISOString().split('T')[0],
+    };
+
+    const updatedLeaderboard = [...localLeaderboard, newEntry]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+
+    setLocalLeaderboard(updatedLeaderboard);
+    localStorage.setItem('orangeSliceLeaderboard', JSON.stringify(updatedLeaderboard));
+    setPlayerName('');
+    setGameState('idle');
+  };
+
+  const skipSaveScore = () => {
+    setPlayerName('');
+    setShowLeaderboardPanel(false);
+    setGameState('idle');
+  };
+
+  // Display leaderboard: prefer global, fallback to local
+  const displayLeaderboard =
+    globalLeaderboard.length > 0
+      ? globalLeaderboard.map((entry) => ({
+          name: entry.displayName,
+          score: entry.score,
+          level: entry.level,
+          date: entry.date,
+        }))
+      : localLeaderboard;
+
+  // Auto-submit score for signed-in users when game ends
+  useEffect(() => {
+    if (gameState === 'gameover' && isSignedIn && score > 0 && !scoreSubmitted) {
+      submitScoreGlobal(score, level);
+    }
+  }, [gameState, isSignedIn, score, level, scoreSubmitted, submitScoreGlobal]);
+
   return (
     <IonPage>
       <IonHeader>
@@ -543,6 +642,13 @@ const Game: React.FC = () => {
               <span className="hud-label">Score</span>
               <span className="hud-value">{score}</span>
             </div>
+            {/* Music toggle */}
+            <button
+              className="music-toggle-btn"
+              onClick={() => isBackgroundMusicPlaying ? pauseBackgroundMusic() : playBackgroundMusic()}
+            >
+              {isBackgroundMusicPlaying ? '🔊' : '🔇'}
+            </button>
           </div>
         )}
 
@@ -562,17 +668,38 @@ const Game: React.FC = () => {
           <canvas ref={canvasRef} className="slice-canvas" />
 
           {gameState === 'idle' && (
-            <div className="game-menu">
-              <div className="game-title">Orange Slice</div>
-              <div className="game-emoji">&#x1F34A;</div>
-              <p className="game-desc">Swipe to slice oranges!</p>
-              <p className="game-desc">Build combos for bonus!</p>
-              {highScore > 0 && (
-                <p className="high-score">High Score: {highScore}</p>
-              )}
-              <IonButton onClick={startGame} className="play-btn">
-                Play
-              </IonButton>
+            <div className="game-menu game-menu-split">
+              <div className="menu-left">
+                <div className="game-title">Orange Slice</div>
+                <div className="game-emoji">&#x1F34A;</div>
+                <p className="game-desc">Swipe to slice oranges!</p>
+                <p className="game-desc">Build combos for bonus!</p>
+                {highScore > 0 && (
+                  <p className="high-score">High Score: {highScore}</p>
+                )}
+                <IonButton onClick={startGame} className="play-btn">
+                  Play
+                </IonButton>
+              </div>
+              <div className="menu-right">
+                <div className="leaderboard">
+                  <h3 className="leaderboard-title">
+                    {globalLeaderboard.length > 0 ? 'Global Leaderboard' : 'Leaderboard'}
+                  </h3>
+                  <div className="leaderboard-list">
+                    {Array.from({ length: 10 }, (_, index) => {
+                      const entry = displayLeaderboard[index];
+                      return (
+                        <div key={index} className="leaderboard-entry">
+                          <span className="leaderboard-rank">#{index + 1}</span>
+                          <span className="leaderboard-name">{entry?.name || '---'}</span>
+                          <span className="leaderboard-score">{entry?.score || '-'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -599,21 +726,97 @@ const Game: React.FC = () => {
           )}
 
           {gameState === 'gameover' && (
-            <div className="game-menu">
+            <div className="game-menu game-over-menu">
+              {/* Slide-in Leaderboard Panel */}
+              <div className={`leaderboard-slide-panel ${showLeaderboardPanel ? 'open' : ''}`}>
+                <div className="leaderboard-panel-header">
+                  <h3>{globalLeaderboard.length > 0 ? 'Global Leaderboard' : 'Leaderboard'}</h3>
+                  <button className="leaderboard-close-btn" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                </div>
+                <div className="leaderboard-panel-list">
+                  {Array.from({ length: 10 }, (_, index) => {
+                    const entry = displayLeaderboard[index];
+                    const isCurrentUser = entry && score === entry.score;
+                    return (
+                      <div key={index} className={`leaderboard-panel-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                        <span className="leaderboard-panel-rank">#{index + 1}</span>
+                        <span className="leaderboard-panel-name">{entry?.name || '---'}</span>
+                        <span className="leaderboard-panel-score">{entry?.score || '-'}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="game-title">Game Complete!</div>
               <div className="final-score">
                 <span className="score-label">Final Score</span>
                 <span className="score-value">{score}</span>
               </div>
-              {score === highScore && score > 0 && (
-                <div className="new-record">New Record!</div>
+              {/* New Personal Best celebration */}
+              {(isNewPersonalBest || score >= highScore) && score > 0 && (
+                <div className="new-record">🌟 New Personal Best! 🌟</div>
               )}
-              <div className="high-score-display">
-                Best: {highScore}
-              </div>
-              <IonButton onClick={startGame} className="play-btn">
-                Play Again
-              </IonButton>
+
+              {/* Signed-in users: auto-saved */}
+              {isSignedIn ? (
+                <div className="game-over-form">
+                  <div className="game-over-saved">
+                    {isSubmitting ? (
+                      <span>Saving score...</span>
+                    ) : (
+                      <span>Score saved as {userDisplayName}!</span>
+                    )}
+                  </div>
+                  <div className="game-over-buttons">
+                    <IonButton onClick={startGame} className="play-btn">
+                      Play Again
+                    </IonButton>
+                    <IonButton onClick={() => setGameState('idle')} className="play-btn" style={{ '--background': 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                      Menu
+                    </IonButton>
+                  </div>
+                  {/* Leaderboard toggle button */}
+                  <button
+                    className="leaderboard-toggle-btn"
+                    onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                  >
+                    {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
+                  </button>
+                </div>
+              ) : (
+                /* Guests: name input form */
+                <div className="game-over-form">
+                  <input
+                    type="text"
+                    className="game-over-input"
+                    placeholder="Enter your name"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    maxLength={15}
+                    onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
+                  />
+                  <div className="game-over-buttons">
+                    <IonButton
+                      onClick={saveScoreLocal}
+                      className="save-btn"
+                      disabled={!playerName.trim()}
+                    >
+                      Save Score
+                    </IonButton>
+                    <IonButton onClick={skipSaveScore} className="skip-btn" fill="outline">
+                      Skip
+                    </IonButton>
+                  </div>
+                  {/* Leaderboard toggle button for guests */}
+                  <button
+                    className="leaderboard-toggle-btn"
+                    onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                  >
+                    {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

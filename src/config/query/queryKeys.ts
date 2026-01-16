@@ -92,3 +92,38 @@ export const traitKeys = {
   sales: (traitType: string, traitValue: string) =>
     [...traitKeys.all, 'sales', traitType, traitValue] as const,
 } as const;
+
+// ============================================
+// LEADERBOARD QUERIES
+// ============================================
+
+export type GameId =
+  | 'orange-stack'
+  | 'memory-match'
+  | 'orange-pong'
+  | 'wojak-runner'
+  | 'orange-juggle'
+  | 'orange-slice'
+  | 'knife-game'
+  | 'color-reaction'
+  | '2048-merge'
+  | 'orange-wordle'
+  | 'wojak-whack'
+  | 'block-puzzle'
+  | 'flappy-orange'
+  | 'orange-snake'
+  | 'brick-breaker'
+  | 'citrus-drop';
+
+export const leaderboardKeys = {
+  all: ['leaderboard'] as const,
+
+  // Leaderboard for a specific game
+  game: (gameId: GameId) => [...leaderboardKeys.all, gameId] as const,
+
+  // Top 10 for game
+  top10: (gameId: GameId) => [...leaderboardKeys.game(gameId), 'top10'] as const,
+
+  // Extended leaderboard (top 100)
+  extended: (gameId: GameId) => [...leaderboardKeys.game(gameId), 'extended'] as const,
+} as const;

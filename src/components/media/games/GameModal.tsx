@@ -5,15 +5,18 @@
  * On desktop, renders the actual game component in a lightbox.
  */
 
-import { useState, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { X, HelpCircle, ChevronRight } from 'lucide-react';
+import { X, HelpCircle } from 'lucide-react';
 import type { MiniGame } from '@/types/media';
 import { ACCESSIBILITY_ICONS } from '@/config/games';
 import {
   gameModalOverlayVariants,
   gameModalContentVariants,
 } from '@/config/mediaAnimations';
+import { useIsMobile } from '@/hooks/useMediaQuery';
+import { LeaderboardOverlay } from './LeaderboardOverlay';
+import './GameModal.css';
 
 // Lazy load game components
 const OrangeStack = lazy(() => import('@/pages/OrangeStack'));
@@ -22,6 +25,9 @@ const OrangePong = lazy(() => import('@/pages/OrangePong'));
 const WojakRunner = lazy(() => import('@/pages/WojakRunner'));
 const OrangeJuggle = lazy(() => import('@/pages/OrangeJuggle'));
 const KnifeGame = lazy(() => import('@/pages/KnifeGame'));
+const ColorReaction = lazy(() => import('@/pages/ColorReaction'));
+const Merge2048Game = lazy(() => import('@/games/Merge2048/Merge2048Game'));
+const WordleGame = lazy(() => import('@/games/Wordle/WordleGame'));
 
 // Map game IDs to their components
 const GAME_COMPONENTS: Record<string, React.LazyExoticComponent<React.FC>> = {
@@ -31,6 +37,9 @@ const GAME_COMPONENTS: Record<string, React.LazyExoticComponent<React.FC>> = {
   'wojak-runner': WojakRunner,
   'orange-juggle': OrangeJuggle,
   'knife-game': KnifeGame,
+  'color-reaction': ColorReaction,
+  'merge-2048': Merge2048Game,
+  'orange-wordle': WordleGame,
 };
 
 interface GameModalProps {
@@ -42,6 +51,18 @@ interface GameModalProps {
 export function GameModal({ game, isOpen, onClose }: GameModalProps) {
   const prefersReducedMotion = useReducedMotion();
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
+  const isMobile = useIsMobile();
+
+  // Reset when modal closes or game changes
+  useEffect(() => {
+    if (!isOpen) {
+      setGameStarted(false);
+      setShowInstructions(false);
+      setShowLeaderboard(false);
+    }
+  }, [isOpen]);
 
   if (!game) return null;
 
@@ -58,7 +79,8 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop - no onClick, only close button closes the modal */}
+          {/* This allows games to receive clicks anywhere on screen */}
           <motion.div
             className="fixed inset-0 z-50"
             style={{ background: 'rgba(0, 0, 0, 0.9)' }}
@@ -66,68 +88,78 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
             initial="initial"
             animate="animate"
             exit="exit"
-            onClick={onClose}
           />
 
-          {/* External buttons - always visible outside the lightbox */}
-          <div className="fixed z-[60] flex gap-2" style={{ top: '1rem', right: '1rem' }}>
-            {/* Help button */}
-            <motion.button
-              className="p-3 rounded-full"
-              style={{
-                background: 'rgba(0, 0, 0, 0.7)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: 'white',
-              }}
-              onClick={() => setShowInstructions(!showInstructions)}
-              aria-label="Show instructions"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              whileHover={{ background: 'rgba(255, 255, 255, 0.1)' }}
-            >
-              <HelpCircle size={24} />
-            </motion.button>
+          {/* External buttons - only show during gameplay (× only) or for coming soon */}
+          {(gameStarted || isComingSoon) && (
+            <div className="fixed z-[60] flex gap-2" style={{ top: '1rem', right: '1rem' }}>
+              {/* Help button - only during gameplay */}
+              {gameStarted && (
+                <motion.button
+                  className="p-2 rounded-full"
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: 'rgba(255, 255, 255, 0.7)',
+                  }}
+                  onClick={() => setShowInstructions(!showInstructions)}
+                  aria-label="Show instructions"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  whileHover={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
+                >
+                  <HelpCircle size={20} />
+                </motion.button>
+              )}
 
-            {/* Close button */}
-            <motion.button
-              className="p-3 rounded-full"
-              style={{
-                background: 'rgba(0, 0, 0, 0.7)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: 'white',
-              }}
-              onClick={onClose}
-              aria-label="Close game"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              whileHover={{ background: 'rgba(255, 255, 255, 0.1)' }}
-            >
-              <X size={24} />
-            </motion.button>
-          </div>
+              {/* Close button */}
+              <motion.button
+                className="p-2 rounded-full"
+                style={{
+                  background: 'rgba(0, 0, 0, 0.5)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: 'rgba(255, 255, 255, 0.7)',
+                }}
+                onClick={onClose}
+                aria-label="Close game"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                whileHover={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white' }}
+              >
+                <X size={20} />
+              </motion.button>
+            </div>
+          )}
 
           {/* Modal content - centering wrapper */}
           <div
             className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
             style={{
-              paddingTop: game.id === 'memory-match' ? '55px' : '60px',
-              paddingBottom: game.id === 'memory-match' ? '15px' : '20px',
-              paddingLeft: game.id === 'memory-match' ? '90px' : '20px',
-              paddingRight: game.id === 'memory-match' ? '55px' : '20px',
+              // Mobile: minimal padding to maximize game area
+              paddingTop: isMobile ? '45px' : (game.id === 'memory-match' ? '55px' : '60px'),
+              paddingBottom: isMobile ? '60px' : (game.id === 'memory-match' ? '15px' : '20px'),
+              paddingLeft: isMobile ? '0' : (game.id === 'memory-match' ? '90px' : '20px'),
+              paddingRight: isMobile ? '0' : (game.id === 'memory-match' ? '55px' : '20px'),
             }}
           >
             <motion.div
-              className="rounded-2xl flex flex-col pointer-events-auto"
+              className={`flex flex-col pointer-events-auto ${isMobile ? '' : 'rounded-2xl'}`}
               style={{
-                // Memory Match: fit content - lightbox wraps tightly around cards
-                width: game.id === 'memory-match' ? 'fit-content' : 'min(75vw, 900px)',
-                height: game.id === 'memory-match' ? 'fit-content' : '80vh',
-                maxWidth: game.id === 'memory-match' ? 'calc(100vw - 145px)' : undefined,
-                maxHeight: 'calc(100vh - 70px)',
-                background: `linear-gradient(135deg, ${game.accentColor}15 0%, ${game.accentColor}05 100%)`,
-                border: `1px solid ${game.accentColor}`,
+                // Mobile: TRUE full-screen (edge to edge), Desktop: constrained
+                width: isMobile
+                  ? '100vw'
+                  : (game.id === 'memory-match' ? 'fit-content' : 'min(75vw, 900px)'),
+                height: isMobile
+                  ? 'calc(100vh - 105px)' // 45px header + 60px tab bar
+                  : (game.id === 'memory-match' ? 'fit-content' : '88vh'),
+                maxWidth: game.id === 'memory-match' && !isMobile ? 'calc(100vw - 145px)' : undefined,
+                maxHeight: isMobile ? 'calc(100vh - 105px)' : 'calc(100vh - 70px)',
+                background: isMobile
+                  ? 'transparent' // Let game background show through on mobile
+                  : `linear-gradient(135deg, ${game.accentColor}15 0%, ${game.accentColor}05 100%)`,
+                border: isMobile ? 'none' : `1px solid ${game.accentColor}`,
                 overflow: 'hidden',
               }}
               variants={prefersReducedMotion ? undefined : gameModalContentVariants}
@@ -136,10 +168,65 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
               exit="exit"
             >
             {/* Main content area */}
-            <div className="flex-1 flex overflow-hidden min-h-0">
-              {/* Game area */}
-              <div className={`flex-1 min-h-0 min-w-0 overflow-hidden ${isComingSoon ? 'flex items-center justify-center p-4' : ''}`}>
-                {isComingSoon ? (
+            <div className="flex-1 flex overflow-hidden min-h-0 relative">
+              {/* Intro Screen - shows before game starts */}
+              {!gameStarted && !isComingSoon && (
+                <div
+                  className="game-intro-screen"
+                  style={{
+                    backgroundImage: `url('${game.introBackground || '/assets/wojak-layers/BACKGROUND/Scene/BACKGROUND_Orange Grove.png'}')`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }}
+                >
+                  {/* Header with integrated buttons */}
+                  <div className="game-intro-header">
+                    <button
+                      className="game-intro-btn help-btn"
+                      onClick={() => setShowInstructions(true)}
+                      aria-label="How to play"
+                    >
+                      <HelpCircle size={20} />
+                    </button>
+                    <button
+                      className="game-intro-btn close-btn"
+                      onClick={onClose}
+                      aria-label="Close game"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  {/* Content */}
+                  <div className="game-intro-content">
+                    <div className="game-intro-emoji">{game.emoji}</div>
+                    <h1 className="game-intro-title">{game.name}</h1>
+                    <p className="game-intro-description">
+                      {game.shortDescription || game.description}
+                    </p>
+
+                    <button
+                      className="game-intro-play-btn"
+                      onClick={() => setGameStarted(true)}
+                    >
+                      Play
+                    </button>
+
+                    {game.hasHighScores && (
+                      <button
+                        className="game-intro-leaderboard-btn"
+                        onClick={() => setShowLeaderboard(true)}
+                      >
+                        🏆 Leaderboard
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Coming Soon state */}
+              {isComingSoon && (
+                <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex items-center justify-center p-4">
                   <div className="text-center max-w-md">
                     <div className="text-8xl mb-6">{game.emoji}</div>
                     <h3
@@ -182,88 +269,44 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
                         ))}
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
 
-                    {/* Instructions preview */}
-                    <div
-                      className="p-4 rounded-xl"
-                      style={{
-                        background: 'var(--color-glass-bg)',
-                        border: '1px solid var(--color-border)',
-                      }}
-                    >
-                      <h4
-                        className="text-sm font-medium mb-3"
-                        style={{ color: 'var(--color-text-primary)' }}
+              {/* Game area - only renders when game has started */}
+              {gameStarted && !isComingSoon && (
+                <div className="w-full h-full overflow-hidden relative">
+                  <Suspense
+                    fallback={
+                      <div
+                        className="w-full h-full flex items-center justify-center"
+                        style={{ background: 'var(--color-glass-bg)' }}
                       >
-                        How to Play
-                      </h4>
-                      <ol className="space-y-2 text-left">
-                        {game.instructions.slice(0, 3).map((instruction) => (
-                          <li
-                            key={instruction.step}
-                            className="flex items-start gap-2 text-sm"
-                            style={{ color: 'var(--color-text-secondary)' }}
-                          >
-                            <span
-                              className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
-                              style={{
-                                background: `${game.accentColor}30`,
-                                color: game.accentColor,
-                              }}
-                            >
-                              {instruction.step}
-                            </span>
-                            <span>{instruction.text}</span>
-                          </li>
-                        ))}
-                      </ol>
-                      {game.instructions.length > 3 && (
-                        <button
-                          className="mt-3 text-sm flex items-center gap-1"
-                          style={{ color: game.accentColor }}
-                          onClick={() => setShowInstructions(true)}
-                        >
-                          View all instructions
-                          <ChevronRight size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-full h-full overflow-hidden relative">
-                    <Suspense
-                      fallback={
-                        <div
-                          className="w-full h-full flex items-center justify-center"
-                          style={{ background: 'var(--color-glass-bg)' }}
-                        >
-                          <div className="text-center">
-                            <div className="text-4xl mb-4">{game.emoji}</div>
-                            <p style={{ color: 'var(--color-text-muted)' }}>Loading game...</p>
-                          </div>
+                        <div className="text-center">
+                          <div className="text-4xl mb-4">{game.emoji}</div>
+                          <p style={{ color: 'var(--color-text-muted)' }}>Loading game...</p>
                         </div>
-                      }
-                    >
-                      {GAME_COMPONENTS[game.id] ? (
-                        (() => {
-                          const GameComponent = GAME_COMPONENTS[game.id];
-                          return <GameComponent />;
-                        })()
-                      ) : (
-                        <div
-                          className="w-full h-full flex items-center justify-center"
-                          style={{ background: 'var(--color-glass-bg)' }}
-                        >
-                          <p style={{ color: 'var(--color-text-muted)' }}>
-                            Game not available
-                          </p>
-                        </div>
-                      )}
-                    </Suspense>
-                  </div>
-                )}
-              </div>
-
+                      </div>
+                    }
+                  >
+                    {GAME_COMPONENTS[game.id] ? (
+                      (() => {
+                        const GameComponent = GAME_COMPONENTS[game.id];
+                        return <GameComponent />;
+                      })()
+                    ) : (
+                      <div
+                        className="w-full h-full flex items-center justify-center"
+                        style={{ background: 'var(--color-glass-bg)' }}
+                      >
+                        <p style={{ color: 'var(--color-text-muted)' }}>
+                          Game not available
+                        </p>
+                      </div>
+                    )}
+                  </Suspense>
+                </div>
+              )}
             </div>
 
             {/* Instructions overlay - renders on top of game */}
@@ -360,6 +403,14 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Leaderboard Overlay */}
+            <LeaderboardOverlay
+              isOpen={showLeaderboard}
+              onClose={() => setShowLeaderboard(false)}
+              gameId={game.id}
+              accentColor={game.accentColor}
+            />
 
           </motion.div>
           </div>

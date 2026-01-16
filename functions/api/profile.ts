@@ -41,15 +41,60 @@ async function ensureUser(db: D1Database, userId: string): Promise<void> {
 }
 
 /**
- * Get user profile
+ * Get user profile with streak info
+ * Note: Falls back gracefully if streak columns don't exist yet
  */
 async function getProfile(db: D1Database, userId: string) {
-  const result = await db
-    .prepare('SELECT display_name, x_handle, wallet_address, updated_at FROM profiles WHERE user_id = ?')
-    .bind(userId)
-    .first<{ display_name: string | null; x_handle: string | null; wallet_address: string | null; updated_at: string }>();
+  // Try with streak columns first
+  try {
+    const result = await db
+      .prepare(`SELECT
+        display_name,
+        x_handle,
+        wallet_address,
+        current_streak,
+        longest_streak,
+        last_played_date,
+        updated_at
+      FROM profiles WHERE user_id = ?`)
+      .bind(userId)
+      .first<{
+        display_name: string | null;
+        x_handle: string | null;
+        wallet_address: string | null;
+        current_streak: number | null;
+        longest_streak: number | null;
+        last_played_date: string | null;
+        updated_at: string;
+      }>();
 
-  return result;
+    return result;
+  } catch (error) {
+    // Fallback: streak columns might not exist yet
+    console.log('[Profile] Falling back to query without streak columns');
+    const result = await db
+      .prepare(`SELECT
+        display_name,
+        x_handle,
+        wallet_address,
+        updated_at
+      FROM profiles WHERE user_id = ?`)
+      .bind(userId)
+      .first<{
+        display_name: string | null;
+        x_handle: string | null;
+        wallet_address: string | null;
+        updated_at: string;
+      }>();
+
+    // Return with default streak values
+    return result ? {
+      ...result,
+      current_streak: null,
+      longest_streak: null,
+      last_played_date: null,
+    } : null;
+  }
 }
 
 /**
@@ -173,6 +218,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                 displayName: profile.display_name,
                 xHandle: profile.x_handle,
                 walletAddress: profile.wallet_address,
+                currentStreak: profile.current_streak || 0,
+                longestStreak: profile.longest_streak || 0,
+                lastPlayedDate: profile.last_played_date,
                 updatedAt: profile.updated_at,
               }
             : null,

@@ -1,6 +1,8 @@
 // @ts-nocheck
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGameSounds } from '@/hooks/useGameSounds';
+import { useLeaderboard } from '@/hooks/data/useLeaderboard';
+import { useAudio } from '@/contexts/AudioContext';
 import './WojakRunner.css';
 
 interface Obstacle {
@@ -16,7 +18,7 @@ interface Collectible {
   y: number;
 }
 
-interface LeaderboardEntry {
+interface LocalLeaderboardEntry {
   name: string;
   score: number;
   date: string;
@@ -32,7 +34,19 @@ const COLLECTIBLE_SIZE = 35;
 const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/games/sad_runner_${i + 1}.png`);
 
 const WojakRunner: React.FC = () => {
-  const { playCollect, playSpeedUp, playGameOver } = useGameSounds();
+  const { playCollect, playGameOver, startRunning, stopRunning } = useGameSounds();
+
+  // Global leaderboard hook
+  const {
+    leaderboard: globalLeaderboard,
+    submitScore,
+    isSignedIn,
+    userDisplayName,
+    isSubmitting,
+  } = useLeaderboard('wojak-runner');
+
+  // Background music controls
+  const { isBackgroundMusicPlaying, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
 
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
   const [playerLane, setPlayerLane] = useState(1);
@@ -45,11 +59,14 @@ const WojakRunner: React.FC = () => {
     return parseInt(localStorage.getItem('wojakRunnerHighScore') || '0', 10);
   });
   const [playerName, setPlayerName] = useState('');
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(() => {
+  const [localLeaderboard, setLocalLeaderboard] = useState<LocalLeaderboardEntry[]>(() => {
     const saved = localStorage.getItem('wojakRunnerLeaderboard');
     return saved ? JSON.parse(saved) : [];
   });
   const [sadImage, setSadImage] = useState('');
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
+  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
@@ -60,15 +77,35 @@ const WojakRunner: React.FC = () => {
 
   // Sound refs for use in game loop
   const playCollectRef = useRef(playCollect);
-  const playSpeedUpRef = useRef(playSpeedUp);
   const playGameOverRef = useRef(playGameOver);
+  const startRunningRef = useRef(startRunning);
+  const stopRunningRef = useRef(stopRunning);
 
   // Keep refs updated
   useEffect(() => {
     playCollectRef.current = playCollect;
-    playSpeedUpRef.current = playSpeedUp;
     playGameOverRef.current = playGameOver;
-  }, [playCollect, playSpeedUp, playGameOver]);
+    startRunningRef.current = startRunning;
+    stopRunningRef.current = stopRunning;
+  }, [playCollect, playGameOver, startRunning, stopRunning]);
+
+  // Start/stop running sound based on game state
+  useEffect(() => {
+    if (gameState === 'playing') {
+      // Start running footsteps at 180 BPM
+      startRunningRef.current(180);
+    } else {
+      stopRunningRef.current();
+    }
+  }, [gameState]);
+
+  // Auto-start game on mount (unified intro from GameModal)
+  useEffect(() => {
+    if (gameState === 'idle') {
+      startGame();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startGame = () => {
     setPlayerLane(1);
@@ -81,6 +118,8 @@ const WojakRunner: React.FC = () => {
     collectibleIdRef.current = 0;
     lastSpawnRef.current = 0;
     setPlayerName('');
+    setScoreSubmitted(false);
+    setIsNewPersonalBest(false);
     setGameState('playing');
   };
 
@@ -89,30 +128,59 @@ const WojakRunner: React.FC = () => {
     setPlayerName('');
   };
 
-  const saveScore = () => {
+  // Save score to local leaderboard (for guests)
+  const saveScoreLocal = () => {
     if (!playerName.trim()) return;
 
     const finalScore = score + Math.floor(distance / 10);
-    const newEntry: LeaderboardEntry = {
+    const newEntry: LocalLeaderboardEntry = {
       name: playerName.trim(),
       score: finalScore,
       date: new Date().toISOString().split('T')[0],
     };
 
-    const updatedLeaderboard = [...leaderboard, newEntry]
+    const updatedLeaderboard = [...localLeaderboard, newEntry]
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
 
-    setLeaderboard(updatedLeaderboard);
+    setLocalLeaderboard(updatedLeaderboard);
     localStorage.setItem('wojakRunnerLeaderboard', JSON.stringify(updatedLeaderboard));
     setPlayerName('');
     goToMenu();
   };
 
+  // Auto-submit score to global leaderboard (for signed-in users)
+  const submitScoreGlobal = useCallback(async (finalScore: number) => {
+    if (!isSignedIn || scoreSubmitted || finalScore === 0) return;
+
+    setScoreSubmitted(true);
+    const result = await submitScore(finalScore, undefined, {
+      distance: distance,
+    });
+
+    if (result.success) {
+      console.log('[WojakRunner] Score submitted:', result);
+      if (result.isNewHighScore) {
+        setIsNewPersonalBest(true);
+      }
+    } else {
+      console.error('[WojakRunner] Failed to submit score:', result.error);
+    }
+  }, [isSignedIn, scoreSubmitted, submitScore, distance]);
+
   const skipSaveScore = () => {
     setPlayerName('');
     goToMenu();
   };
+
+  // Merge global and local leaderboard for display
+  const displayLeaderboard = globalLeaderboard.length > 0
+    ? globalLeaderboard.map(entry => ({
+        name: entry.displayName,
+        score: entry.score,
+        date: entry.date,
+      }))
+    : localLeaderboard;
 
   // Swipe controls
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -157,12 +225,11 @@ const WojakRunner: React.FC = () => {
     const gameLoop = () => {
       const height = gameAreaRef.current?.offsetHeight || 600;
 
-      // Update distance and speed
+      // Update distance and speed (no sound on speed increase - silent)
       setDistance(prev => {
         const newDist = prev + 1;
         if (newDist % 500 === 0) {
           setSpeed(s => Math.min(s + 0.5, 15));
-          playSpeedUpRef.current();
         }
         return newDist;
       });
@@ -272,134 +339,57 @@ const WojakRunner: React.FC = () => {
   }, [gameState, speed, playerLane, obstacles, score, distance, highScore]);
 
   const totalScore = score + Math.floor(distance / 10);
+
+  // Auto-submit score for signed-in users when game ends
+  useEffect(() => {
+    if (gameState === 'gameover' && isSignedIn && totalScore > 0 && !scoreSubmitted) {
+      submitScoreGlobal(totalScore);
+    }
+  }, [gameState, isSignedIn, totalScore, scoreSubmitted, submitScoreGlobal]);
   const width = gameAreaRef.current?.offsetWidth || 300;
   const laneOffset = (width - LANE_WIDTH * 3) / 2;
 
   return (
     <div className={`runner-container ${gameState === 'playing' ? 'playing-mode' : ''}`}>
-      {/* Title Bar HUD - shown during gameplay */}
+      {/* PLAYING STATE: Game Layout with Stats Panel on LEFT */}
       {gameState === 'playing' && (
-        <div className="runner-titlebar">
-          <div className="titlebar-item">
-            <span className="hud-label">Score</span>
-            <span className="hud-value">{totalScore}</span>
-          </div>
-          <div className="titlebar-item">
-            <span className="hud-label">Best</span>
-            <span className="hud-value">{highScore}</span>
-          </div>
-          <div className="titlebar-item">
-            <span className="hud-label">Speed</span>
-            <span className="hud-value">{speed.toFixed(1)}x</span>
-          </div>
-        </div>
-      )}
-
-      <div className="runner-content">
-        <div
-          ref={gameAreaRef}
-          className={`runner-area ${gameState === 'playing' ? 'playing' : ''}`}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        >
-          {/* Main Menu - Horizontal split layout */}
-          {gameState === 'idle' && (
-            <div className="game-menu-split">
-              {/* Left side - Title and Play */}
-              <div className="menu-left">
-                <div className="game-title">Wojak Runner</div>
-                <div className="game-emoji">🏃</div>
-                <p className="game-desc">Swipe left/right to dodge!</p>
-                <p className="game-desc">🐫 Camels and 🐻 bears will kill you!</p>
-                <p className="game-desc">Collect 🍊 oranges for points</p>
-                <button onClick={startGame} className="play-btn">
-                  Play
-                </button>
-              </div>
-
-              {/* Right side - Leaderboard */}
-              <div className="menu-right">
-                <div className="leaderboard">
-                  <h3 className="leaderboard-title">Leaderboard</h3>
-                  <div className="leaderboard-list">
-                    {Array.from({ length: 10 }, (_, index) => {
-                      const entry = leaderboard[index];
-                      return (
-                        <div key={index} className="leaderboard-entry">
-                          <span className="leaderboard-rank">#{index + 1}</span>
-                          <span className="leaderboard-name">{entry?.name || '---'}</span>
-                          <span className="leaderboard-score">{entry?.score || '-'}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+        <div className="game-layout">
+          {/* Stats Panel - LEFT side */}
+          <div className="stats-panel">
+            <div className="stat-item score-stat">
+              <span className="stat-label">Score</span>
+              <span className="stat-value">{totalScore}</span>
             </div>
-          )}
-
-          {/* Game Over - Save Score Screen */}
-          {gameState === 'gameover' && (
-            <div className="game-over-screen">
-              {/* Left side - Sad Image */}
-              <div className="game-over-left">
-                {sadImage ? (
-                  <img
-                    src={sadImage}
-                    alt="Game Over"
-                    className="sad-image-large"
-                  />
-                ) : (
-                  <div className="game-over-emoji">💀</div>
-                )}
-              </div>
-
-              {/* Right side - Content */}
-              <div className="game-over-right">
-                <div className="game-over-title">Game Over!</div>
-
-                <div className="game-over-reason">
-                  You crashed into an obstacle!
-                </div>
-
-                <div className="game-over-score">
-                  <span className="game-over-score-value">{totalScore}</span>
-                  <span className="game-over-score-label">points</span>
-                </div>
-
-                {totalScore > highScore && (
-                  <div className="game-over-record">🌟 New High Score! 🌟</div>
-                )}
-
-                <div className="game-over-form">
-                  <input
-                    type="text"
-                    className="game-over-input"
-                    placeholder="Enter your name"
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    maxLength={15}
-                    onKeyDown={(e) => e.key === 'Enter' && saveScore()}
-                  />
-                  <div className="game-over-buttons">
-                    <button
-                      onClick={saveScore}
-                      className="game-over-save"
-                      disabled={!playerName.trim()}
-                    >
-                      Save Score
-                    </button>
-                    <button onClick={skipSaveScore} className="game-over-skip">
-                      Skip
-                    </button>
-                  </div>
-                </div>
-              </div>
+            <div className="stat-item best-stat">
+              <span className="stat-label">Best</span>
+              <span className="stat-value">{highScore}</span>
             </div>
-          )}
+            <div className="stat-item speed-stat">
+              <span className="stat-label">Speed</span>
+              <span className="stat-value">{speed.toFixed(1)}x</span>
+            </div>
+            <div className="stat-item distance-stat">
+              <span className="stat-label">Distance</span>
+              <span className="stat-value">{Math.floor(distance / 10)}m</span>
+            </div>
+          </div>
 
-          {gameState === 'playing' && (
-            <>
+          {/* Lightbox wrapper for game area - RIGHT side */}
+          <div className="lightbox-wrapper">
+            {/* Music toggle button */}
+            <button
+              className="music-toggle-btn"
+              onClick={() => isBackgroundMusicPlaying ? pauseBackgroundMusic() : playBackgroundMusic()}
+            >
+              {isBackgroundMusicPlaying ? '🔊' : '🔇'}
+            </button>
+
+            <div
+              ref={gameAreaRef}
+              className="runner-area playing"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
               {/* Road lanes */}
               <div className="road" style={{ left: laneOffset }}>
                 <div className="lane-line" style={{ left: LANE_WIDTH }} />
@@ -444,10 +434,140 @@ const WojakRunner: React.FC = () => {
 
               {/* Swipe hint */}
               <div className="swipe-hint">← Swipe →</div>
-            </>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NON-PLAYING STATES: Menu and Game Over */}
+      {gameState !== 'playing' && (
+      <div className="runner-content">
+        <div
+          ref={gameState !== 'playing' ? gameAreaRef : undefined}
+          className="runner-area"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Game Over - Save Score Screen */}
+          {gameState === 'gameover' && (
+            <div className="game-over-screen">
+              {/* Left side - Sad Image */}
+              <div className="game-over-left">
+                {sadImage ? (
+                  <img
+                    src={sadImage}
+                    alt="Game Over"
+                    className="sad-image-large"
+                  />
+                ) : (
+                  <div className="game-over-emoji">💀</div>
+                )}
+
+                {/* Slide-in Leaderboard Panel */}
+                <div className={`leaderboard-slide-panel ${showLeaderboardPanel ? 'open' : ''}`}>
+                  <div className="leaderboard-panel-header">
+                    <h3>{globalLeaderboard.length > 0 ? 'Global Leaderboard' : 'Leaderboard'}</h3>
+                    <button className="leaderboard-close-btn" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                  </div>
+                  <div className="leaderboard-panel-list">
+                    {Array.from({ length: 10 }, (_, index) => {
+                      const entry = displayLeaderboard[index];
+                      const isCurrentUser = entry && totalScore === entry.score;
+                      return (
+                        <div key={index} className={`leaderboard-panel-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                          <span className="leaderboard-panel-rank">#{index + 1}</span>
+                          <span className="leaderboard-panel-name">{entry?.name || '---'}</span>
+                          <span className="leaderboard-panel-score">{entry?.score || '-'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right side - Content */}
+              <div className="game-over-right">
+                <div className="game-over-title">Game Over!</div>
+
+                <div className="game-over-reason">
+                  You crashed into an obstacle!
+                </div>
+
+                <div className="game-over-score">
+                  <span className="game-over-score-value">{totalScore}</span>
+                  <span className="game-over-score-label">points</span>
+                </div>
+
+                {/* New Personal Best celebration */}
+                {(isNewPersonalBest || totalScore >= highScore) && totalScore > 0 && (
+                  <div className="game-over-record">🌟 New Personal Best! 🌟</div>
+                )}
+
+                {isSignedIn ? (
+                  // Signed-in user - auto-submitted
+                  <div className="game-over-form">
+                    <div className="game-over-submitted">
+                      {isSubmitting ? (
+                        <span>Saving score...</span>
+                      ) : scoreSubmitted ? (
+                        <span>Score saved as {userDisplayName || 'Anonymous'}!</span>
+                      ) : null}
+                    </div>
+                    <div className="game-over-buttons">
+                      <button onClick={startGame} className="play-btn">
+                        Play Again
+                      </button>
+                      <button onClick={goToMenu} className="play-btn" style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                        Menu
+                      </button>
+                    </div>
+                    {/* Leaderboard button */}
+                    <button
+                      className="leaderboard-toggle-btn"
+                      onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                    >
+                      {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
+                    </button>
+                  </div>
+                ) : (
+                  // Guest - show name input
+                  <div className="game-over-form">
+                    <input
+                      type="text"
+                      className="game-over-input"
+                      placeholder="Enter your name"
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value)}
+                      maxLength={15}
+                      onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
+                    />
+                    <div className="game-over-buttons">
+                      <button
+                        onClick={saveScoreLocal}
+                        className="game-over-save"
+                        disabled={!playerName.trim()}
+                      >
+                        Save Score
+                      </button>
+                      <button onClick={skipSaveScore} className="game-over-skip">
+                        Skip
+                      </button>
+                    </div>
+                    {/* Leaderboard button */}
+                    <button
+                      className="leaderboard-toggle-btn"
+                      onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                    >
+                      {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };

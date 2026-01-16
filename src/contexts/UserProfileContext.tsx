@@ -17,6 +17,10 @@ export interface UserProfile {
   xHandle: string | null;
   walletAddress: string | null;
   updatedAt: string | null;
+  // Streak tracking
+  currentStreak: number;
+  longestStreak: number;
+  lastPlayedDate: string | null;
 }
 
 export interface UserMessage {
@@ -84,7 +88,17 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
 
       if (response.ok) {
         const data = await response.json();
-        const profile = data.profile as UserProfile | null;
+        // Map API response to UserProfile, ensuring streak defaults
+        const apiProfile = data.profile;
+        const profile: UserProfile | null = apiProfile ? {
+          displayName: apiProfile.displayName,
+          xHandle: apiProfile.xHandle,
+          walletAddress: apiProfile.walletAddress,
+          updatedAt: apiProfile.updatedAt,
+          currentStreak: apiProfile.currentStreak || 0,
+          longestStreak: apiProfile.longestStreak || 0,
+          lastPlayedDate: apiProfile.lastPlayedDate || null,
+        } : null;
         const needsOnboarding = !profile?.displayName;
 
         console.log('[UserProfile] Profile loaded:', {

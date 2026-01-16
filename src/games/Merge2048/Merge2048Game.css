@@ -1,0 +1,491 @@
+/**
+ * Merge 2048 Game Styles - Citrus Edition
+ */
+
+/* Container */
+.merge2048-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  padding: 16px;
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Header */
+.merge2048-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.merge2048-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.merge2048-title h1 {
+  font-size: 48px;
+  font-weight: bold;
+  color: #ff6b00;
+  margin: 0;
+  line-height: 1;
+  text-shadow: 0 2px 10px rgba(255, 107, 0, 0.3);
+}
+
+.merge2048-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* Score boxes */
+.merge2048-scores {
+  display: flex;
+  gap: 8px;
+}
+
+.score-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #bbada0;
+  border-radius: 6px;
+  padding: 8px 16px;
+  min-width: 70px;
+  position: relative; /* For score popup positioning */
+}
+
+.score-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #eee4da;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.score-value {
+  font-size: 22px;
+  font-weight: bold;
+  color: white;
+}
+
+/* Controls */
+.merge2048-controls {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 16px;
+}
+
+.new-game-btn {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.new-game-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
+}
+
+.new-game-btn:active {
+  transform: scale(0.98);
+}
+
+/* Mute button */
+.mute-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 14px;
+  font-size: 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+
+.mute-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.mute-btn:active {
+  transform: scale(0.95);
+}
+
+/* Grid Wrapper - for positioning overlays */
+.merge2048-grid-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1;
+  touch-action: none; /* Prevent scroll interference on swipes */
+  user-select: none; /* Prevent text selection */
+}
+
+/* Grid */
+.merge2048-grid {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #bbada0;
+  border-radius: 12px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+/* Grid background (empty cells) */
+.grid-background {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+}
+
+.grid-cell {
+  background: rgba(238, 228, 218, 0.35);
+  border-radius: 6px;
+}
+
+/* Tiles container - absolute positioned over grid */
+.tiles-container {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+}
+
+/* Individual tile - uses top/left for positioning, transform for animations */
+.tile {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-weight: bold;
+  /* Size and position calculated from container using CSS calc */
+  /* Container is tiles-container which has 12px inset from grid */
+  /* Available space = 100% of tiles-container */
+  /* 4 cells + 3 gaps of 12px = total width */
+  /* cell-size = (100% - 36px) / 4 */
+  width: calc((100% - 36px) / 4);
+  height: calc((100% - 36px) / 4);
+  /* Position using top/left with calc - this works with percentages */
+  /* Each cell position = index * (cell-size + gap) */
+  /* cell-size + gap = (100% - 36px) / 4 + 12px = (100% - 36px + 48px) / 4 = (100% + 12px) / 4 */
+  top: calc(var(--tile-row) * (100% + 12px) / 4);
+  left: calc(var(--tile-col) * (100% + 12px) / 4);
+  /* Smooth position transitions */
+  transition: top 150ms ease-out, left 150ms ease-out;
+  z-index: 10;
+}
+
+.tile-value {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Tile font sizes */
+.tile-font-large {
+  font-size: 36px;
+}
+
+.tile-font-medium {
+  font-size: 28px;
+}
+
+.tile-font-small {
+  font-size: 20px;
+}
+
+/* Tile spawn animation - scale only */
+@keyframes tile-spawn {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Tile merge animation - scale pulse */
+@keyframes tile-merge {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.tile-new {
+  animation: tile-spawn 200ms ease-out forwards;
+}
+
+.tile-merged {
+  animation: tile-merge 200ms ease-out forwards;
+  z-index: 20;
+}
+
+/* Score popup animation */
+@keyframes score-popup {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px) scale(0.8);
+  }
+}
+
+.score-popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  font-weight: bold;
+  color: #ff6b00;
+  text-shadow: 0 2px 10px rgba(255, 107, 0, 0.5);
+  pointer-events: none;
+  z-index: 50;
+  animation: score-popup 600ms ease-out forwards;
+}
+
+/* Screen shake for big merges */
+@keyframes screen-shake {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(-4px) rotate(-0.5deg); }
+  20% { transform: translateX(4px) rotate(0.5deg); }
+  30% { transform: translateX(-4px) rotate(-0.5deg); }
+  40% { transform: translateX(4px) rotate(0.5deg); }
+  50% { transform: translateX(-2px) rotate(-0.25deg); }
+  60% { transform: translateX(2px) rotate(0.25deg); }
+  70% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+  90% { transform: translateX(-1px); }
+}
+
+.shake {
+  animation: screen-shake 300ms ease-out;
+}
+
+/* High-value tile glow effects */
+.tile-glow-128 {
+  box-shadow: 0 0 15px rgba(237, 194, 46, 0.6);
+}
+
+.tile-glow-256 {
+  box-shadow: 0 0 20px rgba(246, 94, 59, 0.7);
+}
+
+.tile-glow-512 {
+  box-shadow: 0 0 25px rgba(237, 77, 46, 0.8);
+}
+
+.tile-glow-1024 {
+  box-shadow: 0 0 30px rgba(237, 65, 64, 0.9);
+}
+
+.tile-glow-2048 {
+  box-shadow: 0 0 35px rgba(237, 197, 63, 1), 0 0 60px rgba(237, 197, 63, 0.5);
+}
+
+/* Game overlays */
+.game-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(238, 228, 218, 0.85);
+  border-radius: 12px;
+  z-index: 100;
+  animation: fadeIn 0.3s ease;
+  gap: 12px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.game-overlay h2 {
+  font-size: 40px;
+  font-weight: bold;
+  color: #776e65;
+  margin: 0;
+}
+
+.game-overlay p {
+  font-size: 18px;
+  color: #776e65;
+  margin: 0;
+}
+
+.game-won h2 {
+  color: #ff6b00;
+}
+
+.overlay-btn {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  margin-top: 8px;
+}
+
+.overlay-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
+}
+
+.overlay-btn.secondary {
+  background: #8f7a66;
+}
+
+.overlay-btn.secondary:hover {
+  box-shadow: 0 4px 20px rgba(143, 122, 102, 0.4);
+}
+
+/* Instructions */
+.merge2048-instructions {
+  margin-top: 16px;
+  text-align: center;
+  max-width: 400px;
+}
+
+.merge2048-instructions p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 420px) {
+  .merge2048-container {
+    padding: 12px;
+  }
+
+  .merge2048-title h1 {
+    font-size: 36px;
+  }
+
+  .score-box {
+    padding: 6px 12px;
+    min-width: 60px;
+  }
+
+  .score-value {
+    font-size: 18px;
+  }
+
+  .merge2048-grid {
+    padding: 8px;
+  }
+
+  .grid-background {
+    gap: 8px;
+  }
+
+  .tiles-container {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+  }
+
+  .tile {
+    /* Smaller gap on mobile: 8px instead of 12px */
+    /* cell-size = (100% - 24px) / 4 (3 gaps of 8px) */
+    width: calc((100% - 24px) / 4);
+    height: calc((100% - 24px) / 4);
+    /* Position: cell-size + gap = (100% - 24px) / 4 + 8px = (100% + 8px) / 4 */
+    top: calc(var(--tile-row) * (100% + 8px) / 4);
+    left: calc(var(--tile-col) * (100% + 8px) / 4);
+  }
+
+  .tile-font-large {
+    font-size: 28px;
+  }
+
+  .tile-font-medium {
+    font-size: 22px;
+  }
+
+  .tile-font-small {
+    font-size: 16px;
+  }
+}
+
+/* Extra small screens */
+@media (max-height: 600px) {
+  .merge2048-header {
+    margin-bottom: 8px;
+  }
+
+  .merge2048-title h1 {
+    font-size: 32px;
+  }
+
+  .merge2048-controls {
+    margin-bottom: 8px;
+  }
+
+  .new-game-btn {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+
+  .merge2048-instructions {
+    margin-top: 8px;
+  }
+}

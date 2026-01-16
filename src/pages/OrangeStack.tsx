@@ -1,11 +1,15 @@
 // @ts-nocheck
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   IonContent,
   IonPage,
   IonButton,
 } from '@ionic/react';
 import { useGameSounds } from '@/hooks/useGameSounds';
+import { useLeaderboard } from '@/hooks/data/useLeaderboard';
+import { useAudio } from '@/contexts/AudioContext';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import './OrangeStack.css';
 
 interface Block {
@@ -15,24 +19,50 @@ interface Block {
   y: number;
 }
 
-interface LeaderboardEntry {
+interface LocalLeaderboardEntry {
   name: string;
   score: number;
   level: number;
   date: string;
 }
 
-const BLOCK_HEIGHT = 40;
-const INITIAL_WIDTH = 160; // Wider blocks for easier start
+const BLOCK_HEIGHT = 45; // Bigger blocks = feel the height sooner!
+const INITIAL_WIDTH = 220; // Wider blocks for easier start
+const GAME_WIDTH = 650; // Fixed game area width (matches lightbox-wrapper)
 
 // Sad images for game over screen (1-19)
 const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/games/sad_runner_${i + 1}.png`);
 
-// Level configurations - easy to hard
-const LEVEL_CONFIG = {
-  1: { startSpeed: 1.5, speedIncrease: 0.05, blocksToComplete: 8, minBlockWidth: 40 },
-  2: { startSpeed: 2.5, speedIncrease: 0.1, blocksToComplete: 10, minBlockWidth: 25 },
-  3: { startSpeed: 3.5, speedIncrease: 0.15, blocksToComplete: 15, minBlockWidth: 15 },
+// Level configurations - 10 levels with gradual difficulty
+const LEVEL_CONFIG: Record<number, { startSpeed: number; speedIncrease: number; blocksToComplete: number; minBlockWidth: number; theme: string }> = {
+  1:  { startSpeed: 1.2, speedIncrease: 0.03, blocksToComplete: 6,  minBlockWidth: 50, theme: 'sunrise' },
+  2:  { startSpeed: 1.5, speedIncrease: 0.04, blocksToComplete: 7,  minBlockWidth: 45, theme: 'morning' },
+  3:  { startSpeed: 1.8, speedIncrease: 0.05, blocksToComplete: 8,  minBlockWidth: 40, theme: 'day' },
+  4:  { startSpeed: 2.2, speedIncrease: 0.06, blocksToComplete: 9,  minBlockWidth: 35, theme: 'afternoon' },
+  5:  { startSpeed: 2.6, speedIncrease: 0.07, blocksToComplete: 10, minBlockWidth: 30, theme: 'sunset' },
+  6:  { startSpeed: 3.0, speedIncrease: 0.08, blocksToComplete: 11, minBlockWidth: 26, theme: 'dusk' },
+  7:  { startSpeed: 3.4, speedIncrease: 0.09, blocksToComplete: 12, minBlockWidth: 22, theme: 'evening' },
+  8:  { startSpeed: 3.8, speedIncrease: 0.10, blocksToComplete: 13, minBlockWidth: 18, theme: 'night' },
+  9:  { startSpeed: 4.2, speedIncrease: 0.11, blocksToComplete: 14, minBlockWidth: 15, theme: 'storm' },
+  10: { startSpeed: 4.5, speedIncrease: 0.12, blocksToComplete: 15, minBlockWidth: 12, theme: 'inferno' },
+};
+
+const MAX_LEVEL = 10;
+
+// Power-up types
+type PowerUpType = 'magnet' | 'slowmo' | 'width' | 'shield';
+const POWER_UPS: Record<PowerUpType, { emoji: string; name: string; duration?: number }> = {
+  magnet: { emoji: '🧲', name: 'Magnet', duration: 1 },      // Auto-centers next drop
+  slowmo: { emoji: '⏱️', name: 'Slow-Mo', duration: 5000 },  // 50% speed for 5 seconds
+  width:  { emoji: '📏', name: 'Width+', duration: 1 },      // Restore 30px width
+  shield: { emoji: '🛡️', name: 'Shield', duration: 1 },      // Forgives one bad drop
+};
+
+// Combo perk thresholds
+const COMBO_PERKS = {
+  miniShield: 5,      // At 5x combo, lose less width on bad drops
+  autoSlowMo: 10,     // At 10x combo, auto slow-mo for 3 seconds
+  widthRestore: 15,   // At 15x combo, restore some width
 };
 
 // Scoring configuration
@@ -45,10 +75,31 @@ const SCORING = {
   bounceMultiplier: 1,      // Points lost per bounce
   comboMultiplier: 0.1,     // Each consecutive good drop adds 10% multiplier
   levelBonus: 100,          // Bonus per level completed
+  powerUpChance: 0.15,      // 15% chance for power-up on block
 };
 
 const OrangeStack: React.FC = () => {
   const { playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver } = useGameSounds();
+  const isMobile = useIsMobile();
+
+  // Global leaderboard hook
+  const {
+    leaderboard: globalLeaderboard,
+    submitScore,
+    isSignedIn,
+    userDisplayName,
+    isSubmitting,
+  } = useLeaderboard('orange-stack');
+
+  // Background music controls
+  const { isBackgroundMusicPlaying, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
+
+  // Responsive game dimensions - full width on mobile for immersive experience
+  const GAME_WIDTH_RESPONSIVE = isMobile ? window.innerWidth : 650;
+  const CONTAINER_HEIGHT_RESPONSIVE = isMobile ? window.innerHeight - 105 : 500; // Full height minus header/tab bar
+  const STATS_WIDTH = isMobile ? 0 : 140; // No stats panel on mobile
+  const BLOCK_HEIGHT_RESPONSIVE = isMobile ? 40 : 45; // Slightly smaller blocks on mobile
+  const INITIAL_WIDTH_RESPONSIVE = isMobile ? Math.floor(window.innerWidth * 0.5) : 220; // 50% of screen width on mobile
 
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'levelComplete' | 'gameover'>('idle');
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -62,16 +113,43 @@ const OrangeStack: React.FC = () => {
   const [speed, setSpeed] = useState(1.5);
   const [direction, setDirection] = useState(1);
   const [playerName, setPlayerName] = useState('');
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(() => {
+  const [localLeaderboard, setLocalLeaderboard] = useState<LocalLeaderboardEntry[]>(() => {
     const saved = localStorage.getItem('orangeStackLeaderboard');
     return saved ? JSON.parse(saved) : [];
   });
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
 
   // Scoring state
   const [bounceCount, setBounceCount] = useState(0);
   const [combo, setCombo] = useState(0);
   const [lastDropBonus, setLastDropBonus] = useState('');
+  const [lastPoints, setLastPoints] = useState(0);
+  const [showScreenShake, setShowScreenShake] = useState(false);
+  const [showMilestone, setShowMilestone] = useState<number | null>(null);
   const [sadImage, setSadImage] = useState('');
+  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
+
+  // EXTREME visual effects state
+  const [showShockwave, setShowShockwave] = useState(false);
+  const [showImpactSparks, setShowImpactSparks] = useState(false);
+  const [impactPosition, setImpactPosition] = useState({ x: 0, y: 0 });
+  const [showVignette, setShowVignette] = useState(false);
+  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
+  const [epicCallout, setEpicCallout] = useState<string | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [showLightning, setShowLightning] = useState(false);
+  const [blockSquish, setBlockSquish] = useState(false);
+  const floatingEmojiIdRef = useRef(0);
+
+  // Power-up state
+  const [activePowerUp, setActivePowerUp] = useState<PowerUpType | null>(null);
+  const [pendingPowerUp, setPendingPowerUp] = useState<PowerUpType | null>(null); // Power-up on next block
+  const [isSlowMo, setIsSlowMo] = useState(false);
+  const [hasShield, setHasShield] = useState(false);
+  const [hasMagnet, setHasMagnet] = useState(false);
+  const [powerUpNotification, setPowerUpNotification] = useState<string | null>(null);
+  const slowMoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const blockSpawnTimeRef = useRef<number>(0);
@@ -80,17 +158,40 @@ const OrangeStack: React.FC = () => {
   const currentBlockRef = useRef<Block | null>(null);
   const blocksRef = useRef<Block[]>([]);
 
+  // Track if music was playing before game started (to restore state on exit)
+  const musicWasPlayingBeforeGameRef = useRef(false);
+
   // Keep blocksRef in sync with blocks state
   useEffect(() => {
     blocksRef.current = blocks;
   }, [blocks]);
 
+  // Auto-start game on mount (unified intro from GameModal)
+  useEffect(() => {
+    if (gameState === 'idle') {
+      startGame();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Cleanup: stop music when component unmounts if it wasn't playing before game
+  useEffect(() => {
+    return () => {
+      // Only stop if we started the music (it wasn't playing before)
+      if (!musicWasPlayingBeforeGameRef.current) {
+        pauseBackgroundMusic();
+      }
+    };
+  }, [pauseBackgroundMusic]);
+
   const startGame = () => {
-    const width = gameAreaRef.current?.offsetWidth || 300;
+    // Use responsive game width for mobile
+    // Center the base block exactly in the middle
+    const centeredX = Math.floor((GAME_WIDTH_RESPONSIVE - INITIAL_WIDTH_RESPONSIVE) / 2);
     const baseBlock: Block = {
       id: blockIdRef.current++,
-      x: (width - INITIAL_WIDTH) / 2,
-      width: INITIAL_WIDTH,
+      x: centeredX,
+      width: INITIAL_WIDTH_RESPONSIVE,
       y: 0,
     };
 
@@ -106,13 +207,32 @@ const OrangeStack: React.FC = () => {
     setBounceCount(0);
     setCombo(0);
     setLastDropBonus('');
+    setScoreSubmitted(false);
+    setIsNewPersonalBest(false);
+
+    // Reset power-up state
+    setActivePowerUp(null);
+    setPendingPowerUp(null);
+    setIsSlowMo(false);
+    setHasShield(false);
+    setHasMagnet(false);
+    setPowerUpNotification(null);
+    if (slowMoTimeoutRef.current) clearTimeout(slowMoTimeoutRef.current);
+
+    // Track if music was already playing before we start it
+    musicWasPlayingBeforeGameRef.current = isBackgroundMusicPlaying;
+
+    // Auto-play background music when game starts
+    if (!isBackgroundMusicPlaying) {
+      playBackgroundMusic();
+    }
+
     spawnNewBlock(baseBlock.width, baseBlock.x);
     setGameState('playing');
   };
 
   const startNextLevel = () => {
-    const width = gameAreaRef.current?.offsetWidth || 300;
-    const newLevel = Math.min(level + 1, 3) as 1 | 2 | 3;
+    const newLevel = Math.min(level + 1, MAX_LEVEL);
     const config = LEVEL_CONFIG[newLevel];
 
     // Add level completion bonus
@@ -120,10 +240,12 @@ const OrangeStack: React.FC = () => {
     setScore(prev => prev + levelBonus);
 
     // Reset blocks but keep a wider base for the new level
+    // Center the base block exactly in the middle
+    const centeredX = Math.floor((GAME_WIDTH_RESPONSIVE - INITIAL_WIDTH_RESPONSIVE) / 2);
     const baseBlock: Block = {
       id: blockIdRef.current++,
-      x: (width - INITIAL_WIDTH) / 2,
-      width: INITIAL_WIDTH,
+      x: centeredX,
+      width: INITIAL_WIDTH_RESPONSIVE,
       y: 0,
     };
 
@@ -141,30 +263,67 @@ const OrangeStack: React.FC = () => {
     setGameState('playing');
   };
 
-  const saveScore = () => {
+  // Save score to local leaderboard (for guests)
+  const saveScoreLocal = () => {
     if (!playerName.trim() || score === 0) return;
 
-    const newEntry: LeaderboardEntry = {
+    const newEntry: LocalLeaderboardEntry = {
       name: playerName.trim(),
       score,
       level,
       date: new Date().toISOString().split('T')[0],
     };
 
-    const updatedLeaderboard = [...leaderboard, newEntry]
+    const updatedLeaderboard = [...localLeaderboard, newEntry]
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
 
-    setLeaderboard(updatedLeaderboard);
+    setLocalLeaderboard(updatedLeaderboard);
     localStorage.setItem('orangeStackLeaderboard', JSON.stringify(updatedLeaderboard));
     setPlayerName('');
     goToMenu();
   };
 
+  // Auto-submit score to global leaderboard (for signed-in users)
+  const submitScoreGlobal = useCallback(async (finalScore: number, finalLevel: number) => {
+    if (!isSignedIn || scoreSubmitted || finalScore === 0) return;
+
+    setScoreSubmitted(true);
+    const result = await submitScore(finalScore, finalLevel, {
+      blocksStacked: levelScore,
+    });
+
+    if (result.success) {
+      console.log('[OrangeStack] Score submitted:', result);
+      // Track new personal best
+      if (result.isNewHighScore) {
+        setIsNewPersonalBest(true);
+      }
+    } else {
+      console.error('[OrangeStack] Failed to submit score:', result.error);
+    }
+  }, [isSignedIn, scoreSubmitted, submitScore, levelScore]);
+
   const goToMenu = () => {
+    // Stop music if it wasn't playing before the game started
+    if (!musicWasPlayingBeforeGameRef.current && isBackgroundMusicPlaying) {
+      pauseBackgroundMusic();
+    }
     setGameState('idle');
     setPlayerName('');
+    setShowLeaderboardPanel(false);
   };
+
+  // Merge global and local leaderboard for display
+  // Global takes priority, fall back to local if global is empty
+  const displayLeaderboard = globalLeaderboard.length > 0
+    ? globalLeaderboard.map(entry => ({
+        name: entry.displayName,
+        score: entry.score,
+        level: entry.level ?? 0,
+        date: entry.date,
+      }))
+    : localLeaderboard;
 
   const spawnNewBlock = useCallback((width: number, _lastX?: number) => {
     const newBlock: Block = {
@@ -178,7 +337,17 @@ const OrangeStack: React.FC = () => {
     setDirection(1);
     blockSpawnTimeRef.current = Date.now();
     setBounceCount(0); // Reset bounce count for new block
-  }, []);
+
+    // Randomly spawn power-up on the new block (15% chance, more common at higher levels)
+    const powerUpChance = SCORING.powerUpChance + (level * 0.02); // Increases slightly per level
+    if (Math.random() < powerUpChance && !pendingPowerUp) {
+      const powerUpTypes: PowerUpType[] = ['magnet', 'slowmo', 'width', 'shield'];
+      const randomPowerUp = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+      setPendingPowerUp(randomPowerUp);
+    } else if (!pendingPowerUp) {
+      setPendingPowerUp(null);
+    }
+  }, [level, pendingPowerUp]);
 
   const dropBlock = useCallback(() => {
     // Use refs for accurate position (avoids stale closure)
@@ -186,29 +355,52 @@ const OrangeStack: React.FC = () => {
     const currentBlocks = blocksRef.current;
     if (!block || gameState !== 'playing' || currentBlocks.length === 0) return;
 
-    const config = LEVEL_CONFIG[level as 1 | 2 | 3];
+    const config = LEVEL_CONFIG[level];
     const lastBlock = currentBlocks[currentBlocks.length - 1];
 
+    // Apply magnet power-up: auto-center the block
+    let effectiveBlockX = block.x;
+    if (hasMagnet) {
+      // Center the block over the last block
+      effectiveBlockX = lastBlock.x + (lastBlock.width - block.width) / 2;
+      effectiveBlockX = Math.max(0, Math.min(effectiveBlockX, GAME_WIDTH_RESPONSIVE - block.width));
+      setHasMagnet(false); // Use up the magnet
+      setPowerUpNotification('🧲 Auto-Centered!');
+      setTimeout(() => setPowerUpNotification(null), 1500);
+    }
+
     // Calculate overlap using ref for accurate current position
-    const currentLeft = block.x;
-    const currentRight = block.x + block.width;
+    const currentLeft = effectiveBlockX;
+    const currentRight = effectiveBlockX + block.width;
     const lastLeft = lastBlock.x;
     const lastRight = lastBlock.x + lastBlock.width;
 
-    const overlapLeft = Math.max(currentLeft, lastLeft);
-    const overlapRight = Math.min(currentRight, lastRight);
-    const overlapWidth = overlapRight - overlapLeft;
+    let overlapLeft = Math.max(currentLeft, lastLeft);
+    let overlapRight = Math.min(currentRight, lastRight);
+    let overlapWidth = overlapRight - overlapLeft;
 
     if (overlapWidth <= 0) {
-      // No overlap - game over
-      playGameOver();
-      setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
-      setGameState('gameover');
-      if (score > highScore) {
-        setHighScore(score);
-        localStorage.setItem('orangeStackHighScore', String(score));
+      // No overlap - check for shield
+      if (hasShield) {
+        // Shield saves the player! Place block at edge with minimum overlap
+        setHasShield(false);
+        setPowerUpNotification('🛡️ Shield Used!');
+        setTimeout(() => setPowerUpNotification(null), 1500);
+        // Give them a small overlap to continue (30% of last block width)
+        overlapWidth = lastBlock.width * 0.3;
+        overlapLeft = lastBlock.x;
+        overlapRight = lastBlock.x + overlapWidth;
+      } else {
+        // No shield - game over
+        playGameOver();
+        setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
+        setGameState('gameover');
+        if (score > highScore) {
+          setHighScore(score);
+          localStorage.setItem('orangeStackHighScore', String(score));
+        }
+        return;
       }
-      return;
     }
 
     // Create the new stacked block with trimmed width
@@ -244,12 +436,53 @@ const OrangeStack: React.FC = () => {
       dropPoints += SCORING.perfectBonus;
       bonusText = 'PERFECT! ';
       playPerfectBonus();
+      // Trigger screen shake on perfect
+      setShowScreenShake(true);
+      setTimeout(() => setShowScreenShake(false), 300);
     } else if (isNearPerfect) {
       dropPoints += SCORING.nearPerfectBonus;
       bonusText = 'Great! ';
       playBlockLand();
     } else {
       playBlockLand();
+    }
+
+    // ====== EXTREME VISUAL EFFECTS ======
+
+    // Calculate impact position for effects (center of new block)
+    const impactX = overlapLeft + overlapWidth / 2;
+    setImpactPosition({ x: impactX, y: currentBlocks.length * BLOCK_HEIGHT + 50 });
+
+    // Shockwave on every drop (intensity based on accuracy)
+    setShowShockwave(true);
+    setTimeout(() => setShowShockwave(false), 600);
+
+    // Impact sparks
+    setShowImpactSparks(true);
+    setTimeout(() => setShowImpactSparks(false), 500);
+
+    // Block squish animation
+    setBlockSquish(true);
+    setTimeout(() => setBlockSquish(false), 150);
+
+    // Vignette pulse on good drops
+    if (isPerfect || isNearPerfect) {
+      setShowVignette(true);
+      setTimeout(() => setShowVignette(false), 400);
+    }
+
+    // Floating emoji (random chance, higher on good drops)
+    const emojiChance = isPerfect ? 0.8 : isNearPerfect ? 0.5 : 0.2;
+    if (Math.random() < emojiChance) {
+      const emojis = isPerfect
+        ? ['🔥', '⚡', '💎', '🌟', '✨', '💥', '🚀', '👑']
+        : ['😎', '👍', '💪', '🎯', '✓', '👏'];
+      const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+      const emojiId = floatingEmojiIdRef.current++;
+      setFloatingEmojis(prev => [...prev, { id: emojiId, emoji: randomEmoji, x: impactX }]);
+      setTimeout(() => {
+        setFloatingEmojis(prev => prev.filter(e => e.id !== emojiId));
+      }, 1500);
     }
 
     dropPoints += timeBonus;
@@ -260,6 +493,68 @@ const OrangeStack: React.FC = () => {
     if (newCombo >= 3) {
       bonusText += `${newCombo}x Combo!`;
       playCombo(newCombo);
+
+      // Lightning effect at high combos
+      if (newCombo >= 7) {
+        setShowLightning(true);
+        setTimeout(() => setShowLightning(false), 400);
+      }
+    }
+
+    // Check for milestone combos (5x, 10x, 15x, 20x)
+    if (newCombo === 5 || newCombo === 10 || newCombo === 15 || newCombo === 20) {
+      setShowMilestone(newCombo);
+      setTimeout(() => setShowMilestone(null), 2000);
+
+      // Confetti explosion on milestones
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+
+      // Epic callout text
+      const callouts: Record<number, string> = {
+        5: 'UNSTOPPABLE!',
+        10: 'LEGENDARY!',
+        15: 'GODLIKE!',
+        20: 'IMPOSSIBLE!'
+      };
+      setEpicCallout(callouts[newCombo] || null);
+      setTimeout(() => setEpicCallout(null), 1500);
+    }
+
+    // ====== POWER-UP ACTIVATION ======
+    if (pendingPowerUp) {
+      const powerUp = POWER_UPS[pendingPowerUp];
+      setPowerUpNotification(`${powerUp.emoji} ${powerUp.name}!`);
+      setTimeout(() => setPowerUpNotification(null), 2000);
+
+      switch (pendingPowerUp) {
+        case 'magnet':
+          setHasMagnet(true);
+          break;
+        case 'slowmo':
+          setIsSlowMo(true);
+          if (slowMoTimeoutRef.current) clearTimeout(slowMoTimeoutRef.current);
+          slowMoTimeoutRef.current = setTimeout(() => setIsSlowMo(false), 5000);
+          break;
+        case 'width':
+          // Restore 30px width on the new block (will apply to next spawn)
+          newBlock.width = Math.min(newBlock.width + 30, INITIAL_WIDTH_RESPONSIVE);
+          break;
+        case 'shield':
+          setHasShield(true);
+          break;
+      }
+      setPendingPowerUp(null);
+    }
+
+    // ====== COMBO PERKS ======
+    // Auto slow-mo at 10x combo
+    if (newCombo === COMBO_PERKS.autoSlowMo && !isSlowMo) {
+      setIsSlowMo(true);
+      setPowerUpNotification('⏱️ Combo Slow-Mo!');
+      setTimeout(() => setPowerUpNotification(null), 2000);
+      if (slowMoTimeoutRef.current) clearTimeout(slowMoTimeoutRef.current);
+      slowMoTimeoutRef.current = setTimeout(() => setIsSlowMo(false), 3000);
     }
 
     const newScore = score + dropPoints;
@@ -274,15 +569,16 @@ const OrangeStack: React.FC = () => {
     setLevelScore(newLevelScore);
     setCombo(newCombo);
     setLastDropBonus(bonusText);
+    setLastPoints(dropPoints);
     setSpeed(prev => prev + config.speedIncrease);
 
     // Check for level complete FIRST (before minBlockWidth check)
     if (newLevelScore >= config.blocksToComplete) {
-      if (level < 3) {
+      if (level < MAX_LEVEL) {
         playWinSound();
         setGameState('levelComplete');
       } else {
-        // Won the game! - no sad image for winners
+        // Won the game at level 10! - no sad image for winners
         playWinSound();
         setSadImage('');
         setGameState('gameover');
@@ -308,7 +604,7 @@ const OrangeStack: React.FC = () => {
 
     // Spawn next block
     spawnNewBlock(overlapWidth, overlapLeft);
-  }, [gameState, score, levelScore, level, highScore, spawnNewBlock, bounceCount, combo, playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver]);
+  }, [gameState, score, levelScore, level, highScore, spawnNewBlock, bounceCount, combo, playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver, hasMagnet, hasShield, isSlowMo, pendingPowerUp]);
 
   // Clear bonus text after a short time
   useEffect(() => {
@@ -318,17 +614,27 @@ const OrangeStack: React.FC = () => {
     }
   }, [lastDropBonus]);
 
+  // Auto-submit score for signed-in users when game ends
+  useEffect(() => {
+    if (gameState === 'gameover' && isSignedIn && score > 0 && !scoreSubmitted) {
+      submitScoreGlobal(score, level);
+    }
+  }, [gameState, isSignedIn, score, level, scoreSubmitted, submitScoreGlobal]);
+
   // Animation loop
   useEffect(() => {
     if (gameState !== 'playing' || !currentBlock) return;
 
-    const areaWidth = gameAreaRef.current?.offsetWidth || 300;
+    // Use responsive game width for consistent block bouncing
+    const areaWidth = GAME_WIDTH_RESPONSIVE;
 
     const animate = () => {
       setCurrentBlock(prev => {
         if (!prev) return prev;
 
-        let newX = prev.x + speed * direction;
+        // Apply slow-mo effect (50% speed)
+        const effectiveSpeed = isSlowMo ? speed * 0.5 : speed;
+        let newX = prev.x + effectiveSpeed * direction;
         let newDirection = direction;
 
         // Bounce off walls - increment bounce count
@@ -360,7 +666,7 @@ const OrangeStack: React.FC = () => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [gameState, currentBlock, speed, direction]);
+  }, [gameState, currentBlock, speed, direction, isSlowMo]);
 
   // Handle tap/click
   const handleTap = () => {
@@ -369,81 +675,537 @@ const OrangeStack: React.FC = () => {
     }
   };
 
-  // Calculate visible stack (show last ~10 blocks)
+  // DEBUG: Perfect drop - simulates a perfect block drop
+  const debugPerfectDrop = useCallback(() => {
+    if (gameState !== 'playing' || blocks.length === 0) return;
+
+    const lastBlock = blocksRef.current[blocksRef.current.length - 1];
+    if (!lastBlock) return;
+
+    // Create a perfectly aligned block
+    const perfectBlock: Block = {
+      id: blockIdRef.current++,
+      x: lastBlock.x,
+      width: lastBlock.width,
+      y: blocksRef.current.length,
+    };
+
+    // Force the current block ref to this perfect position
+    currentBlockRef.current = perfectBlock;
+
+    // Now call dropBlock which will see this perfect position
+    dropBlock();
+  }, [gameState, blocks.length, dropBlock]);
+
+  // Camera system for tall stacks - responsive for mobile
+  const GROUND_HEIGHT = isMobile ? 40 : 50;
+  const CONTAINER_HEIGHT = CONTAINER_HEIGHT_RESPONSIVE;
+  const MAX_STACK_TOP = isMobile ? 200 : 300; // Lower threshold = camera kicks in earlier
+  const MOVING_BLOCK_MARGIN = 15; // Small gap above stack for moving block
+
+  // Calculate camera offset - when stack exceeds visible area, shift view up
+  const totalStackHeight = blocks.length * BLOCK_HEIGHT;
+  const topOfStack = GROUND_HEIGHT + totalStackHeight;
+  const cameraOffset = Math.max(0, topOfStack - MAX_STACK_TOP);
+
+  // Calculate "altitude" for visual effects - how high has the camera scrolled?
+  const altitude = Math.floor(cameraOffset / BLOCK_HEIGHT);
+  const isAtHeight = cameraOffset > 50; // Show height effects when camera starts scrolling
+
+  // Show last 12 blocks for rendering (anything below camera offset will be off-screen)
   const visibleBlocks = blocks.slice(-12);
   const stackOffset = Math.max(0, blocks.length - 10);
 
   return (
     <IonPage>
       <IonContent fullscreen className="stack-content" scrollY={false}>
+        {/* PLAYING STATE: Full-screen click capture + Game Layout */}
         {gameState === 'playing' && (
           <>
-            <div className="stack-hud">
-              <div className="hud-item">
-                <span className="hud-label">Level</span>
-                <span className="hud-value">{level}</span>
-              </div>
-              <div className="hud-item">
-                <span className="hud-label">Progress</span>
-                <span className="hud-value">{levelScore}/{LEVEL_CONFIG[level as 1 | 2 | 3].blocksToComplete}</span>
-              </div>
-              <div className="hud-item">
-                <span className="hud-label">Score</span>
-                <span className="hud-value">{score}</span>
-              </div>
-              {combo >= 2 && (
-                <div className="hud-item combo">
-                  <span className="hud-label">Combo</span>
-                  <span className="hud-value">{combo}x</span>
+            {/* Full-screen click capture layer - Portal to document.body to escape modal stacking context */}
+            {createPortal(
+              <div
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: '100vw',
+                  height: '100vh',
+                  zIndex: 9999,
+                  cursor: 'pointer',
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  handleTap();
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  handleTap();
+                }}
+                onTouchEnd={(e) => e.stopPropagation()}
+              />,
+              document.body
+            )}
+
+            {/* Game Layout - visual content centered in modal */}
+            <div
+              className="game-layout"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '100%',
+                height: '100%',
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 100,
+                pointerEvents: 'none',
+              }}
+            >
+            {/* Centered container for stats + lightbox (or full-screen on mobile) */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'stretch',
+                flexShrink: 0,
+                flexGrow: 0,
+                width: isMobile ? '100%' : 'auto',
+                height: isMobile ? '100%' : 'auto',
+              }}
+            >
+              {/* Stats Panel - LEFT side (hidden on mobile) */}
+              {!isMobile && (
+                <div
+                  className="stats-panel"
+                  style={{
+                    width: STATS_WIDTH,
+                    height: CONTAINER_HEIGHT_RESPONSIVE,
+                    flexShrink: 0,
+                    flexGrow: 0,
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <div className="stat-item level-stat">
+                    <span className="stat-label">Level</span>
+                    <span className="stat-value">{level}</span>
+                  </div>
+                  <div className="stat-item progress-stat">
+                    <span className="stat-label">Progress</span>
+                    <span className="stat-value">{levelScore}/{LEVEL_CONFIG[level].blocksToComplete}</span>
+                  </div>
+                  <div className="stat-item score-stat">
+                    <span className="stat-label">Score</span>
+                    <span className="stat-value">{score}</span>
+                  </div>
                 </div>
               )}
+
+              {/* Lightbox = Game Area - full screen on mobile */}
+              <div
+                ref={gameAreaRef}
+                className={`lightbox-wrapper ${isMobile ? 'mobile-fullscreen' : ''}`}
+                style={{
+                  position: 'relative',
+                  width: isMobile ? '100%' : GAME_WIDTH_RESPONSIVE,
+                  height: isMobile ? '100%' : CONTAINER_HEIGHT_RESPONSIVE,
+                  flexShrink: 0,
+                  flexGrow: isMobile ? 1 : 0,
+                  boxSizing: 'border-box',
+                }}
+              >
+              {/* Mobile HUD - minimal stats overlay at top */}
+              {isMobile && (
+                <div className="mobile-hud">
+                  <div className="hud-item">
+                    <span className="hud-label">LVL</span>
+                    <span className="hud-value">{level}</span>
+                  </div>
+                  <div className="hud-item">
+                    <span className="hud-label">{levelScore}/{LEVEL_CONFIG[level].blocksToComplete}</span>
+                  </div>
+                  <div className="hud-item">
+                    <span className="hud-label">SCORE</span>
+                    <span className="hud-value">{score}</span>
+                  </div>
+                </div>
+              )}
+              {/* Music toggle button - top left corner */}
+              <button
+                className="music-toggle-btn"
+                style={{
+                  pointerEvents: 'auto',
+                  zIndex: 200,
+                  position: 'absolute',
+                  top: isMobile ? 50 : 12, // Below mobile HUD
+                  left: 12,
+                  bottom: 'auto',
+                  right: 'auto',
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  isBackgroundMusicPlaying ? pauseBackgroundMusic() : playBackgroundMusic();
+                }}
+              >
+                {isBackgroundMusicPlaying ? '🔊' : '🔇'}
+              </button>
+
+              {/* Moving block - positioned just above the current stack */}
+              {currentBlock && (
+                <div
+                  className={`stack-block moving ${isSlowMo ? 'slow-mo-active' : ''}`}
+                  style={{
+                    left: currentBlock.x,
+                    width: currentBlock.width,
+                    // Position above the stack, accounting for camera offset
+                    // The moving block should be one BLOCK_HEIGHT above the top stacked block
+                    bottom: Math.min(
+                      GROUND_HEIGHT + blocks.length * BLOCK_HEIGHT + MOVING_BLOCK_MARGIN - cameraOffset,
+                      CONTAINER_HEIGHT - BLOCK_HEIGHT - 20 // Never go above container
+                    ),
+                  }}
+                >
+                  <span className="block-emoji">
+                    {pendingPowerUp ? POWER_UPS[pendingPowerUp].emoji : '🍊'}
+                  </span>
+                </div>
+              )}
+
+              {/* Power-up notification - moves down when at height */}
+              {powerUpNotification && (
+                <div className="power-up-notification" style={{ top: isAtHeight ? '65%' : '30%' }}>
+                  {powerUpNotification}
+                </div>
+              )}
+
+              {/* Active power-ups indicator - moves to bottom when at height */}
+              <div className="active-powerups" style={isAtHeight ? { top: 'auto', bottom: '12px' } : undefined}>
+                {isSlowMo && <span className="powerup-badge slowmo">⏱️</span>}
+                {hasShield && <span className="powerup-badge shield">🛡️</span>}
+                {hasMagnet && <span className="powerup-badge magnet">🧲</span>}
+              </div>
+
+              {/* Stacked blocks - adjusted for camera offset */}
+              {visibleBlocks.map((block, index) => {
+                // Calculate actual block index in the full stack
+                const actualIndex = blocks.length - visibleBlocks.length + index;
+                // Position from bottom, accounting for camera scroll
+                const blockBottom = GROUND_HEIGHT + actualIndex * BLOCK_HEIGHT - cameraOffset;
+                // Render all blocks - overflow:hidden on container will clip off-screen ones
+                return (
+                  <div
+                    key={block.id}
+                    className="stack-block stacked"
+                    style={{
+                      left: block.x,
+                      width: block.width,
+                      bottom: blockBottom,
+                    }}
+                  />
+                );
+              })}
+
+              {/* Ground - scrolls off-screen as stack grows */}
+              <div
+                className="stack-ground"
+                style={{
+                  bottom: cameraOffset > 0 ? -cameraOffset : 0,
+                }}
+              />
+
+              {/* HEIGHT EFFECTS - Show when camera starts scrolling */}
+              {isAtHeight && (
+                <>
+                  {/* Altitude indicator */}
+                  <div className="altitude-indicator">
+                    <div className="altitude-value">
+                      <span className="altitude-icon">🚀</span>
+                      <span className="altitude-number">{Math.floor(cameraOffset / 10)}m</span>
+                    </div>
+                    <div className="altitude-label">ALTITUDE</div>
+                  </div>
+
+                  {/* Floating clouds passing by - more clouds at higher altitudes */}
+                  <div className="height-clouds">
+                    {Array.from({ length: Math.min(2 + Math.floor(altitude * 0.7), 12) }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="floating-cloud"
+                        style={{
+                          '--cloud-delay': `${(i * 0.6) + (i % 3) * 0.3}s`,
+                          '--cloud-y': `${10 + ((i * 17) % 70)}%`,
+                          '--cloud-size': `${30 + (i % 4) * 8}px`,
+                          '--cloud-speed': `${3 + (i % 3)}s`,
+                          opacity: Math.min(0.4 + altitude * 0.04, 0.8),
+                        } as React.CSSProperties}
+                      >
+                        ☁️
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Sky gradient overlay - gets more "sky-like" as you go higher */}
+                  <div
+                    className="sky-gradient"
+                    style={{
+                      opacity: Math.min(altitude * 0.08, 0.4),
+                    }}
+                  />
+
+                  {/* Wind/speed lines showing upward movement */}
+                  <div className="height-wind-lines">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="wind-line"
+                        style={{
+                          '--wind-x': `${10 + i * 10}%`,
+                          '--wind-delay': `${i * 0.15}s`,
+                        } as React.CSSProperties}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Background Glow Effect - intensifies with combo */}
+              {combo >= 3 && (
+                <div
+                  className="combo-bg-glow"
+                  style={{
+                    opacity: Math.min(0.15 + combo * 0.03, 0.4),
+                    background: combo >= 8 ? 'radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)' :
+                               combo >= 5 ? 'radial-gradient(circle, rgba(249,115,22,0.4) 0%, transparent 70%)' :
+                                           'radial-gradient(circle, rgba(168,85,247,0.4) 0%, transparent 70%)'
+                  }}
+                />
+              )}
+
+              {/* Screen Shake Container - always has effect-container class for proper positioning */}
+              <div className={`effect-container ${showScreenShake ? 'screen-shake' : ''}`}>
+                {/* Epic Combo Celebration - moves down when at height to not cover blocks */}
+                {combo >= 2 && (
+                  <div
+                    className={`combo-celebration combo-level-${Math.min(combo, 10)}`}
+                    style={{
+                      top: isAtHeight ? '70%' : '50%', // Move down when at height
+                    }}
+                  >
+                    <div className="combo-number">{combo}x</div>
+                    <div className="combo-label">COMBO</div>
+                    {combo >= 5 && <div className="combo-fire">🔥</div>}
+                    {combo >= 8 && <div className="combo-stars">✨</div>}
+                  </div>
+                )}
+              </div>
+
+              {/* Perfect/Great Flash with Particles - moves down when at height */}
+              {lastDropBonus && (
+                <div
+                  className={`bonus-flash ${lastDropBonus.includes('PERFECT') ? 'perfect' : 'great'}`}
+                  style={{
+                    top: isAtHeight ? '60%' : '80px', // Move down when at height
+                  }}
+                >
+                  {lastDropBonus.includes('PERFECT') ? '⚡ PERFECT ⚡' : lastDropBonus.includes('Great') ? '✓ GREAT' : lastDropBonus}
+                  {lastDropBonus.includes('PERFECT') && (
+                    <div className="perfect-particles">
+                      <span>✨</span><span>⭐</span><span>✨</span><span>💫</span><span>✨</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Flying Score Popup - moves down when at height */}
+              {lastPoints > 0 && lastDropBonus && (
+                <div
+                  className="score-popup"
+                  key={Date.now()}
+                  style={{
+                    top: isAtHeight ? '55%' : '40%',
+                  }}
+                >
+                  +{lastPoints}
+                </div>
+              )}
+
+              {/* Milestone Celebration (5x, 10x, 15x, 20x) - moves down when at height */}
+              {showMilestone && (
+                <div
+                  className={`milestone-celebration milestone-${showMilestone}`}
+                  style={{
+                    top: isAtHeight ? '65%' : '50%',
+                  }}
+                >
+                  <div className="milestone-number">{showMilestone}x</div>
+                  <div className="milestone-text">
+                    {showMilestone === 5 && '🔥 ON FIRE! 🔥'}
+                    {showMilestone === 10 && '👑 LEGENDARY! 👑'}
+                    {showMilestone === 15 && '⚡ GODLIKE! ⚡'}
+                    {showMilestone === 20 && '🌟 IMPOSSIBLE! 🌟'}
+                  </div>
+                  <div className="milestone-particles">
+                    {Array.from({ length: 12 }).map((_, i) => (
+                      <span key={i} className="particle" style={{ '--i': i } as React.CSSProperties}>
+                        {showMilestone >= 20 ? '🌟' : showMilestone >= 15 ? '⚡' : showMilestone >= 10 ? '👑' : '🔥'}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Combo Streak Meter - Side indicator */}
+              {combo >= 1 && (
+                <div className="combo-meter">
+                  <div className="combo-meter-fill" style={{ height: `${Math.min(combo * 10, 100)}%` }} />
+                  <div className="combo-meter-glow" />
+                  {combo >= 5 && <div className="combo-meter-flame">🔥</div>}
+                </div>
+              )}
+
+              {/* ====== EXTREME VISUAL EFFECTS ====== */}
+
+              {/* Shockwave ripple effect */}
+              {showShockwave && (
+                <div
+                  className="impact-shockwave"
+                  style={{
+                    left: impactPosition.x,
+                    bottom: impactPosition.y,
+                  }}
+                />
+              )}
+
+              {/* Impact sparks */}
+              {showImpactSparks && (
+                <div
+                  className="impact-sparks"
+                  style={{
+                    left: impactPosition.x,
+                    bottom: impactPosition.y,
+                  }}
+                >
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <span key={i} className="spark" style={{ '--spark-angle': `${i * 45}deg` } as React.CSSProperties}>
+                      ✦
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Vignette pulse effect */}
+              {showVignette && <div className="vignette-pulse" />}
+
+              {/* Floating emojis */}
+              {floatingEmojis.map(({ id, emoji, x }) => (
+                <div
+                  key={id}
+                  className="floating-emoji"
+                  style={{ left: x }}
+                >
+                  {emoji}
+                </div>
+              ))}
+
+              {/* Epic callout text */}
+              {epicCallout && (
+                <div className="epic-callout" style={{ top: isAtHeight ? '60%' : '35%' }}>
+                  {epicCallout}
+                </div>
+              )}
+
+              {/* Confetti explosion */}
+              {showConfetti && (
+                <div className="confetti-container">
+                  {Array.from({ length: 50 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="confetti-piece"
+                      style={{
+                        '--confetti-x': `${Math.random() * 100}%`,
+                        '--confetti-delay': `${Math.random() * 0.5}s`,
+                        '--confetti-color': ['#ff6b00', '#ffd700', '#ff0080', '#00ff88', '#00bfff', '#a855f7'][Math.floor(Math.random() * 6)],
+                      } as React.CSSProperties}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Lightning effect */}
+              {showLightning && (
+                <div className="lightning-container">
+                  <div className="lightning-bolt left" />
+                  <div className="lightning-bolt right" />
+                </div>
+              )}
+
+              {/* Speed lines background (intensity based on combo) */}
+              {combo >= 3 && (
+                <div className={`speed-lines intensity-${Math.min(Math.floor(combo / 3), 5)}`}>
+                  {Array.from({ length: 20 }).map((_, i) => (
+                    <div key={i} className="speed-line" style={{ '--line-offset': `${i * 5}%` } as React.CSSProperties} />
+                  ))}
+                </div>
+              )}
+
+              {/* Color shift overlay at high combos */}
+              {combo >= 5 && (
+                <div
+                  className="color-shift-overlay"
+                  style={{
+                    '--hue-rotate': `${combo * 15}deg`,
+                    opacity: Math.min(combo * 0.03, 0.3),
+                  } as React.CSSProperties}
+                />
+              )}
+
+              {/* Tap hint */}
+              <div className="tap-hint">Tap to drop!</div>
+
+              {/* DEBUG: Perfect drop button - rendered via portal to be above click capture layer */}
+              {createPortal(
+                <button
+                  className="debug-perfect-btn"
+                  style={{
+                    position: 'fixed',
+                    bottom: 100,
+                    left: 30,
+                    zIndex: 99999,
+                    pointerEvents: 'auto',
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    debugPerfectDrop();
+                  }}
+                >
+                  ⚡ PERFECT
+                </button>,
+                document.body
+              )}
             </div>
-            {lastDropBonus && (
-              <div className="drop-bonus">{lastDropBonus}</div>
-            )}
+            </div>{/* Close centered container */}
+          </div>
           </>
         )}
 
+
+        {/* NON-PLAYING STATES: Menu, Level Complete, Game Over */}
+        {gameState !== 'playing' && (
         <div
-          ref={gameAreaRef}
+          ref={gameState !== 'playing' ? gameAreaRef : undefined}
           className="stack-area"
           onClick={handleTap}
           onTouchStart={(e) => { e.preventDefault(); handleTap(); }}
         >
-          {gameState === 'idle' && (
-            <div className="game-menu-split">
-              {/* Left side - Title and Play */}
-              <div className="menu-left">
-                <div className="game-title">Orange Stack</div>
-                <img src="/assets/games/stack.png" alt="Orange Stack" className="game-image" />
-                <p className="game-desc">Tap to stack oranges!</p>
-                <p className="game-desc">Complete 3 levels to win!</p>
-                <IonButton onClick={startGame} className="play-btn">
-                  Play
-                </IonButton>
-              </div>
-
-              {/* Right side - Leaderboard */}
-              <div className="menu-right">
-                <div className="leaderboard">
-                  <h3 className="leaderboard-title">Leaderboard</h3>
-                  <div className="leaderboard-list">
-                    {Array.from({ length: 10 }, (_, index) => {
-                      const entry = leaderboard[index];
-                      return (
-                        <div key={index} className="leaderboard-entry">
-                          <span className="leaderboard-rank">#{index + 1}</span>
-                          <span className="leaderboard-name">{entry?.name || '---'}</span>
-                          <span className="leaderboard-score">{entry?.score || '-'}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {gameState === 'levelComplete' && (
             <div className="game-menu">
               <div className="game-title">Level {level} Complete!</div>
@@ -453,12 +1215,17 @@ const OrangeStack: React.FC = () => {
               </div>
               <div className="level-preview">
                 <span className="level-next">Level {level + 1}</span>
-                {level === 1 && (
-                  <p className="level-hint">Blocks move faster now!</p>
-                )}
-                {level === 2 && (
-                  <p className="level-hint">Final level - good luck!</p>
-                )}
+                <p className="level-hint">
+                  {level === 1 && 'Blocks move faster now!'}
+                  {level === 2 && 'Blocks shrink quicker!'}
+                  {level === 3 && 'Watch for power-ups!'}
+                  {level === 4 && 'Halfway there!'}
+                  {level === 5 && 'Getting intense!'}
+                  {level === 6 && 'Almost legendary!'}
+                  {level === 7 && 'Two more to go!'}
+                  {level === 8 && 'Final stretch!'}
+                  {level === 9 && 'Last level - you got this!'}
+                </p>
               </div>
               <IonButton onClick={startNextLevel} className="play-btn">
                 Next Level
@@ -479,37 +1246,99 @@ const OrangeStack: React.FC = () => {
                 ) : (
                   <div className="game-over-emoji">🏆</div>
                 )}
+
+                {/* Slide-in Leaderboard Panel */}
+                <div className={`leaderboard-slide-panel ${showLeaderboardPanel ? 'open' : ''}`}>
+                  <div className="leaderboard-panel-header">
+                    <h3>{globalLeaderboard.length > 0 ? 'Global Leaderboard' : 'Leaderboard'}</h3>
+                    <button className="leaderboard-close-btn" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                  </div>
+                  <div className="leaderboard-panel-list">
+                    {Array.from({ length: 10 }, (_, index) => {
+                      const entry = displayLeaderboard[index];
+                      const isCurrentUser = entry && score === entry.score;
+                      return (
+                        <div key={index} className={`leaderboard-panel-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                          <span className="leaderboard-panel-rank">#{index + 1}</span>
+                          <span className="leaderboard-panel-name">{entry?.name || '---'}</span>
+                          <span className="leaderboard-panel-score">{entry?.score || '-'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               {/* Right side - Score and form */}
               <div className="game-over-right">
-                <div className="game-over-title">{level === 3 && levelScore >= LEVEL_CONFIG[3].blocksToComplete ? 'You Win!' : 'Game Over!'}</div>
+                <div className="game-over-title">{level === MAX_LEVEL && levelScore >= LEVEL_CONFIG[MAX_LEVEL].blocksToComplete ? 'You Win!' : 'Game Over!'}</div>
                 <div className="game-over-reason">Reached Level {level}</div>
                 <div className="game-over-score">
                   <span className="game-over-score-value">{score}</span>
                   <span className="game-over-score-label">total points</span>
                 </div>
 
+                {/* New Personal Best celebration */}
+                {(isNewPersonalBest || score > highScore) && score > 0 && (
+                  <div className="game-over-record">🌟 New Personal Best! 🌟</div>
+                )}
+
                 {score > 0 ? (
-                  <div className="game-over-form">
-                    <input
-                      type="text"
-                      className="game-over-input"
-                      placeholder="Enter your name"
-                      value={playerName}
-                      onChange={(e) => setPlayerName(e.target.value)}
-                      maxLength={15}
-                      onKeyDown={(e) => e.key === 'Enter' && saveScore()}
-                    />
-                    <div className="game-over-buttons">
-                      <button onClick={saveScore} className="game-over-save" disabled={!playerName.trim()}>
-                        Save Score
-                      </button>
-                      <button onClick={goToMenu} className="game-over-skip">
-                        Skip
+                  isSignedIn ? (
+                    // Signed-in user - auto-submitted
+                    <div className="game-over-form">
+                      <div className="game-over-submitted">
+                        {isSubmitting ? (
+                          <span>Saving score...</span>
+                        ) : scoreSubmitted ? (
+                          <span>Score saved as {userDisplayName || 'Anonymous'}!</span>
+                        ) : null}
+                      </div>
+                      <div className="game-over-buttons">
+                        <IonButton onClick={startGame} className="play-btn">
+                          Play Again
+                        </IonButton>
+                        <IonButton onClick={goToMenu} className="play-btn menu-btn">
+                          Menu
+                        </IonButton>
+                      </div>
+                      {/* Leaderboard button */}
+                      <button
+                        className="leaderboard-toggle-btn"
+                        onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                      >
+                        {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
                       </button>
                     </div>
-                  </div>
+                  ) : (
+                    // Guest - show name input
+                    <div className="game-over-form">
+                      <input
+                        type="text"
+                        className="game-over-input"
+                        placeholder="Enter your name"
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                        maxLength={15}
+                        onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
+                      />
+                      <div className="game-over-buttons">
+                        <button onClick={saveScoreLocal} className="game-over-save" disabled={!playerName.trim()}>
+                          Save Score
+                        </button>
+                        <button onClick={goToMenu} className="game-over-skip">
+                          Skip
+                        </button>
+                      </div>
+                      {/* Leaderboard button for guests too */}
+                      <button
+                        className="leaderboard-toggle-btn"
+                        onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                      >
+                        {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
+                      </button>
+                    </div>
+                  )
                 ) : (
                   <div className="game-over-buttons-single">
                     <IonButton onClick={startGame} className="play-btn">
@@ -518,50 +1347,20 @@ const OrangeStack: React.FC = () => {
                     <button onClick={goToMenu} className="game-over-skip">
                       Menu
                     </button>
+                    {/* Leaderboard button */}
+                    <button
+                      className="leaderboard-toggle-btn"
+                      onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                    >
+                      {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
+                    </button>
                   </div>
                 )}
               </div>
             </div>
           )}
-
-          {gameState === 'playing' && (
-            <div className="stack-container">
-              {/* Moving block at top */}
-              {currentBlock && (
-                <div
-                  className="stack-block moving"
-                  style={{
-                    left: currentBlock.x,
-                    width: currentBlock.width,
-                    bottom: (blocks.length - stackOffset) * BLOCK_HEIGHT + 50,
-                  }}
-                >
-                  <span className="block-emoji">&#x1F34A;</span>
-                </div>
-              )}
-
-              {/* Stacked blocks */}
-              {visibleBlocks.map((block, index) => (
-                <div
-                  key={block.id}
-                  className="stack-block stacked"
-                  style={{
-                    left: block.x,
-                    width: block.width,
-                    bottom: index * BLOCK_HEIGHT + 50,
-                  }}
-                />
-              ))}
-
-              {/* Ground */}
-              <div className="stack-ground" />
-            </div>
-          )}
-
-          {gameState === 'playing' && (
-            <div className="tap-hint">Tap to drop!</div>
-          )}
         </div>
+        )}
 
       </IonContent>
     </IonPage>

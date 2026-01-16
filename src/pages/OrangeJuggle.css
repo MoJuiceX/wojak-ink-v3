@@ -7,6 +7,7 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  background-attachment: fixed; /* Keep background fixed to prevent jumping between states */
   overflow: hidden;
   position: absolute;
   left: 0;
@@ -34,6 +35,240 @@
 
 .juggle-container.playing-mode::before {
   background: rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   GAME LAYOUT - Stats Panel LEFT, Lightbox RIGHT
+   ============================================ */
+.juggle-container .game-layout {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  gap: 0;
+  z-index: 1;
+}
+
+/* Stats Panel - LEFT side (FIXED size, 4 items only) */
+.juggle-container .stats-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 20px;
+  background: linear-gradient(135deg, rgba(20, 20, 35, 0.95) 0%, rgba(30, 30, 50, 0.9) 100%);
+  border: 2px solid rgba(255, 107, 0, 0.4);
+  border-right: none;
+  border-radius: 20px 0 0 20px;
+  backdrop-filter: blur(20px);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4), inset 0 0 30px rgba(255, 107, 0, 0.05);
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
+  height: 500px;
+  min-height: 500px;
+  max-height: 500px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  z-index: 10;
+}
+
+/* Stat Items */
+.juggle-container .stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.juggle-container .stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 4px;
+}
+
+.juggle-container .stat-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+/* Level stat - gold accent */
+.juggle-container .stat-item.level-stat {
+  border-left: 3px solid #ffd700;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 215, 0, 0.05) 100%);
+}
+.juggle-container .stat-item.level-stat .stat-value {
+  color: #ffd700;
+}
+
+/* Score stat - green accent */
+.juggle-container .stat-item.score-stat {
+  border-left: 3px solid #00ff88;
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.15) 0%, rgba(0, 255, 136, 0.05) 100%);
+  position: relative;
+}
+.juggle-container .stat-item.score-stat .stat-value {
+  color: #00ff88;
+}
+.juggle-container .stat-item.score-stat .combo-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+  color: #000;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 8px;
+  animation: combo-pulse 0.3s ease-in-out;
+}
+
+@keyframes combo-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* 2x Multiplier badge for reversed controls (rum effect) */
+.juggle-container .stat-item.score-stat .multiplier-badge {
+  position: absolute;
+  top: 28px;
+  right: 8px;
+  background: linear-gradient(135deg, #ff3366 0%, #ff0055 100%);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 6px;
+  animation: multiplier-glow 0.5s ease-in-out infinite alternate;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes multiplier-glow {
+  from {
+    box-shadow: 0 0 5px rgba(255, 51, 102, 0.5);
+    transform: scale(1);
+  }
+  to {
+    box-shadow: 0 0 15px rgba(255, 51, 102, 0.8);
+    transform: scale(1.05);
+  }
+}
+
+/* Score stat with multiplier active - extra visual feedback */
+.juggle-container .stat-item.score-stat.multiplied {
+  border-left: 3px solid #ff3366;
+  background: linear-gradient(135deg, rgba(255, 51, 102, 0.2) 0%, rgba(255, 51, 102, 0.1) 100%);
+  animation: multiplied-pulse 0.8s ease-in-out infinite alternate;
+}
+.juggle-container .stat-item.score-stat.multiplied .stat-value {
+  color: #ff3366;
+}
+
+@keyframes multiplied-pulse {
+  from { box-shadow: 0 0 5px rgba(255, 51, 102, 0.3); }
+  to { box-shadow: 0 0 15px rgba(255, 51, 102, 0.5); }
+}
+
+/* Time stat - orange accent (default) */
+.juggle-container .stat-item.time-stat {
+  border-left: 3px solid #ff6b00;
+  background: linear-gradient(135deg, rgba(255, 107, 0, 0.15) 0%, rgba(255, 107, 0, 0.05) 100%);
+}
+.juggle-container .stat-item.time-stat .stat-value {
+  color: #ff6b00;
+}
+
+/* Time warning animation */
+.juggle-container .stat-item.time-warning {
+  border-left: 3px solid #ff3333;
+  background: linear-gradient(135deg, rgba(255, 51, 51, 0.25) 0%, rgba(255, 51, 51, 0.1) 100%);
+  animation: time-pulse 0.5s ease-in-out infinite;
+}
+.juggle-container .stat-item.time-warning .stat-value {
+  color: #ff3333;
+}
+.juggle-container .stat-item.time-warning .stat-label {
+  color: #ff6666;
+}
+
+@keyframes time-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 15px 3px rgba(255, 51, 51, 0.6);
+    transform: scale(1.02);
+  }
+}
+
+/* Goal stat - purple accent */
+.juggle-container .stat-item.goal-stat {
+  border-left: 3px solid #a855f7;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0.05) 100%);
+}
+.juggle-container .stat-item.goal-stat .stat-value {
+  color: #a855f7;
+  font-size: 18px;
+}
+
+/* Power-up stat */
+.juggle-container .stat-item.powerup-stat {
+  border-left: 3px solid #00bfff;
+  background: linear-gradient(135deg, rgba(0, 191, 255, 0.15) 0%, rgba(0, 191, 255, 0.05) 100%);
+}
+.juggle-container .stat-item.powerup-stat .stat-value.powerup-icons {
+  font-size: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Lightbox Wrapper = Game Area (game elements render directly inside) */
+.juggle-container .lightbox-wrapper {
+  position: relative;
+  width: 600px;
+  min-width: 600px;
+  max-width: 600px;
+  height: 500px;
+  min-height: 500px;
+  max-height: 500px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.4) 100%);
+  border: 2px solid rgba(255, 140, 0, 0.5);
+  border-left: none;
+  border-radius: 0 20px 20px 0;
+  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.3), inset 0 0 60px rgba(255, 107, 0, 0.08);
+  overflow: hidden;
+}
+
+/* Power-up overlay - floats in corner, doesn't affect stats panel */
+.juggle-container .powerup-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(20, 20, 35, 0.9) 0%, rgba(30, 30, 50, 0.85) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 50;
+  backdrop-filter: blur(8px);
 }
 
 /* Header bar */
@@ -396,34 +631,6 @@
   text-align: center;
 }
 
-/* Split menu layout - horizontal like game over screen */
-.juggle-content .game-menu-split {
-  display: flex;
-  flex-direction: row;
-  height: 100%;
-  width: 100%;
-}
-
-.juggle-content .menu-left {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  text-align: center;
-}
-
-.juggle-content .menu-right {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.2);
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-}
 
 .juggle-content .leaderboard-empty {
   text-align: center;
@@ -909,4 +1116,180 @@
   background: rgba(255, 255, 255, 0.12);
   color: var(--color-text-primary, #fff);
   border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Score saved confirmation text */
+.game-over-saved {
+  color: var(--color-brand-primary, #ff6b00);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px 16px;
+  background: rgba(255, 140, 0, 0.15);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 140, 0, 0.3);
+}
+
+/* Leaderboard position display */
+.leaderboard-position {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.leaderboard-position strong {
+  color: var(--color-brand-primary, #ff6b00);
+  font-weight: 700;
+}
+
+/* Leaderboard toggle button */
+.juggle-container .leaderboard-toggle-btn {
+  padding: 10px 20px;
+  border-radius: 25px;
+  border: 1px solid rgba(255, 107, 0, 0.5);
+  background: rgba(255, 107, 0, 0.15);
+  color: #ff6b00;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 8px;
+}
+
+.juggle-container .leaderboard-toggle-btn:hover {
+  background: rgba(255, 107, 0, 0.3);
+  border-color: #ff6b00;
+}
+
+/* Slide-in leaderboard panel */
+.juggle-container .leaderboard-slide-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(20, 20, 35, 0.98) 0%, rgba(30, 30, 50, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  transform: translateX(-100%);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border-right: 2px solid rgba(255, 107, 0, 0.4);
+}
+
+.juggle-container .leaderboard-slide-panel.open {
+  transform: translateX(0);
+}
+
+/* Panel header */
+.juggle-container .leaderboard-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.juggle-container .leaderboard-panel-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ff6b00;
+}
+
+.juggle-container .leaderboard-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 300;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.juggle-container .leaderboard-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Panel list */
+.juggle-container .leaderboard-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.juggle-container .leaderboard-panel-entry {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.juggle-container .leaderboard-panel-entry.current-user {
+  background: rgba(255, 107, 0, 0.15);
+  border-color: rgba(255, 107, 0, 0.4);
+}
+
+.juggle-container .leaderboard-panel-rank {
+  color: #ff6b00;
+  font-weight: 700;
+  font-size: 14px;
+  width: 36px;
+}
+
+.juggle-container .leaderboard-panel-name {
+  flex: 1;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.juggle-container .leaderboard-panel-score {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+  font-size: 14px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+/* Music toggle button */
+.juggle-container .music-toggle-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 100;
+}
+
+.juggle-container .music-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.1);
 }

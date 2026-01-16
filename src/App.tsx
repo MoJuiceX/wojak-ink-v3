@@ -12,7 +12,6 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { PageSkeleton } from '@/components/layout/PageSkeleton';
 import { ToastContainer } from '@/components/ui/Toast';
 import { ProfileGuard } from '@/components/auth/ProfileGuard';
-import { RequireAuth } from '@/components/auth/RequireAuth';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
 import { PreloadProvider } from '@/components/preload/PreloadProvider';
 import { SageWalletProvider } from '@/sage-wallet';
@@ -29,7 +28,6 @@ const Media = lazy(() => import('./pages/Media'));
 const Settings = lazy(() => import('./pages/Settings'));
 
 // Auth
-const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Account = lazy(() => import('./pages/Account'));
 
 // Games
@@ -214,16 +212,10 @@ function AppContent() {
                   }
                 />
               </Route>
-              {/* Auth Routes - Outside AppLayout */}
+              {/* Auth Routes - Onboarding now uses modal, redirect to gallery */}
               <Route
                 path="onboarding"
-                element={
-                  <RequireAuth>
-                    <Suspense fallback={<PageSkeleton type="settings" />}>
-                      <Onboarding />
-                    </Suspense>
-                  </RequireAuth>
-                }
+                element={<Navigate to="/gallery" replace />}
               />
             </Routes>
             <ProfileGuard />

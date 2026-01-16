@@ -1,0 +1,365 @@
+/**
+ * Game Modal Styles
+ *
+ * Styles for the unified game intro screen and modal.
+ */
+
+/* ============================================================================
+   GAME INTRO SCREEN
+   ============================================================================ */
+
+.game-intro-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.game-intro-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px;
+  position: relative;
+  z-index: 2;
+}
+
+.game-intro-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.game-intro-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.game-intro-btn:active {
+  transform: scale(0.95);
+}
+
+.game-intro-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.6) 40%,
+    rgba(0, 0, 0, 0.3) 70%,
+    transparent 100%
+  );
+  margin-top: -60px; /* Overlap with header area */
+  padding-top: 84px;
+}
+
+.game-intro-emoji {
+  font-size: 4rem;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.game-intro-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 12px 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.game-intro-description {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 300px;
+  margin: 0 0 32px 0;
+  line-height: 1.5;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.game-intro-play-btn {
+  padding: 14px 48px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.game-intro-play-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+
+.game-intro-play-btn:active {
+  transform: translateY(0);
+}
+
+.game-intro-leaderboard-btn {
+  margin-top: 16px;
+  padding: 12px 32px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: 2px solid rgba(255, 165, 0, 0.6);
+  border-radius: 12px;
+  background: transparent;
+  color: #ffa500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.game-intro-leaderboard-btn:hover {
+  background: rgba(255, 165, 0, 0.1);
+  border-color: #ffa500;
+}
+
+.game-intro-leaderboard-btn:active {
+  transform: scale(0.98);
+}
+
+/* ============================================================================
+   RESPONSIVE - MOBILE
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  .game-intro-header {
+    padding: 12px;
+  }
+
+  .game-intro-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .game-intro-content {
+    padding: 16px;
+    padding-top: 76px;
+  }
+
+  .game-intro-emoji {
+    font-size: 3rem;
+  }
+
+  .game-intro-title {
+    font-size: 1.5rem;
+  }
+
+  .game-intro-description {
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }
+
+  .game-intro-play-btn {
+    padding: 12px 40px;
+    font-size: 1rem;
+  }
+
+  .game-intro-leaderboard-btn {
+    padding: 10px 28px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+  .game-intro-emoji {
+    font-size: 2.5rem;
+  }
+
+  .game-intro-title {
+    font-size: 1.25rem;
+  }
+
+  .game-intro-description {
+    font-size: 0.85rem;
+    max-width: 260px;
+  }
+}
+
+/* Short screens */
+@media (max-height: 600px) {
+  .game-intro-content {
+    margin-top: -80px;
+    padding-top: 100px;
+  }
+
+  .game-intro-emoji {
+    font-size: 2.5rem;
+    margin-bottom: 4px;
+  }
+
+  .game-intro-title {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+  }
+
+  .game-intro-description {
+    margin-bottom: 20px;
+  }
+
+  .game-intro-play-btn {
+    padding: 10px 36px;
+  }
+
+  .game-intro-leaderboard-btn {
+    margin-top: 12px;
+    padding: 8px 24px;
+  }
+}
+
+/* ============================================================================
+   LEADERBOARD OVERLAY
+   ============================================================================ */
+
+.leaderboard-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 100;
+}
+
+.leaderboard-overlay-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  max-width: 85vw;
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.leaderboard-overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.leaderboard-overlay-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.leaderboard-overlay-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.leaderboard-overlay-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.leaderboard-overlay-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.leaderboard-loading,
+.leaderboard-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.95rem;
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.leaderboard-entry {
+  display: grid;
+  grid-template-columns: 40px 1fr 70px;
+  align-items: center;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+}
+
+.leaderboard-entry.top-three {
+  background: rgba(255, 255, 255, 0.06);
+  border-width: 1px;
+  border-style: solid;
+}
+
+.leaderboard-rank {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.leaderboard-entry.top-three .leaderboard-rank {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.leaderboard-name {
+  font-size: 0.95rem;
+  color: white;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaderboard-score {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffd700;
+  text-align: right;
+  font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+/* Mobile adjustments - full width panel */
+@media (max-width: 480px) {
+  .leaderboard-overlay-panel {
+    width: 100%;
+    max-width: 100%;
+    border-left: none;
+  }
+}

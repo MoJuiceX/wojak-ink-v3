@@ -23,6 +23,11 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true, // Allow network access
       proxy: {
+        // Local API routes (Cloudflare Pages functions)
+        '/api': {
+          target: 'http://localhost:8788',
+          changeOrigin: true,
+        },
         '/spacescan-api': {
           target: 'https://api.spacescan.io',
           changeOrigin: true,
