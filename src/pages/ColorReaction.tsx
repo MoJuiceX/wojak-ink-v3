@@ -4,6 +4,7 @@ import { Howler } from 'howler';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useHowlerSounds } from '@/hooks/useHowlerSounds';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
+import { useGameEffects, GameEffects } from '@/components/media';
 import './ColorReaction.css';
 
 // Color definitions
@@ -88,6 +89,19 @@ const ColorReaction: React.FC = () => {
 
   // Leaderboard hooks
   const { submitScore, isSignedIn } = useLeaderboard('color-reaction');
+
+  // Universal visual effects system
+  const {
+    effects,
+    triggerShockwave,
+    triggerSparks,
+    triggerVignette,
+    addFloatingEmoji,
+    triggerConfetti,
+    updateCombo,
+    resetCombo,
+    resetAllEffects,
+  } = useGameEffects();
 
   // Timer refs
   const roundTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -288,31 +302,41 @@ const ColorReaction: React.FC = () => {
       showFloatingScore(`+${points}`, 'correct');
       playBlockLand();
 
+      // Universal effects
+      triggerShockwave(COLORS[gameState.playerColor]?.hex || '#FF6B00', 0.5);
+      triggerSparks(COLORS[gameState.playerColor]?.hex || '#FF6B00');
+      addFloatingEmoji(COLORS[gameState.playerColor]?.emoji || '🍊');
+      updateCombo();
+
       if (rating === 'PERFECT') {
         showEpicCallout('PERFECT!');
         playPerfectBonus();
+        triggerShockwave('#FFD700', 0.8); // Gold shockwave for perfect
       }
 
-      // Streak milestones
+      // Streak milestones with confetti
       if (newStreak === 5) {
         showEpicCallout('NICE!');
         playCombo();
       } else if (newStreak === 10) {
         showEpicCallout('GREAT!');
         playCombo();
+        triggerConfetti();
       } else if (newStreak === 15) {
         showEpicCallout('AMAZING!');
         playCombo();
+        triggerConfetti();
       } else if (newStreak === 20) {
         showEpicCallout('UNSTOPPABLE!');
         playCombo();
+        triggerConfetti();
       }
 
       if (reactionTime < 200 && rating !== 'PERFECT') {
         showEpicCallout('LIGHTNING!');
       }
     },
-    [triggerScreenShake, triggerPlayerFlash, showFloatingScore, showEpicCallout, playBlockLand, playPerfectBonus, playCombo]
+    [triggerScreenShake, triggerPlayerFlash, showFloatingScore, showEpicCallout, playBlockLand, playPerfectBonus, playCombo, triggerShockwave, triggerSparks, addFloatingEmoji, updateCombo, triggerConfetti, gameState.playerColor]
   );
 
   // Handle wrong tap with effects
@@ -321,7 +345,12 @@ const ColorReaction: React.FC = () => {
     triggerPlayerFlash('wrong');
     showFloatingScore('-1 ❤️', 'wrong');
     playClick();
-  }, [triggerScreenShake, triggerPlayerFlash, showFloatingScore, playClick]);
+    // Universal effects
+    triggerVignette('#ff0000');
+    triggerSparks('#ff4444');
+    addFloatingEmoji('💔');
+    resetCombo();
+  }, [triggerScreenShake, triggerPlayerFlash, showFloatingScore, playClick, triggerVignette, triggerSparks, addFloatingEmoji, resetCombo]);
 
   // Track lives changes for effects
   useEffect(() => {
@@ -462,6 +491,7 @@ const ColorReaction: React.FC = () => {
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     setMatchProgress(0);
     setLivesWarning(null);
+    resetAllEffects();
 
     setGameState({
       ...initialGameState,
@@ -471,7 +501,7 @@ const ColorReaction: React.FC = () => {
     });
     maxStreakRef.current = 0;
     startNewRound();
-  }, [startNewRound]);
+  }, [startNewRound, resetAllEffects]);
 
   // Render lives as hearts
   const renderLives = () => (
@@ -504,6 +534,9 @@ const ColorReaction: React.FC = () => {
               : undefined
           }
         >
+          {/* Universal Game Effects Layer */}
+          <GameEffects effects={effects} accentColor={COLORS[gameState.playerColor]?.hex || '#FF6B00'} />
+
           {/* Mute Button */}
           <button
             className="mute-button"

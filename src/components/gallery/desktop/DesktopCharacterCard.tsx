@@ -1,11 +1,10 @@
 /**
  * DesktopCharacterCard Component
  *
- * Enhanced character card for desktop with premium hover effects:
- * - Lift animation with overshoot easing
- * - Image scale on hover
- * - Orange glow border
- * - Name overlay with gradient fade
+ * Enhanced character card for desktop with premium cyberpunk effects:
+ * - Glassmorphism background
+ * - Glowing border on hover
+ * - Gradient text for names
  */
 
 import { useState } from 'react';
@@ -66,13 +65,21 @@ export function DesktopCharacterCard({
 
   return (
     <motion.button
-      className="w-full text-left overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-4"
+      className="character-card w-full text-left overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-4"
       style={{
-        background: 'var(--color-glass-bg)',
+        // Glassmorphism background
+        background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
         border: isHovered
-          ? `1px solid ${hoverConfig.borderColor}`
-          : '1px solid var(--color-border)',
+          ? '1px solid rgba(249, 115, 22, 0.6)'
+          : '1px solid rgba(249, 115, 22, 0.2)',
         borderRadius: card.borderRadius,
+        // Glow effect on hover
+        boxShadow: isHovered
+          ? '0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(249, 115, 22, 0.3), inset 0 0 20px rgba(249, 115, 22, 0.1)'
+          : 'none',
+        transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
         // Focus ring styles
         outlineColor: 'var(--color-brand-primary)',
         outlineOffset: 4,
@@ -105,31 +112,44 @@ export function DesktopCharacterCard({
           draggable={false}
         />
 
-        {/* Name overlay - bottom left */}
+        {/* Name overlay - bottom left with gradient text */}
         <div className="absolute bottom-2 left-2">
           {/* Blur background layer */}
           <div
             className="absolute inset-0 -m-2"
             style={{
-              backdropFilter: 'blur(3px)',
-              WebkitBackdropFilter: 'blur(3px)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
               borderRadius: 12,
-              background: 'radial-gradient(ellipse at center, rgba(0, 0, 0, 0.15) 0%, transparent 70%)',
+              background: 'radial-gradient(ellipse at center, rgba(0, 0, 0, 0.25) 0%, transparent 70%)',
               mask: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
               WebkitMask: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
             }}
           />
-          {/* Text layer */}
+          {/* Text layer - gradient text with glow */}
           <span
-            className="relative text-base font-semibold truncate"
+            className="relative text-base font-bold truncate"
             style={{
-              color: 'white',
-              textShadow: '0 1px 4px rgba(0, 0, 0, 0.7), 0 0 8px rgba(0, 0, 0, 0.5)',
+              background: 'linear-gradient(90deg, #F97316, #FFD700)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              filter: 'drop-shadow(0 0 8px rgba(249, 115, 22, 0.5))',
             }}
           >
             {character.name}
           </span>
         </div>
+
+        {/* Hover glow overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+          style={{
+            boxShadow: 'inset 0 0 30px rgba(249, 115, 22, 0.2)',
+            borderRadius: 'inherit',
+            opacity: isHovered ? 1 : 0,
+          }}
+        />
       </div>
     </motion.button>
   );

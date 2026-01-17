@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useAudio } from '@/contexts/AudioContext';
+import { useGameEffects, GameEffects } from '@/components/media';
 import './WojakRunner.css';
 
 interface Obstacle {
@@ -31,10 +32,26 @@ const OBSTACLE_SIZE = 45;
 const COLLECTIBLE_SIZE = 35;
 
 // Sad images for game over screen (1-19)
-const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/games/sad_runner_${i + 1}.png`);
+const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/Games/games_media/sad_runner_${i + 1}.png`);
 
 const WojakRunner: React.FC = () => {
   const { playCollect, playGameOver, startRunning, stopRunning } = useGameSounds();
+
+  // Visual effects system
+  const {
+    effects,
+    triggerShockwave,
+    triggerSparks,
+    triggerVignette,
+    triggerScreenShake,
+    addFloatingEmoji,
+    showEpicCallout,
+    triggerConfetti,
+    updateCombo,
+    resetCombo,
+    addScorePopup,
+    resetAllEffects,
+  } = useGameEffects();
 
   // Global leaderboard hook
   const {
@@ -75,11 +92,28 @@ const WojakRunner: React.FC = () => {
   const touchStartXRef = useRef(0);
   const lastSpawnRef = useRef(0);
 
+  // Collect streak tracking
+  const [collectStreak, setCollectStreak] = useState(0);
+  const collectStreakRef = useRef(0);
+  const lastDistanceMilestoneRef = useRef(0);
+
   // Sound refs for use in game loop
   const playCollectRef = useRef(playCollect);
   const playGameOverRef = useRef(playGameOver);
   const startRunningRef = useRef(startRunning);
   const stopRunningRef = useRef(stopRunning);
+
+  // Effect refs for use in game loop
+  const triggerShockwaveRef = useRef(triggerShockwave);
+  const triggerSparksRef = useRef(triggerSparks);
+  const triggerVignetteRef = useRef(triggerVignette);
+  const triggerScreenShakeRef = useRef(triggerScreenShake);
+  const addFloatingEmojiRef = useRef(addFloatingEmoji);
+  const showEpicCalloutRef = useRef(showEpicCallout);
+  const triggerConfettiRef = useRef(triggerConfetti);
+  const updateComboRef = useRef(updateCombo);
+  const resetComboRef = useRef(resetCombo);
+  const addScorePopupRef = useRef(addScorePopup);
 
   // Keep refs updated
   useEffect(() => {
@@ -88,6 +122,20 @@ const WojakRunner: React.FC = () => {
     startRunningRef.current = startRunning;
     stopRunningRef.current = stopRunning;
   }, [playCollect, playGameOver, startRunning, stopRunning]);
+
+  // Keep effect refs updated
+  useEffect(() => {
+    triggerShockwaveRef.current = triggerShockwave;
+    triggerSparksRef.current = triggerSparks;
+    triggerVignetteRef.current = triggerVignette;
+    triggerScreenShakeRef.current = triggerScreenShake;
+    addFloatingEmojiRef.current = addFloatingEmoji;
+    showEpicCalloutRef.current = showEpicCallout;
+    triggerConfettiRef.current = triggerConfetti;
+    updateComboRef.current = updateCombo;
+    resetComboRef.current = resetCombo;
+    addScorePopupRef.current = addScorePopup;
+  }, [triggerShockwave, triggerSparks, triggerVignette, triggerScreenShake, addFloatingEmoji, showEpicCallout, triggerConfetti, updateCombo, resetCombo, addScorePopup]);
 
   // Start/stop running sound based on game state
   useEffect(() => {
@@ -117,9 +165,14 @@ const WojakRunner: React.FC = () => {
     obstacleIdRef.current = 0;
     collectibleIdRef.current = 0;
     lastSpawnRef.current = 0;
+    lastDistanceMilestoneRef.current = 0;
     setPlayerName('');
     setScoreSubmitted(false);
     setIsNewPersonalBest(false);
+    // Reset streak and effects
+    setCollectStreak(0);
+    collectStreakRef.current = 0;
+    resetAllEffects();
     setGameState('playing');
   };
 
@@ -231,6 +284,29 @@ const WojakRunner: React.FC = () => {
         if (newDist % 500 === 0) {
           setSpeed(s => Math.min(s + 0.5, 15));
         }
+
+        // Distance milestone callouts (every 100m)
+        const distanceInMeters = Math.floor(newDist / 10);
+        const lastMilestone = lastDistanceMilestoneRef.current;
+        if (distanceInMeters >= 100 && distanceInMeters % 100 === 0 && distanceInMeters > lastMilestone) {
+          lastDistanceMilestoneRef.current = distanceInMeters;
+          if (distanceInMeters === 100) {
+            showEpicCalloutRef.current('100m!');
+          } else if (distanceInMeters === 250) {
+            showEpicCalloutRef.current('250m!');
+            triggerConfettiRef.current();
+          } else if (distanceInMeters === 500) {
+            showEpicCalloutRef.current('HALFWAY LEGEND!');
+            triggerConfettiRef.current();
+          } else if (distanceInMeters === 1000) {
+            showEpicCalloutRef.current('1KM MASTER!');
+            triggerConfettiRef.current();
+          } else if (distanceInMeters % 500 === 0) {
+            showEpicCalloutRef.current(`${distanceInMeters}m!`);
+            triggerConfettiRef.current();
+          }
+        }
+
         return newDist;
       });
 
@@ -293,6 +369,13 @@ const WojakRunner: React.FC = () => {
             obstacleY + OBSTACLE_SIZE > playerY &&
             obstacleY < playerY + PLAYER_SIZE
           ) {
+            // Crash effects
+            triggerVignetteRef.current('#ff0000');
+            triggerScreenShakeRef.current(600);
+            triggerSparksRef.current('#ff4444');
+            addFloatingEmojiRef.current('💥');
+            resetComboRef.current();
+
             // Select random sad image
             playGameOverRef.current();
             setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
@@ -317,7 +400,34 @@ const WojakRunner: React.FC = () => {
               collectibleY < playerY + PLAYER_SIZE
             ) {
               playCollectRef.current();
-              setScore(s => s + 10);
+
+              // Update streak
+              collectStreakRef.current += 1;
+              setCollectStreak(collectStreakRef.current);
+
+              // Calculate bonus based on streak
+              const streakBonus = Math.min(collectStreakRef.current - 1, 5) * 2;
+              const totalPoints = 10 + streakBonus;
+              setScore(s => s + totalPoints);
+
+              // Visual effects
+              triggerShockwaveRef.current('#ff6b00', 0.6); // Orange shockwave
+              triggerSparksRef.current('#ff6b00');
+              addScorePopupRef.current(`+${totalPoints}`);
+              updateComboRef.current();
+              addFloatingEmojiRef.current('🍊');
+
+              // Streak milestones
+              if (collectStreakRef.current === 5) {
+                showEpicCalloutRef.current('ORANGE FRENZY!');
+              } else if (collectStreakRef.current === 10) {
+                showEpicCalloutRef.current('UNSTOPPABLE!');
+                triggerConfettiRef.current();
+              } else if (collectStreakRef.current === 15) {
+                showEpicCalloutRef.current('LEGENDARY!');
+                triggerConfettiRef.current();
+              }
+
               return; // Don't add to remaining
             }
           }
@@ -375,7 +485,7 @@ const WojakRunner: React.FC = () => {
           </div>
 
           {/* Lightbox wrapper for game area - RIGHT side */}
-          <div className="lightbox-wrapper">
+          <div className={`lightbox-wrapper ${effects.screenShake ? 'screen-shake' : ''}`}>
             {/* Music toggle button */}
             <button
               className="music-toggle-btn"
@@ -383,6 +493,9 @@ const WojakRunner: React.FC = () => {
             >
               {isBackgroundMusicPlaying ? '🔊' : '🔇'}
             </button>
+
+            {/* Game Effects Layer */}
+            <GameEffects effects={effects} accentColor="#ff6b00" />
 
             <div
               ref={gameAreaRef}

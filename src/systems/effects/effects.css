@@ -1,0 +1,368 @@
+/* Effects Layer Container */
+.effects-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+/* ===== SHOCKWAVE ===== */
+.effect-shockwave {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: var(--shockwave-size, 200px);
+  height: var(--shockwave-size, 200px);
+  border-radius: 50%;
+  border: 4px solid var(--shockwave-color, rgba(255, 140, 50, 0.6));
+  animation: shockwave-expand var(--shockwave-duration, 600ms) ease-out forwards;
+}
+
+@keyframes shockwave-expand {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+/* ===== CONFETTI ===== */
+.effect-confetti-container {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.effect-confetti-particle {
+  position: absolute;
+  width: var(--confetti-size, 8px);
+  height: var(--confetti-size, 8px);
+  background: var(--confetti-color, #FFD700);
+  border-radius: 2px;
+  animation: confetti-burst var(--confetti-duration, 3000ms) ease-out forwards;
+}
+
+@keyframes confetti-burst {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform:
+      translate(
+        var(--confetti-end-x, 100px),
+        var(--confetti-end-y, 200px)
+      )
+      rotate(calc(var(--confetti-rotation, 0deg) + 720deg))
+      scale(0);
+    opacity: 0;
+  }
+}
+
+/* ===== COMBO TEXT ===== */
+.effect-combo-text {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  animation: combo-appear var(--combo-duration, 1000ms) ease-out forwards;
+  white-space: nowrap;
+}
+
+.effect-combo-text .combo-main {
+  display: block;
+  font-size: calc(2rem * var(--combo-scale, 1));
+  font-weight: 900;
+  color: var(--combo-color, #FFD700);
+  text-shadow:
+    0 0 20px var(--combo-color),
+    0 0 40px var(--combo-color),
+    2px 2px 0 rgba(0, 0, 0, 0.5);
+  letter-spacing: 2px;
+}
+
+.effect-combo-text .combo-sub {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  margin-top: 4px;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+@keyframes combo-appear {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+  40% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    transform: translate(-50%, -50%) scale(1) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.8) translateY(-30px);
+    opacity: 0;
+  }
+}
+
+/* ===== SPARKS ===== */
+.effect-sparks-container {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.effect-spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--spark-color, #FFD700);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--spark-color, #FFD700);
+  animation: spark-fly var(--spark-duration, 800ms) ease-out forwards;
+}
+
+@keyframes spark-fly {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform:
+      translate(
+        var(--spark-x, 50px),
+        var(--spark-y, -50px)
+      )
+      scale(0);
+    opacity: 0;
+  }
+}
+
+/* ===== SCORE POPUP ===== */
+.effect-score-popup {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: score-float var(--popup-duration, 1500ms) ease-out forwards;
+}
+
+.effect-score-popup .score-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--popup-color, #FFD700);
+  text-shadow:
+    0 0 10px var(--popup-color),
+    2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.effect-score-popup .score-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+@keyframes score-float {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+  40% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    transform: translate(-50%, calc(-50% - 60px)) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* ===== SCREEN SHAKE ===== */
+.effect-screen-shake {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  animation: screen-shake var(--shake-duration, 500ms) ease-out;
+}
+
+@keyframes screen-shake {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(calc(var(--shake-intensity, 3) * -1px)) translateY(calc(var(--shake-intensity, 3) * 0.5px)); }
+  20% { transform: translateX(calc(var(--shake-intensity, 3) * 1px)) translateY(calc(var(--shake-intensity, 3) * -0.5px)); }
+  30% { transform: translateX(calc(var(--shake-intensity, 3) * -0.8px)) translateY(calc(var(--shake-intensity, 3) * 0.3px)); }
+  40% { transform: translateX(calc(var(--shake-intensity, 3) * 0.8px)) translateY(calc(var(--shake-intensity, 3) * -0.3px)); }
+  50% { transform: translateX(calc(var(--shake-intensity, 3) * -0.6px)); }
+  60% { transform: translateX(calc(var(--shake-intensity, 3) * 0.6px)); }
+  70% { transform: translateX(calc(var(--shake-intensity, 3) * -0.4px)); }
+  80% { transform: translateX(calc(var(--shake-intensity, 3) * 0.4px)); }
+  90% { transform: translateX(calc(var(--shake-intensity, 3) * -0.2px)); }
+}
+
+/* ===== LIGHTNING ===== */
+.effect-lightning {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--lightning-color, rgba(255, 255, 255, 0.9));
+  animation: lightning-flash var(--lightning-duration, 300ms) ease-out forwards;
+}
+
+@keyframes lightning-flash {
+  0% { opacity: 0; }
+  10% { opacity: 0.9; }
+  20% { opacity: 0.2; }
+  30% { opacity: 0.8; }
+  40% { opacity: 0.1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0; }
+}
+
+/* ===== VIGNETTE PULSE ===== */
+.effect-vignette-pulse {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  box-shadow: inset 0 0 var(--vignette-intensity, 150px) var(--vignette-color, rgba(255, 140, 50, 0.5));
+  animation: vignette-pulse var(--vignette-duration, 400ms) ease-out forwards;
+}
+
+@keyframes vignette-pulse {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ===== SPEED LINES ===== */
+.effect-speed-lines {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+.effect-speed-line {
+  position: absolute;
+  width: 2px;
+  height: 100px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 255, 255, 0.8),
+    transparent
+  );
+  animation: speed-line-move var(--speed-duration, 500ms) linear forwards;
+}
+
+.effect-speed-lines.direction-up .effect-speed-line {
+  animation-name: speed-line-up;
+}
+
+.effect-speed-lines.direction-down .effect-speed-line {
+  animation-name: speed-line-down;
+}
+
+@keyframes speed-line-down {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+@keyframes speed-line-up {
+  0% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+
+/* ===== FLOATING EMOJI ===== */
+.effect-floating-emoji {
+  position: absolute;
+  font-size: var(--emoji-size, 2rem);
+  animation: emoji-float var(--emoji-duration, 2000ms) ease-out forwards;
+}
+
+@keyframes emoji-float {
+  0% {
+    transform: translate(-50%, -50%) scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1.2) rotate(10deg);
+    opacity: 1;
+  }
+  40% {
+    transform: translate(-50%, -70%) scale(1) rotate(-5deg);
+  }
+  100% {
+    transform: translate(-50%, -150%) scale(0.5) rotate(15deg);
+    opacity: 0;
+  }
+}
+
+/* ===== MOBILE OPTIMIZATIONS ===== */
+@media (max-width: 768px) {
+  .effect-combo-text .combo-main {
+    font-size: calc(1.5rem * var(--combo-scale, 1));
+  }
+
+  .effect-combo-text .combo-sub {
+    font-size: 0.85rem;
+  }
+
+  .effect-score-popup .score-value {
+    font-size: 1.25rem;
+  }
+
+  .effect-floating-emoji {
+    font-size: calc(var(--emoji-size, 2rem) * 0.8);
+  }
+}

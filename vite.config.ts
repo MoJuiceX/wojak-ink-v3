@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import path from 'path'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -18,7 +19,36 @@ export default defineConfig(({ mode }) => {
         '@hooks': '/src/hooks',
         '@utils': '/src/utils',
         '@assets': '/src/assets',
+        // Force single React instance for all imports
+        'react': path.resolve(__dirname, 'node_modules/react'),
+        'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+        'react/jsx-runtime': path.resolve(__dirname, 'node_modules/react/jsx-runtime'),
+        'react/jsx-dev-runtime': path.resolve(__dirname, 'node_modules/react/jsx-dev-runtime'),
       },
+      // Dedupe React and related packages to prevent multiple instances
+      dedupe: [
+        'react',
+        'react-dom',
+        'react-dom/client',
+        'react/jsx-runtime',
+        'react/jsx-dev-runtime',
+        '@tanstack/react-query',
+        '@tanstack/query-core',
+        'framer-motion',
+        '@ionic/react',
+      ],
+    },
+    // Pre-bundle dependencies to ensure single React instance
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react/jsx-runtime',
+        'react/jsx-dev-runtime',
+        '@tanstack/react-query',
+        'framer-motion',
+      ],
+      force: false,
     },
     server: {
       host: true, // Allow network access

@@ -8,6 +8,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Howler } from 'howler';
 import { useHowlerSounds } from '@/hooks/useHowlerSounds';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
+import { useGameEffects, GameEffects } from '@/components/media';
 import './Merge2048Game.css';
 
 // Direction type for moves
@@ -283,8 +284,7 @@ const Merge2048Game: React.FC = () => {
   const [dismissedWin, setDismissedWin] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
-  // Visual effects state
-  const [screenShake, setScreenShake] = useState(false);
+  // Visual effects state (local)
   const [scorePopup, setScorePopup] = useState<{ value: number; key: number } | null>(null);
 
   // Audio hooks
@@ -292,6 +292,19 @@ const Merge2048Game: React.FC = () => {
 
   // Leaderboard hooks
   const { submitScore, isSignedIn } = useLeaderboard('2048-merge');
+
+  // Universal visual effects system
+  const {
+    effects,
+    triggerShockwave,
+    triggerSparks,
+    triggerScreenShake,
+    addFloatingEmoji,
+    showEpicCallout,
+    triggerConfetti,
+    updateCombo,
+    resetAllEffects,
+  } = useGameEffects();
 
   // Refs
   const nextTileIdRef = useRef(1);
@@ -349,13 +362,6 @@ const Merge2048Game: React.FC = () => {
     }
   }, []);
 
-  /**
-   * Trigger screen shake effect
-   */
-  const triggerScreenShake = useCallback(() => {
-    setScreenShake(true);
-    setTimeout(() => setScreenShake(false), 200);
-  }, []);
 
   /**
    * Show score popup animation
@@ -390,9 +396,9 @@ const Merge2048Game: React.FC = () => {
     setIsGameOver(false);
     setHasWon(false);
     setDismissedWin(false);
-    setScreenShake(false);
     setScorePopup(null);
-  }, [playClick]);
+    resetAllEffects();
+  }, [playClick, resetAllEffects]);
 
   /**
    * Move tiles in the specified direction
@@ -507,20 +513,30 @@ const Merge2048Game: React.FC = () => {
             showScorePopup(totalScoreGained);
           }
 
-          // Check for big merges (screen shake + combo sound)
+          // Check for big merges (screen shake + combo sound + universal effects)
           const highestMerged = getHighestMergedValue(newTiles);
           if (highestMerged >= BIG_MERGE_THRESHOLD) {
-            triggerScreenShake();
+            triggerScreenShake(300);
+            triggerShockwave('#ff6b00', 0.7);
+            triggerSparks('#ff6b00');
             playCombo();
             triggerHaptic('heavy');
+            updateCombo();
             // Track highest tile for metadata
             if (highestMerged > highestTileRef.current) {
               highestTileRef.current = highestMerged;
+              addFloatingEmoji(TILE_EMOJIS[highestMerged] || '🔥');
+              showEpicCallout(`${highestMerged}!`);
+            }
+            // Extra celebration for very high tiles
+            if (highestMerged >= 512) {
+              triggerConfetti();
             }
           } else if (highestMerged > 0) {
             // Regular merge - satisfying pop
             playPerfectBonus();
             triggerHaptic('medium');
+            updateCombo();
           }
 
           // Check for win (first time reaching 2048)
@@ -528,6 +544,9 @@ const Merge2048Game: React.FC = () => {
             setHasWon(true);
             playWinSound();
             triggerHaptic('heavy');
+            triggerConfetti();
+            showEpicCallout('YOU WIN!');
+            triggerShockwave('#FFD700', 1.0);
           }
 
           // Spawn new tile after animation delay
@@ -540,6 +559,8 @@ const Merge2048Game: React.FC = () => {
                 if (checkGameOver(tilesWithNew)) {
                   setIsGameOver(true);
                   playGameOver();
+                  triggerScreenShake(500);
+                  addFloatingEmoji('💀');
                   // Submit score to leaderboard
                   if (isSignedIn) {
                     submitScore(score + totalScoreGained, undefined, {
@@ -553,6 +574,8 @@ const Merge2048Game: React.FC = () => {
               if (checkGameOver(prev)) {
                 setIsGameOver(true);
                 playGameOver();
+                triggerScreenShake(500);
+                addFloatingEmoji('💀');
                 if (isSignedIn) {
                   submitScore(score + totalScoreGained, undefined, {
                     highestTile: highestTileRef.current,
@@ -571,7 +594,7 @@ const Merge2048Game: React.FC = () => {
         }
       });
     },
-    [isGameOver, hasWon, showScorePopup, triggerScreenShake, triggerHaptic, playBlockLand, playCombo, playPerfectBonus, playWinSound, playGameOver, isSignedIn, submitScore, score]
+    [isGameOver, hasWon, showScorePopup, triggerScreenShake, triggerHaptic, playBlockLand, playCombo, playPerfectBonus, playWinSound, playGameOver, isSignedIn, submitScore, score, triggerShockwave, triggerSparks, addFloatingEmoji, showEpicCallout, triggerConfetti, updateCombo]
   );
 
   /**
@@ -744,10 +767,13 @@ const Merge2048Game: React.FC = () => {
         </button>
       </div>
 
+      {/* Universal Game Effects Layer */}
+      <GameEffects effects={effects} accentColor="#ff6b00" />
+
       {/* Game Grid */}
       <div
         ref={gridWrapperRef}
-        className={`merge2048-grid-wrapper ${screenShake ? 'shake' : ''}`}
+        className={`merge2048-grid-wrapper ${effects.screenShake ? 'shake' : ''}`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchMove={handleTouchMove}

@@ -5,7 +5,7 @@
  * Tabbed info card showing NFT details: Main, Metadata, History.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink, X, Crown } from 'lucide-react';
 import type { NFT } from '@/types/nft';
@@ -416,6 +416,20 @@ const COLLECTION_MINT_DATE = new Date('2023-12-15T00:00:00Z').getTime();
 
 function HistoryTabContent({ nftId }: { nftId: number }) {
   const { sales, isLoading } = useSalesHistory(nftId);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Reset scroll position on mount and when content loads
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, []); // Run on mount
+
+  useEffect(() => {
+    if (!isLoading && scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [isLoading]);
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -438,9 +452,32 @@ function HistoryTabContent({ nftId }: { nftId: number }) {
   }
 
   return (
-    <div className="space-y-1 max-h-48 overflow-y-auto">
-      {/* Sales history */}
-      {sales.map((sale, index) => (
+    <div ref={scrollRef} className="space-y-1 max-h-48 overflow-y-auto">
+      {/* Mint entry - always shown at top */}
+      <div
+        className="py-2"
+        style={{
+          borderBottom: sales.length > 0 ? '1px solid var(--color-border)' : 'none',
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <span
+            className="text-sm font-medium"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
+            Minted
+          </span>
+          <span
+            className="text-xs"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            {formatDate(COLLECTION_MINT_DATE)}
+          </span>
+        </div>
+      </div>
+
+      {/* Sales history - chronological (newest first) */}
+      {sales.map((sale) => (
         <div
           key={`${sale.nftId}-${sale.timestamp}`}
           className="py-2"
@@ -473,23 +510,15 @@ function HistoryTabContent({ nftId }: { nftId: number }) {
         </div>
       ))}
 
-      {/* Mint entry - always shown */}
-      <div className="py-2">
-        <div className="flex items-center justify-between">
-          <span
-            className="text-sm font-medium"
-            style={{ color: 'var(--color-text-primary)' }}
-          >
-            Minted
-          </span>
-          <span
-            className="text-xs"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
-            {formatDate(COLLECTION_MINT_DATE)}
-          </span>
-        </div>
-      </div>
+      {/* No sales message */}
+      {sales.length === 0 && (
+        <p
+          className="py-2 text-sm"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
+          No sales history
+        </p>
+      )}
     </div>
   );
 }
@@ -571,13 +600,13 @@ export function NFTInfoCard({
 
       {/* Tab content */}
       <div className="p-4">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0 }}
+            initial={{ opacity: 0.5 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.1 }}
           >
             {activeTab === 'main' && (
               <MainTabContent

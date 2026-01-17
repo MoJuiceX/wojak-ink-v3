@@ -36,7 +36,7 @@ export function useProfileCheck(): UseProfileCheckResult {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
-  const fetchProfile = useCallback(async () => {
+  const fetchProfile = useCallback(async (signal?: AbortSignal) => {
     if (!CLERK_ENABLED || !isSignedIn) {
       setIsLoading(false);
       setNeedsOnboarding(false);
@@ -44,7 +44,7 @@ export function useProfileCheck(): UseProfileCheckResult {
     }
 
     try {
-      const response = await authenticatedFetch('/api/profile');
+      const response = await authenticatedFetch('/api/profile', { signal });
 
       if (response.ok) {
         const data = await response.json();
@@ -60,6 +60,10 @@ export function useProfileCheck(): UseProfileCheckResult {
         }
       }
     } catch (error) {
+      // Ignore AbortError - expected when component unmounts during fetch
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
       console.error('[ProfileCheck] Error fetching profile:', error);
     } finally {
       setIsLoading(false);
@@ -69,13 +73,17 @@ export function useProfileCheck(): UseProfileCheckResult {
   useEffect(() => {
     if (!isLoaded) return;
 
+    const controller = new AbortController();
+
     if (isSignedIn) {
-      fetchProfile();
+      fetchProfile(controller.signal);
     } else {
       setIsLoading(false);
       setProfile(null);
       setNeedsOnboarding(false);
     }
+
+    return () => controller.abort();
   }, [isLoaded, isSignedIn, fetchProfile]);
 
   return {

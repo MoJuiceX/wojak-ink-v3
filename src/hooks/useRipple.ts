@@ -1,49 +1,112 @@
 /**
  * useRipple Hook
  *
- * Creates a Material Design-style ripple effect on click.
+ * Creates a material-design style ripple effect on click.
+ * Works with any element that has position: relative and overflow: hidden.
  */
 
-import { useState, useCallback } from 'react';
-import type { MouseEvent } from 'react';
+import { useCallback } from 'react';
+import { useReducedMotion } from 'framer-motion';
 
-export interface Ripple {
-  id: number;
-  x: number;
-  y: number;
-  size: number;
+interface RippleOptions {
+  /** Ripple color (default: rgba(249, 115, 22, 0.3)) */
+  color?: string;
+  /** Duration in ms (default: 600) */
+  duration?: number;
+  /** Disable the effect */
+  disabled?: boolean;
 }
 
-interface RippleReturn {
-  ripples: Ripple[];
-  onRipple: (e: MouseEvent<HTMLElement>) => void;
-  onRippleComplete: (id: number) => void;
+/**
+ * Hook for adding ripple effects to interactive elements
+ *
+ * @example
+ * ```tsx
+ * const createRipple = useRipple();
+ *
+ * <button
+ *   onClick={(e) => {
+ *     createRipple(e);
+ *     // ... other click handling
+ *   }}
+ *   style={{ position: 'relative', overflow: 'hidden' }}
+ * >
+ *   Click me
+ * </button>
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // With custom color
+ * const createRipple = useRipple({ color: 'rgba(234, 179, 8, 0.3)' });
+ * ```
+ */
+export function useRipple(options: RippleOptions = {}) {
+  const {
+    color = 'rgba(249, 115, 22, 0.3)',
+    duration = 600,
+    disabled = false,
+  } = options;
+
+  const prefersReducedMotion = useReducedMotion();
+
+  const createRipple = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      if (disabled || prefersReducedMotion) return;
+
+      const button = e.currentTarget;
+      const ripple = document.createElement('span');
+      const rect = button.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+
+      ripple.style.cssText = `
+        position: absolute;
+        width: ${size}px;
+        height: ${size}px;
+        left: ${x}px;
+        top: ${y}px;
+        background: ${color};
+        border-radius: 50%;
+        transform: scale(0);
+        animation: ripple ${duration}ms ease-out;
+        pointer-events: none;
+        z-index: 1;
+      `;
+
+      button.appendChild(ripple);
+
+      setTimeout(() => {
+        ripple.remove();
+      }, duration);
+    },
+    [color, duration, disabled, prefersReducedMotion]
+  );
+
+  return createRipple;
 }
 
-export function useRipple(): RippleReturn {
-  const [ripples, setRipples] = useState<Ripple[]>([]);
+/**
+ * CSS keyframes for ripple animation
+ * Add this to your CSS if not using animations.css:
+ *
+ * @keyframes ripple {
+ *   to {
+ *     transform: scale(4);
+ *     opacity: 0;
+ *   }
+ * }
+ */
 
-  const onRipple = useCallback((e: MouseEvent<HTMLElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const size = Math.max(rect.width, rect.height) * 2;
-    const x = e.clientX - rect.left - size / 2;
-    const y = e.clientY - rect.top - size / 2;
-
-    const newRipple: Ripple = {
-      id: Date.now(),
-      x,
-      y,
-      size,
-    };
-
-    setRipples((prev) => [...prev, newRipple]);
-  }, []);
-
-  const onRippleComplete = useCallback((id: number) => {
-    setRipples((prev) => prev.filter((r) => r.id !== id));
-  }, []);
-
-  return { ripples, onRipple, onRippleComplete };
-}
-
+/**
+ * Higher-order component to add ripple effect
+ *
+ * @example
+ * ```tsx
+ * <RippleButton onClick={handleClick}>
+ *   Click me
+ * </RippleButton>
+ * ```
+ */
 export default useRipple;

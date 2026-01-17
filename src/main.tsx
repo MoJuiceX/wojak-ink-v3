@@ -2,11 +2,17 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { setupIonicReact } from '@ionic/react'
 import { ClerkProvider } from '@clerk/clerk-react'
+import { register as registerServiceWorker } from './serviceWorkerRegistration'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 /* Ionic CSS - only core.css to avoid overriding app scrolling */
 import '@ionic/react/css/core.css'
 
 import './index.css'
+import './styles/tokens.css'
+import './styles/animations.css'
+import './styles/utilities.css'
+import './styles/mobile.css'
 import App from './App.tsx'
 
 /* Initialize Ionic React */
@@ -137,18 +143,26 @@ const clerkAppearance = {
   },
 }
 
+// Register service worker for PWA support
+registerServiceWorker({
+  onSuccess: () => console.log('App ready for offline use'),
+  onUpdate: () => console.log('New version available - refresh to update'),
+})
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {CLERK_PUBLISHABLE_KEY ? (
-      <ClerkProvider
-        publishableKey={CLERK_PUBLISHABLE_KEY}
-        afterSignOutUrl="/"
-        appearance={clerkAppearance}
-      >
+    <ErrorBoundary>
+      {CLERK_PUBLISHABLE_KEY ? (
+        <ClerkProvider
+          publishableKey={CLERK_PUBLISHABLE_KEY}
+          afterSignOutUrl="/"
+          appearance={clerkAppearance}
+        >
+          <App />
+        </ClerkProvider>
+      ) : (
         <App />
-      </ClerkProvider>
-    ) : (
-      <App />
-    )}
+      )}
+    </ErrorBoundary>
   </StrictMode>,
 )

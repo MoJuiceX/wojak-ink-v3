@@ -57,9 +57,12 @@ function LayerTab({
 
   return (
     <motion.button
-      className="relative flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[60px]"
+      className="generator-layer-tab relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg flex-1 sm:flex-none sm:px-3 sm:py-2 sm:gap-1 sm:min-w-[60px]"
       style={{
-        background: isActive ? 'var(--color-brand-primary)' : 'transparent',
+        // Glowing active state with gradient background
+        background: isActive
+          ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(249, 115, 22, 0.1))'
+          : 'transparent',
         color: isActive
           ? 'white'
           : isBlocked
@@ -67,6 +70,14 @@ function LayerTab({
             : 'var(--color-text-secondary)',
         opacity: isBlocked ? 0.5 : 1,
         filter: isBlocked ? 'grayscale(1)' : 'none',
+        // Enhanced border and glow for active state
+        border: isActive
+          ? '1px solid rgba(249, 115, 22, 0.6)'
+          : '1px solid transparent',
+        boxShadow: isActive
+          ? '0 0 20px rgba(249, 115, 22, 0.3), inset 0 0 15px rgba(249, 115, 22, 0.1)'
+          : 'none',
+        transition: 'all 0.3s ease',
       }}
       variants={prefersReducedMotion ? undefined : layerTabVariants}
       whileHover={isBlocked ? undefined : 'hover'}
@@ -78,23 +89,24 @@ function LayerTab({
       title={isBlocked ? (blockedReason || `${config.label} is blocked`) : config.description}
     >
       <div className="relative">
-        <Icon size={20} />
+        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         {isBlocked && (
           <Lock
-            size={10}
-            className="absolute -top-1 -right-1"
+            size={8}
+            className="absolute -top-1 -right-1 sm:w-2.5 sm:h-2.5"
             style={{ color: 'var(--color-text-muted)' }}
           />
         )}
       </div>
-      <span className="text-xs font-medium">{config.label}</span>
+      <span className="text-[10px] sm:text-xs font-medium">{config.label}</span>
 
-      {/* Selection indicator dot */}
+      {/* Selection indicator dot with glow */}
       {hasSelection && !isBlocked && (
         <div
           className="absolute top-1 right-1 w-2 h-2 rounded-full"
           style={{
-            background: isActive ? 'white' : 'var(--color-brand-primary)',
+            background: isActive ? 'white' : '#F97316',
+            boxShadow: isActive ? 'none' : '0 0 8px #F97316',
           }}
         />
       )}
@@ -145,9 +157,11 @@ export function LayerTabs({ className = '' }: LayerTabsProps) {
 
   return (
     <div
-      className={`flex gap-1 p-1 rounded-xl overflow-x-auto ${className}`}
+      className={`flex gap-2 p-2 rounded-2xl overflow-x-auto ${className}`}
       style={{
-        background: 'var(--color-glass-bg)',
+        background: 'rgba(0, 0, 0, 0.3)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
         border: '1px solid var(--color-border)',
       }}
       role="tablist"

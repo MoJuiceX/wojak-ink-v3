@@ -2,6 +2,7 @@
  * Account Page
  *
  * User account management: profile info, wallet connection, messages, sign out.
+ * Premium glassmorphism design with animated avatar ring.
  */
 
 import { useState, useEffect } from 'react';
@@ -164,11 +165,13 @@ export default function Account() {
   const { contentPadding, isDesktop } = useLayout();
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
-  const { signOut } = CLERK_ENABLED ? useClerk() : { signOut: () => {} };
+  // Always call the hook unconditionally
+  const clerkResult = useClerk();
+  const clerk = CLERK_ENABLED ? clerkResult : { signOut: async () => {} };
   const {
     profile,
     clerkUser,
-    isLoading,
+    isLoading: _isLoading,
     updateProfile,
     unreadMessages,
   } = useUserProfile();
@@ -191,8 +194,8 @@ export default function Account() {
   const isWalletConnecting = walletStatus === 'connecting';
 
   const handleSignOut = async () => {
-    if (CLERK_ENABLED) {
-      await signOut();
+    if (CLERK_ENABLED && clerk) {
+      await clerk.signOut();
       navigate('/gallery');
     }
   };
@@ -253,74 +256,162 @@ export default function Account() {
             </h1>
           </div>
 
-          {/* Account Card */}
+          {/* Account Card - Premium Glassmorphism */}
           <div
-            className="rounded-xl overflow-hidden"
+            className="rounded-2xl overflow-hidden relative"
             style={{
-              background: 'var(--color-glass-bg)',
-              border: '1px solid var(--color-border)',
+              background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(249, 115, 22, 0.2)',
             }}
           >
-            <SignedOut>
-              {/* Not signed in */}
-              <div className="p-8 text-center">
-                <div
-                  className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center"
-                  style={{ background: 'var(--color-bg-tertiary)' }}
+            {/* Decorative glow orb */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '-50%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 200,
+                height: 200,
+                background: 'radial-gradient(circle, rgba(249, 115, 22, 0.3), transparent 70%)',
+                pointerEvents: 'none',
+              }}
+            />
+            {/* Auth not configured fallback */}
+            {!CLERK_ENABLED && (
+              <div className="p-8 text-center relative">
+                <motion.div
+                  className="w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center relative"
+                  style={{
+                    background: 'rgba(249, 115, 22, 0.05)',
+                    border: '1px dashed rgba(249, 115, 22, 0.3)',
+                  }}
+                  animate={prefersReducedMotion ? {} : { y: [0, -10, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  <User size={40} style={{ color: 'var(--color-text-muted)' }} />
-                </div>
+                  <User size={48} style={{ color: 'rgba(249, 115, 22, 0.6)' }} />
+                </motion.div>
                 <h2
-                  className="text-lg font-semibold mb-2"
+                  className="text-xl font-bold mb-3"
+                  style={{ color: 'var(--color-text-primary)' }}
+                >
+                  Authentication Not Configured
+                </h2>
+                <p
+                  className="text-sm max-w-xs mx-auto"
+                  style={{ color: 'var(--color-text-secondary)', lineHeight: 1.6 }}
+                >
+                  Sign-in features require Clerk authentication to be configured.
+                  Add VITE_CLERK_PUBLISHABLE_KEY to your environment variables.
+                </p>
+              </div>
+            )}
+            {CLERK_ENABLED && (
+            <SignedOut>
+              {/* Not signed in - Premium empty state */}
+              <div className="p-8 text-center relative">
+                {/* Floating user icon */}
+                <motion.div
+                  className="w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center relative"
+                  style={{
+                    background: 'rgba(249, 115, 22, 0.05)',
+                    border: '1px dashed rgba(249, 115, 22, 0.3)',
+                  }}
+                  animate={prefersReducedMotion ? {} : { y: [0, -10, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <User size={48} style={{ color: 'rgba(249, 115, 22, 0.6)' }} />
+                </motion.div>
+                <h2
+                  className="text-xl font-bold mb-3"
                   style={{ color: 'var(--color-text-primary)' }}
                 >
                   Sign in to your account
                 </h2>
                 <p
-                  className="text-sm mb-6"
-                  style={{ color: 'var(--color-text-secondary)' }}
+                  className="text-sm mb-8 max-w-xs mx-auto"
+                  style={{ color: 'var(--color-text-secondary)', lineHeight: 1.6 }}
                 >
                   Save your profile, compete on leaderboards, and receive notifications
                 </p>
                 <SignInButton mode="modal">
                   <motion.button
-                    className="px-8 py-3 rounded-lg font-medium text-white"
-                    style={{ background: 'var(--color-brand-primary)' }}
-                    whileHover={{ scale: 1.02 }}
+                    className="px-8 py-4 rounded-xl font-semibold text-white relative overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(135deg, #F97316, #EA580C)',
+                      boxShadow: '0 4px 20px rgba(249, 115, 22, 0.3)',
+                    }}
+                    whileHover={{ scale: 1.02, boxShadow: '0 6px 30px rgba(249, 115, 22, 0.4)' }}
                     whileTap={{ scale: 0.98 }}
                   >
+                    {/* Shine effect */}
+                    <motion.div
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: '-100%',
+                        width: '100%',
+                        height: '100%',
+                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                      }}
+                      animate={{ left: ['−100%', '100%'] }}
+                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                    />
                     Sign In with Google
                   </motion.button>
                 </SignInButton>
               </div>
             </SignedOut>
-
+            )}
+            {CLERK_ENABLED && (
             <SignedIn>
-              {isLoading ? (
-                <div className="p-8 flex items-center justify-center">
-                  <Loader2 size={32} className="animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
-                </div>
-              ) : (
+              {/* Always show content - don't block on profile loading */}
+              {(
                 <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
-                  {/* User Info Header */}
+                  {/* User Info Header with Animated Avatar */}
                   <div className="p-6 flex items-center gap-4">
-                    {clerkUser?.imageUrl ? (
-                      <img
-                        src={clerkUser.imageUrl}
-                        alt="Profile"
-                        className="w-16 h-16 rounded-full"
+                    {/* Avatar with animated ring */}
+                    <div className="relative" style={{ width: 72, height: 72 }}>
+                      {/* Spinning gold ring */}
+                      <motion.div
+                        className="absolute inset-0 rounded-full"
+                        style={{
+                          border: '2px solid transparent',
+                          borderTopColor: '#FFD700',
+                          borderRightColor: 'rgba(255, 215, 0, 0.3)',
+                        }}
+                        animate={prefersReducedMotion ? {} : { rotate: 360 }}
+                        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
                       />
-                    ) : (
-                      <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center"
-                        style={{ background: 'var(--gradient-accent)' }}
-                      >
-                        <User size={32} style={{ color: '#fff' }} />
-                      </div>
-                    )}
+                      {/* Avatar image */}
+                      {clerkUser?.imageUrl ? (
+                        <img
+                          src={clerkUser.imageUrl}
+                          alt="Profile"
+                          className="w-full h-full rounded-full"
+                          style={{
+                            border: '3px solid #F97316',
+                            boxShadow: '0 0 20px rgba(249, 115, 22, 0.4), inset 0 0 20px rgba(249, 115, 22, 0.1)',
+                          }}
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-full rounded-full flex items-center justify-center"
+                          style={{
+                            background: 'linear-gradient(135deg, #F97316, #EA580C)',
+                            border: '3px solid #F97316',
+                            boxShadow: '0 0 20px rgba(249, 115, 22, 0.4)',
+                          }}
+                        >
+                          <User size={32} style={{ color: '#fff' }} />
+                        </div>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p
-                        className="text-lg font-semibold truncate"
+                        className="text-lg font-bold truncate"
                         style={{ color: 'var(--color-text-primary)' }}
                       >
                         {profile?.displayName || clerkUser?.firstName || 'User'}
@@ -433,11 +524,11 @@ export default function Account() {
                     />
                   </div>
 
-                  {/* Wallet Connection */}
+                  {/* Wallet Connection - Premium Section */}
                   <div className="p-6">
                     <label
-                      className="text-xs font-medium mb-3 block"
-                      style={{ color: 'var(--color-text-tertiary)' }}
+                      className="text-xs font-medium uppercase tracking-wider mb-3 block"
+                      style={{ color: 'rgba(255, 255, 255, 0.6)' }}
                     >
                       Sage Wallet
                     </label>
@@ -505,28 +596,68 @@ export default function Account() {
                         </button>
                       </div>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={handleConnectWallet}
-                        disabled={!walletInitialized || isWalletConnecting}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:opacity-90 disabled:opacity-50"
+                      <div
+                        className="rounded-xl p-6 text-center"
                         style={{
-                          background: 'var(--color-brand-primary)',
-                          color: '#fff',
+                          background: 'rgba(249, 115, 22, 0.05)',
+                          border: '1px dashed rgba(249, 115, 22, 0.3)',
                         }}
                       >
-                        {isWalletConnecting ? (
-                          <>
-                            <Loader2 size={18} className="animate-spin" />
-                            Connecting...
-                          </>
-                        ) : (
-                          <>
-                            <Wallet size={18} />
-                            Connect Sage Wallet
-                          </>
-                        )}
-                      </button>
+                        {/* Floating wallet icon */}
+                        <motion.div
+                          className="text-5xl mb-4"
+                          animate={prefersReducedMotion ? {} : { y: [0, -10, 0] }}
+                          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                        >
+                          💼
+                        </motion.div>
+                        <p
+                          className="text-sm mb-4"
+                          style={{ color: 'var(--color-text-secondary)' }}
+                        >
+                          Connect your wallet to verify NFT ownership
+                        </p>
+                        <motion.button
+                          type="button"
+                          onClick={handleConnectWallet}
+                          disabled={!walletInitialized || isWalletConnecting}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-xl text-sm font-semibold relative overflow-hidden disabled:opacity-50"
+                          style={{
+                            background: 'linear-gradient(135deg, #F97316, #EA580C)',
+                            color: '#fff',
+                            boxShadow: '0 4px 20px rgba(249, 115, 22, 0.3)',
+                          }}
+                          whileHover={!isWalletConnecting ? { scale: 1.02 } : {}}
+                          whileTap={!isWalletConnecting ? { scale: 0.98 } : {}}
+                        >
+                          {/* Shine effect */}
+                          {!isWalletConnecting && (
+                            <motion.div
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: '-100%',
+                                width: '100%',
+                                height: '100%',
+                                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                              }}
+                              animate={{ left: ['-100%', '100%'] }}
+                              transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                            />
+                          )}
+                          {isWalletConnecting ? (
+                            <>
+                              <Loader2 size={18} className="animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            <>
+                              <Wallet size={18} />
+                              Connect Sage Wallet
+                            </>
+                          )}
+                        </motion.button>
+                      </div>
                     )}
                   </div>
 
@@ -573,6 +704,7 @@ export default function Account() {
                 </div>
               )}
             </SignedIn>
+            )}
           </div>
         </div>
       </motion.div>

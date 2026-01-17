@@ -137,20 +137,12 @@ export function PortfolioValueCard({
       transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
       role="region"
       aria-label="Portfolio summary"
+      style={{
+        // Gradient border using background-clip for consistent corner thickness
+        background: `linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)) padding-box, linear-gradient(135deg, #ff6b00, #ff8c00, #ffaa00) border-box`,
+        border: '2px solid transparent',
+      }}
     >
-      {/* Gradient border */}
-      <div
-        className="absolute inset-0 rounded-2xl"
-        style={{
-          background: 'linear-gradient(135deg, #ff6b00, #ff8c00, #ffaa00)',
-          padding: 2,
-        }}
-      >
-        <div
-          className="w-full h-full rounded-[14px]"
-          style={{ background: 'var(--color-bg-secondary)' }}
-        />
-      </div>
 
       {/* Glow effect */}
       <motion.div

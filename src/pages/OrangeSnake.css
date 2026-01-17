@@ -1,0 +1,333 @@
+/* ============================================
+   ORANGE SNAKE GAME STYLES
+   ============================================ */
+
+.orange-snake-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.orange-snake-container.mobile {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ============================================
+   CONTROL BUTTONS
+   ============================================ */
+
+.os-back-btn,
+.os-sound-btn {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  z-index: 50;
+  transition: all 0.2s ease;
+}
+
+.os-back-btn {
+  top: 12px;
+  left: 12px;
+}
+
+.os-sound-btn {
+  top: 12px;
+  left: 64px;
+  font-size: 20px;
+}
+
+.os-back-btn:hover,
+.os-sound-btn:hover {
+  background: rgba(255, 107, 0, 0.3);
+  border-color: rgba(255, 107, 0, 0.5);
+}
+
+.os-back-btn:active,
+.os-sound-btn:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 480px) {
+  .os-back-btn,
+  .os-sound-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .os-back-btn {
+    top: 8px;
+    left: 8px;
+  }
+
+  .os-sound-btn {
+    top: 8px;
+    left: 56px;
+    font-size: 18px;
+  }
+}
+
+/* ============================================
+   GAME CANVAS
+   ============================================ */
+
+.os-canvas {
+  border-radius: 12px;
+  box-shadow:
+    0 0 40px rgba(255, 107, 0, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+  cursor: none;
+}
+
+.mobile .os-canvas {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ============================================
+   GAME OVER OVERLAY
+   ============================================ */
+
+.os-game-over-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+  animation: os-game-over-appear 0.5s ease-out;
+}
+
+@keyframes os-game-over-appear {
+  0% {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
+}
+
+.os-game-over-content {
+  display: flex;
+  gap: 24px;
+  max-width: 500px;
+  width: 100%;
+  animation: os-game-over-content 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+@keyframes os-game-over-content {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.mobile .os-game-over-content {
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.os-game-over-left {
+  flex-shrink: 0;
+}
+
+.os-sad-image {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.mobile .os-sad-image {
+  width: 100px;
+  height: 100px;
+}
+
+.os-game-over-emoji {
+  font-size: 5rem;
+}
+
+.os-game-over-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.os-game-over-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #ff6b00;
+  margin: 0;
+}
+
+.os-game-over-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.os-game-over-score .os-score-value {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+  line-height: 1;
+  animation: os-final-score-pulse 2s ease-in-out infinite;
+}
+
+@keyframes os-final-score-pulse {
+  0%, 100% {
+    text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 50px rgba(255, 107, 0, 0.8), 0 0 80px rgba(255, 107, 0, 0.4);
+  }
+}
+
+.os-game-over-score .os-score-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.os-game-over-stats {
+  display: flex;
+  gap: 24px;
+  margin: 8px 0;
+}
+
+.os-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.os-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ff6b00;
+}
+
+.os-stat-label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+}
+
+.os-new-record {
+  font-size: 1rem;
+  color: #ffd700;
+  font-weight: 700;
+  animation: os-glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes os-glow {
+  from { text-shadow: 0 0 10px #ffd700; }
+  to { text-shadow: 0 0 30px #ffd700, 0 0 60px #ffa500; }
+}
+
+.os-submitted {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  min-height: 1.2em;
+}
+
+.os-game-over-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.os-play-btn {
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #ff6b00, #ff8533);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
+}
+
+.os-play-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(255, 107, 0, 0.5);
+}
+
+.os-play-btn:active {
+  transform: translateY(0);
+}
+
+.os-back-to-games-btn {
+  padding: 10px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.os-back-to-games-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 480px) {
+  .os-game-over-title {
+    font-size: 1.5rem;
+  }
+
+  .os-game-over-score .os-score-value {
+    font-size: 2.5rem;
+  }
+
+  .os-game-over-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .os-play-btn,
+  .os-back-to-games-btn {
+    width: 100%;
+  }
+}

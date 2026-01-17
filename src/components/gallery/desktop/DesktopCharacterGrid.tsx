@@ -42,25 +42,28 @@ export function DesktopCharacterGrid({
 }: DesktopCharacterGridProps) {
   const { columns, gridGap } = useDesktopBreakpoint();
 
-  // Stagger animation for cards
+  // Premium stagger animation for cards
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.03,
+        staggerChildren: 0.08,
+        delayChildren: 0.1,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 40, scale: 0.9 },
     show: {
       opacity: 1,
       y: 0,
+      scale: 1,
       transition: {
-        duration: 0.3,
-        ease: [0.4, 0, 0.2, 1] as const,
+        type: 'spring' as const,
+        stiffness: 100,
+        damping: 15,
       },
     },
   };
@@ -105,7 +108,13 @@ export function DesktopCharacterGrid({
         }}
       >
         {characters.map((character, index) => (
-          <motion.div key={character.id} variants={itemVariants} style={{ width: '100%' }}>
+          <motion.div
+            key={character.id}
+            variants={itemVariants}
+            whileHover={{ scale: 1.05, y: -10 }}
+            whileTap={{ scale: 0.98 }}
+            style={{ width: '100%' }}
+          >
             <DesktopCharacterCard
               character={character}
               onSelect={() => onSelectCharacter(character.id)}
@@ -114,23 +123,31 @@ export function DesktopCharacterGrid({
             />
           </motion.div>
         ))}
-        {/* Info box */}
+        {/* Info box with matching glassmorphism */}
         <motion.div
           variants={itemVariants}
+          whileHover={{ scale: 1.02 }}
           style={{ width: '100%' }}
         >
           <div
             className="w-full h-full flex flex-col items-center justify-center p-6 text-center"
             style={{
               aspectRatio: '1 / 1',
-              background: 'var(--color-glass-bg)',
-              border: '1px solid var(--color-border)',
+              background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, rgba(0, 0, 0, 0.4) 100%)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              border: '1px solid rgba(249, 115, 22, 0.2)',
               borderRadius: 16,
             }}
           >
             <h3
               className="text-lg font-semibold mb-2"
-              style={{ color: 'var(--color-text-primary)' }}
+              style={{
+                background: 'linear-gradient(90deg, #F97316, #FFD700)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
             >
               Explore the Collection
             </h3>

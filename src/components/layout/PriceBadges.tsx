@@ -6,8 +6,10 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { useFloorPrice } from '@/hooks/data/useMarket';
 import { useXchPrice } from '@/hooks/data/useTreasuryData';
+import { usePrefersReducedMotion } from '@/hooks/useMediaQuery';
 import './PriceSplitFlap.css';
 
 // Animation timing
@@ -106,6 +108,32 @@ function PriceFlapDisplay({ text, muted = false }: PriceFlapDisplayProps) {
 
 interface PriceBadgesProps {
   size?: 'sm' | 'md';
+}
+
+// Live indicator pulsing dot component
+function LiveIndicator() {
+  const prefersReducedMotion = usePrefersReducedMotion();
+
+  return (
+    <motion.span
+      className="inline-block rounded-full"
+      style={{
+        width: 6,
+        height: 6,
+        background: '#22C55E',
+        boxShadow: '0 0 8px #22C55E',
+      }}
+      animate={prefersReducedMotion ? {} : {
+        scale: [1, 1.3, 1],
+        opacity: [1, 0.7, 1],
+      }}
+      transition={{
+        duration: 1.5,
+        repeat: Infinity,
+        ease: 'easeInOut',
+      }}
+    />
+  );
 }
 
 export function PriceBadges({ size = 'md' }: PriceBadgesProps) {
@@ -229,14 +257,16 @@ export function PriceBadges({ size = 'md' }: PriceBadgesProps) {
     <div className={`flex items-center ${gap}`}>
       {/* Floor Price Badge */}
       <div
-        className={`flex items-center`}
+        className={`flex items-center px-3 py-1.5 rounded-lg`}
         style={{
           fontSize: size === 'sm' ? '0.75rem' : '0.875rem',
+          background: 'rgba(74, 222, 128, 0.1)',
+          border: '1px solid rgba(74, 222, 128, 0.2)',
         }}
       >
         <span
           className={`${textSize} font-medium uppercase tracking-wide mr-2`}
-          style={{ color: 'var(--color-text-muted)' }}
+          style={{ color: 'rgba(74, 222, 128, 0.7)' }}
         >
           Floor
         </span>
@@ -264,16 +294,21 @@ export function PriceBadges({ size = 'md' }: PriceBadgesProps) {
         )}
       </div>
 
-      {/* XCH Price Badge */}
+      {/* XCH Price Badge with Live Indicator */}
       <div
-        className={`flex items-center`}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg`}
         style={{
           fontSize: size === 'sm' ? '0.75rem' : '0.875rem',
+          background: 'rgba(74, 222, 128, 0.1)',
+          border: '1px solid rgba(74, 222, 128, 0.2)',
         }}
       >
+        {/* Live indicator dot */}
+        {!xchLoading && simulatedXchPrice !== null && <LiveIndicator />}
+
         <span
-          className={`${textSize} font-medium uppercase tracking-wide mr-2`}
-          style={{ color: 'var(--color-text-muted)' }}
+          className={`${textSize} font-medium uppercase tracking-wide`}
+          style={{ color: 'rgba(74, 222, 128, 0.7)' }}
         >
           XCH
         </span>

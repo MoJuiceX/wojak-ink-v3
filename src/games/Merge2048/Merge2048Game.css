@@ -10,11 +10,17 @@
   justify-content: flex-start;
   width: 100%;
   height: 100%;
-  min-height: 100%;
+  min-height: 400px; /* Ensure minimum height for visibility */
   padding: 16px;
   background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
   box-sizing: border-box;
   overflow: hidden;
+  /* Ensure container fills parent */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 /* Header */
@@ -487,5 +493,65 @@
 
   .merge2048-instructions {
     margin-top: 8px;
+  }
+}
+
+/* Very narrow screens (< 320px) */
+@media (max-width: 320px) {
+  .merge2048-container {
+    padding: 8px;
+  }
+
+  .merge2048-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .merge2048-title h1 {
+    font-size: 28px;
+  }
+
+  .score-box {
+    padding: 4px 8px;
+    min-width: 50px;
+  }
+
+  .score-value {
+    font-size: 16px;
+  }
+
+  .merge2048-grid {
+    padding: 6px;
+  }
+
+  .grid-background {
+    gap: 6px;
+  }
+
+  .tiles-container {
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+  }
+
+  .tile {
+    /* Even smaller gap: 6px */
+    width: calc((100% - 18px) / 4);
+    height: calc((100% - 18px) / 4);
+    top: calc(var(--tile-row) * (100% + 6px) / 4);
+    left: calc(var(--tile-col) * (100% + 6px) / 4);
+  }
+
+  .tile-font-large {
+    font-size: 20px;
+  }
+
+  .tile-font-medium {
+    font-size: 16px;
+  }
+
+  .tile-font-small {
+    font-size: 12px;
   }
 }

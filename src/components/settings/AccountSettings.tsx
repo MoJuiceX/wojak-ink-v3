@@ -156,7 +156,9 @@ function EditableField({ label, value, icon, placeholder, onSave, validation }: 
 
 export function AccountSettings() {
   const prefersReducedMotion = useReducedMotion();
-  const { signOut } = CLERK_ENABLED ? useClerk() : { signOut: () => {} };
+  // Always call the hook unconditionally
+  const clerkResult = useClerk();
+  const { signOut } = CLERK_ENABLED ? clerkResult : { signOut: () => {} };
   const {
     profile,
     clerkUser,

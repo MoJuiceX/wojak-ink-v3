@@ -1,8 +1,11 @@
 // @ts-nocheck
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameSounds } from '@/hooks/useGameSounds';
+import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useAudio } from '@/contexts/AudioContext';
+import { useGameEffects, GameEffects } from '@/components/media';
+import { ShareButton } from '@/systems/sharing';
 import './MemoryMatch.css';
 
 interface NFTMetadata {
@@ -56,10 +59,23 @@ interface LocalLeaderboardEntry {
 }
 
 // Sad images for game over screen
-const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/games/sad_runner_${i + 1}.png`);
+const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/Games/games_media/sad_runner_${i + 1}.png`);
 
 const MemoryMatch: React.FC = () => {
-  const { playCardFlip, playMatchFound, playWinSound, playGameOver } = useGameSounds();
+  const { playCardFlip, playMatchFound, playWinSound, playGameOver, playGameStart, playLevelUp, playWarning } = useGameSounds();
+  const { hapticScore, hapticCombo, hapticHighScore, hapticGameOver, hapticLevelUp, hapticSuccess, hapticWarning, hapticButton } = useGameHaptics();
+
+  // Visual effects system
+  const {
+    effects,
+    triggerBigMoment,
+    updateCombo,
+    resetCombo,
+    addScorePopup,
+    triggerConfetti,
+    showEpicCallout,
+    resetAllEffects,
+  } = useGameEffects();
 
   // Global leaderboard hook
   const {
@@ -87,6 +103,10 @@ const MemoryMatch: React.FC = () => {
   // Progressive rounds
   const [round, setRound] = useState(1);
   const [totalScore, setTotalScore] = useState(0);
+
+  // Streak tracking for combo effects
+  const [streak, setStreak] = useState(0);
+  const [lastMatchTime, setLastMatchTime] = useState<number | null>(null);
 
   // Dev mode - pauses timer and game logic for layout testing
   const [devMode, setDevMode] = useState(false);
@@ -234,6 +254,10 @@ const MemoryMatch: React.FC = () => {
       return;
     }
 
+    // Play game start sound + haptic
+    playGameStart();
+    hapticButton(); // Light tap on game start
+
     setDevMode(false); // Disable dev mode for normal gameplay
     setRound(1);
     setTotalScore(0);
@@ -265,6 +289,10 @@ const MemoryMatch: React.FC = () => {
     setMatches(0);
     setTimeLeft(config.time);
     setIsChecking(false);
+    // Reset streak and effects for new round
+    setStreak(0);
+    setLastMatchTime(null);
+    resetAllEffects();
     if (isNewGame) {
       setPlayerName('');
     }
@@ -277,6 +305,10 @@ const MemoryMatch: React.FC = () => {
 
   // Continue to next round after completing current one
   const nextRound = async () => {
+    // Play level up sound + haptic
+    playLevelUp();
+    hapticLevelUp();
+
     const newRound = round + 1;
     setRound(newRound);
     await startRound(newRound);
@@ -301,6 +333,9 @@ const MemoryMatch: React.FC = () => {
   // Add round score to total when round is completed
   const completeRound = () => {
     playWinSound();
+    hapticHighScore(); // Strong haptic for round completion
+    triggerConfetti();
+    showEpicCallout('🧠 PERFECT MEMORY!');
     const roundScore = calculateRoundScore();
     setTotalScore(prev => prev + roundScore);
     setGameState('roundComplete');
@@ -395,8 +430,9 @@ const MemoryMatch: React.FC = () => {
     // (This handles edge case where state got out of sync)
     if (card.isFlipped && !currentFlipped.includes(cardId)) return;
 
-    // Play flip sound
+    // Play flip sound + haptic
     playCardFlip();
+    hapticButton(); // Light tap on card flip
 
     // Update ref IMMEDIATELY (synchronous) to prevent race conditions
     const newFlipped = [...currentFlipped, cardId];
@@ -439,9 +475,10 @@ const MemoryMatch: React.FC = () => {
       }
 
       if (firstCard.nftId === secondCard.nftId) {
-        // Match found
+        // Match found!
         setTimeout(() => {
           playMatchFound();
+          hapticSuccess(); // Success haptic on match
           setCards(prev =>
             prev.map(c =>
               c.id === firstId || c.id === secondId
@@ -449,13 +486,54 @@ const MemoryMatch: React.FC = () => {
                 : c
             )
           );
-          setMatches(prev => prev + 1);
+
+          // Update streak and combo
+          const newStreak = streak + 1;
+          setStreak(newStreak);
+          updateCombo(newStreak);
+
+          // Calculate time bonus for fast matches
+          const now = Date.now();
+          const timeSinceLastMatch = lastMatchTime ? now - lastMatchTime : 999999;
+          const isFastMatch = timeSinceLastMatch < 2500;
+          setLastMatchTime(now);
+
+          // Trigger visual effects
+          triggerBigMoment({
+            shockwave: true,
+            sparks: newStreak >= 2,
+            shake: newStreak >= 4,
+            vignette: newStreak >= 5,
+            emoji: newStreak >= 3 ? '🔥' : '✨',
+            score: 10 + (newStreak * 5),
+            scorePrefix: isFastMatch ? 'FAST' : undefined,
+            x: 50,
+            y: 50,
+          });
+
+          // Fast match bonus callout
+          if (isFastMatch && newStreak >= 2) {
+            setTimeout(() => showEpicCallout('⚡ SPEED BONUS!'), 400);
+          }
+
+          // Update match count
+          setMatches(prev => {
+            const newMatches = prev + 1;
+            // Milestone celebrations
+            if (newMatches === 5) {
+              setTimeout(() => showEpicCallout('🎯 HALFWAY!'), 500);
+            } else if (newMatches === Math.floor(currentConfig.pairs * 0.75)) {
+              setTimeout(() => showEpicCallout('🔥 ALMOST THERE!'), 500);
+            }
+            return newMatches;
+          });
+
           flippedCardsRef.current = [];
           setFlippedCards([]);
           setIsChecking(false);
         }, 800);
       } else {
-        // No match - flip back (no negative sound to keep experience pleasant)
+        // No match - flip back and reset streak
         setTimeout(() => {
           setCards(prev =>
             prev.map(c =>
@@ -464,6 +542,9 @@ const MemoryMatch: React.FC = () => {
                 : c
             )
           );
+          // Reset streak on mismatch
+          setStreak(0);
+          resetCombo();
           flippedCardsRef.current = [];
           setFlippedCards([]);
           setIsChecking(false);
@@ -489,16 +570,22 @@ const MemoryMatch: React.FC = () => {
       setTimeLeft(prev => {
         if (prev <= 1) {
           playGameOver();
+          hapticGameOver();
           setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
           setGameState('gameover');
           return 0;
+        }
+        // Play warning sound at 10, 5, 3, 2, 1 seconds
+        if (prev === 10 || prev <= 5) {
+          playWarning();
+          hapticWarning();
         }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameState, devMode, playGameOver]);
+  }, [gameState, devMode, playGameOver, playWarning, hapticGameOver, hapticWarning]);
 
   // Auto-submit score for signed-in users when game ends
   useEffect(() => {
@@ -553,20 +640,22 @@ const MemoryMatch: React.FC = () => {
 
   return (
     <div className={`memory-container ${gameState === 'playing' ? 'playing-mode' : ''}`}>
-      {/* Developer Panel - Jump to any round */}
-      <div className="dev-panel">
-        <span className="dev-label">DEV</span>
-        {Array.from({ length: 17 }, (_, i) => i + 1).map(num => (
-          <button
-            key={num}
-            className={`dev-btn ${round === num && gameState === 'playing' ? 'active' : ''}`}
-            onClick={() => devJumpToRound(num)}
-            title={`Round ${num}: ${getRoundConfig(num).pairs} pairs${getRoundConfig(num).baseFilter ? ` (${getRoundConfig(num).baseFilter})` : ''}`}
-          >
-            {num}
-          </button>
-        ))}
-      </div>
+      {/* Developer Panel - Jump to any round (DEV ONLY) */}
+      {import.meta.env.DEV && (
+        <div className="dev-panel">
+          <span className="dev-label">DEV</span>
+          {Array.from({ length: 17 }, (_, i) => i + 1).map(num => (
+            <button
+              key={num}
+              className={`dev-btn ${round === num && gameState === 'playing' ? 'active' : ''}`}
+              onClick={() => devJumpToRound(num)}
+              title={`Round ${num}: ${getRoundConfig(num).pairs} pairs${getRoundConfig(num).baseFilter ? ` (${getRoundConfig(num).baseFilter})` : ''}`}
+            >
+              {num}
+            </button>
+          ))}
+        </div>
+      )}
       {/* Animated background elements - only show on menu and game over */}
       {gameState !== 'playing' && gameState !== 'loading' && (
         <div className="memory-bg-elements">
@@ -701,6 +790,18 @@ const MemoryMatch: React.FC = () => {
                       >
                         {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
                       </button>
+                      {/* Share button */}
+                      <ShareButton
+                        scoreData={{
+                          gameId: 'memory-match',
+                          gameName: 'Memory Match',
+                          score: totalScore,
+                          highScore,
+                          isNewHighScore: isNewPersonalBest || totalScore > highScore,
+                          rank: undefined
+                        }}
+                        variant="button"
+                      />
                     </div>
                   ) : (
                     // Guest - show name input
@@ -733,6 +834,18 @@ const MemoryMatch: React.FC = () => {
                       >
                         {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
                       </button>
+                      {/* Share button */}
+                      <ShareButton
+                        scoreData={{
+                          gameId: 'memory-match',
+                          gameName: 'Memory Match',
+                          score: totalScore,
+                          highScore,
+                          isNewHighScore: isNewPersonalBest || totalScore > highScore,
+                          rank: undefined
+                        }}
+                        variant="button"
+                      />
                     </div>
                   )
                 ) : (
@@ -743,6 +856,18 @@ const MemoryMatch: React.FC = () => {
                     <button onClick={goToMenu} className="game-over-skip">
                       Menu
                     </button>
+                    {/* Share button */}
+                    <ShareButton
+                      scoreData={{
+                        gameId: 'memory-match',
+                        gameName: 'Memory Match',
+                        score: totalScore,
+                        highScore,
+                        isNewHighScore: false,
+                        rank: undefined
+                      }}
+                      variant="button"
+                    />
                   </div>
                 )}
               </div>
@@ -789,7 +914,10 @@ const MemoryMatch: React.FC = () => {
                 </div>
 
                 {/* Fixed-size Lightbox */}
-                <div className="lightbox-wrapper">
+                <div className={`lightbox-wrapper ${effects.showScreenShake ? 'screen-shake' : ''}`}>
+                  {/* Visual Effects Layer */}
+                  <GameEffects effects={effects} accentColor="#8b5cf6" />
+
                   {/* Music toggle button */}
                   <button
                     className="music-toggle-btn"
@@ -814,7 +942,7 @@ const MemoryMatch: React.FC = () => {
                         <div className="card-inner">
                           <div className="card-front">
                             <img
-                              src="/assets/games/Memory_card.png"
+                              src="/assets/Games/games_media/Memory_card.png"
                               alt=""
                               className="card-back-image"
                             />

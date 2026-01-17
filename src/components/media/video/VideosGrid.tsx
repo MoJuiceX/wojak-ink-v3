@@ -2,28 +2,53 @@
  * Videos Grid Component
  *
  * Responsive grid of video cards with category filter.
+ * Features staggered entry animation and glowing filter tabs.
  */
 
-import { motion, useReducedMotion } from 'framer-motion';
-import { Video } from 'lucide-react';
-import type { VideoItem, VideoCategory } from '@/types/media';
+import { motion, useReducedMotion, AnimatePresence } from 'framer-motion';
+import { Video, Film } from 'lucide-react';
+import type { VideoItem } from '@/types/media';
 import { VideoCard } from './VideoCard';
-import { getVideoCategories } from '@/utils/mockMediaData';
-import { gameGridVariants, filterTabVariants } from '@/config/mediaAnimations';
 
 interface VideosGridProps {
   videos: VideoItem[];
-  filter: VideoCategory | 'all';
-  onFilterChange: (filter: VideoCategory | 'all') => void;
   onVideoSelect: (video: VideoItem) => void;
   isLoading?: boolean;
 }
 
+// Staggered grid animation variants
+const videoGridVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
+
+const videoCardContainerVariants = {
+  hidden: {
+    opacity: 0,
+    y: 20,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: 'spring' as const,
+      stiffness: 200,
+      damping: 20,
+    },
+  },
+};
+
 function VideoCardSkeleton() {
   return (
     <div
-      className="rounded-xl overflow-hidden animate-pulse"
+      className="overflow-hidden animate-pulse h-full flex flex-col"
       style={{
+        borderRadius: '16px',
         background: 'var(--color-glass-bg)',
         border: '1px solid var(--color-border)',
       }}
@@ -32,14 +57,14 @@ function VideoCardSkeleton() {
         className="aspect-video"
         style={{ background: 'var(--color-border)' }}
       />
-      <div className="p-3 space-y-2">
+      <div className="p-3 flex-1 flex items-start">
         <div
           className="h-4 rounded"
-          style={{ background: 'var(--color-border)', width: '80%' }}
-        />
-        <div
-          className="h-3 rounded"
-          style={{ background: 'var(--color-border)', width: '40%' }}
+          style={{
+            background: 'var(--color-border)',
+            width: '80%',
+            minHeight: '2.5em',
+          }}
         />
       </div>
     </div>
@@ -48,105 +73,114 @@ function VideoCardSkeleton() {
 
 export function VideosGrid({
   videos,
-  filter,
-  onFilterChange,
   onVideoSelect,
   isLoading = false,
 }: VideosGridProps) {
   const prefersReducedMotion = useReducedMotion();
-  const categories = getVideoCategories();
-
-  const filteredVideos =
-    filter === 'all'
-      ? videos
-      : videos.filter((video) => video.category === filter);
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-2">
-          <Video
-            size={24}
-            style={{ color: 'var(--color-brand-primary)' }}
+    <div className="space-y-6">
+      {/* Section Header with glow */}
+      <div className="flex items-center gap-3">
+        <Video
+          size={24}
+          style={{
+            color: '#F97316',
+            filter: 'drop-shadow(0 0 10px rgba(249, 115, 22, 0.5))',
+          }}
+        />
+        <h2
+          className="text-xl font-bold relative"
+          style={{ color: 'var(--color-text-primary)' }}
+        >
+          Music Videos
+          {/* Underline glow */}
+          <span
+            className="absolute left-0 -bottom-1"
+            style={{
+              width: 40,
+              height: 2,
+              background: 'linear-gradient(90deg, #F97316, transparent)',
+            }}
           />
-          <h2
-            className="text-xl font-bold"
-            style={{ color: 'var(--color-text-primary)' }}
-          >
-            Music Videos
-          </h2>
-        </div>
-
-        {/* Category filter tabs */}
-        <div className="flex gap-1 overflow-x-auto pb-1">
-          {categories.map((category) => (
-            <motion.button
-              key={category.value}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors"
-              style={{
-                background:
-                  filter === category.value
-                    ? 'var(--color-brand-primary)'
-                    : 'var(--color-glass-bg)',
-                color:
-                  filter === category.value
-                    ? 'white'
-                    : 'var(--color-text-secondary)',
-                border: `1px solid ${filter === category.value ? 'var(--color-brand-primary)' : 'var(--color-border)'}`,
-              }}
-              variants={prefersReducedMotion ? undefined : filterTabVariants}
-              onClick={() => onFilterChange(category.value)}
-            >
-              {category.label}
-            </motion.button>
-          ))}
-        </div>
+        </h2>
       </div>
 
-      {/* Videos grid */}
+      {/* Videos grid with staggered animation */}
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
+          style={{ gap: 16 }}
+        >
           {Array.from({ length: 8 }).map((_, i) => (
             <VideoCardSkeleton key={i} />
           ))}
         </div>
       ) : (
-        <motion.div
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
-          variants={prefersReducedMotion ? undefined : gameGridVariants}
-          initial="initial"
-          animate="animate"
-          key={filter}
-        >
-          {filteredVideos.map((video) => (
-            <VideoCard
-              key={video.id}
-              video={video}
-              onClick={() => onVideoSelect(video)}
-            />
-          ))}
-        </motion.div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
+            style={{ gap: 16 }}
+            variants={prefersReducedMotion ? undefined : videoGridVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {videos.map((video, index) => (
+              <motion.div
+                key={video.id}
+                className="h-full"
+                variants={prefersReducedMotion ? undefined : videoCardContainerVariants}
+                custom={index}
+              >
+                <VideoCard
+                  video={video}
+                  onClick={() => onVideoSelect(video)}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
       )}
 
-      {/* Empty state */}
-      {!isLoading && filteredVideos.length === 0 && (
-        <div
-          className="p-8 rounded-xl text-center"
+      {/* Empty state with animation */}
+      {!isLoading && videos.length === 0 && (
+        <motion.div
+          className="p-12 rounded-2xl text-center"
           style={{
             background: 'var(--color-glass-bg)',
             border: '1px solid var(--color-border)',
           }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
         >
-          <Video
-            size={48}
-            className="mx-auto mb-4 opacity-30"
-            style={{ color: 'var(--color-text-muted)' }}
-          />
+          <motion.div
+            animate={prefersReducedMotion ? undefined : {
+              y: [0, -10, 0],
+              rotate: [0, 5, -5, 0],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+            className="text-5xl mb-4"
+          >
+            <Film
+              size={48}
+              className="mx-auto"
+              style={{ color: 'rgba(249, 115, 22, 0.5)' }}
+            />
+          </motion.div>
+          <h3
+            className="text-lg font-semibold mb-2"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
+            No videos yet
+          </h3>
           <p style={{ color: 'var(--color-text-muted)' }}>
-            No videos in this category
+            Check back soon for new content!
           </p>
-        </div>
+        </motion.div>
       )}
     </div>
   );

@@ -1,0 +1,393 @@
+/**
+ * Shop Component Styles
+ *
+ * Styles for the shop page and item cards.
+ */
+
+.shop-page {
+  --background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+}
+
+/* Premium Shop Header */
+.shop-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 20px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 140, 50, 0.15) 0%,
+    transparent 100%
+  );
+  position: relative;
+}
+
+/* Decorative orb */
+.shop-header::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.2), transparent 70%);
+  pointer-events: none;
+}
+
+.shop-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.shop-header h1 {
+  color: #fff;
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.shop-header .close-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.shop-header .close-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.purchase-message {
+  margin: 0 20px 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 600;
+  animation: shop-slide-in 0.3s ease-out;
+}
+
+@keyframes shop-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.purchase-message.success {
+  background: linear-gradient(
+    135deg,
+    rgba(76, 175, 80, 0.2),
+    rgba(56, 142, 60, 0.1)
+  );
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
+.purchase-message.error {
+  background: linear-gradient(
+    135deg,
+    rgba(231, 76, 60, 0.2),
+    rgba(192, 57, 43, 0.1)
+  );
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  color: #e74c3c;
+}
+
+.category-tabs {
+  --background: transparent;
+  padding: 0 20px;
+  margin-bottom: 16px;
+}
+
+.category-tabs ion-segment-button {
+  --color: rgba(255, 255, 255, 0.6);
+  --color-checked: #fff;
+  --indicator-color: rgba(255, 140, 50, 0.8);
+  min-width: 80px;
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+}
+
+.items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  padding: 0 20px 20px;
+}
+
+@media (max-width: 400px) {
+  .items-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 0 12px 20px;
+  }
+}
+
+/* Premium Shop Item Cards with Rarity Glows */
+.shop-item-card {
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  position: relative;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Rarity-based border and hover glows */
+.shop-item-card.rarity-rare {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+.shop-item-card.rarity-rare:hover {
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+}
+
+.shop-item-card.rarity-epic {
+  border-color: rgba(168, 85, 247, 0.3);
+}
+.shop-item-card.rarity-epic:hover {
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.3);
+}
+
+.shop-item-card.rarity-legendary {
+  border-color: rgba(255, 215, 0, 0.3);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), transparent);
+}
+.shop-item-card.rarity-legendary:hover {
+  box-shadow: 0 0 40px rgba(255, 215, 0, 0.4);
+}
+
+.shop-item-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--rarity-color, rgba(255, 255, 255, 0.2));
+}
+
+.shop-item-card.owned {
+  opacity: 0.7;
+}
+
+.shop-item-card.owned:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Rarity badges with gradients */
+.rarity-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.rarity-badge.rarity-common {
+  background: linear-gradient(135deg, #95A5A6, #7F8C8D);
+  color: #fff;
+}
+
+.rarity-badge.rarity-rare {
+  background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+  color: #fff;
+}
+
+.rarity-badge.rarity-epic {
+  background: linear-gradient(135deg, #A855F7, #7C3AED);
+  color: #fff;
+}
+
+.rarity-badge.rarity-legendary {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #1a1a1a;
+  animation: legendaryPulse 2s ease infinite;
+}
+
+@keyframes legendaryPulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+}
+
+.limited-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 20px;
+  animation: limitedPulse 2s ease-in-out infinite;
+}
+
+@keyframes limitedPulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+  }
+}
+
+/* Item preview with hover animation */
+.item-preview {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  margin: 16px 0 12px;
+  transition: transform 0.3s ease;
+}
+
+.shop-item-card:hover .item-preview {
+  transform: scale(1.05);
+}
+
+.item-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.preview-emoji {
+  font-size: 3.5rem;
+  transition: all 0.3s ease;
+}
+
+.shop-item-card:hover .preview-emoji {
+  transform: scale(1.1) rotate(5deg);
+  filter: drop-shadow(0 0 20px rgba(249, 115, 22, 0.5));
+}
+
+.item-info {
+  text-align: center;
+  margin-bottom: 12px;
+  flex: 1;
+}
+
+.item-name {
+  display: block;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.item-description {
+  display: block;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.item-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.item-price {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.price {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.price.oranges {
+  color: #ff8c32;
+}
+
+.price.gems {
+  color: #9b59b6;
+}
+
+/* Premium purchase button */
+.buy-button {
+  --background: linear-gradient(135deg, #F97316, #EA580C);
+  --border-radius: 10px;
+  font-weight: 600;
+  width: 100%;
+  height: 40px;
+  transition: all 0.3s ease;
+}
+
+.buy-button:hover:not([disabled]) {
+  --box-shadow: 0 0 20px rgba(249, 115, 22, 0.5);
+}
+
+.buy-button[disabled] {
+  --background: rgba(255, 255, 255, 0.05);
+  --border: 1px solid rgba(255, 255, 255, 0.1);
+  --color: rgba(255, 255, 255, 0.4);
+  opacity: 1;
+}
+
+.owned-badge {
+  color: #22c55e;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* Shop Modal Styles (when used as modal) */
+.shop-modal {
+  --background: transparent;
+}
+
+.shop-modal::part(content) {
+  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+  border-radius: 24px 24px 0 0;
+  max-height: 90vh;
+}

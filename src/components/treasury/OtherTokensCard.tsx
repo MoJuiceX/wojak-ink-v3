@@ -54,7 +54,7 @@ export function OtherTokensCard({ tokens, isLoading = false }: OtherTokensCardPr
 
   return (
     <motion.div
-      className="rounded-2xl overflow-hidden flex-1"
+      className="rounded-2xl overflow-hidden flex-1 flex flex-col min-h-0"
       style={{
         background: 'var(--color-glass-bg)',
         border: '1px solid var(--color-border)',
@@ -63,13 +63,13 @@ export function OtherTokensCard({ tokens, isLoading = false }: OtherTokensCardPr
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2, duration: 0.4 }}
     >
-      {/* Token list - single column for full names */}
-      <div className="p-3">
-        <div className="flex flex-col gap-2">
+      {/* Token list - scrollable content area */}
+      <div className="p-3 flex-1 overflow-y-auto min-h-0">
+        <div className="flex flex-col gap-1.5">
           {sortedTokens.map((token, index) => (
             <motion.div
               key={token.id}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg"
               style={{
                 background: 'var(--color-bg-primary)',
                 border: '1px solid var(--color-border)',

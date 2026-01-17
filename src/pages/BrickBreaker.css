@@ -1,0 +1,320 @@
+/* ============================================
+   BRICK BREAKER GAME STYLES
+   ============================================ */
+
+.brick-breaker-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.brick-breaker-container.mobile {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ============================================
+   CONTROL BUTTONS
+   ============================================ */
+
+.bb-back-btn,
+.bb-sound-btn {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  z-index: 50;
+  transition: all 0.2s ease;
+}
+
+.bb-back-btn {
+  top: 12px;
+  left: 12px;
+}
+
+.bb-sound-btn {
+  top: 12px;
+  left: 64px;
+  font-size: 20px;
+}
+
+.bb-back-btn:hover,
+.bb-sound-btn:hover {
+  background: rgba(255, 107, 0, 0.3);
+  border-color: rgba(255, 107, 0, 0.5);
+}
+
+.bb-back-btn:active,
+.bb-sound-btn:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 480px) {
+  .bb-back-btn,
+  .bb-sound-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .bb-back-btn {
+    top: 8px;
+    left: 8px;
+  }
+
+  .bb-sound-btn {
+    top: 8px;
+    left: 56px;
+    font-size: 18px;
+  }
+}
+
+/* ============================================
+   GAME CANVAS
+   ============================================ */
+
+.bb-canvas {
+  border-radius: 12px;
+  box-shadow:
+    0 0 40px rgba(255, 107, 0, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+  cursor: none;
+}
+
+.mobile .bb-canvas {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ============================================
+   GAME OVER OVERLAY
+   ============================================ */
+
+.bb-game-over-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+  animation: bb-game-over-appear 0.5s ease-out;
+}
+
+@keyframes bb-game-over-appear {
+  0% {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
+}
+
+.bb-game-over-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  max-width: 400px;
+  width: 100%;
+  animation: bb-game-over-content 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+@keyframes bb-game-over-content {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.bb-game-over-emoji {
+  font-size: 5rem;
+  animation: bb-emoji-bounce 1s ease-in-out infinite;
+}
+
+@keyframes bb-emoji-bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.bb-game-over-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ff6b00;
+  margin: 0;
+}
+
+.bb-game-over-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.bb-game-over-score .bb-score-value {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+  line-height: 1;
+  animation: bb-final-score-pulse 2s ease-in-out infinite;
+}
+
+@keyframes bb-final-score-pulse {
+  0%, 100% {
+    text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 50px rgba(255, 107, 0, 0.8), 0 0 80px rgba(255, 107, 0, 0.4);
+  }
+}
+
+.bb-game-over-score .bb-score-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.bb-game-over-stats {
+  display: flex;
+  gap: 32px;
+  margin: 8px 0;
+}
+
+.bb-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bb-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ff6b00;
+}
+
+.bb-stat-label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+}
+
+.bb-new-record {
+  font-size: 1rem;
+  color: #ffd700;
+  font-weight: 700;
+  animation: bb-glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes bb-glow {
+  from {
+    text-shadow: 0 0 10px #ffd700;
+  }
+  to {
+    text-shadow: 0 0 30px #ffd700, 0 0 60px #ffa500;
+  }
+}
+
+.bb-submitted {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  min-height: 1.2em;
+}
+
+.bb-game-over-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.bb-play-btn {
+  padding: 14px 36px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #ff6b00, #ff8533);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
+}
+
+.bb-play-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(255, 107, 0, 0.5);
+}
+
+.bb-play-btn:active {
+  transform: translateY(0);
+}
+
+.bb-back-to-games-btn {
+  padding: 12px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bb-back-to-games-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 480px) {
+  .bb-game-over-title {
+    font-size: 1.5rem;
+  }
+
+  .bb-game-over-score .bb-score-value {
+    font-size: 2.5rem;
+  }
+
+  .bb-game-over-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .bb-play-btn,
+  .bb-back-to-games-btn {
+    width: 100%;
+  }
+}

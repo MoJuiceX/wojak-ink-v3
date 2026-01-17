@@ -2,6 +2,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAudio } from '@/contexts/AudioContext';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
+import { useGameSounds } from '@/hooks/useGameSounds';
+import { useGameHaptics } from '@/systems/haptics';
+import { ShareButton } from '@/systems/sharing';
 // import { useMedia } from '@/contexts/MediaContext'; // Temporarily disabled
 import './OrangeJuggle.css';
 
@@ -48,7 +51,7 @@ const POWERUP_FALL_SPEED = 2; // Power-ups fall slowly at constant speed
 const RUMS_FOR_REVERSE = 1; // Number of rums to trigger reversed controls (1 = immediate)
 
 // Orangutan sprite (2 frames: left hands up, right hands up)
-const JUGGLE_SPRITE = '/assets/games/juggle.png';
+const JUGGLE_SPRITE = '/assets/Games/games_media/juggle.png';
 
 // Combo decay - reset combo if no hits for this duration (ms)
 const COMBO_DECAY_TIME = 2500;
@@ -102,6 +105,8 @@ type GameMode = 'campaign';
 const OrangeJuggle: React.FC = () => {
   // Audio context for sound effects
   const { isSoundEffectsEnabled, isBackgroundMusicPlaying, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
+  const { playGameStart, playLevelUp, playGameOver, playWarning, playCombo } = useGameSounds();
+  const { hapticScore, hapticCombo, hapticHighScore, hapticGameOver, hapticLevelUp, hapticCollision, hapticWarning } = useGameHaptics();
   // const { videoPlayer, musicPlayer } = useMedia(); // Temporarily disabled
 
   // Global leaderboard hook
@@ -115,11 +120,11 @@ const OrangeJuggle: React.FC = () => {
 
   // Sad images for camel loss screen
   const SAD_IMAGES = [
-    '/assets/games/sad_1.png',
-    '/assets/games/sad_2.png',
-    '/assets/games/sad_3.png',
-    '/assets/games/sad_4.png',
-    '/assets/games/sad_5.png',
+    '/assets/Games/games_media/sad_1.png',
+    '/assets/Games/games_media/sad_2.png',
+    '/assets/Games/games_media/sad_3.png',
+    '/assets/Games/games_media/sad_4.png',
+    '/assets/Games/games_media/sad_5.png',
   ];
 
   // Game state
@@ -303,6 +308,10 @@ const OrangeJuggle: React.FC = () => {
 
   // Initialize game
   const startGame = useCallback((mode: GameMode) => {
+    // Play game start sound + haptic
+    playGameStart();
+    hapticScore(); // Light tap on game start
+
     setGameMode(mode);
     setGameState('playing');
     setScore(0);
@@ -353,10 +362,14 @@ const OrangeJuggle: React.FC = () => {
     for (let i = 0; i < config.oranges; i++) {
       setTimeout(() => spawnObject('orange'), i * 500);
     }
-  }, [level, spawnObject]);
+  }, [level, spawnObject, playGameStart, hapticScore]);
 
   // Start next level
   const startNextLevel = useCallback(() => {
+    // Play level up sound + haptic
+    playLevelUp();
+    hapticLevelUp();
+
     const nextLevel = level + 1;
     if (nextLevel > 5) {
       // This shouldn't happen normally, but just in case
@@ -397,7 +410,7 @@ const OrangeJuggle: React.FC = () => {
     for (let i = 0; i < config.oranges; i++) {
       setTimeout(() => spawnObject('orange'), i * 500);
     }
-  }, [level, spawnObject]);
+  }, [level, spawnObject, playLevelUp]);
 
   // Handle paddle movement - free horizontal, anchored at bottom with 10% vertical range
   // Speed modifier affects how quickly paddle reaches target position
@@ -718,9 +731,15 @@ const OrangeJuggle: React.FC = () => {
         setCombo(comboRef.current);
         lastHitTimeRef.current = Date.now(); // Reset combo decay timer
 
-        // Play bounce sound and trigger orangutan animation
+        // Play bounce sound and trigger orangutan animation + haptic
         playBounceSound();
         triggerOrangutanBounce();
+        // Haptic feedback on hit - escalate with combo
+        if (comboRef.current >= 3) {
+          hapticCombo(comboRef.current);
+        } else {
+          hapticScore();
+        }
       }
 
       // Combo decay - reset combo if no hits for too long
@@ -796,6 +815,8 @@ const OrangeJuggle: React.FC = () => {
         if (animationRef.current) {
           cancelAnimationFrame(animationRef.current);
         }
+        // Haptic collision feedback
+        hapticCollision();
         // Set camel loss state and pick random sad image
         setLostByCamel(true);
         setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
@@ -832,6 +853,7 @@ const OrangeJuggle: React.FC = () => {
           if (currentScore >= config.targetScore) {
             if (level >= 5) {
               // Completed all levels - go to save score screen
+              hapticHighScore(); // Victory haptic
               setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
               setGameState('saveScore');
               if (currentScore > highScore) {
@@ -839,10 +861,12 @@ const OrangeJuggle: React.FC = () => {
                 localStorage.setItem('orangeJuggleHighScore', String(currentScore));
               }
             } else {
+              hapticLevelUp(); // Level complete haptic
               setGameState('levelComplete');
             }
           } else {
             // Didn't reach target score - game over
+            hapticGameOver();
             setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
             setGameState('saveScore'); // Still allow saving score
             if (currentScore > highScore) {
@@ -1157,6 +1181,18 @@ const OrangeJuggle: React.FC = () => {
                       >
                         {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
                       </button>
+                      {/* Share button */}
+                      <ShareButton
+                        scoreData={{
+                          gameId: 'orange-juggle',
+                          gameName: 'Orange Juggle',
+                          score,
+                          highScore,
+                          isNewHighScore: isNewPersonalBest || score > highScore,
+                          rank: undefined
+                        }}
+                        variant="button"
+                      />
                     </div>
                   ) : (
                     /* Guests: name input form */
@@ -1189,6 +1225,18 @@ const OrangeJuggle: React.FC = () => {
                       >
                         {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
                       </button>
+                      {/* Share button */}
+                      <ShareButton
+                        scoreData={{
+                          gameId: 'orange-juggle',
+                          gameName: 'Orange Juggle',
+                          score,
+                          highScore,
+                          isNewHighScore: isNewPersonalBest || score > highScore,
+                          rank: undefined
+                        }}
+                        variant="button"
+                      />
                     </div>
                   )}
                 </div>

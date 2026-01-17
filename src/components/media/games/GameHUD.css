@@ -1,0 +1,239 @@
+/**
+ * GameHUD Styles
+ *
+ * Premium glassmorphism HUD styling for all games.
+ */
+
+/* ============================================================================
+   UNIVERSAL GAME HUD - Premium Glassmorphism
+   ============================================================================ */
+
+.game-hud {
+  position: absolute;
+  display: flex;
+  gap: 20px;
+  padding: 14px 24px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================================================
+   POSITION VARIANTS
+   ============================================================================ */
+
+.game-hud-top {
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.game-hud-bottom {
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.game-hud-top-left {
+  top: 16px;
+  left: 16px;
+}
+
+.game-hud-top-right {
+  top: 16px;
+  right: 16px;
+}
+
+.game-hud-bottom-left {
+  bottom: 16px;
+  left: 16px;
+}
+
+.game-hud-bottom-right {
+  bottom: 16px;
+  right: 16px;
+}
+
+/* ============================================================================
+   COMPACT VARIANT
+   ============================================================================ */
+
+.game-hud-compact {
+  gap: 14px;
+  padding: 10px 16px;
+  border-radius: 14px;
+}
+
+.game-hud-compact .hud-stat {
+  min-width: 50px;
+}
+
+.game-hud-compact .hud-stat-value {
+  font-size: 18px;
+}
+
+.game-hud-compact .hud-stat-label {
+  font-size: 9px;
+}
+
+/* ============================================================================
+   STAT ITEMS
+   ============================================================================ */
+
+.hud-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 65px;
+}
+
+.hud-stat-value {
+  font-size: 24px;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;
+  line-height: 1;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.hud-stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-top: 5px;
+}
+
+.hud-stat-icon {
+  margin-right: 4px;
+}
+
+/* ============================================================================
+   STAT TYPE SPECIFIC STYLES
+   ============================================================================ */
+
+/* Level stat - gold accent */
+.hud-stat-level {
+  border-left: 3px solid #ffd700;
+  padding-left: 12px;
+  margin-left: -4px;
+}
+
+/* Score stat - green accent */
+.hud-stat-score {
+  border-left: 3px solid #00ff88;
+  padding-left: 12px;
+  margin-left: -4px;
+}
+
+/* Progress stat - orange accent */
+.hud-stat-progress .hud-stat-value {
+  font-size: 20px;
+}
+
+/* Combo stat - animated pulse */
+.hud-stat-combo .hud-stat-value {
+  animation: hud-combo-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes hud-combo-pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
+
+/* Lives stat - hearts */
+.hud-stat-lives-hearts {
+  display: flex;
+  gap: 2px;
+  font-size: 18px !important;
+}
+
+.hud-heart {
+  display: inline-block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Time stat - blue accent */
+.hud-stat-time {
+  border-left: 3px solid #00bfff;
+  padding-left: 12px;
+  margin-left: -4px;
+}
+
+/* ============================================================================
+   MOBILE RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  .game-hud {
+    padding: 10px 14px;
+    gap: 12px;
+    border-radius: 14px;
+  }
+
+  .game-hud-top,
+  .game-hud-bottom {
+    left: 12px;
+    right: 12px;
+    transform: none;
+    justify-content: space-around;
+  }
+
+  .game-hud-top-left,
+  .game-hud-top-right,
+  .game-hud-bottom-left,
+  .game-hud-bottom-right {
+    left: 12px;
+    right: 12px;
+  }
+
+  .hud-stat {
+    min-width: 48px;
+  }
+
+  .hud-stat-value {
+    font-size: 18px;
+  }
+
+  .hud-stat-label {
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+
+  .hud-stat-level,
+  .hud-stat-score,
+  .hud-stat-time {
+    border-left: none;
+    padding-left: 0;
+    margin-left: 0;
+  }
+
+  .hud-stat-lives-hearts {
+    font-size: 14px !important;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+  .game-hud {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .hud-stat {
+    min-width: 40px;
+  }
+
+  .hud-stat-value {
+    font-size: 16px;
+  }
+
+  .hud-stat-label {
+    font-size: 7px;
+  }
+}

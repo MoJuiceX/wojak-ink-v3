@@ -1,0 +1,207 @@
+/**
+ * Knife Game Styles
+ *
+ * Matches the Orange Grove background and split-screen layout of other games.
+ */
+
+.knife-content {
+  --background: transparent;
+}
+
+/* Orange Grove Background */
+.knife-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/assets/wojak-layers/BACKGROUND/Scene/BACKGROUND_Orange Grove.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -2;
+}
+
+.knife-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: -1;
+}
+
+.knife-area {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Split menu layout */
+.knife-content .game-menu-split {
+  display: flex;
+  flex-direction: row;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.knife-content .menu-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+}
+
+.knife-content .menu-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Game Title */
+.knife-content .game-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--color-text-primary, #fff);
+  margin-bottom: 32px;
+  margin-top: -40px;
+}
+
+/* Game Emoji */
+.knife-content .game-emoji {
+  font-size: 100px;
+  margin-bottom: 32px;
+  animation: knife-bounce 1s ease-in-out infinite;
+}
+
+@keyframes knife-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+/* Game Description */
+.knife-content .game-desc {
+  color: var(--color-text-secondary, #aaa);
+  font-size: 14px;
+  margin: 4px 0;
+}
+
+/* Coming Soon Badge */
+.knife-content .coming-soon-badge {
+  margin-top: 24px;
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border-radius: 50px;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+}
+
+/* Media Player */
+.knife-content .knife-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 280px;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+/* Player Artwork */
+.knife-content .player-artwork {
+  width: 160px;
+  height: 160px;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Player Info */
+.knife-content .player-info {
+  text-align: center;
+}
+
+.knife-content .player-track-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.knife-content .player-track-artist {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Play Button */
+.knife-content .player-play-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+}
+
+.knife-content .player-play-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 30px rgba(239, 68, 68, 0.5);
+}
+
+.knife-content .player-play-btn:active {
+  transform: scale(0.95);
+}
+
+.knife-content .player-play-btn.playing {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+/* Progress Bar */
+.knife-content .player-progress-container {
+  width: 100%;
+  cursor: pointer;
+}
+
+.knife-content .player-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.knife-content .player-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ef4444, #f87171);
+  border-radius: 3px;
+  transition: width 0.1s linear;
+}
+
+.knife-content .player-time {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}

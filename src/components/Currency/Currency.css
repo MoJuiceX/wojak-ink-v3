@@ -1,0 +1,439 @@
+/**
+ * Currency Component Styles
+ *
+ * Styles for currency display, earned popups, and daily rewards.
+ */
+
+/* Currency Display */
+.currency-display {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.currency-display.clickable {
+  cursor: pointer;
+}
+
+.currency-display.clickable:hover .currency-item {
+  transform: scale(1.02);
+}
+
+.currency-display.loading .currency-skeleton {
+  width: 80px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  animation: currency-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes currency-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.currency-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.currency-item.oranges {
+  background: linear-gradient(135deg, rgba(255, 140, 50, 0.2), rgba(255, 100, 50, 0.1));
+  border-color: rgba(255, 140, 50, 0.3);
+}
+
+.currency-item.gems {
+  background: linear-gradient(135deg, rgba(155, 89, 182, 0.2), rgba(142, 68, 173, 0.1));
+  border-color: rgba(155, 89, 182, 0.3);
+}
+
+.currency-icon {
+  font-size: 1rem;
+}
+
+.currency-value {
+  font-weight: 700;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.currency-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  margin-left: 4px;
+}
+
+/* Size Variants */
+.currency-small .currency-item {
+  padding: 4px 8px;
+}
+
+.currency-small .currency-icon {
+  font-size: 0.85rem;
+}
+
+.currency-small .currency-value {
+  font-size: 0.85rem;
+}
+
+.currency-large .currency-item {
+  padding: 10px 20px;
+}
+
+.currency-large .currency-icon {
+  font-size: 1.3rem;
+}
+
+.currency-large .currency-value {
+  font-size: 1.2rem;
+}
+
+/* Currency Earned Popup */
+.currency-earned-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, rgba(20, 20, 35, 0.98), rgba(30, 30, 50, 0.95));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 140, 50, 0.3);
+  padding: 24px 32px;
+  text-align: center;
+  z-index: 10000;
+  animation: currency-popup-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  min-width: 280px;
+}
+
+@keyframes currency-popup-appear {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.earned-header {
+  margin-bottom: 16px;
+}
+
+.earned-title {
+  color: #ffd700;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.earned-main {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.earned-currency {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.earned-currency .icon {
+  font-size: 2rem;
+  animation: currency-icon-bounce 0.5s ease-out;
+}
+
+@keyframes currency-icon-bounce {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+}
+
+.earned-currency .amount {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.earned-currency.oranges .amount {
+  color: #ff8c32;
+}
+
+.earned-currency.gems .amount {
+  color: #9b59b6;
+}
+
+.earned-breakdown {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 16px;
+  animation: currency-fade-in 0.3s ease-out;
+}
+
+@keyframes currency-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.breakdown-item.highlight {
+  color: #ffd700;
+  font-weight: 600;
+}
+
+/* Daily Reward Modal */
+.daily-reward-modal {
+  --background: transparent;
+}
+
+.daily-reward-modal::part(content) {
+  background: linear-gradient(135deg, rgba(20, 20, 35, 0.98), rgba(30, 30, 50, 0.95));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  max-width: 420px;
+  margin: auto;
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.daily-reward-content {
+  padding: 24px;
+}
+
+.daily-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.daily-header h2 {
+  color: #fff;
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.daily-header .close-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.daily-header .close-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.streak-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.15), rgba(255, 140, 50, 0.1));
+  border-radius: 16px;
+  border: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+.streak-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.streak-value {
+  color: #ff6b35;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.weekly-rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 480px) {
+  .weekly-rewards-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.daily-reward-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.daily-reward-card.today {
+  border-color: #ff8c32;
+  background: linear-gradient(135deg, rgba(255, 140, 50, 0.2), rgba(255, 100, 50, 0.1));
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(255, 140, 50, 0.3);
+}
+
+.daily-reward-card.claimed {
+  opacity: 0.6;
+}
+
+.day-label {
+  display: block;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.7rem;
+  margin-bottom: 6px;
+}
+
+.reward-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.reward-icon {
+  font-size: 1rem;
+}
+
+.reward-amount {
+  font-weight: 600;
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+.bonus-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  font-size: 1rem;
+}
+
+.claimed-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4caf50;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.error-message {
+  color: #e74c3c;
+  text-align: center;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.claimed-reward-display {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(56, 142, 60, 0.1));
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+  animation: celebration-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes celebration-pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.claimed-title {
+  display: block;
+  color: #4caf50;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.claimed-amounts {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.daily-actions {
+  margin-top: 20px;
+}
+
+.daily-actions .claim-button {
+  --background: linear-gradient(135deg, #ff8c32, #ff6420);
+  --border-radius: 12px;
+  font-weight: 600;
+}
+
+.next-reward-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+}
+
+.next-reward-timer .timer {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 4px;
+}

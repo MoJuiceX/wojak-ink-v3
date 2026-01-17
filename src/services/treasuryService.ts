@@ -314,9 +314,45 @@ async function fetchTokenBalances(): Promise<TokenBalance[]> {
 }
 
 /**
+ * Get cached/fallback NFT collections from localStorage or hardcoded data
+ */
+function getCachedNFTCollections(): NFTCollection[] {
+  const cached = loadCache();
+  if (cached?.nftCollections?.length) {
+    return cached.nftCollections.map((c) => ({
+      collectionId: c.collectionId,
+      collectionName: c.collectionName,
+      previewImage: c.previewImage,
+      count: c.count,
+      nfts: c.nfts.map((n) => ({
+        nftId: n.nftId,
+        name: n.name,
+        imageUrl: n.imageUrl,
+        collectionId: n.collectionId,
+        collectionName: n.collectionName,
+      })),
+    }));
+  }
+  // Use hardcoded fallback
+  if (FALLBACK_DATA.nftCollections?.length) {
+    return FALLBACK_DATA.nftCollections.map((c) => ({
+      collectionId: c.collectionId,
+      collectionName: c.collectionName,
+      previewImage: c.previewImage,
+      count: c.count,
+      nfts: [],
+    }));
+  }
+  return [];
+}
+
+/**
  * Fetch NFTs from MintGarden API and group by collection
  */
 async function fetchNFTCollections(): Promise<NFTCollection[]> {
+  // Get cached/fallback collections to use if API fails
+  const fallbackCollections = getCachedNFTCollections();
+
   try {
     // Use MintGarden API with puzzle hash and type=owned
     const response = await fetch(
@@ -331,7 +367,8 @@ async function fetchNFTCollections(): Promise<NFTCollection[]> {
     const nfts = data.items || data.data || data.nfts || [];
 
     if (!Array.isArray(nfts) || nfts.length === 0) {
-      return [];
+      // No NFTs from API - use fallback
+      return fallbackCollections;
     }
 
     // Group NFTs by collection
@@ -368,8 +405,8 @@ async function fetchNFTCollections(): Promise<NFTCollection[]> {
     return Array.from(collectionMap.values())
       .sort((a, b) => b.count - a.count);
   } catch (error) {
-    console.warn('[Treasury] NFT fetch failed:', error);
-    return [];
+    console.warn('[Treasury] NFT fetch failed, using fallback:', error);
+    return fallbackCollections;
   }
 }
 
@@ -465,7 +502,7 @@ class TreasuryService implements ITreasuryService {
           : [];
 
     const nftCollections =
-      nftsResult.status === 'fulfilled' ? nftsResult.value : [];
+      nftsResult.status === 'fulfilled' ? nftsResult.value : getCachedNFTCollections();
 
     const totalTokenValue = tokens.reduce((sum, token) => sum + token.valueUsd, 0);
 

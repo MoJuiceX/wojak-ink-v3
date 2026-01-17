@@ -52,42 +52,45 @@ export function WalletButton({ className = '', size = 'md' }: WalletButtonProps)
 
   if (!wallet.connected) {
     return (
-      <motion.div
+      <motion.button
         className={`
-          relative flex items-center justify-center rounded-lg font-medium
+          relative flex items-center justify-center rounded-xl font-medium overflow-hidden
           ${sizeStyles[size]}
           ${className}
         `}
         style={{
-          background: 'rgba(30, 30, 40, 0.6)',
-          border: '1px solid var(--color-border)',
-          color: 'var(--color-text-muted)',
-          cursor: 'not-allowed',
-          opacity: 0.7,
+          background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)',
+          border: 'none',
+          color: 'white',
+          cursor: 'pointer',
         }}
-        title="Wallet connection coming soon"
+        whileHover={{
+          boxShadow: '0 0 20px rgba(249, 115, 22, 0.5), 0 10px 30px rgba(249, 115, 22, 0.3)',
+          y: -2,
+        }}
+        whileTap={{ scale: 0.98 }}
+        title="Connect Wallet"
       >
-        <Wallet size={size === 'sm' ? 16 : 18} style={{ opacity: 0.6 }} />
-        <span style={{ color: '#666' }}>Connect</span>
-
-        {/* Pulse animation glow effect */}
+        {/* Shine effect overlay */}
         <motion.div
-          className="absolute inset-0 rounded-lg pointer-events-none"
+          className="absolute inset-0 pointer-events-none"
           style={{
-            border: '1px solid var(--color-brand-primary)',
-            opacity: 0,
+            background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+            transform: 'translateX(-100%)',
           }}
           animate={{
-            opacity: [0, 0.3, 0],
-            scale: [1, 1.02, 1],
+            transform: ['translateX(-100%)', 'translateX(100%)'],
           }}
           transition={{
             duration: 2,
             repeat: Infinity,
+            repeatDelay: 3,
             ease: 'easeInOut',
           }}
         />
-      </motion.div>
+        <Wallet size={size === 'sm' ? 16 : 18} />
+        <span>Connect</span>
+      </motion.button>
     );
   }
 

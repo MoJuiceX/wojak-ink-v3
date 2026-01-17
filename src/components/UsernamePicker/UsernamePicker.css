@@ -1,0 +1,222 @@
+/* ===== USERNAME PICKER STYLES ===== */
+
+/* Modal Container */
+.username-picker-modal {
+  --width: min(90vw, 400px);
+  --height: auto;
+  --max-height: 90vh;
+  --border-radius: 24px;
+  --background: rgba(26, 26, 46, 0.98);
+}
+
+.username-picker-modal::part(content) {
+  border-radius: var(--border-radius);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.username-picker-content {
+  display: flex;
+  flex-direction: column;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+/* Header */
+.username-picker-header {
+  margin-bottom: 32px;
+}
+
+.welcome-avatar {
+  margin-bottom: 16px;
+}
+
+.username-picker-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.username-picker-header p {
+  margin: 0;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Username Input */
+.username-input-container {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.username-input {
+  --background: rgba(255, 255, 255, 0.1);
+  --color: #fff;
+  --placeholder-color: rgba(255, 255, 255, 0.4);
+  --padding-start: 16px;
+  --padding-end: 48px;
+  font-size: 1.1rem;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.username-input-container.error .username-input {
+  border-color: #ff4444;
+}
+
+.username-input-container.checking .username-input {
+  border-color: #888;
+}
+
+.username-input-container.available .username-input {
+  border-color: #44ff88;
+  box-shadow: 0 0 12px rgba(68, 255, 136, 0.2);
+}
+
+.username-input-container.taken .username-input {
+  border-color: #ff4444;
+}
+
+.input-status-icon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input-status-icon ion-spinner {
+  width: 20px;
+  height: 20px;
+  color: #888;
+}
+
+.check-icon {
+  color: #44ff88;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.x-icon {
+  color: #ff4444;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* Status Message */
+.username-status {
+  min-height: 24px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+}
+
+.error-message {
+  color: #ff6666;
+}
+
+.success-message {
+  color: #44ff88;
+}
+
+.taken-message {
+  color: #ff8844;
+}
+
+/* Suggestions */
+.username-suggestions {
+  margin-bottom: 20px;
+}
+
+.suggestions-label {
+  display: block;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 10px;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.suggestion-chip {
+  padding: 8px 16px;
+  background: rgba(255, 140, 50, 0.15);
+  border: 1px solid rgba(255, 140, 50, 0.4);
+  border-radius: 20px;
+  color: #ff8c32;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.suggestion-chip:hover {
+  background: rgba(255, 140, 50, 0.25);
+  border-color: rgba(255, 140, 50, 0.6);
+  transform: scale(1.02);
+}
+
+/* Rules */
+.username-rules {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+}
+
+.username-rules ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.username-rules li {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 4px 0;
+  padding-left: 20px;
+  position: relative;
+}
+
+.username-rules li::before {
+  content: '•';
+  position: absolute;
+  left: 6px;
+  color: rgba(255, 140, 50, 0.6);
+}
+
+/* Continue Button */
+.continue-button {
+  --background: linear-gradient(135deg, #ff8c32, #ff6b00);
+  --background-hover: linear-gradient(135deg, #ff9c42, #ff7b10);
+  --border-radius: 12px;
+  font-weight: 600;
+  height: 48px;
+}
+
+.continue-button[disabled] {
+  --background: rgba(255, 255, 255, 0.1);
+  opacity: 0.5;
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+  .username-picker-content {
+    padding: 24px 16px;
+  }
+
+  .username-picker-header h2 {
+    font-size: 1.3rem;
+  }
+
+  .suggestion-chip {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+}

@@ -6,10 +6,10 @@
  */
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Ban } from 'lucide-react';
 import { useGenerator } from '@/contexts/GeneratorContext';
-import { traitGridVariants } from '@/config/generatorAnimations';
+import { traitGridVariants, traitCardStaggerVariants } from '@/config/generatorAnimations';
 import { MouthLayerSelector } from './MouthLayerSelector';
 import type { LayerImage } from '@/services/generatorService';
 
@@ -39,37 +39,40 @@ function NoneCard({ isSelected, onClick }: NoneCardProps) {
 
   return (
     <motion.button
-      className="aspect-square relative rounded-xl overflow-hidden transition-all"
+      className="w-full aspect-square relative rounded-xl overflow-hidden p-1"
       style={{
-        background: 'var(--color-glass-bg)',
+        background: 'var(--generator-trait-card-bg)',
         border: isSelected
-          ? '2px solid var(--color-brand-primary)'
-          : '1px solid var(--color-border)',
+          ? '2px solid var(--generator-selected-color, #F97316)'
+          : '1px solid var(--generator-trait-card-border)',
+        boxShadow: isSelected
+          ? '0 0 20px var(--generator-selected-glow, rgba(249, 115, 22, 0.5)), 0 4px 12px rgba(0, 0, 0, 0.3)'
+          : '0 2px 8px rgba(0, 0, 0, 0.2)',
+        transition: 'all 0.3s ease',
       }}
-      whileHover={prefersReducedMotion ? undefined : { scale: 1.02 }}
+      whileHover={prefersReducedMotion ? undefined : { scale: 1.03 }}
       whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
+      transition={{ duration: 0.2 }}
       onClick={onClick}
     >
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="relative w-full h-full rounded-lg overflow-hidden flex items-center justify-center" style={{ background: 'rgba(0, 0, 0, 0.3)' }}>
         <Ban
           size={40}
-          style={{ color: isSelected ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
+          style={{ color: isSelected ? 'var(--generator-selected-color, #F97316)' : 'var(--color-text-muted)' }}
         />
       </div>
       {isSelected && (
-        <div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+        <motion.div
+          className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
+          style={{ background: 'var(--generator-badge-color, #F97316)' }}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 25 }}
         >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--color-brand-primary)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-              <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
-            </svg>
-          </div>
-        </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
+          </svg>
+        </motion.div>
       )}
     </motion.button>
   );
@@ -88,41 +91,49 @@ function ImageCard({ image, isSelected, isDisabled, disabledReason, onClick }: I
 
   return (
     <motion.button
-      className="aspect-square relative rounded-xl overflow-hidden transition-all"
+      className="w-full aspect-square relative rounded-xl overflow-hidden p-1"
       style={{
-        background: 'var(--color-glass-bg)',
+        background: 'var(--generator-trait-card-bg)',
         border: isSelected
-          ? '2px solid var(--color-brand-primary)'
-          : '1px solid var(--color-border)',
+          ? '2px solid var(--generator-selected-color, #F97316)'
+          : '1px solid var(--generator-trait-card-border)',
         opacity: isDisabled ? 0.5 : 1,
         cursor: isDisabled ? 'not-allowed' : 'pointer',
+        boxShadow: isSelected
+          ? '0 0 20px var(--generator-selected-glow, rgba(249, 115, 22, 0.5)), 0 4px 12px rgba(0, 0, 0, 0.3)'
+          : '0 2px 8px rgba(0, 0, 0, 0.2)',
+        transition: 'all 0.3s ease',
       }}
-      whileHover={prefersReducedMotion || isDisabled ? undefined : { scale: 1.02 }}
+      whileHover={prefersReducedMotion || isDisabled ? undefined : { scale: 1.03 }}
       whileTap={prefersReducedMotion || isDisabled ? undefined : { scale: 0.98 }}
+      transition={{ duration: 0.2 }}
       onClick={onClick}
       disabled={isDisabled}
       title={isDisabled && disabledReason ? disabledReason : undefined}
     >
-      <img
-        src={image.path}
-        alt={image.displayName}
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
-      />
+      <div
+        className="relative w-full h-full rounded-lg overflow-hidden trait-card-image-bg"
+      >
+        <img
+          src={image.path}
+          alt={image.displayName}
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+      {/* Check mark with pop animation */}
       {isSelected && (
-        <div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+        <motion.div
+          className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
+          style={{ background: 'var(--generator-badge-color, #F97316)' }}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 25 }}
         >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--color-brand-primary)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-              <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
-            </svg>
-          </div>
-        </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
+          </svg>
+        </motion.div>
       )}
     </motion.button>
   );
@@ -165,56 +176,64 @@ function BaseImageCard({ image, isSelected, isDisabled, disabledReason, onClick 
 
   return (
     <motion.button
-      className="aspect-square relative rounded-xl overflow-hidden transition-all"
+      className="w-full aspect-square relative rounded-xl overflow-hidden p-1"
       style={{
-        background: 'var(--color-glass-bg)',
+        background: 'var(--generator-trait-card-bg)',
         border: isSelected
-          ? '2px solid var(--color-brand-primary)'
-          : '1px solid var(--color-border)',
+          ? '2px solid var(--generator-selected-color, #F97316)'
+          : '1px solid var(--generator-trait-card-border)',
         opacity: isDisabled ? 0.5 : 1,
         cursor: isDisabled ? 'not-allowed' : 'pointer',
+        boxShadow: isSelected
+          ? '0 0 20px var(--generator-selected-glow, rgba(249, 115, 22, 0.5)), 0 4px 12px rgba(0, 0, 0, 0.3)'
+          : '0 2px 8px rgba(0, 0, 0, 0.2)',
+        transition: 'all 0.3s ease',
       }}
-      whileHover={prefersReducedMotion || isDisabled ? undefined : { scale: 1.02 }}
+      whileHover={prefersReducedMotion || isDisabled ? undefined : { scale: 1.03 }}
       whileTap={prefersReducedMotion || isDisabled ? undefined : { scale: 0.98 }}
+      transition={{ duration: 0.2 }}
       onClick={onClick}
       disabled={isDisabled}
       title={isDisabled && disabledReason ? disabledReason : undefined}
     >
-      {/* Base layer */}
-      <img
-        src={image.path}
-        alt={image.displayName}
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
-      />
-      {/* Clothes layer (varies by base) */}
-      <img
-        src={getClothesForBase(image.path)}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
-      />
-      {/* Mouth layer (Numb) */}
-      <img
-        src={DEFAULT_MOUTH_PATH}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
-      />
+      <div
+        className="relative w-full h-full rounded-lg overflow-hidden trait-card-image-bg"
+      >
+        {/* Base layer */}
+        <img
+          src={image.path}
+          alt={image.displayName}
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+        />
+        {/* Clothes layer (varies by base) */}
+        <img
+          src={getClothesForBase(image.path)}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+        />
+        {/* Mouth layer (Numb) */}
+        <img
+          src={DEFAULT_MOUTH_PATH}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+      {/* Check mark with pop animation */}
       {isSelected && (
-        <div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+        <motion.div
+          className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
+          style={{ background: 'var(--generator-badge-color, #F97316)' }}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 25 }}
         >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--color-brand-primary)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-              <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
-            </svg>
-          </div>
-        </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
+          </svg>
+        </motion.div>
       )}
     </motion.button>
   );
@@ -233,56 +252,64 @@ function ClothesImageCard({ image, isSelected, isDisabled, disabledReason, onCli
 
   return (
     <motion.button
-      className="aspect-square relative rounded-xl overflow-hidden transition-all"
+      className="w-full aspect-square relative rounded-xl overflow-hidden p-1"
       style={{
-        background: 'var(--color-glass-bg)',
+        background: 'var(--generator-trait-card-bg)',
         border: isSelected
-          ? '2px solid var(--color-brand-primary)'
-          : '1px solid var(--color-border)',
+          ? '2px solid var(--generator-selected-color, #F97316)'
+          : '1px solid var(--generator-trait-card-border)',
         opacity: isDisabled ? 0.5 : 1,
         cursor: isDisabled ? 'not-allowed' : 'pointer',
+        boxShadow: isSelected
+          ? '0 0 20px var(--generator-selected-glow, rgba(249, 115, 22, 0.5)), 0 4px 12px rgba(0, 0, 0, 0.3)'
+          : '0 2px 8px rgba(0, 0, 0, 0.2)',
+        transition: 'all 0.3s ease',
       }}
-      whileHover={prefersReducedMotion || isDisabled ? undefined : { scale: 1.02 }}
+      whileHover={prefersReducedMotion || isDisabled ? undefined : { scale: 1.03 }}
       whileTap={prefersReducedMotion || isDisabled ? undefined : { scale: 0.98 }}
+      transition={{ duration: 0.2 }}
       onClick={onClick}
       disabled={isDisabled}
       title={isDisabled && disabledReason ? disabledReason : undefined}
     >
-      {/* Base layer (Classic) */}
-      <img
-        src={DEFAULT_BASE_PATH}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
-      />
-      {/* Clothes layer (variable) */}
-      <img
-        src={image.path}
-        alt={image.displayName}
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
-      />
-      {/* Mouth layer (Numb) */}
-      <img
-        src={DEFAULT_MOUTH_PATH}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
-      />
+      <div
+        className="relative w-full h-full rounded-lg overflow-hidden trait-card-image-bg"
+      >
+        {/* Base layer (Classic) */}
+        <img
+          src={DEFAULT_BASE_PATH}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+        />
+        {/* Clothes layer (variable) */}
+        <img
+          src={image.path}
+          alt={image.displayName}
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+        />
+        {/* Mouth layer (Numb) */}
+        <img
+          src={DEFAULT_MOUTH_PATH}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+      {/* Check mark with pop animation */}
       {isSelected && (
-        <div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+        <motion.div
+          className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
+          style={{ background: 'var(--generator-badge-color, #F97316)' }}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 25 }}
         >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--color-brand-primary)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-              <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
-            </svg>
-          </div>
-        </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
+          </svg>
+        </motion.div>
       )}
     </motion.button>
   );
@@ -303,6 +330,7 @@ export function TraitSelector({ className = '' }: TraitSelectorProps) {
   const prefersReducedMotion = useReducedMotion();
 
   const [images, setImages] = useState<LayerImage[]>([]);
+  const [imagesForLayer, setImagesForLayer] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check if this is a mouth layer (must be before any conditional returns but after hooks)
@@ -310,6 +338,9 @@ export function TraitSelector({ className = '' }: TraitSelectorProps) {
 
   const selectedPath = selectedLayers[activeLayer];
   const isBlocked = isLayerDisabled(activeLayer);
+
+  // Check if images are stale (loaded for a different layer)
+  const imagesAreStale = imagesForLayer !== activeLayer;
 
   // Load images when layer changes (only for non-mouth layers)
   useEffect(() => {
@@ -319,11 +350,13 @@ export function TraitSelector({ className = '' }: TraitSelectorProps) {
     getLayerImages(activeLayer)
       .then((imgs) => {
         setImages(imgs);
+        setImagesForLayer(activeLayer);
         setIsLoading(false);
       })
       .catch((err) => {
         console.error('Failed to load layer images:', err);
         setImages([]);
+        setImagesForLayer(activeLayer);
         setIsLoading(false);
       });
   }, [activeLayer, isInitialized, getLayerImages, isMouthLayer]);
@@ -333,11 +366,11 @@ export function TraitSelector({ className = '' }: TraitSelectorProps) {
     return <MouthLayerSelector className={className} />;
   }
 
-  // Loading skeleton
-  if (isLoading || !isInitialized) {
+  // Loading skeleton - also show when images are stale (from a different layer)
+  if (isLoading || !isInitialized || imagesAreStale) {
     return (
       <div className={`space-y-4 ${className}`}>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+        <div className="generator-options-grid">
           {Array.from({ length: 12 }).map((_, i) => (
             <TraitCardSkeleton key={i} />
           ))}
@@ -385,23 +418,25 @@ export function TraitSelector({ className = '' }: TraitSelectorProps) {
         </div>
       )}
 
-      {/* Trait grid */}
-      {!isBlocked && (
-        <AnimatePresence mode="wait">
+      {/* Trait grid with staggered animation */}
+      {!isBlocked && images.length > 0 && (
           <motion.div
             key={activeLayer}
-            className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"
+            className="generator-options-grid"
             variants={prefersReducedMotion ? undefined : traitGridVariants}
             initial="initial"
             animate="animate"
-            exit="exit"
           >
             {/* None option for layers that can be deselected */}
             {canDeselect && (
-              <NoneCard
-                isSelected={!selectedPath || selectedPath === '' || selectedPath === 'None'}
-                onClick={handleClearSelection}
-              />
+              <motion.div
+                variants={prefersReducedMotion ? undefined : traitCardStaggerVariants}
+              >
+                <NoneCard
+                  isSelected={!selectedPath || selectedPath === '' || selectedPath === 'None'}
+                  onClick={handleClearSelection}
+                />
+              </motion.div>
             )}
             {images.map((image) => {
               const disabled = isOptionDisabled(activeLayer, image.displayName);
@@ -409,45 +444,56 @@ export function TraitSelector({ className = '' }: TraitSelectorProps) {
 
               if (activeLayer === 'Base') {
                 return (
-                  <BaseImageCard
+                  <motion.div
                     key={image.path}
-                    image={image}
-                    isSelected={selectedPath === image.path}
-                    isDisabled={disabled}
-                    disabledReason={reason}
-                    onClick={() => handleImageClick(image)}
-                  />
+                    variants={prefersReducedMotion ? undefined : traitCardStaggerVariants}
+                  >
+                    <BaseImageCard
+                      image={image}
+                      isSelected={selectedPath === image.path}
+                      isDisabled={disabled}
+                      disabledReason={reason}
+                      onClick={() => handleImageClick(image)}
+                    />
+                  </motion.div>
                 );
               }
               if (activeLayer === 'Clothes') {
                 return (
-                  <ClothesImageCard
+                  <motion.div
                     key={image.path}
+                    variants={prefersReducedMotion ? undefined : traitCardStaggerVariants}
+                  >
+                    <ClothesImageCard
+                      image={image}
+                      isSelected={selectedPath === image.path}
+                      isDisabled={disabled}
+                      disabledReason={reason}
+                      onClick={() => handleImageClick(image)}
+                    />
+                  </motion.div>
+                );
+              }
+              return (
+                <motion.div
+                  key={image.path}
+                  variants={prefersReducedMotion ? undefined : traitCardStaggerVariants}
+                >
+                  <ImageCard
                     image={image}
                     isSelected={selectedPath === image.path}
                     isDisabled={disabled}
                     disabledReason={reason}
                     onClick={() => handleImageClick(image)}
                   />
-                );
-              }
-              return (
-                <ImageCard
-                  key={image.path}
-                  image={image}
-                  isSelected={selectedPath === image.path}
-                  isDisabled={disabled}
-                  disabledReason={reason}
-                  onClick={() => handleImageClick(image)}
-                />
+                </motion.div>
               );
             })}
           </motion.div>
-        </AnimatePresence>
       )}
 
       {/* Empty state */}
-      {!isBlocked && images.length === 0 && (
+      {!isBlocked && !isLoading && images.length === 0 && (
         <div
           className="p-8 rounded-xl text-center"
           style={{

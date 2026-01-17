@@ -776,7 +776,39 @@ export function MediaProvider({ children }: MediaProviderProps) {
 export function useMedia(): MediaContextValue {
   const context = useContext(MediaContext);
   if (!context) {
-    throw new Error('useMedia must be used within a MediaProvider');
+    // Return a safe fallback instead of throwing to prevent crashes
+    // This shouldn't happen if MediaProvider is properly set up, but provides safety
+    console.error('useMedia called outside of MediaProvider - returning fallback');
+    return {
+      videoPlayer: initialVideoState,
+      playVideo: () => {},
+      setVideoQueue: () => {},
+      nextVideo: () => {},
+      pauseVideo: () => {},
+      closeVideoPlayer: () => {},
+      setVideoVolume: () => {},
+      seekVideo: () => {},
+      togglePictureInPicture: async () => {},
+      setVideoPosition: () => {},
+      setVideoSize: () => {},
+      toggleVideoMinimize: () => {},
+      musicPlayer: initialMusicState,
+      playTrack: () => {},
+      pauseMusic: () => {},
+      resumeMusic: () => {},
+      nextTrack: () => {},
+      previousTrack: () => {},
+      setMusicVolume: () => {},
+      seekMusic: () => {},
+      toggleShuffle: () => {},
+      setRepeatMode: () => {},
+      setPlaylist: () => {},
+      stopAllMedia: () => {},
+      preferences: initialPreferences,
+      updatePreferences: () => {},
+      videoRef: { current: null },
+      audioRef: { current: null },
+    };
   }
   return context;
 }

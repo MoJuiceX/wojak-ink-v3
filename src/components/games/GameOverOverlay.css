@@ -1,0 +1,245 @@
+/* ===== GAME OVER OVERLAY ===== */
+
+.game-over-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+
+.game-over-card {
+  width: 100%;
+  max-width: 360px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.3));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 24px;
+  text-align: center;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Header */
+.go-header {
+  margin-bottom: 16px;
+}
+
+.go-title {
+  color: white;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.new-record-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #000;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 18px;
+  animation: recordPulse 1s infinite;
+}
+
+.new-record-banner .trophy {
+  font-size: 24px;
+}
+
+@keyframes recordPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+  }
+}
+
+/* Image/Emoji */
+.go-image {
+  width: 120px;
+  height: 120px;
+  margin: 16px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.go-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 16px;
+}
+
+.go-emoji {
+  font-size: 80px;
+  line-height: 1;
+}
+
+/* Score */
+.go-score {
+  margin-bottom: 16px;
+}
+
+.go-score-value {
+  display: block;
+  font-size: 48px;
+  font-weight: 800;
+  color: #F97316;
+  text-shadow: 0 0 30px rgba(249, 115, 22, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+
+.go-score-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* Stats */
+.go-stats {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+}
+
+.go-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: capitalize;
+}
+
+/* Best score */
+.go-best {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+/* Actions */
+.go-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.go-play-again {
+  flex: 1;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #F97316, #EA580C);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.4);
+  transition: box-shadow 0.2s;
+}
+
+.go-play-again:hover {
+  box-shadow: 0 6px 25px rgba(249, 115, 22, 0.5);
+}
+
+.go-exit {
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.go-exit:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Share button */
+.go-share {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.go-share:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .game-over-card {
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .go-score-value {
+    font-size: 40px;
+  }
+
+  .go-image {
+    width: 100px;
+    height: 100px;
+  }
+
+  .go-emoji {
+    font-size: 64px;
+  }
+
+  .new-record-banner {
+    font-size: 16px;
+    padding: 8px 16px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .new-record-banner {
+    animation: none;
+  }
+}

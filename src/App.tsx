@@ -1,13 +1,21 @@
 import { lazy, Suspense, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { DeviceOrientationProvider } from '@/contexts/DeviceOrientationContext';
 import { LayoutProvider } from '@/contexts/LayoutContext';
 import { SettingsProvider } from '@/contexts/SettingsContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { GalleryProvider } from '@/contexts/GalleryContext';
 import { MediaProvider } from '@/contexts/MediaContext';
 import { AudioProvider } from '@/contexts/AudioContext';
+import { HapticProvider } from '@/systems/haptics';
+import { PWAProvider, InstallBanner, OfflineIndicator } from '@/systems/pwa';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { CurrencyProvider } from '@/contexts/CurrencyContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
+import { LeaderboardProvider } from '@/contexts/LeaderboardContext';
+import { GuildProvider } from '@/contexts/GuildContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PageSkeleton } from '@/components/layout/PageSkeleton';
 import { ToastContainer } from '@/components/ui/Toast';
@@ -18,17 +26,27 @@ import { SageWalletProvider } from '@/sage-wallet';
 import { SalesProvider } from '@/providers/SalesProvider';
 import { GlobalVideoPlayer } from '@/components/media/video/GlobalVideoPlayer';
 import StartupSequence from '@/components/StartupSequence';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { GameLoading } from '@/components/games/GameLoading';
+import { GameErrorBoundary } from '@/components/games/GameError';
 
 // Lazy load all pages for code splitting
 const Gallery = lazy(() => import('./pages/Gallery'));
 const Treasury = lazy(() => import('./pages/Treasury'));
 const BigPulp = lazy(() => import('./pages/BigPulp'));
 const Generator = lazy(() => import('./pages/Generator'));
+const GamesHub = lazy(() => import('./pages/GamesHub'));
 const Media = lazy(() => import('./pages/Media'));
 const Settings = lazy(() => import('./pages/Settings'));
+const Landing = lazy(() => import('./pages/Landing'));
 
 // Auth
 const Account = lazy(() => import('./pages/Account'));
+
+// Social
+const Guild = lazy(() => import('./pages/Guild'));
+const Shop = lazy(() => import('./pages/Shop'));
+const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 
 // Games
 const OrangeStack = lazy(() => import('./pages/OrangeStack'));
@@ -37,6 +55,12 @@ const OrangePong = lazy(() => import('./pages/OrangePong'));
 const WojakRunner = lazy(() => import('./pages/WojakRunner'));
 const OrangeJuggle = lazy(() => import('./pages/OrangeJuggle'));
 const KnifeGame = lazy(() => import('./pages/KnifeGame'));
+const BlockPuzzle = lazy(() => import('./pages/BlockPuzzle'));
+const FlappyOrange = lazy(() => import('./pages/FlappyOrange'));
+const CitrusDrop = lazy(() => import('./pages/CitrusDrop'));
+const OrangeSnake = lazy(() => import('./pages/OrangeSnake'));
+const BrickBreaker = lazy(() => import('./pages/BrickBreaker'));
+const WojakWhack = lazy(() => import('./pages/WojakWhack'));
 
 // Skip boot sequence in development for faster testing
 const SKIP_BOOT_IN_DEV = true;
@@ -65,6 +89,10 @@ function AppContent() {
     (import.meta.env.DEV && SKIP_BOOT_IN_DEV) || hasSeenBoot()
   );
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Landing page doesn't need boot sequence
+  const isLandingPage = location.pathname === '/landing';
 
   const handleStartupComplete = () => {
     // Mark boot as complete for this session
@@ -77,150 +105,288 @@ function AppContent() {
     }, 50);
   };
 
+  // Show content if: startup complete, OR on landing page
+  const showContent = import.meta.env.DEV || isStartupComplete || isLandingPage;
+
   return (
     <PreloadProvider>
       <GalleryProvider>
         <LayoutProvider>
           {/* Boot Sequence - shows until complete, then navigates to Gallery */}
-          {!isStartupComplete && (
+          {!isStartupComplete && !isLandingPage && (
             <StartupSequence onComplete={handleStartupComplete} />
           )}
 
-          {/* Main App Content - hidden until startup completes */}
+          {/* Global Video Player - rendered outside content wrapper for proper z-index */}
+          {showContent && <GlobalVideoPlayer />}
+
+          {/* Ambient background with floating orbs */}
+          {showContent && <div className="app-background" />}
+
+          {/* Subtle noise texture overlay */}
+          {showContent && <div className="noise-overlay" />}
+
+          {/* Main App Content */}
           <div
             style={{
-              opacity: isStartupComplete ? 1 : 0,
-              pointerEvents: isStartupComplete ? 'auto' : 'none',
+              opacity: showContent ? 1 : 0,
+              pointerEvents: showContent ? 'auto' : 'none',
               transition: 'opacity 0.3s ease-in',
-              visibility: isStartupComplete ? 'visible' : 'hidden',
+              visibility: showContent ? 'visible' : 'hidden',
+              flex: 1,
+              minHeight: 0,
             }}
           >
-            <Routes>
-              <Route path="/" element={<AppLayout />}>
-                <Route index element={<Navigate to="/gallery" replace />} />
+            <ErrorBoundary>
+              <Routes>
+                {/* Landing page - full screen, no AppLayout */}
                 <Route
-                  path="gallery"
+                  path="landing"
                   element={
                     <Suspense fallback={<PageSkeleton type="gallery" />}>
-                      <Gallery />
+                      <Landing />
                     </Suspense>
                   }
                 />
-                <Route
-                  path="gallery/:nftId"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="detail" />}>
-                      <Gallery />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="treasury"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="treasury" />}>
-                      <Treasury />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="bigpulp"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="bigpulp" />}>
-                      <BigPulp />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="generator"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="generator" />}>
-                      <Generator />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="media"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="media" />}>
-                      <Media />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="settings/*"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="settings" />}>
-                      <Settings />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="account"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="settings" />}>
-                      <Account />
-                    </Suspense>
-                  }
-                />
-                {/* Game Routes - all under /media/games/* */}
-                <Route
-                  path="media/games/stack"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="media" />}>
-                      <OrangeStack />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="media/games/memory"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="media" />}>
-                      <MemoryMatch />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="media/games/pong"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="media" />}>
-                      <OrangePong />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="media/games/runner"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="media" />}>
-                      <WojakRunner />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="media/games/juggle"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="media" />}>
-                      <OrangeJuggle />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="media/games/knife"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="media" />}>
-                      <KnifeGame />
-                    </Suspense>
-                  }
-                />
-              </Route>
-              {/* Auth Routes - Onboarding now uses modal, redirect to gallery */}
-              <Route
-                path="onboarding"
-                element={<Navigate to="/gallery" replace />}
-              />
-            </Routes>
+
+                {/* All routes with AppLayout (header, nav, etc.) */}
+                <Route path="/" element={<AppLayout />}>
+                  <Route index element={<Navigate to="/gallery" replace />} />
+                  <Route
+                    path="gallery"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="gallery" />}>
+                        <Gallery />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="gallery/:nftId"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="detail" />}>
+                        <Gallery />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="treasury"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="treasury" />}>
+                        <Treasury />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="bigpulp"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="bigpulp" />}>
+                        <BigPulp />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="generator"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="generator" />}>
+                        <Generator />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="games"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="media" />}>
+                        <GamesHub />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="media"
+                    element={
+                      <ErrorBoundary>
+                        <Suspense fallback={<PageSkeleton type="media" />}>
+                          <Media />
+                        </Suspense>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="settings/*"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="settings" />}>
+                        <Settings />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="account"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="settings" />}>
+                        <Account />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="guild"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="settings" />}>
+                        <Guild />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="shop"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="settings" />}>
+                        <Shop />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="leaderboard"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="settings" />}>
+                        <Leaderboard />
+                      </Suspense>
+                    }
+                  />
+                  {/* Game Routes - all under /games/* for cleaner URLs */}
+                  <Route
+                    path="games/stack"
+                    element={
+                      <GameErrorBoundary gameName="Brick by Brick">
+                        <Suspense fallback={<GameLoading gameName="Brick by Brick" />}>
+                          <OrangeStack />
+                        </Suspense>
+                      </GameErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="games/memory"
+                    element={
+                      <GameErrorBoundary gameName="Memory Match">
+                        <Suspense fallback={<GameLoading gameName="Memory Match" />}>
+                          <MemoryMatch />
+                        </Suspense>
+                      </GameErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="games/pong"
+                    element={
+                      <GameErrorBoundary gameName="Orange Pong">
+                        <Suspense fallback={<GameLoading gameName="Orange Pong" />}>
+                          <OrangePong />
+                        </Suspense>
+                      </GameErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="games/runner"
+                    element={
+                      <GameErrorBoundary gameName="Wojak Runner">
+                        <Suspense fallback={<GameLoading gameName="Wojak Runner" />}>
+                          <WojakRunner />
+                        </Suspense>
+                      </GameErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="games/juggle"
+                    element={
+                      <GameErrorBoundary gameName="Orange Juggle">
+                        <Suspense fallback={<GameLoading gameName="Orange Juggle" />}>
+                          <OrangeJuggle />
+                        </Suspense>
+                      </GameErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="games/knife"
+                    element={
+                      <GameErrorBoundary gameName="Knife Game">
+                        <Suspense fallback={<GameLoading gameName="Knife Game" />}>
+                          <KnifeGame />
+                        </Suspense>
+                      </GameErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="games/block-puzzle"
+                    element={
+                      <GameErrorBoundary gameName="Block Puzzle">
+                        <Suspense fallback={<GameLoading gameName="Block Puzzle" />}>
+                          <BlockPuzzle />
+                        </Suspense>
+                      </GameErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="games/flappy"
+                    element={
+                      <GameErrorBoundary gameName="Flappy Orange">
+                        <Suspense fallback={<GameLoading gameName="Flappy Orange" />}>
+                          <FlappyOrange />
+                        </Suspense>
+                      </GameErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="games/citrus-drop"
+                    element={
+                      <GameErrorBoundary gameName="Citrus Drop">
+                        <Suspense fallback={<GameLoading gameName="Citrus Drop" />}>
+                          <CitrusDrop />
+                        </Suspense>
+                      </GameErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="games/snake"
+                    element={
+                      <GameErrorBoundary gameName="Orange Snake">
+                        <Suspense fallback={<GameLoading gameName="Orange Snake" />}>
+                          <OrangeSnake />
+                        </Suspense>
+                      </GameErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="games/brick-breaker"
+                    element={
+                      <GameErrorBoundary gameName="Brick Breaker">
+                        <Suspense fallback={<GameLoading gameName="Brick Breaker" />}>
+                          <BrickBreaker />
+                        </Suspense>
+                      </GameErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="games/whack"
+                    element={
+                      <GameErrorBoundary gameName="Wojak Whack">
+                        <Suspense fallback={<GameLoading gameName="Wojak Whack" />}>
+                          <WojakWhack />
+                        </Suspense>
+                      </GameErrorBoundary>
+                    }
+                  />
+                  {/* Legacy game routes - redirect to new paths */}
+                  <Route path="media/games/stack" element={<Navigate to="/games/stack" replace />} />
+                  <Route path="media/games/memory" element={<Navigate to="/games/memory" replace />} />
+                  <Route path="media/games/pong" element={<Navigate to="/games/pong" replace />} />
+                  <Route path="media/games/runner" element={<Navigate to="/games/runner" replace />} />
+                  <Route path="media/games/juggle" element={<Navigate to="/games/juggle" replace />} />
+                  <Route path="media/games/knife" element={<Navigate to="/games/knife" replace />} />
+                  <Route path="media/games/*" element={<Navigate to="/games" replace />} />
+                </Route>
+
+                {/* Auth Routes - Onboarding now uses modal, redirect to gallery */}
+                <Route path="onboarding" element={<Navigate to="/gallery" replace />} />
+              </Routes>
+            </ErrorBoundary>
             <ProfileGuard />
             <ToastContainer />
-            <GlobalVideoPlayer />
           </div>
         </LayoutProvider>
       </GalleryProvider>
@@ -233,10 +399,18 @@ function App() {
     <QueryProvider>
       <SalesProvider>
       <ThemeProvider defaultTheme="tang-orange">
+        <DeviceOrientationProvider>
         <SettingsProvider>
           <ToastProvider>
             <AudioProvider>
+            <HapticProvider>
+            <PWAProvider>
             <MediaProvider>
+            <AuthProvider>
+            <CurrencyProvider>
+            <LeaderboardProvider>
+            <GuildProvider>
+            <NotificationProvider>
             <BrowserRouter>
               <SageWalletProvider
                 config={{
@@ -249,14 +423,24 @@ function App() {
                 }}
               >
                 <UserProfileProvider>
+                  <OfflineIndicator />
                   <AppContent />
+                  <InstallBanner position="bottom" />
                 </UserProfileProvider>
               </SageWalletProvider>
             </BrowserRouter>
+            </NotificationProvider>
+            </GuildProvider>
+            </LeaderboardProvider>
+            </CurrencyProvider>
+            </AuthProvider>
             </MediaProvider>
+            </PWAProvider>
+            </HapticProvider>
             </AudioProvider>
           </ToastProvider>
         </SettingsProvider>
+        </DeviceOrientationProvider>
       </ThemeProvider>
       </SalesProvider>
     </QueryProvider>

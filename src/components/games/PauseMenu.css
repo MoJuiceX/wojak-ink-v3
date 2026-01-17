@@ -1,0 +1,109 @@
+/* ===== PAUSE MENU ===== */
+
+.pause-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 150;
+  padding: 20px;
+}
+
+.pause-menu {
+  width: 100%;
+  max-width: 300px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.3));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 24px;
+  text-align: center;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.pause-header {
+  margin-bottom: 24px;
+}
+
+.pause-header h2 {
+  color: white;
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+}
+
+.pause-game-name {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+.pause-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pause-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  border: none;
+}
+
+.pause-btn.resume {
+  background: linear-gradient(135deg, #F97316, #EA580C);
+  color: white;
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.4);
+}
+
+.pause-btn.resume:hover {
+  box-shadow: 0 6px 25px rgba(249, 115, 22, 0.5);
+}
+
+.pause-btn.restart {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.pause-btn.restart:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.pause-btn.exit {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #EF4444;
+}
+
+.pause-btn.exit:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .pause-menu {
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .pause-header h2 {
+    font-size: 24px;
+  }
+
+  .pause-btn {
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+}

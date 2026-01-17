@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { useSettings } from './SettingsContext';
+import { SoundManager } from '@/systems/audio/SoundManager';
+import type { SoundName } from '@/systems/audio/sounds';
 
 interface AudioContextType {
   // Background music controls
@@ -8,16 +10,21 @@ interface AudioContextType {
   isBackgroundMusicPlaying: boolean;
   playBackgroundMusic: () => void;
   pauseBackgroundMusic: () => void;
+  forcePlayBackgroundMusic: () => void; // Bypasses isBackgroundMusicEnabled check (for games)
   setBackgroundMusicTrack: (trackUrl: string) => void;
 
   // Sound effects controls
   isSoundEffectsEnabled: boolean;
   playSound: (soundId: string) => void;
+
+  // New game sound system
+  playGameSound: (name: SoundName) => void;
+  initializeSounds: () => Promise<void>;
 }
 
 const AudioContext = createContext<AudioContextType | null>(null);
 
-// Sound effect paths (will be populated when audio files are added)
+// Legacy sound effect paths (kept for backward compatibility)
 const SOUND_EFFECTS: Record<string, string> = {
   bubble_pop: '/assets/audio/sfx/bubble_pop.mp3',
   button_click: '/assets/audio/sfx/button_click.mp3',
@@ -48,6 +55,9 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const bgMusicRef = useRef<HTMLAudioElement | null>(null);
   const soundPoolRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
+  // Track if force play is active (bypasses auto-pause from settings)
+  const forcePlayActiveRef = useRef<boolean>(false);
+
   // Compute effective volumes
   const musicVolume = settings.audio.backgroundMusicVolume;
   const sfxVolume = settings.audio.soundEffectsVolume;
@@ -57,6 +67,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
     bgMusicRef.current = new Audio();
     bgMusicRef.current.loop = true;
     bgMusicRef.current.volume = musicVolume;
+    bgMusicRef.current.src = MUSIC_TRACKS.default; // Set initial track
 
     return () => {
       if (bgMusicRef.current) {
@@ -88,14 +99,16 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   }, [currentTrack]);
 
   // Handle background music enable/disable
+  // Skip auto-pause when force play is active (games)
   useEffect(() => {
     if (!bgMusicRef.current) return;
+    if (forcePlayActiveRef.current) return; // Don't auto-pause during force play
 
     if (!isBackgroundMusicEnabled && isBackgroundMusicPlaying) {
       bgMusicRef.current.pause();
       setIsBackgroundMusicPlaying(false);
     }
-  }, [isBackgroundMusicEnabled]);
+  }, [isBackgroundMusicEnabled, isBackgroundMusicPlaying]);
 
   const playBackgroundMusic = () => {
     if (!bgMusicRef.current || !isBackgroundMusicEnabled) return;
@@ -109,8 +122,41 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       });
   };
 
+  // Force play - bypasses the isBackgroundMusicEnabled check (for games)
+  const forcePlayBackgroundMusic = () => {
+    // Set force play flag to prevent auto-pause from settings
+    forcePlayActiveRef.current = true;
+
+    if (!bgMusicRef.current) {
+      bgMusicRef.current = new Audio();
+      bgMusicRef.current.loop = true;
+      bgMusicRef.current.volume = musicVolume || 0.5;
+    }
+
+    // Ensure the track is loaded
+    if (!bgMusicRef.current.src || bgMusicRef.current.src === '' || bgMusicRef.current.src === window.location.href) {
+      bgMusicRef.current.src = currentTrack || MUSIC_TRACKS.default;
+    }
+
+    // Ensure volume is audible (minimum 0.3 if set to 0)
+    if (bgMusicRef.current.volume === 0) {
+      bgMusicRef.current.volume = 0.3;
+    }
+
+    bgMusicRef.current.play()
+      .then(() => {
+        setIsBackgroundMusicPlaying(true);
+      })
+      .catch(() => {
+        forcePlayActiveRef.current = false; // Reset on failure
+      });
+  };
+
   const pauseBackgroundMusic = () => {
     if (!bgMusicRef.current) return;
+
+    // Clear force play flag when explicitly pausing
+    forcePlayActiveRef.current = false;
 
     bgMusicRef.current.pause();
     setIsBackgroundMusicPlaying(false);
@@ -144,6 +190,46 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
     });
   };
 
+  // Initialize the new SoundManager system
+  const initializeSounds = async () => {
+    await SoundManager.initialize();
+  };
+
+  // Play a game sound using the new system
+  const playGameSound = (name: SoundName) => {
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play(name);
+  };
+
+  // Auto-initialize sound system on first user interaction
+  useEffect(() => {
+    const handleInteraction = () => {
+      if (!SoundManager.getIsInitialized()) {
+        SoundManager.initialize();
+      }
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('touchstart', handleInteraction);
+    };
+
+    document.addEventListener('click', handleInteraction);
+    document.addEventListener('touchstart', handleInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('touchstart', handleInteraction);
+    };
+  }, []);
+
+  // Sync SoundManager mute state with settings
+  useEffect(() => {
+    SoundManager.setMuted(!isSoundEffectsEnabled);
+  }, [isSoundEffectsEnabled]);
+
+  // Sync SoundManager volume with settings
+  useEffect(() => {
+    SoundManager.setSfxVolume(sfxVolume);
+  }, [sfxVolume]);
+
   return (
     <AudioContext.Provider
       value={{
@@ -151,9 +237,12 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
         isBackgroundMusicPlaying,
         playBackgroundMusic,
         pauseBackgroundMusic,
+        forcePlayBackgroundMusic,
         setBackgroundMusicTrack,
         isSoundEffectsEnabled,
         playSound,
+        playGameSound,
+        initializeSounds,
       }}
     >
       {children}

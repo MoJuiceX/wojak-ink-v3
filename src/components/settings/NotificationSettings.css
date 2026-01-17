@@ -1,0 +1,175 @@
+/**
+ * Notification Settings Styles
+ */
+
+.notification-settings {
+  padding: 20px;
+}
+
+.notification-settings.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Unsupported State */
+.notification-settings.unsupported,
+.notification-settings.blocked {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.unsupported-icon,
+.blocked-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.notification-settings.unsupported h3,
+.notification-settings.blocked h3 {
+  color: #fff;
+  margin: 0 0 12px;
+  font-size: 1.3rem;
+}
+
+.notification-settings.unsupported p,
+.notification-settings.blocked p {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 8px;
+}
+
+.notification-settings .hint {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  margin-top: 16px;
+}
+
+/* Header */
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-content h3 {
+  color: #fff;
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+
+.header-description {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.enable-button {
+  --background: linear-gradient(135deg, #ff8c32, #ff6420);
+  --border-radius: 8px;
+  font-weight: 600;
+}
+
+.test-button {
+  --border-color: rgba(255, 255, 255, 0.3);
+  --color: rgba(255, 255, 255, 0.8);
+}
+
+.disable-button {
+  --border-color: rgba(231, 76, 60, 0.5);
+}
+
+/* Preferences Section */
+.preferences-section {
+  margin-bottom: 16px;
+}
+
+.preferences-section h4 {
+  color: #fff;
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.section-description {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* Preferences List */
+.preferences-list {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.preferences-list ion-item {
+  --background: transparent;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --inner-padding-end: 0;
+}
+
+.preferences-list ion-item h2 {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+
+.preferences-list ion-item ion-note {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+}
+
+.preferences-list ion-toggle {
+  --background: rgba(255, 255, 255, 0.2);
+  --background-checked: rgba(255, 140, 50, 0.8);
+  --handle-background: #fff;
+  --handle-background-checked: #fff;
+}
+
+/* Info Footer */
+.notification-info {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.notification-info p {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .settings-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-actions {
+    justify-content: flex-end;
+  }
+
+  .enable-button {
+    width: 100%;
+  }
+}

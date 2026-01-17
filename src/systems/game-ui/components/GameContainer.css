@@ -1,0 +1,62 @@
+/* ============================================
+   GAME CONTAINER - Universal game wrapper
+   ============================================ */
+
+.game-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+.game-container__content {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0; /* Allow flex shrink */
+}
+
+/* Mobile specific */
+.game-container--mobile {
+  /* Add safe area padding for notched devices */
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.game-container--mobile .game-container__content {
+  /* On mobile, content should fill available space */
+  width: 100%;
+  height: 100%;
+}
+
+/* Desktop specific */
+.game-container--desktop {
+  /* Desktop can have some max-width constraints if needed */
+  max-width: 100%;
+}
+
+/* ============================================
+   GLOBAL: Hide nav during fullscreen game
+   ============================================ */
+
+body.game-fullscreen-mode .mobile-navigation,
+body.game-fullscreen-mode [class*="mobile-nav"],
+body.game-fullscreen-mode [class*="bottom-nav"],
+body.game-fullscreen-mode .sidebar,
+body.game-fullscreen-mode [class*="sidebar"] {
+  display: none !important;
+}
+
+body.game-fullscreen-mode .game-modal,
+body.game-fullscreen-mode [class*="game-modal"] {
+  /* Expand to fill space freed by hidden nav */
+  bottom: 0 !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important; /* Dynamic viewport height for mobile */
+}

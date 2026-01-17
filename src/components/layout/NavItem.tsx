@@ -25,6 +25,7 @@ interface NavItemProps {
   variant?: 'sidebar' | 'mobile';
   className?: string;
   path?: string; // For navigation preloading
+  featured?: boolean; // Special styling for featured items (e.g., BigPulp)
 }
 
 export function NavItem({
@@ -40,6 +41,7 @@ export function NavItem({
   variant = 'sidebar',
   className = '',
   path,
+  featured = false,
 }: NavItemProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const haptic = useHaptic();
@@ -59,6 +61,81 @@ export function NavItem({
   }, [tooltip, path, onPreloadHover]);
 
   if (variant === 'mobile') {
+    // Featured mobile item (BigPulp) gets elevated FAB-style treatment
+    if (featured) {
+      return (
+        <motion.button
+          className={`
+            flex flex-col items-center justify-center gap-1 flex-1 py-2
+            transition-colors duration-150 relative
+            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+            ${className}
+          `}
+          style={{
+            color: '#F97316',
+          }}
+          onClick={handleClick}
+          whileTap={disabled || prefersReducedMotion ? undefined : { scale: 0.95 }}
+          aria-current={isActive ? 'page' : undefined}
+          aria-disabled={disabled}
+          role="tab"
+          aria-selected={isActive}
+        >
+          {/* FAB-style elevated icon wrapper */}
+          <div
+            className="relative flex items-center justify-center"
+            style={{
+              width: 52,
+              height: 52,
+              marginTop: -16,
+              background: 'linear-gradient(135deg, #F97316, #EA580C)',
+              borderRadius: '50%',
+              boxShadow: '0 4px 20px rgba(249, 115, 22, 0.4), 0 0 30px rgba(249, 115, 22, 0.2)',
+              border: '3px solid rgba(10, 10, 10, 0.95)',
+            }}
+          >
+            {/* Subtle glow pulse - no jarring ring animation */}
+            <motion.div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: 'radial-gradient(circle, rgba(249, 115, 22, 0.3) 0%, transparent 70%)',
+              }}
+              animate={
+                !prefersReducedMotion
+                  ? {
+                      opacity: [0.5, 1, 0.5],
+                    }
+                  : {}
+              }
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            />
+            <motion.div
+              animate={
+                !prefersReducedMotion
+                  ? { y: [0, -2, 0] }
+                  : {}
+              }
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+              style={{
+                filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))',
+              }}
+            >
+              <Icon size={26} color="white" aria-hidden="true" />
+            </motion.div>
+          </div>
+        </motion.button>
+      );
+    }
+
+    // Regular mobile item
     return (
       <motion.button
         className={`
@@ -69,11 +146,11 @@ export function NavItem({
         `}
         style={{
           color: isActive
-            ? 'var(--color-brand-primary)'
-            : 'var(--color-text-muted)',
+            ? '#F97316'
+            : 'rgba(255, 255, 255, 0.5)',
         }}
         onClick={handleClick}
-        whileTap={disabled || prefersReducedMotion ? undefined : { scale: 0.95 }}
+        whileTap={disabled || prefersReducedMotion ? undefined : { scale: 0.9 }}
         aria-current={isActive ? 'page' : undefined}
         aria-disabled={disabled}
         role="tab"
@@ -82,25 +159,30 @@ export function NavItem({
         <div className="relative">
           <motion.div
             animate={
-              isActive && !prefersReducedMotion ? { scale: 1.05 } : { scale: 1 }
+              isActive && !prefersReducedMotion ? { scale: 1.1 } : { scale: 1 }
             }
             transition={{ duration: 0.15 }}
+            style={{
+              // Icon glow when active
+              filter: isActive ? 'drop-shadow(0 0 8px #F97316)' : 'none',
+            }}
           >
             <Icon size={24} aria-hidden="true" />
           </motion.div>
 
-          {/* Badge */}
+          {/* Badge with glow */}
           {badge && (
             <span
               className="absolute -top-1 -right-1 flex items-center justify-center"
               style={{
-                background: 'var(--color-brand-primary)',
+                background: '#F97316',
                 minWidth: badge === 'dot' ? 8 : 16,
                 height: badge === 'dot' ? 8 : 16,
                 borderRadius: badge === 'dot' ? 4 : 8,
                 fontSize: 10,
                 fontWeight: 600,
                 color: 'white',
+                boxShadow: '0 0 8px rgba(249, 115, 22, 0.5)',
               }}
               aria-label={
                 badge === 'dot'
@@ -122,14 +204,19 @@ export function NavItem({
       className={`
         relative flex items-center w-full rounded-lg overflow-hidden
         ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+        ${featured ? 'nav-item-featured' : ''}
         ${className}
       `}
       style={{
         height: 48,
         paddingLeft: 12,
         paddingRight: 12,
-        background: isActive ? 'var(--color-glass-bg)' : 'transparent',
-        color: isActive
+        background: featured
+          ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(249, 115, 22, 0.05) 100%)'
+          : isActive
+            ? 'var(--color-glass-bg)'
+            : 'transparent',
+        color: featured || isActive
           ? 'var(--color-brand-primary)'
           : 'var(--color-text-secondary)',
       }}
@@ -170,24 +257,39 @@ export function NavItem({
           </motion.div>
         )}
       </AnimatePresence>
-      {/* Active indicator bar */}
+      {/* Active indicator bar with enhanced glow */}
       {isActive && (
         <motion.div
           className="absolute left-0 top-1/2 w-[3px] rounded-r-full"
           style={{
-            background: 'var(--color-brand-primary)',
-            boxShadow: 'var(--glow-subtle)',
+            background: '#F97316',
+            boxShadow: '0 0 15px #F97316, 0 0 30px rgba(249, 115, 22, 0.3)',
           }}
           initial={prefersReducedMotion ? { height: 24 } : { height: 0 }}
-          animate={{ height: 24, y: '-50%' }}
+          animate={{ height: 32, y: '-50%' }}
           transition={{ duration: 0.15, ease: 'easeOut' }}
         />
       )}
 
       {/* Icon - fixed width container to prevent movement during sidebar animation */}
-      <div
-        className="flex items-center justify-center flex-shrink-0 relative"
-        style={{ width: 24, height: 24 }}
+      <motion.div
+        className={`flex items-center justify-center flex-shrink-0 relative ${featured ? 'nav-icon-featured' : ''}`}
+        style={{
+          width: 24,
+          height: 24,
+          // Icon glow when active or featured
+          filter: (isActive || featured) ? 'drop-shadow(0 0 8px rgba(249, 115, 22, 0.6))' : 'none',
+        }}
+        animate={
+          featured && !prefersReducedMotion
+            ? { y: [0, -3, 0] }
+            : {}
+        }
+        transition={
+          featured
+            ? { duration: 2, repeat: Infinity, ease: 'easeInOut' }
+            : undefined
+        }
       >
         <Icon size={24} aria-hidden="true" />
 
@@ -213,7 +315,7 @@ export function NavItem({
             {badge !== 'dot' && badge}
           </span>
         )}
-      </div>
+      </motion.div>
 
       {/* Label and badge (expanded state) */}
       <AnimatePresence>

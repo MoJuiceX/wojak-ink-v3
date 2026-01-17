@@ -1,0 +1,361 @@
+/* ============================================
+   SHARE BUTTON STYLES
+   ============================================ */
+
+.share-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.share-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.share-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.share-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.share-button.success {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: #4CAF50;
+  color: #4CAF50;
+}
+
+/* Size variants */
+.share-button.share-small {
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+.share-button.share-large {
+  padding: 14px 24px;
+  font-size: 16px;
+  border-radius: 14px;
+}
+
+/* Icon button variant */
+.share-icon-button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.share-icon-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.share-icon-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.share-icon-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.share-icon-button.share-small {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.share-icon-button.share-large {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  min-height: 52px;
+}
+
+/* Spin animation for loader */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   SHARE MODAL STYLES
+   ============================================ */
+
+.share-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+}
+
+.share-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  max-height: calc(100vh - 64px);
+  background: rgba(20, 20, 35, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  overflow-y: auto;
+  z-index: 1001;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.share-modal-content {
+  padding: 24px;
+}
+
+.share-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.share-modal-header h2 {
+  color: #fff;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.share-close-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.share-close-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+/* ============================================
+   SCORE PREVIEW
+   ============================================ */
+
+.share-preview {
+  text-align: center;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(255, 140, 50, 0.15), rgba(255, 100, 50, 0.1));
+  border: 1px solid rgba(255, 140, 50, 0.2);
+  border-radius: 16px;
+  margin-bottom: 20px;
+}
+
+.preview-game {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+
+.preview-score {
+  color: #FF8C32;
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.preview-badge {
+  color: #FFD700;
+  font-size: 0.95rem;
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.preview-rank {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  margin-top: 6px;
+}
+
+/* ============================================
+   SHARE OPTIONS
+   ============================================ */
+
+.share-options {
+  margin-bottom: 20px;
+}
+
+.share-native-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #FF8C32, #FF6420);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 16px;
+}
+
+.share-native-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255, 140, 50, 0.4);
+}
+
+.share-native-button:active {
+  transform: translateY(0);
+}
+
+.share-platforms {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.platform-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.platform-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.platform-button:active {
+  transform: translateY(0);
+}
+
+.platform-button svg {
+  width: 24px;
+  height: 24px;
+}
+
+.platform-button span {
+  font-size: 0.7rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* Platform colors */
+.platform-button.twitter svg { color: #1DA1F2; }
+.platform-button.twitter:hover { border-color: rgba(29, 161, 242, 0.5); }
+
+.platform-button.facebook svg { color: #4267B2; }
+.platform-button.facebook:hover { border-color: rgba(66, 103, 178, 0.5); }
+
+.platform-button.whatsapp svg { color: #25D366; }
+.platform-button.whatsapp:hover { border-color: rgba(37, 211, 102, 0.5); }
+
+.platform-button.telegram svg { color: #0088cc; }
+.platform-button.telegram:hover { border-color: rgba(0, 136, 204, 0.5); }
+
+.platform-button.copy svg { color: rgba(255, 255, 255, 0.8); }
+.platform-button.copy:hover { border-color: rgba(255, 255, 255, 0.3); }
+
+.platform-button.copy.copied {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: #4CAF50;
+}
+
+.platform-button.copy.copied svg {
+  color: #4CAF50;
+}
+
+/* ============================================
+   SHARE TEXT PREVIEW
+   ============================================ */
+
+.share-text-preview {
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.share-text-preview p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 380px) {
+  .share-modal-content {
+    padding: 18px;
+  }
+
+  .share-platforms {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .preview-score {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .share-platforms {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -2,19 +2,23 @@
  * MobileNavigation Component
  *
  * Bottom tab bar navigation for mobile devices.
- * Height: 72px + safe area inset.
+ * Height: 60px + safe area inset.
  * Features animated underline indicator.
+ *
+ * Shows 5 items: Gallery, Generator, Games, Media, More
+ * "More" opens a slide-up sheet with secondary navigation.
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LAYOUT } from '@/config/layout';
-import { NAV_ITEMS, isPathActive } from '@/config/routes';
+import { MOBILE_NAV_ITEMS, isPathActive } from '@/config/routes';
 import { mobileNavTransition } from '@/config/animations';
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery';
 import { useHaptic } from '@/hooks/useHaptic';
 import { NavItem } from './NavItem';
+import { MoreMenu } from '@/components/navigation/MoreMenu';
 
 interface MobileNavigationProps {
   visible?: boolean;
@@ -25,17 +29,23 @@ export function MobileNavigation({ visible = true }: MobileNavigationProps) {
   const navigate = useNavigate();
   const prefersReducedMotion = usePrefersReducedMotion();
   const haptic = useHaptic();
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
   const activeIndex = useMemo(() => {
-    return NAV_ITEMS.findIndex((item) =>
-      isPathActive(item.path, location.pathname)
+    return MOBILE_NAV_ITEMS.findIndex((item) =>
+      item.path && isPathActive(item.path, location.pathname)
     );
   }, [location.pathname]);
 
-  const handleNavigate = useCallback(
-    (path: string) => {
+  const handleNavClick = useCallback(
+    (path: string | null) => {
       haptic.tap();
-      navigate(path);
+      if (path === null) {
+        // "More" button - open menu
+        setIsMoreMenuOpen(true);
+      } else {
+        navigate(path);
+      }
     },
     [navigate, haptic]
   );
@@ -44,81 +54,102 @@ export function MobileNavigation({ visible = true }: MobileNavigationProps) {
     return null;
   }
 
-  const navHeight = 60; // Reduced from 72px
+  const navHeight = 60;
 
   return (
-    <motion.nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
-      style={{
-        paddingBottom: LAYOUT.mobileNav.safeAreaBottom,
-        background: 'rgba(10, 10, 15, 0.95)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        borderTop: '1px solid var(--color-border)',
-      }}
-      initial={{ y: 100 }}
-      animate={{ y: 0 }}
-      exit={{ y: 100 }}
-      transition={{ duration: 0.2 }}
-      role="navigation"
-      aria-label="Main navigation"
-    >
-      {/* Active underline indicator */}
-      {activeIndex >= 0 && (
-        <motion.div
-          className="absolute top-0"
-          style={{
-            width: `${100 / NAV_ITEMS.length}%`,
-            height: 2,
-            background: 'var(--color-brand-primary)',
-            boxShadow: 'var(--glow-subtle)',
-          }}
-          animate={{
-            left: `${(activeIndex / NAV_ITEMS.length) * 100}%`,
-          }}
-          transition={
-            prefersReducedMotion
-              ? { duration: 0 }
-              : mobileNavTransition.underline
-          }
-        >
-          {/* Centered line within the tab */}
-          <div
-            className="absolute left-1/2 top-0 h-full"
-            style={{
-              width: 24,
-              transform: 'translateX(-50%)',
-              background: 'var(--color-brand-primary)',
-              boxShadow: 'var(--glow-subtle)',
-              borderRadius: '0 0 2px 2px',
-            }}
-          />
-        </motion.div>
-      )}
-
-      {/* Tab items - fixed height container for proper centering */}
-      <div
-        className="flex items-center justify-around"
-        style={{ height: navHeight }}
-        role="tablist"
-        aria-label="Navigation tabs"
+    <>
+      <motion.nav
+        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
+        style={{
+          paddingBottom: LAYOUT.mobileNav.safeAreaBottom,
+          background: 'rgba(10, 10, 10, 0.95)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          borderTop: '1px solid rgba(249, 115, 22, 0.15)',
+        }}
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        exit={{ y: 100 }}
+        transition={{ duration: 0.2 }}
+        role="navigation"
+        aria-label="Main navigation"
       >
-        {NAV_ITEMS.map((item) => (
-          <NavItem
-            key={item.id}
-            icon={item.icon}
-            label={item.label}
-            shortLabel={item.shortLabel}
-            isActive={isPathActive(item.path, location.pathname)}
-            onClick={() => handleNavigate(item.path)}
-            badge={item.badge}
-            disabled={item.disabled}
-            variant="mobile"
-            path={item.path}
-          />
-        ))}
-      </div>
-    </motion.nav>
+        {/* Glow line at top */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: '20%',
+            right: '20%',
+            height: '1px',
+            background: 'linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.4), transparent)',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Active underline indicator with glow */}
+        {activeIndex >= 0 && (
+          <motion.div
+            className="absolute top-0"
+            style={{
+              width: `${100 / MOBILE_NAV_ITEMS.length}%`,
+              height: 2,
+              background: 'transparent',
+            }}
+            animate={{
+              left: `${(activeIndex / MOBILE_NAV_ITEMS.length) * 100}%`,
+            }}
+            transition={
+              prefersReducedMotion
+                ? { duration: 0 }
+                : mobileNavTransition.underline
+            }
+          >
+            {/* Centered glowing line within the tab */}
+            <div
+              className="absolute left-1/2 top-0 h-full"
+              style={{
+                width: 32,
+                transform: 'translateX(-50%)',
+                background: '#F97316',
+                boxShadow: '0 0 15px #F97316, 0 0 30px rgba(249, 115, 22, 0.3)',
+                borderRadius: '0 0 2px 2px',
+              }}
+            />
+          </motion.div>
+        )}
+
+        {/* Tab items - fixed height container for proper centering */}
+        <div
+          className="flex items-center justify-around"
+          style={{ height: navHeight }}
+          role="tablist"
+          aria-label="Navigation tabs"
+        >
+          {MOBILE_NAV_ITEMS.map((item) => (
+            <NavItem
+              key={item.id}
+              icon={item.icon}
+              label={item.label}
+              shortLabel={item.shortLabel}
+              isActive={item.path ? isPathActive(item.path, location.pathname) : false}
+              onClick={() => handleNavClick(item.path)}
+              badge={item.badge}
+              disabled={item.disabled}
+              variant="mobile"
+              path={item.path || undefined}
+              featured={item.featured}
+            />
+          ))}
+        </div>
+      </motion.nav>
+
+      {/* More Menu slide-up sheet */}
+      <MoreMenu
+        isOpen={isMoreMenuOpen}
+        onClose={() => setIsMoreMenuOpen(false)}
+      />
+    </>
   );
 }
 

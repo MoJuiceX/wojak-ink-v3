@@ -1,68 +1,140 @@
 /**
  * useScrollReveal Hook
  *
- * Reveals elements as they scroll into view with optional delay.
- * Respects reduced motion preferences.
+ * Detects when an element enters the viewport for scroll-triggered animations.
+ * Uses Framer Motion's useInView hook internally.
  */
 
-import { useInView } from 'framer-motion';
 import { useRef } from 'react';
-import { usePrefersReducedMotion } from './useMediaQuery';
-import { SPRING } from '@/config/animation/springs';
-import { DURATION, toSeconds } from '@/config/animation/durations';
+import { useInView, useReducedMotion } from 'framer-motion';
 
-interface ScrollRevealOptions {
+interface UseScrollRevealOptions {
+  /** Only trigger once (default: true) */
   once?: boolean;
-  delay?: number;
+  /** Margin around the viewport (default: '-100px') */
   margin?: string;
-  amount?: 'some' | 'all' | number;
+  /** Intersection threshold (0-1) */
+  threshold?: number;
 }
 
-interface ScrollRevealReturn {
-  ref: React.RefObject<HTMLDivElement | null>;
+interface UseScrollRevealReturn<T extends HTMLElement> {
+  ref: React.RefObject<T | null>;
   isInView: boolean;
-  variants: {
-    hidden: object;
-    visible: object;
-  };
+  shouldAnimate: boolean;
 }
 
-export function useScrollReveal(
-  options: ScrollRevealOptions = {}
-): ScrollRevealReturn {
-  const { once = true, delay = 0, amount } = options;
-  const ref = useRef<HTMLDivElement>(null);
-  const prefersReduced = usePrefersReducedMotion();
+/**
+ * Hook for scroll-triggered reveal animations
+ *
+ * @example
+ * ```tsx
+ * const { ref, isInView, shouldAnimate } = useScrollReveal<HTMLDivElement>();
+ *
+ * <motion.div
+ *   ref={ref}
+ *   initial={{ opacity: 0, y: 30 }}
+ *   animate={isInView ? { opacity: 1, y: 0 } : {}}
+ *   transition={{ duration: shouldAnimate ? 0.5 : 0 }}
+ * >
+ *   Content
+ * </motion.div>
+ * ```
+ */
+export function useScrollReveal<T extends HTMLElement = HTMLDivElement>(
+  options: UseScrollRevealOptions = {}
+): UseScrollRevealReturn<T> {
+  const { once = true, margin = '-100px', threshold } = options;
+
+  const ref = useRef<T>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   const isInView = useInView(ref, {
     once,
-    amount,
+    // @ts-expect-error - margin type is stricter than what we're passing
+    margin,
+    amount: threshold,
   });
 
-  const variants = prefersReduced
-    ? {
-        hidden: { opacity: 0 },
-        visible: {
-          opacity: 1,
-          transition: { duration: toSeconds(DURATION.normal), delay },
-        },
-      }
-    : {
-        hidden: { opacity: 0, y: 30 },
-        visible: {
-          opacity: 1,
-          y: 0,
-          transition: {
-            opacity: { duration: toSeconds(DURATION.moderate), delay },
-            y: {
-              ...SPRING.balanced,
-              delay,
-            },
-          },
-        },
-      };
-
-  return { ref, isInView, variants };
+  return {
+    ref,
+    isInView,
+    shouldAnimate: !prefersReducedMotion,
+  };
 }
+
+/**
+ * Preset animation variants for scroll reveal
+ */
+export const scrollRevealVariants = {
+  fadeUp: {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: 'easeOut' as const },
+    },
+  },
+  fadeIn: {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { duration: 0.4, ease: 'easeOut' as const },
+    },
+  },
+  scaleUp: {
+    hidden: { opacity: 0, scale: 0.9 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: { duration: 0.4, ease: 'easeOut' as const },
+    },
+  },
+  slideLeft: {
+    hidden: { opacity: 0, x: 30 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.5, ease: 'easeOut' as const },
+    },
+  },
+  slideRight: {
+    hidden: { opacity: 0, x: -30 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.5, ease: 'easeOut' as const },
+    },
+  },
+};
+
+/**
+ * Stagger container variants for animating lists
+ */
+export const staggerContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+/**
+ * Stagger item variants
+ */
+export const staggerItemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: 'spring' as const,
+      stiffness: 100,
+      damping: 15,
+    },
+  },
+};
 
 export default useScrollReveal;

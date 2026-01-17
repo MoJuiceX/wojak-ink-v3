@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   IonContent,
   IonHeader,
@@ -11,6 +11,7 @@ import {
   IonButtons,
 } from '@ionic/react';
 import { informationCircleOutline, close } from 'ionicons/icons';
+import { useGameEffects, GameEffects } from '@/components/media';
 import './Orange2048.css';
 
 type Grid = (number | null)[][];
@@ -41,7 +42,22 @@ const Orange2048: React.FC = () => {
   });
   const [showInfo, setShowInfo] = useState(false);
 
-  const touchStartRef = { x: 0, y: 0 };
+  const touchStartRef = useRef({ x: 0, y: 0 });
+  const lastMergeValueRef = useRef(0);
+
+  // Universal visual effects system
+  const {
+    effects,
+    triggerShockwave,
+    triggerSparks,
+    triggerScreenShake,
+    addFloatingEmoji,
+    showEpicCallout,
+    triggerConfetti,
+    addScorePopup,
+    updateCombo,
+    resetAllEffects,
+  } = useGameEffects();
 
   function createEmptyGrid(): Grid {
     return Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
@@ -74,6 +90,8 @@ const Orange2048: React.FC = () => {
     setGrid(newGrid);
     setScore(0);
     setGameState('playing');
+    lastMergeValueRef.current = 0;
+    resetAllEffects();
   };
 
   const slide = (row: (number | null)[]): { row: (number | null)[]; score: number } => {
@@ -147,6 +165,34 @@ const Orange2048: React.FC = () => {
     if (moved) {
       newGrid = addRandomTile(newGrid);
       setGrid(newGrid);
+
+      // Trigger effects based on merge value
+      if (totalScore > 0) {
+        addScorePopup(`+${totalScore}`);
+        updateCombo();
+
+        // Find highest merged tile this move
+        const highestMerge = Math.max(...newGrid.flat().filter((v): v is number => v !== null));
+
+        if (highestMerge > lastMergeValueRef.current) {
+          lastMergeValueRef.current = highestMerge;
+
+          // Effects based on tile value achieved
+          if (highestMerge >= 128) {
+            triggerShockwave('#ff6b00', 0.6);
+            triggerSparks('#ff6b00');
+            addFloatingEmoji(TILE_EMOJI[highestMerge] || '🔥');
+          }
+          if (highestMerge >= 256) {
+            triggerScreenShake(300);
+            showEpicCallout(`${highestMerge}!`);
+          }
+          if (highestMerge >= 512) {
+            triggerConfetti();
+          }
+        }
+      }
+
       setScore(prev => {
         const newScore = prev + totalScore;
         if (newScore > highScore) {
@@ -161,6 +207,9 @@ const Orange2048: React.FC = () => {
         for (let col = 0; col < GRID_SIZE; col++) {
           if (newGrid[row][col] === 2048) {
             setGameState('won');
+            showEpicCallout('YOU WIN!');
+            triggerConfetti();
+            triggerShockwave('#FFD700', 1.0);
             return;
           }
         }
@@ -169,9 +218,10 @@ const Orange2048: React.FC = () => {
       // Check for game over
       if (isGameOver(newGrid)) {
         setGameState('gameover');
+        triggerScreenShake(500);
       }
     }
-  }, [gameState, grid, addRandomTile, highScore]);
+  }, [gameState, grid, addRandomTile, highScore, addScorePopup, updateCombo, triggerShockwave, triggerSparks, addFloatingEmoji, triggerScreenShake, showEpicCallout, triggerConfetti]);
 
   const isGameOver = (currentGrid: Grid): boolean => {
     // Check for empty cells
@@ -195,15 +245,15 @@ const Orange2048: React.FC = () => {
 
   // Touch controls
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartRef.x = e.touches[0].clientX;
-    touchStartRef.y = e.touches[0].clientY;
+    touchStartRef.current.x = e.touches[0].clientX;
+    touchStartRef.current.y = e.touches[0].clientY;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (gameState !== 'playing') return;
 
-    const dx = e.changedTouches[0].clientX - touchStartRef.x;
-    const dy = e.changedTouches[0].clientY - touchStartRef.y;
+    const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+    const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
 
     if (Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
 
@@ -270,10 +320,12 @@ const Orange2048: React.FC = () => {
         )}
 
         <div
-          className="game2048-area"
+          className={`game2048-area ${effects.screenShake ? 'screen-shake' : ''}`}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
+          {/* Universal Game Effects Layer */}
+          <GameEffects effects={effects} accentColor="#ff6b00" />
           {gameState === 'idle' && (
             <div className="game-menu">
               <div className="game-title">2048 Oranges</div>

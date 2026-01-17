@@ -1,7 +1,7 @@
 /**
  * Header Component
  *
- * Top header bar with logo and wallet connection.
+ * Top header bar with logo and price displays.
  * Height: 56px mobile, 64px desktop.
  * Features glass morphism background with blur effect.
  */
@@ -14,8 +14,8 @@ import { useLayout } from '@/hooks/useLayout';
 import { useGallery } from '@/hooks/useGallery';
 import { LAYOUT } from '@/config/layout';
 import { Logo } from './Logo';
-import { WalletButton } from './WalletButton';
 import { PriceBadges } from './PriceBadges';
+import { CurrencyDisplay } from '@/components/Currency';
 import { getNavItemByPath } from '@/config/routes';
 import type { SortMode, FilterMode } from '@/types/nft';
 
@@ -193,16 +193,30 @@ export function Header({ transparent = false }: HeaderProps) {
           background: isTransparent
             ? 'transparent'
             : isScrolled
-              ? 'var(--color-header-bg-scrolled)'
-              : 'var(--color-header-bg)',
-          backdropFilter: isTransparent ? 'none' : 'blur(12px)',
-          WebkitBackdropFilter: isTransparent ? 'none' : 'blur(12px)',
+              ? 'rgba(10, 10, 10, 0.9)'
+              : 'rgba(10, 10, 10, 0.8)',
+          backdropFilter: isTransparent ? 'none' : 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: isTransparent ? 'none' : 'blur(20px) saturate(180%)',
           borderBottom: isTransparent
             ? 'none'
-            : '1px solid var(--color-border)',
+            : '1px solid rgba(249, 115, 22, 0.15)',
           transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s, border-color 0.2s',
         }}
       >
+        {/* Subtle glow line at bottom */}
+        {!isTransparent && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '1px',
+              background: 'linear-gradient(90deg, transparent 0%, rgba(249, 115, 22, 0.5) 50%, transparent 100%)',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
         {/* Mobile: Logo with optional breadcrumb override + gallery controls */}
         {isMobile && (
           <>
@@ -221,12 +235,11 @@ export function Header({ transparent = false }: HeaderProps) {
                 breadcrumb={headerBreadcrumb}
               />
             )}
-            {/* Gallery controls on right when character selected */}
-            {headerBreadcrumb && (
-              <div className="ml-auto">
-                <MobileGalleryControls />
-              </div>
-            )}
+            {/* Right side: Currency display + Gallery controls when character selected */}
+            <div className="ml-auto flex items-center gap-2">
+              <CurrencyDisplay size="small" />
+              {headerBreadcrumb && <MobileGalleryControls />}
+            </div>
           </>
         )}
 
@@ -303,10 +316,10 @@ export function Header({ transparent = false }: HeaderProps) {
               </AnimatePresence>
             </motion.div>
 
-            {/* Right: Price badges + Wallet button */}
+            {/* Right: Currency + Price badges */}
             <div className="flex-shrink-0 flex items-center gap-6">
+              <CurrencyDisplay size="small" />
               <PriceBadges size="md" />
-              <WalletButton size="md" />
             </div>
           </>
         )}

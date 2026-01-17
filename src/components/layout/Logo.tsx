@@ -291,8 +291,11 @@ export function Logo({ className = '', size = 'md', showText = true, showTagline
                   </button>
                   {showText && (
                     <span
-                      className={`font-bold tracking-tight ${sizeStyles[size]} whitespace-nowrap`}
-                      style={{ color: 'var(--color-text-primary)' }}
+                      className={`font-bold tracking-tight ${sizeStyles[size]} truncate`}
+                      style={{
+                        color: 'var(--color-text-primary)',
+                        maxWidth: 'min(45vw, 180px)',
+                      }}
                     >
                       {breadcrumb.label.startsWith('Bepe ') ? (
                         <>
@@ -311,18 +314,30 @@ export function Logo({ className = '', size = 'md', showText = true, showTagline
                   )}
                 </>
               ) : (
-                // Default: favicon + Wojak.ink
+                // Default: favicon + Wojak.ink with pulse glow
                 <>
-                  <div
+                  <motion.div
                     className={`${iconSize.container} flex items-center justify-center flex-shrink-0`}
                     style={{ marginRight: '8px' }}
+                    animate={{
+                      filter: [
+                        'drop-shadow(0 0 5px rgba(249, 115, 22, 0.3))',
+                        'drop-shadow(0 0 15px rgba(249, 115, 22, 0.5))',
+                        'drop-shadow(0 0 5px rgba(249, 115, 22, 0.3))',
+                      ],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    }}
                   >
                     <img
                       src="/assets/icons/Wojak_logo.png"
                       alt="Wojak"
                       className={`${iconSize.icon} object-contain rounded-lg`}
                     />
-                  </div>
+                  </motion.div>
                   {showText && (
                     <span
                       className={`font-bold tracking-tight ${sizeStyles[size]}`}

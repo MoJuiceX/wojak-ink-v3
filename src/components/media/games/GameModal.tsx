@@ -28,6 +28,12 @@ const KnifeGame = lazy(() => import('@/pages/KnifeGame'));
 const ColorReaction = lazy(() => import('@/pages/ColorReaction'));
 const Merge2048Game = lazy(() => import('@/games/Merge2048/Merge2048Game'));
 const WordleGame = lazy(() => import('@/games/Wordle/WordleGame'));
+const BlockPuzzle = lazy(() => import('@/pages/BlockPuzzle'));
+const FlappyOrange = lazy(() => import('@/pages/FlappyOrange'));
+const CitrusDrop = lazy(() => import('@/pages/CitrusDrop'));
+const OrangeSnake = lazy(() => import('@/pages/OrangeSnake'));
+const BrickBreaker = lazy(() => import('@/pages/BrickBreaker'));
+const WojakWhack = lazy(() => import('@/pages/WojakWhack'));
 
 // Map game IDs to their components
 const GAME_COMPONENTS: Record<string, React.LazyExoticComponent<React.FC>> = {
@@ -40,6 +46,12 @@ const GAME_COMPONENTS: Record<string, React.LazyExoticComponent<React.FC>> = {
   'color-reaction': ColorReaction,
   'merge-2048': Merge2048Game,
   'orange-wordle': WordleGame,
+  'block-puzzle': BlockPuzzle,
+  'flappy-orange': FlappyOrange,
+  'citrus-drop': CitrusDrop,
+  'orange-snake': OrangeSnake,
+  'brick-breaker': BrickBreaker,
+  'wojak-whack': WojakWhack,
 };
 
 interface GameModalProps {
@@ -63,6 +75,19 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
       setShowLeaderboard(false);
     }
   }, [isOpen]);
+
+  // Hide bottom navigation during gameplay on mobile
+  useEffect(() => {
+    if (isMobile && gameStarted) {
+      document.body.classList.add('game-fullscreen-mode');
+    } else {
+      document.body.classList.remove('game-fullscreen-mode');
+    }
+
+    return () => {
+      document.body.classList.remove('game-fullscreen-mode');
+    };
+  }, [isMobile, gameStarted]);
 
   if (!game) return null;
 
@@ -138,8 +163,9 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
             className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
             style={{
               // Mobile: minimal padding to maximize game area
+              // When gameStarted on mobile, bottom nav is hidden so use minimal padding
               paddingTop: isMobile ? '45px' : (game.id === 'memory-match' ? '55px' : '60px'),
-              paddingBottom: isMobile ? '60px' : (game.id === 'memory-match' ? '15px' : '20px'),
+              paddingBottom: isMobile ? (gameStarted ? '10px' : '60px') : (game.id === 'memory-match' ? '15px' : '20px'),
               paddingLeft: isMobile ? '0' : (game.id === 'memory-match' ? '90px' : '20px'),
               paddingRight: isMobile ? '0' : (game.id === 'memory-match' ? '55px' : '20px'),
             }}
@@ -148,18 +174,21 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
               className={`flex flex-col pointer-events-auto ${isMobile ? '' : 'rounded-2xl'}`}
               style={{
                 // Mobile: TRUE full-screen (edge to edge), Desktop: constrained
+                // Memory Match uses fit-content ONLY during gameplay (not intro)
+                // When gameStarted on mobile, bottom nav is hidden so use more height
                 width: isMobile
                   ? '100vw'
-                  : (game.id === 'memory-match' ? 'fit-content' : 'min(75vw, 900px)'),
+                  : (game.id === 'memory-match' && gameStarted ? 'fit-content' : 'min(75vw, 900px)'),
                 height: isMobile
-                  ? 'calc(100vh - 105px)' // 45px header + 60px tab bar
-                  : (game.id === 'memory-match' ? 'fit-content' : '88vh'),
-                maxWidth: game.id === 'memory-match' && !isMobile ? 'calc(100vw - 145px)' : undefined,
-                maxHeight: isMobile ? 'calc(100vh - 105px)' : 'calc(100vh - 70px)',
+                  ? (gameStarted ? 'calc(100vh - 55px)' : 'calc(100vh - 105px)') // 45px header (+ 60px tab bar when not started)
+                  : (game.id === 'memory-match' && gameStarted ? 'fit-content' : '88vh'),
+                maxWidth: game.id === 'memory-match' && gameStarted && !isMobile ? 'calc(100vw - 145px)' : undefined,
+                maxHeight: isMobile ? (gameStarted ? 'calc(100vh - 55px)' : 'calc(100vh - 105px)') : 'calc(100vh - 70px)',
                 background: isMobile
                   ? 'transparent' // Let game background show through on mobile
                   : `linear-gradient(135deg, ${game.accentColor}15 0%, ${game.accentColor}05 100%)`,
-                border: isMobile ? 'none' : `1px solid ${game.accentColor}`,
+                border: isMobile ? 'none' : `1px solid ${game.accentColor}40`,
+                boxShadow: isMobile ? 'none' : `0 8px 32px ${game.accentColor}20, 0 0 0 1px ${game.accentColor}10`,
                 overflow: 'hidden',
               }}
               variants={prefersReducedMotion ? undefined : gameModalContentVariants}
@@ -179,17 +208,18 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
                     backgroundPosition: 'center',
                   }}
                 >
-                  {/* Header with integrated buttons */}
-                  <div className="game-intro-header">
+                  {/* Premium Glassmorphism Header Bar */}
+                  <div className="game-intro-header-bar">
                     <button
-                      className="game-intro-btn help-btn"
+                      className="game-intro-header-btn"
                       onClick={() => setShowInstructions(true)}
                       aria-label="How to play"
                     >
                       <HelpCircle size={20} />
                     </button>
+                    <span className="game-intro-header-title">{game.name}</span>
                     <button
-                      className="game-intro-btn close-btn"
+                      className="game-intro-header-btn"
                       onClick={onClose}
                       aria-label="Close game"
                     >
@@ -200,7 +230,6 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
                   {/* Content */}
                   <div className="game-intro-content">
                     <div className="game-intro-emoji">{game.emoji}</div>
-                    <h1 className="game-intro-title">{game.name}</h1>
                     <p className="game-intro-description">
                       {game.shortDescription || game.description}
                     </p>
@@ -208,16 +237,20 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
                     <button
                       className="game-intro-play-btn"
                       onClick={() => setGameStarted(true)}
+                      style={{
+                        background: `linear-gradient(135deg, ${game.accentColor} 0%, ${game.accentColor}cc 100%)`,
+                        boxShadow: `0 4px 24px ${game.accentColor}60, 0 0 60px ${game.accentColor}30`,
+                      }}
                     >
-                      Play
+                      PLAY
                     </button>
 
                     {game.hasHighScores && (
                       <button
-                        className="game-intro-leaderboard-btn"
+                        className="game-intro-leaderboard-link"
                         onClick={() => setShowLeaderboard(true)}
                       >
-                        🏆 Leaderboard
+                        🏆 View Leaderboard <span className="arrow">→</span>
                       </button>
                     )}
                   </div>
@@ -275,7 +308,7 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
 
               {/* Game area - only renders when game has started */}
               {gameStarted && !isComingSoon && (
-                <div className="w-full h-full overflow-hidden relative">
+                <div className="w-full h-full overflow-hidden" style={{ position: 'relative' }}>
                   <Suspense
                     fallback={
                       <div

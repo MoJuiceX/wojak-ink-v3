@@ -61,19 +61,48 @@ export const traitCardVariants: Variants = {
   },
 };
 
-// Stagger children for grid layout
+// Stagger children for grid layout - enhanced with spring animation
 export const traitGridVariants: Variants = {
-  initial: {},
+  initial: { opacity: 0 },
   animate: {
+    opacity: 1,
     transition: {
       staggerChildren: 0.03,
-      delayChildren: 0.1,
+      delayChildren: 0.05,
     },
   },
   exit: {
+    opacity: 0,
     transition: {
       staggerChildren: 0.02,
       staggerDirection: -1,
+    },
+  },
+};
+
+// Individual trait card stagger animation
+export const traitCardStaggerVariants: Variants = {
+  initial: {
+    opacity: 0,
+    scale: 0.8,
+    y: 20,
+  },
+  animate: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: {
+      type: 'spring',
+      stiffness: 200,
+      damping: 20,
+    },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.8,
+    y: 20,
+    transition: {
+      duration: 0.15,
     },
   },
 };

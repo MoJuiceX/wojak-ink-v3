@@ -1,0 +1,237 @@
+/* ============================================
+   SOUND SETTINGS STYLES
+   ============================================ */
+
+.sound-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.sound-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sound-setting-row:last-child {
+  border-bottom: none;
+}
+
+.sound-setting-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-primary, #fff);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sound-setting-label svg {
+  color: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
+}
+
+/* Toggle Button */
+.sound-toggle-btn {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sound-toggle-btn.active {
+  background: var(--color-brand-primary, #ff6b00);
+  border-color: var(--color-brand-primary, #ff6b00);
+}
+
+.sound-toggle-slider {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.sound-toggle-btn.active .sound-toggle-slider {
+  transform: translateX(22px);
+}
+
+/* Volume Slider Container */
+.sound-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 200px;
+}
+
+.sound-slider-value {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 36px;
+  text-align: right;
+  font-family: 'SF Mono', 'Monaco', monospace;
+}
+
+/* Range Slider */
+.sound-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  outline: none;
+  cursor: pointer;
+}
+
+.sound-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-brand-primary, #ff6b00);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(255, 107, 0, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sound-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 10px rgba(255, 107, 0, 0.6);
+}
+
+.sound-slider::-webkit-slider-thumb:active {
+  transform: scale(1.1);
+}
+
+.sound-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-brand-primary, #ff6b00);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(255, 107, 0, 0.4);
+}
+
+/* Track styling for filled portion */
+.sound-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--color-brand-primary, #ff6b00) 0%,
+    var(--color-brand-primary, #ff6b00) var(--value, 50%),
+    rgba(255, 255, 255, 0.15) var(--value, 50%),
+    rgba(255, 255, 255, 0.15) 100%
+  );
+}
+
+/* ============================================
+   MUTE BUTTON STYLES
+   ============================================ */
+
+.mute-button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.mute-button:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.mute-button:active {
+  transform: scale(0.95);
+}
+
+.mute-button svg {
+  flex-shrink: 0;
+}
+
+/* Small variant */
+.mute-button.small {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+/* Inline mute toggle (no background) */
+.mute-toggle {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease, transform 0.15s ease;
+}
+
+.mute-toggle:hover {
+  color: #fff;
+}
+
+.mute-toggle:active {
+  transform: scale(0.9);
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 480px) {
+  .sound-settings {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .sound-setting-row {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 0;
+  }
+
+  .sound-slider-container {
+    width: 100%;
+    max-width: none;
+    order: 1;
+    padding-left: 28px;
+  }
+
+  .sound-setting-label {
+    font-size: 13px;
+  }
+}

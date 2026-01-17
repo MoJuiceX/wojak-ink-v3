@@ -1,0 +1,197 @@
+/* ===== LEADERBOARD ACCESS GATE ===== */
+
+.leaderboard-gate {
+  max-width: 500px;
+  margin: 40px auto;
+  text-align: center;
+  padding: 40px 24px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(0, 0, 0, 0.3));
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative glow */
+.leaderboard-gate::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.15), transparent 70%);
+  pointer-events: none;
+}
+
+.gate-content {
+  position: relative;
+  z-index: 1;
+}
+
+.lock-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  display: inline-block;
+  filter: drop-shadow(0 0 20px rgba(249, 115, 22, 0.3));
+}
+
+.leaderboard-gate h2 {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+}
+
+.leaderboard-gate > .gate-content > p {
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+/* Requirements list */
+.requirements {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.requirement {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+}
+
+.req-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(249, 115, 22, 0.15);
+  border-radius: 10px;
+  color: #F97316;
+  flex-shrink: 0;
+}
+
+/* Benefits section */
+.benefits {
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.15);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 28px;
+  text-align: left;
+}
+
+.benefits h3 {
+  color: #F97316;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 14px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.benefits ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.benefits li {
+  padding: 8px 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.benefits li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* CTA buttons */
+.cta-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.primary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 32px;
+  background: linear-gradient(135deg, #F97316, #EA580C);
+  border: none;
+  border-radius: 14px;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.3);
+  transition: box-shadow 0.2s ease;
+}
+
+.primary-btn:hover {
+  box-shadow: 0 6px 30px rgba(249, 115, 22, 0.4);
+}
+
+.secondary-link {
+  background: none;
+  border: none;
+  color: #F97316;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.2s ease;
+}
+
+.secondary-link:hover {
+  color: #FFD700;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .leaderboard-gate {
+    margin: 20px 16px;
+    padding: 32px 20px;
+    border-radius: 20px;
+  }
+
+  .lock-icon {
+    font-size: 48px;
+  }
+
+  .leaderboard-gate h2 {
+    font-size: 1.25rem;
+  }
+
+  .requirement {
+    padding: 12px 14px;
+    font-size: 0.9rem;
+  }
+
+  .req-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .benefits {
+    padding: 16px;
+  }
+
+  .benefits li {
+    font-size: 0.9rem;
+  }
+}

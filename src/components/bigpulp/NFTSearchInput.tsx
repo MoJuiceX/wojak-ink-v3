@@ -17,6 +17,9 @@ interface NFTSearchInputProps {
   onChange: (value: string) => void;
   onSearch: (id: string) => void;
   onSurprise: () => void;
+  onMyWojaks?: () => void;
+  hasWallet?: boolean;
+  ownedCount?: number;
   isLoading: boolean;
   error?: string;
 }
@@ -26,6 +29,9 @@ export function NFTSearchInput({
   onChange,
   onSearch,
   onSurprise,
+  onMyWojaks,
+  hasWallet = false,
+  ownedCount = 0,
   isLoading,
   error,
 }: NFTSearchInputProps) {
@@ -133,7 +139,7 @@ export function NFTSearchInput({
               disabled={isLoading}
               aria-label="Search NFT by ID number"
               aria-describedby={error ? 'search-error' : undefined}
-              className="flex-1 bg-transparent outline-none text-sm font-mono placeholder:opacity-40"
+              className="flex-1 min-w-0 bg-transparent outline-none text-sm font-mono placeholder:opacity-40"
               style={{ color: 'var(--color-text-primary)', marginLeft: '-2px' }}
             />
             <AnimatePresence mode="wait">
@@ -175,6 +181,26 @@ export function NFTSearchInput({
             🎲
           </motion.span>
         </button>
+
+        {/* My Wojaks button - only show if wallet connected with NFTs */}
+        {hasWallet && ownedCount > 0 && onMyWojaks && (
+          <button
+            className="flex items-center justify-center gap-1 rounded-lg transition-colors flex-shrink-0 px-2"
+            style={{
+              background: 'linear-gradient(135deg, #f97316, #ea580c)',
+              border: '1px solid #f97316',
+              height: '40px',
+              minWidth: '40px',
+            }}
+            onClick={onMyWojaks}
+            disabled={isLoading}
+            aria-label={`View your ${ownedCount} Wojaks`}
+            title={`You own ${ownedCount} Wojak${ownedCount !== 1 ? 's' : ''}`}
+          >
+            <span className="text-base">👤</span>
+            <span className="text-xs font-bold text-white">{ownedCount}</span>
+          </button>
+        )}
       </div>
 
       {/* Error message */}

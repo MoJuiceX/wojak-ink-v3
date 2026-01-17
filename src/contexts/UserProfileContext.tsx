@@ -3,6 +3,7 @@
  *
  * Manages authenticated user profile state across the app.
  * Fetches profile on sign-in, provides update methods, tracks messages.
+ * Uses localStorage fallback when API is unavailable (local dev).
  */
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
@@ -11,6 +12,9 @@ import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 
 // Check if Clerk is configured
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+// localStorage key for profile fallback
+const PROFILE_STORAGE_KEY = 'wojak_user_profile';
 
 export interface UserProfile {
   displayName: string | null;
@@ -61,9 +65,16 @@ interface UserProfileContextValue extends UserProfileState {
 const UserProfileContext = createContext<UserProfileContextValue | null>(null);
 
 export function UserProfileProvider({ children }: { children: React.ReactNode }) {
-  const { isSignedIn, isLoaded: authLoaded } = CLERK_ENABLED ? useAuth() : { isSignedIn: false, isLoaded: true };
-  const { user } = CLERK_ENABLED ? useUser() : { user: null };
+  // Only call Clerk hooks if Clerk is enabled (ClerkProvider exists)
+  // When Clerk is disabled, use safe defaults
+  const authResult = CLERK_ENABLED ? useAuth() : { isSignedIn: false, isLoaded: true };
+  const userResult = CLERK_ENABLED ? useUser() : { user: null };
   const { authenticatedFetch } = useAuthenticatedFetch();
+
+  // Use Clerk values only if enabled, otherwise use defaults
+  const isSignedIn = CLERK_ENABLED ? authResult.isSignedIn : false;
+  const authLoaded = CLERK_ENABLED ? authResult.isLoaded : true;
+  const user = CLERK_ENABLED ? userResult.user : null;
 
   const [state, setState] = useState<UserProfileState>({
     profile: null,
@@ -77,14 +88,42 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
   const fetchedRef = useRef(false);
   const previousSignedIn = useRef<boolean | null>(null);
 
-  // Fetch profile from API
+  // Load profile from localStorage (fallback)
+  const loadProfileFromStorage = useCallback((): UserProfile | null => {
+    try {
+      const stored = localStorage.getItem(PROFILE_STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('[UserProfile] Error loading from localStorage:', e);
+    }
+    return null;
+  }, []);
+
+  // Save profile to localStorage (fallback)
+  const saveProfileToStorage = useCallback((profile: UserProfile) => {
+    try {
+      localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+    } catch (e) {
+      console.error('[UserProfile] Error saving to localStorage:', e);
+    }
+  }, []);
+
+  // Fetch profile from API with timeout, fallback to localStorage
   const fetchProfile = useCallback(async () => {
     if (!isSignedIn) return;
 
     setState(s => ({ ...s, isLoading: true, error: null }));
 
     try {
-      const response = await authenticatedFetch('/api/profile');
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+
+      const response = await authenticatedFetch('/api/profile', {
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutId));
 
       if (response.ok) {
         const data = await response.json();
@@ -99,9 +138,15 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
           longestStreak: apiProfile.longestStreak || 0,
           lastPlayedDate: apiProfile.lastPlayedDate || null,
         } : null;
+
+        // Save to localStorage as backup
+        if (profile) {
+          saveProfileToStorage(profile);
+        }
+
         const needsOnboarding = !profile?.displayName;
 
-        console.log('[UserProfile] Profile loaded:', {
+        console.log('[UserProfile] Profile loaded from API:', {
           hasProfile: !!profile,
           displayName: profile?.displayName,
           needsOnboarding,
@@ -115,27 +160,35 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
           needsOnboarding,
           error: null,
         }));
-      } else {
-        // No profile found or error
-        setState(s => ({
-          ...s,
-          profile: null,
-          isLoading: false,
-          isLoaded: true,
-          needsOnboarding: true,
-          error: null,
-        }));
+        return;
       }
     } catch (error) {
-      console.error('[UserProfile] Error fetching profile:', error);
-      setState(s => ({
-        ...s,
-        isLoading: false,
-        isLoaded: true,
-        error: 'Failed to load profile',
-      }));
+      // Ignore AbortError - these are expected when component unmounts or request times out
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('[UserProfile] API timeout, falling back to localStorage');
+      } else {
+        console.error('[UserProfile] API error, falling back to localStorage:', error);
+      }
     }
-  }, [isSignedIn, authenticatedFetch]);
+
+    // Fallback to localStorage
+    const storedProfile = loadProfileFromStorage();
+    const needsOnboarding = !storedProfile?.displayName;
+
+    console.log('[UserProfile] Using localStorage profile:', {
+      hasProfile: !!storedProfile,
+      displayName: storedProfile?.displayName,
+    });
+
+    setState(s => ({
+      ...s,
+      profile: storedProfile,
+      isLoading: false,
+      isLoaded: true,
+      needsOnboarding,
+      error: null,
+    }));
+  }, [isSignedIn, authenticatedFetch, loadProfileFromStorage, saveProfileToStorage]);
 
   // Fetch unread messages count
   const fetchUnreadCount = useCallback(async () => {
@@ -159,18 +212,27 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
     await fetchUnreadCount();
   }, [fetchProfile, fetchUnreadCount]);
 
-  // Update profile
+  // Update profile (API with localStorage fallback)
   const updateProfile = useCallback(async (data: Partial<UserProfile>): Promise<boolean> => {
     if (!isSignedIn) return false;
 
     try {
+      // Try API first with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
       const response = await authenticatedFetch('/api/profile', {
         method: 'POST',
         body: JSON.stringify(data),
-      });
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutId));
 
       if (response.ok) {
         const result = await response.json();
+        // Also save to localStorage
+        if (result.profile) {
+          saveProfileToStorage(result.profile);
+        }
         setState(s => ({
           ...s,
           profile: result.profile,
@@ -178,12 +240,38 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
         }));
         return true;
       }
-      return false;
     } catch (error) {
-      console.error('[UserProfile] Error updating profile:', error);
-      return false;
+      console.log('[UserProfile] API update failed, using localStorage fallback');
     }
-  }, [isSignedIn, authenticatedFetch]);
+
+    // Fallback: update localStorage directly
+    const currentProfile = state.profile || {
+      displayName: null,
+      xHandle: null,
+      walletAddress: null,
+      updatedAt: null,
+      currentStreak: 0,
+      longestStreak: 0,
+      lastPlayedDate: null,
+    };
+
+    const updatedProfile: UserProfile = {
+      ...currentProfile,
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+
+    saveProfileToStorage(updatedProfile);
+
+    setState(s => ({
+      ...s,
+      profile: updatedProfile,
+      needsOnboarding: !updatedProfile.displayName,
+    }));
+
+    console.log('[UserProfile] Profile saved to localStorage:', updatedProfile);
+    return true;
+  }, [isSignedIn, authenticatedFetch, state.profile, saveProfileToStorage]);
 
   // Store refreshProfile in a ref to avoid dependency issues
   const refreshProfileRef = useRef(refreshProfile);
@@ -195,7 +283,7 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
 
     // Detect sign-in state change
     const signedInChanged = previousSignedIn.current !== null && previousSignedIn.current !== isSignedIn;
-    previousSignedIn.current = isSignedIn;
+    previousSignedIn.current = isSignedIn ?? null;
 
     // Reset state on sign-out
     if (!isSignedIn) {

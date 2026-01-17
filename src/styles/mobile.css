@@ -1,0 +1,315 @@
+/* ===== MOBILE TOUCH OPTIMIZATIONS ===== */
+/* iPhone-first experience with native-feeling interactions */
+
+/* ----------------------------------------
+   1. TOUCH TARGET SIZES
+   ---------------------------------------- */
+
+/* Ensure all interactive elements meet 44x44px minimum */
+button,
+a,
+[role="button"],
+.touchable {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* For icon-only buttons, add padding */
+.icon-btn {
+  padding: 10px;
+  /* Icon 24px + padding 10px*2 = 44px */
+}
+
+/* Touch target spacing - minimum 8px between */
+.button-group {
+  gap: 8px;
+}
+
+/* ----------------------------------------
+   2. TOUCH FEEDBACK
+   ---------------------------------------- */
+
+/* Custom tap highlight color - orange theme */
+* {
+  -webkit-tap-highlight-color: rgba(249, 115, 22, 0.15);
+}
+
+/* Remove default tap highlight and add custom active state */
+button,
+a,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; /* Prevents double-tap zoom */
+}
+
+button:active,
+a:active,
+[role="button"]:active {
+  background-color: rgba(249, 115, 22, 0.1);
+}
+
+/* Quick scale bounce on tap */
+.tap-bounce:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+
+/* Card press effect */
+.card-pressable:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  transition: all 0.1s ease;
+}
+
+/* ----------------------------------------
+   3. SCROLL BEHAVIOR
+   ---------------------------------------- */
+
+/* Enable iOS-style momentum scrolling */
+.scrollable {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Scroll snap for carousels */
+.carousel {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: auto;
+}
+
+.carousel-item {
+  scroll-snap-align: center;
+}
+
+/* Prevent pull-to-refresh on specific containers */
+.no-overscroll {
+  overscroll-behavior: contain;
+}
+
+/* Prevent horizontal overscroll on body */
+body {
+  overscroll-behavior-x: none;
+}
+
+/* ----------------------------------------
+   4. SAFE AREAS (iPhone Notch/Dynamic Island)
+   ---------------------------------------- */
+
+/* App container with safe area padding */
+.app-safe-area {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Fixed bottom navigation */
+.mobile-nav-safe {
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+/* Fixed header */
+.header-safe {
+  padding-top: calc(12px + env(safe-area-inset-top));
+}
+
+/* Full-height modals */
+.fullscreen-modal {
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ----------------------------------------
+   5. KEYBOARD HANDLING
+   ---------------------------------------- */
+
+/* Prevent zoom on input focus (iOS requires 16px minimum) */
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
+/* Scroll input into view when focused */
+input:focus,
+textarea:focus {
+  scroll-margin-bottom: 100px;
+}
+
+/* ----------------------------------------
+   6. iOS-SPECIFIC FIXES
+   ---------------------------------------- */
+
+/* Fix 100vh issue on iOS */
+.full-height {
+  height: 100vh;
+  height: 100dvh;
+  height: -webkit-fill-available;
+}
+
+/* Disable text selection on UI elements */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Fix sticky hover states on touch devices */
+@media (hover: none) {
+  .hover-lift:hover {
+    transform: none;
+  }
+
+  .hover-glow:hover {
+    box-shadow: none;
+  }
+}
+
+/* ----------------------------------------
+   7. PERFORMANCE OPTIMIZATIONS
+   ---------------------------------------- */
+
+/* Force GPU acceleration for smoother animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Remove will-change after animation */
+.animation-done {
+  will-change: auto;
+}
+
+/* ----------------------------------------
+   8. BOTTOM SHEET STYLES
+   ---------------------------------------- */
+
+.bottom-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+}
+
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  max-height: 90vh;
+  z-index: 1000;
+  touch-action: none;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.bottom-sheet-handle {
+  padding: 12px;
+  cursor: grab;
+  display: flex;
+  justify-content: center;
+}
+
+.bottom-sheet-handle:active {
+  cursor: grabbing;
+}
+
+.bottom-sheet-handle-bar {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.bottom-sheet-content {
+  padding: 0 20px 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  max-height: calc(90vh - 40px);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ----------------------------------------
+   9. IMAGE PLACEHOLDER STYLES
+   ---------------------------------------- */
+
+.image-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.blur-placeholder {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(20px);
+  transform: scale(1.1);
+  transition: opacity 0.3s ease;
+}
+
+.blur-placeholder.hidden {
+  opacity: 0;
+}
+
+.image-container img {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.image-container img.loaded {
+  opacity: 1;
+}
+
+/* ----------------------------------------
+   10. PULL TO REFRESH INDICATOR
+   ---------------------------------------- */
+
+.pull-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  color: #F97316;
+}
+
+.pull-indicator .spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(249, 115, 22, 0.2);
+  border-top-color: #F97316;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ----------------------------------------
+   11. REDUCED MOTION
+   ---------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .tap-bounce:active,
+  .card-pressable:active {
+    transform: none;
+  }
+}

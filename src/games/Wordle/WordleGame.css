@@ -13,14 +13,19 @@
   justify-content: flex-start;
   width: 100%;
   height: 100%;
-  min-height: 100%;
+  min-height: 400px; /* Ensure minimum height for visibility */
   padding: 16px;
   background: linear-gradient(180deg, #1a1a2e 0%, #121213 100%);
   box-sizing: border-box;
   overflow: hidden;
   touch-action: none;
   user-select: none;
-  position: relative;
+  /* Ensure container fills parent */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 /* ============================================================================
@@ -746,5 +751,62 @@
 
   .stat-label {
     font-size: 9px;
+  }
+}
+
+/* Screen shake animation for game effects */
+.wordle-container.screen-shake {
+  animation: wordle-screen-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes wordle-screen-shake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5px, -4px); }
+  20% { transform: translate(5px, 3px); }
+  30% { transform: translate(-4px, 5px); }
+  40% { transform: translate(4px, -3px); }
+  50% { transform: translate(-3px, 4px); }
+  60% { transform: translate(3px, -4px); }
+  70% { transform: translate(-4px, 3px); }
+  80% { transform: translate(3px, 4px); }
+  90% { transform: translate(-2px, -2px); }
+}
+
+/* Very narrow screens (< 320px) */
+@media (max-width: 320px) {
+  .wordle-container {
+    padding: 8px 4px;
+  }
+
+  .wordle-title {
+    font-size: 22px;
+    letter-spacing: 1px;
+  }
+
+  .wordle-board {
+    gap: 3px;
+    margin-bottom: 12px;
+  }
+
+  .wordle-row {
+    gap: 3px;
+  }
+
+  .wordle-tile {
+    width: 38px;
+    height: 38px;
+    font-size: 18px;
+  }
+
+  .wordle-key {
+    min-width: 22px;
+    max-width: 28px;
+    padding: 10px 0;
+    font-size: 10px;
+  }
+
+  .wordle-key.key-wide {
+    min-width: 38px;
+    max-width: 44px;
   }
 }

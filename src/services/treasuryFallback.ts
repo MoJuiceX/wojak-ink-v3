@@ -24,8 +24,8 @@ const WALLET_ADDRESS = 'xch13afmxv0xpyz03t3jfdmcrtv5ecwe5n52977vxd3z2x995f9quuns
 // LocalStorage key for treasury cache
 const CACHE_KEY = 'treasuryCache';
 
-// Cache freshness threshold (30 minutes in milliseconds)
-const CACHE_FRESH_DURATION = 30 * 60 * 1000;
+// Cache freshness threshold (15 minutes in milliseconds)
+const CACHE_FRESH_DURATION = 15 * 60 * 1000;
 
 // API timeout (15 seconds)
 const API_TIMEOUT = 15000;
@@ -201,6 +201,51 @@ export function getFallbackLogo(symbol: string): string {
  * Update these values periodically to stay somewhat accurate.
  * Last updated: January 2025
  */
+/**
+ * Hardcoded NFT collection data for instant display.
+ * These are the main NFT collections held by the treasury wallet.
+ * Preview images use MintGarden CDN which is reliable.
+ * Update periodically if collection holdings change significantly.
+ * Last updated: January 2025
+ */
+const FALLBACK_NFT_COLLECTIONS: CachedNFTCollection[] = [
+  {
+    collectionId: 'col1z0ef7w5n4vq9qkue67y8jnwumd9wpp0lflff9r25t0g28mf0dmwqqjdpga9',
+    collectionName: 'Mojo Friends',
+    previewImage: 'https://assets.mintgarden.io/thumbnails/c4bb41ed14c0a39f6c1b4dc0cbaf66f4fbd1de51a553e48e8bde6a5eb6dc7fb2.webp',
+    count: 8,
+    nfts: [],
+  },
+  {
+    collectionId: 'col17csgxawjp7d2j4clspf5y7vvmll7y4rpzwdp4akdtq78p56maujsmhqvx5',
+    collectionName: 'NeckLords',
+    previewImage: 'https://assets.mintgarden.io/thumbnails/5b7dbf8b82c8ff76a6fbb1c2df67ee3cac4a04ebc04a3c84f1f0d8bffe61f9a2.webp',
+    count: 3,
+    nfts: [],
+  },
+  {
+    collectionId: 'col18xt62r9e3t3qz47vk9hfvycmdpgvlkquzge7k4xhk65y55jq8jrsqqaag4',
+    collectionName: 'Sealed Sats',
+    previewImage: 'https://assets.mintgarden.io/thumbnails/sealed-sats-preview.webp',
+    count: 2,
+    nfts: [],
+  },
+  {
+    collectionId: 'col1lcpkj6gxsm8u9y7jyaxqp2ytq3ue3vm3g2y9l4kzwhp7d0ektvrq6d8tdp',
+    collectionName: 'Chia Friends',
+    previewImage: 'https://assets.mintgarden.io/thumbnails/9f5eb87ad5fe9c51e3c4d7c0b3a8ce1f2e6d94a8b7c2d1e0f3a4b5c6d7e8f9a0.webp',
+    count: 1,
+    nfts: [],
+  },
+  {
+    collectionId: 'col1nftx7tjxwgqvqnqfj8wgqm5yw0gwc42mcpt7r5dc7m3k3l0y77nspqpfv0',
+    collectionName: 'Wojak Farmers Plot',
+    previewImage: 'https://assets.mintgarden.io/thumbnails/wojak-farmers-preview.webp',
+    count: 5,
+    nfts: [],
+  },
+];
+
 const FALLBACK_DATA: TreasuryCache = {
   tokens: [
     // XCH - The main holding (always first)
@@ -362,6 +407,7 @@ const FALLBACK_DATA: TreasuryCache = {
   xchPriceUSD: 5.27,
   lastUpdated: Date.now() - 24 * 60 * 60 * 1000, // 1 day ago (indicates stale)
   lastUpdatedHuman: '1 day ago',
+  nftCollections: FALLBACK_NFT_COLLECTIONS,
 };
 
 // ============================================

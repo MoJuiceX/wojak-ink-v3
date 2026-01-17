@@ -17,6 +17,18 @@
   box-sizing: border-box;
 }
 
+/* Desktop viewport constraint - dashboard-style fit */
+@media (min-width: 1024px) {
+  .treasury-page {
+    /* Constrain to viewport height minus header (64px) */
+    height: calc(100vh - 64px);
+    height: calc(100dvh - 64px); /* Modern browsers - handles mobile browser UI */
+    max-height: calc(100vh - 64px);
+    max-height: calc(100dvh - 64px);
+    overflow: hidden; /* Prevent page scroll - panels scroll internally */
+  }
+}
+
 /* ============================================
    MOBILE LAYOUT: Vertical Stack with Order
    ============================================ */
@@ -85,6 +97,8 @@
     grid-template-columns: 280px 1fr 300px;
     grid-template-rows: auto 1fr auto;
     gap: 20px;
+    height: 100%; /* Fill parent height */
+    min-height: 0; /* Critical - allows grid to shrink */
     overflow: hidden; /* Prevent grid from growing */
   }
 
@@ -102,6 +116,8 @@
     /* Allow this to stretch and fill middle space */
     display: flex;
     flex-direction: column;
+    min-height: 0; /* Critical - allows flex child to shrink */
+    overflow: hidden; /* Contain overflow */
   }
 
   .treasury-wallet {
@@ -115,7 +131,7 @@
     grid-column: 2;
     grid-row: 1 / 4;
     order: unset;
-    min-height: unset;
+    min-height: 0; /* Allow shrinking */
     display: flex;
     flex-direction: column;
   }

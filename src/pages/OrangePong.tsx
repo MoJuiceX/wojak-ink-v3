@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useAudio } from '@/contexts/AudioContext';
+import { useGameEffects, GameEffects } from '@/components/media';
 import './OrangePong.css';
 
 const PADDLE_HEIGHT = 80;
@@ -21,7 +22,7 @@ const AI_REACTION_ZONE = 20;
 // - Match ends when someone reaches WIN_SCORE (5)
 
 // Sad images for game over screen
-const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/games/sad_runner_${i + 1}.png`);
+const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/Games/games_media/sad_runner_${i + 1}.png`);
 
 interface LocalLeaderboardEntry {
   name: string;
@@ -31,6 +32,22 @@ interface LocalLeaderboardEntry {
 
 const OrangePong: React.FC = () => {
   const { playPaddleHit, playWallBounce, playScorePoint, playWinSound, playGameOver } = useGameSounds();
+
+  // Visual effects system
+  const {
+    effects,
+    triggerShockwave,
+    triggerSparks,
+    triggerVignette,
+    triggerScreenShake,
+    addFloatingEmoji,
+    showEpicCallout,
+    triggerConfetti,
+    updateCombo,
+    resetCombo,
+    addScorePopup,
+    resetAllEffects,
+  } = useGameEffects();
 
   // Global leaderboard hook
   const {
@@ -73,12 +90,28 @@ const OrangePong: React.FC = () => {
   const animationRef = useRef<number | undefined>(undefined);
   const playerYRef = useRef(0);
 
+  // Rally tracking for combo effects
+  const [rally, setRally] = useState(0);
+  const rallyRef = useRef(0);
+
   // Sound refs for use in game loop
   const playPaddleHitRef = useRef(playPaddleHit);
   const playWallBounceRef = useRef(playWallBounce);
   const playScorePointRef = useRef(playScorePoint);
   const playWinSoundRef = useRef(playWinSound);
   const playGameOverRef = useRef(playGameOver);
+
+  // Effect refs for use in game loop
+  const triggerShockwaveRef = useRef(triggerShockwave);
+  const triggerSparksRef = useRef(triggerSparks);
+  const triggerVignetteRef = useRef(triggerVignette);
+  const triggerScreenShakeRef = useRef(triggerScreenShake);
+  const addFloatingEmojiRef = useRef(addFloatingEmoji);
+  const showEpicCalloutRef = useRef(showEpicCallout);
+  const triggerConfettiRef = useRef(triggerConfetti);
+  const updateComboRef = useRef(updateCombo);
+  const resetComboRef = useRef(resetCombo);
+  const addScorePopupRef = useRef(addScorePopup);
 
   // Keep refs updated
   useEffect(() => {
@@ -88,6 +121,20 @@ const OrangePong: React.FC = () => {
     playWinSoundRef.current = playWinSound;
     playGameOverRef.current = playGameOver;
   }, [playPaddleHit, playWallBounce, playScorePoint, playWinSound, playGameOver]);
+
+  // Keep effect refs updated
+  useEffect(() => {
+    triggerShockwaveRef.current = triggerShockwave;
+    triggerSparksRef.current = triggerSparks;
+    triggerVignetteRef.current = triggerVignette;
+    triggerScreenShakeRef.current = triggerScreenShake;
+    addFloatingEmojiRef.current = addFloatingEmoji;
+    showEpicCalloutRef.current = showEpicCallout;
+    triggerConfettiRef.current = triggerConfetti;
+    updateComboRef.current = updateCombo;
+    resetComboRef.current = resetCombo;
+    addScorePopupRef.current = addScorePopup;
+  }, [triggerShockwave, triggerSparks, triggerVignette, triggerScreenShake, addFloatingEmoji, showEpicCallout, triggerConfetti, updateCombo, resetCombo, addScorePopup]);
 
   const resetBall = useCallback((direction: number) => {
     const width = gameAreaRef.current?.offsetWidth || 300;
@@ -113,6 +160,10 @@ const OrangePong: React.FC = () => {
     setPlayerName('');
     setScoreSubmitted(false);
     setIsNewPersonalBest(false);
+    // Reset rally and effects
+    setRally(0);
+    rallyRef.current = 0;
+    resetAllEffects();
     // Ball starts going to AI first
     resetBall(-1);
     setGameState('playing');
@@ -214,21 +265,40 @@ const OrangePong: React.FC = () => {
     return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, [gameState]);
 
-  // Touch controls
-  const handleTouchMove = (e: React.TouchEvent) => {
+  // Touch controls - use native event listener for non-passive touch handling
+  useEffect(() => {
     if (gameState !== 'playing') return;
-    e.preventDefault();
 
-    const height = gameAreaRef.current?.offsetHeight || 500;
-    const rect = gameAreaRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    const gameArea = gameAreaRef.current;
+    if (!gameArea) return;
 
-    const touchY = e.touches[0].clientY - rect.top;
-    const newY = Math.max(0, Math.min(height - PADDLE_HEIGHT, touchY - PADDLE_HEIGHT / 2));
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault(); // Prevent scrolling
+      e.stopPropagation();
 
-    setPlayerY(newY);
-    playerYRef.current = newY;
-  };
+      const height = gameArea.offsetHeight || 500;
+      const rect = gameArea.getBoundingClientRect();
+
+      const touchY = e.touches[0].clientY - rect.top;
+      const newY = Math.max(0, Math.min(height - PADDLE_HEIGHT, touchY - PADDLE_HEIGHT / 2));
+
+      setPlayerY(newY);
+      playerYRef.current = newY;
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      e.preventDefault(); // Prevent any default touch behavior
+    };
+
+    // Add non-passive listeners for touch control
+    gameArea.addEventListener('touchmove', handleTouchMove, { passive: false });
+    gameArea.addEventListener('touchstart', handleTouchStart, { passive: false });
+
+    return () => {
+      gameArea.removeEventListener('touchmove', handleTouchMove);
+      gameArea.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, [gameState]);
 
   // Time-based scoring: +1 point every second while playing
   useEffect(() => {
@@ -280,6 +350,33 @@ const OrangePong: React.FC = () => {
             setBallVX(newVX);
             setBallVY(newVY);
             playPaddleHitRef.current();
+
+            // Visual effects on player hit
+            rallyRef.current += 1;
+            setRally(rallyRef.current);
+            updateComboRef.current(rallyRef.current);
+
+            // Calculate ball position as percentage for effects
+            const ballXPercent = ((newX + BALL_SIZE / 2) / width) * 100;
+            const ballYPercent = ((newY + BALL_SIZE / 2) / height) * 100;
+
+            triggerShockwaveRef.current(ballXPercent, ballYPercent);
+            if (rallyRef.current >= 3) {
+              triggerSparksRef.current(ballXPercent, ballYPercent);
+            }
+            if (rallyRef.current >= 5) {
+              addFloatingEmojiRef.current('🔥');
+            }
+            // Rally milestone callouts
+            if (rallyRef.current === 5) {
+              showEpicCalloutRef.current('🏓 RALLY 5!');
+            } else if (rallyRef.current === 10) {
+              showEpicCalloutRef.current('⚡ RALLY 10!');
+            } else if (rallyRef.current === 15) {
+              showEpicCalloutRef.current('🔥 RALLY 15!');
+            } else if (rallyRef.current === 20) {
+              showEpicCalloutRef.current('👑 LEGENDARY RALLY!');
+            }
           }
 
           // AI paddle collision (left side)
@@ -298,6 +395,15 @@ const OrangePong: React.FC = () => {
               setBallVX(newVX);
               setBallVY(newVY);
               playPaddleHitRef.current();
+
+              // Visual effects on AI hit (smaller effect)
+              rallyRef.current += 1;
+              setRally(rallyRef.current);
+
+              // Small shockwave on AI side
+              const ballXPercent = ((newX + BALL_SIZE / 2) / width) * 100;
+              const ballYPercent = ((newY + BALL_SIZE / 2) / height) * 100;
+              triggerShockwaveRef.current(ballXPercent, ballYPercent);
             }
 
             // AI movement - fixed difficulty
@@ -319,16 +425,35 @@ const OrangePong: React.FC = () => {
           if (newX <= 0) {
             playScorePointRef.current();
 
-            // +50 points for scoring against AI
-            setTotalPoints(prev => prev + 50);
+            // Visual celebration for scoring
+            triggerShockwaveRef.current(10, 50);
+            triggerSparksRef.current(10, 50);
+            triggerScreenShakeRef.current();
+            addFloatingEmojiRef.current('🎯');
+
+            // Rally bonus - extra points for long rallies
+            const rallyBonus = Math.min(rallyRef.current * 5, 100);
+            const scoreAmount = 50 + rallyBonus;
+            addScorePopupRef.current(scoreAmount, 30, 50, '#00ff88', rallyRef.current >= 5 ? 'RALLY BONUS' : undefined);
+
+            // +50 points for scoring against AI + rally bonus
+            setTotalPoints(prev => prev + scoreAmount);
+
+            // Reset rally after scoring
+            rallyRef.current = 0;
+            setRally(0);
+            resetComboRef.current();
 
             setPlayerScore(prev => {
               const newScore = prev + 1;
               if (newScore >= WIN_SCORE) {
                 // Player wins the match! Game over with victory
                 playWinSoundRef.current();
+                triggerConfettiRef.current();
+                showEpicCalloutRef.current('🏆 VICTORY!');
                 setGameState('gameover');
               } else {
+                showEpicCalloutRef.current('🎯 SCORE!');
                 setTimeout(() => resetBall(-1), 500);
               }
               return newScore;
@@ -338,11 +463,21 @@ const OrangePong: React.FC = () => {
 
           // AI scores (ball goes past player on right)
           if (newX >= width - BALL_SIZE) {
+            // Negative feedback - vignette and shake
+            triggerVignetteRef.current();
+            triggerScreenShakeRef.current();
+
+            // Reset rally
+            rallyRef.current = 0;
+            setRally(0);
+            resetComboRef.current();
+
             setAiScore(prev => {
               const newScore = prev + 1;
               if (newScore >= WIN_SCORE) {
                 // AI wins - game over, keep accumulated points
                 playGameOverRef.current();
+                showEpicCalloutRef.current('💀 GAME OVER');
                 setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
                 setGameState('gameover');
               } else {
@@ -426,7 +561,10 @@ const OrangePong: React.FC = () => {
           </div>
 
           {/* Lightbox wrapper for game area - RIGHT side */}
-          <div className="lightbox-wrapper">
+          <div className={`lightbox-wrapper ${effects.showScreenShake ? 'screen-shake' : ''}`}>
+            {/* Visual Effects Layer */}
+            <GameEffects effects={effects} accentColor="#ff6b00" />
+
             {/* Music toggle button */}
             <button
               className="music-toggle-btn"
@@ -438,7 +576,6 @@ const OrangePong: React.FC = () => {
             <div
               ref={gameAreaRef}
               className="pong-area"
-              onTouchMove={handleTouchMove}
             >
               {/* Center line */}
               <div className="center-line" />
@@ -472,7 +609,6 @@ const OrangePong: React.FC = () => {
       <div
         ref={gameState !== 'playing' ? gameAreaRef : undefined}
         className="pong-area"
-        onTouchMove={handleTouchMove}
       >
         {/* Main Menu removed - now handled by unified GameModal intro screen */}
 

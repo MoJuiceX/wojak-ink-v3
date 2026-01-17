@@ -1,0 +1,65 @@
+/* ============================================
+   VOTE COUNTER ON CARDS
+   ============================================ */
+.vote-counter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 14px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.vote-counter-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+}
+
+.vote-counter-divider {
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 300;
+}
+
+/* ============================================
+   FLICK MODE ACTIVE STATE
+   ============================================ */
+.flick-mode-active {
+  cursor: crosshair !important;
+}
+
+/* Generic voteable card styling - works for any page */
+.flick-mode-active [data-vote-target] {
+  cursor: crosshair !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.flick-mode-active [data-vote-target]:hover {
+  transform: scale(1.02);
+  box-shadow:
+    0 0 20px rgba(255, 149, 0, 0.3),
+    0 0 40px rgba(255, 149, 0, 0.1);
+}
+
+/* ============================================
+   VOTE BADGE POSITION (use on any card)
+   ============================================ */
+.vote-target-votes {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+}
+
+/* ============================================
+   FLYING EMOJI
+   ============================================ */
+.flying-emoji {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+}

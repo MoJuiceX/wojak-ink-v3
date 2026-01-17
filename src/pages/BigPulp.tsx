@@ -4,7 +4,7 @@
  * NFT analysis platform with AI-powered character guide.
  */
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { HeatMapCell } from '@/types/bigpulp';
 import { PageTransition } from '@/components/layout/PageTransition';
@@ -19,9 +19,21 @@ import {
   AskTab,
   AttributesTab,
 } from '@/components/bigpulp';
+import { MyWojaksModal } from '@/components/bigpulp/MyWojaksModal';
 import { ALL_BADGES_FILTER } from '@/components/bigpulp/HeatMap';
+import { useSageWallet } from '@/sage-wallet';
+
+// Wojak Farmers Plot collection ID on MintGarden
+const WOJAK_COLLECTION_ID = 'col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah';
 
 
+
+interface OwnedNFT {
+  id: string;
+  name: string;
+  thumbnailUrl: string;
+  nftId: string;
+}
 
 function TopLeftPanel() {
   const {
@@ -37,12 +49,60 @@ function TopLeftPanel() {
     skipMessage,
   } = useBigPulp();
 
+  // Wallet and owned NFTs state
+  const { status, address, getNFTs } = useSageWallet();
+  const isWalletConnected = status === 'connected' && !!address;
+  const [isMyWojaksOpen, setIsMyWojaksOpen] = useState(false);
+  const [ownedNFTs, setOwnedNFTs] = useState<OwnedNFT[]>([]);
+  const [isLoadingNFTs, setIsLoadingNFTs] = useState(false);
+
+  // Fetch owned NFTs when wallet is connected
+  useEffect(() => {
+    if (isWalletConnected) {
+      setIsLoadingNFTs(true);
+      getNFTs(WOJAK_COLLECTION_ID)
+        .then((nfts) => {
+          const mapped = nfts.map((nft) => ({
+            id: nft.encoded_id,
+            name: nft.name || 'Unknown Wojak',
+            thumbnailUrl: nft.preview_uri || nft.thumbnail_uri || nft.data_uri || '',
+            nftId: nft.name?.match(/#(\d+)/)?.[1] || '0000',
+          }));
+          setOwnedNFTs(mapped);
+        })
+        .catch((err) => {
+          console.error('[BigPulp] Failed to fetch owned NFTs:', err);
+          setOwnedNFTs([]);
+        })
+        .finally(() => {
+          setIsLoadingNFTs(false);
+        });
+    } else {
+      setOwnedNFTs([]);
+    }
+  }, [isWalletConnected, getNFTs]);
+
   const handleSearch = useCallback(
     (id: string) => {
       searchNFT(id);
     },
     [searchNFT]
   );
+
+  const handleMyWojaksOpen = useCallback(() => {
+    setIsMyWojaksOpen(true);
+  }, []);
+
+  const handleMyWojaksClose = useCallback(() => {
+    setIsMyWojaksOpen(false);
+  }, []);
+
+  const handleNFTSelect = useCallback((nftId: string) => {
+    // Pad to 4 digits and search
+    const paddedId = nftId.padStart(4, '0');
+    setSearchQuery(paddedId);
+    searchNFT(paddedId);
+  }, [setSearchQuery, searchNFT]);
 
   return (
     <div className="relative h-full">
@@ -56,16 +116,28 @@ function TopLeftPanel() {
       />
 
       {/* Search input - overlaid on top of Orange Grove, aligned with speech bubble */}
-      <div className="absolute top-3" style={{ zIndex: 10, left: '35px', width: '280px' }}>
+      <div className="absolute top-3 left-3 right-3 sm:left-4 sm:right-auto sm:w-[320px]" style={{ zIndex: 10 }}>
         <NFTSearchInput
           value={searchQuery}
           onChange={setSearchQuery}
           onSearch={handleSearch}
           onSurprise={surpriseMe}
+          onMyWojaks={handleMyWojaksOpen}
+          hasWallet={isWalletConnected}
+          ownedCount={ownedNFTs.length}
           isLoading={isLoading}
           error={error || undefined}
         />
       </div>
+
+      {/* My Wojaks Modal */}
+      <MyWojaksModal
+        isOpen={isMyWojaksOpen}
+        onClose={handleMyWojaksClose}
+        onSelect={handleNFTSelect}
+        ownedNFTs={ownedNFTs}
+        isLoading={isLoadingNFTs}
+      />
     </div>
   );
 }
@@ -321,7 +393,7 @@ function BigPulpContent() {
 
   return (
     <PageTransition>
-      <div style={{ padding: contentPadding, minHeight: isDesktop ? 'calc(100dvh - 64px)' : 'auto' }}>
+      <div style={{ padding: contentPadding }}>
         {/* Responsive layout - no header needed, title is in browser tab */}
         {isDesktop ? <DesktopLayout /> : <MobileLayout />}
       </div>

@@ -1,0 +1,149 @@
+/* ===== AVATAR UPGRADE BANNER ===== */
+
+.upgrade-banner {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(0, 0, 0, 0.4));
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin: 16px;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.banner-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.banner-text strong {
+  color: #F97316;
+  display: block;
+  font-size: 1rem;
+}
+
+.banner-text p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  margin: 4px 0 0 0;
+  line-height: 1.4;
+}
+
+.upgrade-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #F97316, #EA580C);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+  transition: box-shadow 0.2s ease;
+}
+
+.upgrade-btn:hover {
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+}
+
+.dismiss-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dismiss-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Compact variant */
+.upgrade-banner-compact {
+  padding: 12px 16px;
+  margin: 12px;
+  border-radius: 12px;
+}
+
+.upgrade-banner-compact .banner-content {
+  gap: 12px;
+}
+
+.upgrade-banner-compact .banner-icon {
+  font-size: 24px;
+}
+
+.upgrade-banner-compact .banner-text strong {
+  font-size: 0.875rem;
+}
+
+.upgrade-banner-compact .upgrade-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .upgrade-banner {
+    margin: 12px;
+    padding: 14px 16px;
+  }
+
+  .banner-content {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .banner-text {
+    flex-basis: calc(100% - 60px);
+  }
+
+  .banner-text p {
+    font-size: 12px;
+  }
+
+  .upgrade-btn {
+    width: 100%;
+    justify-content: center;
+    order: 3;
+  }
+
+  .dismiss-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+
+  .upgrade-banner {
+    position: relative;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .banner-icon {
+    animation: none;
+  }
+}

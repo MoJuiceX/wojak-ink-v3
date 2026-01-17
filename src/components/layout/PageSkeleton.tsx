@@ -40,26 +40,22 @@ function SkeletonBox({
 
 function GallerySkeleton() {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <SkeletonBox className="h-8 w-48" />
-        <SkeletonBox className="h-10 w-32" />
-      </div>
-
-      {/* Filter bar */}
-      <div className="flex gap-3">
-        <SkeletonBox className="h-10 w-24" />
-        <SkeletonBox className="h-10 w-24" />
-        <SkeletonBox className="h-10 w-24" />
-      </div>
-
-      {/* Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {Array.from({ length: 12 }).map((_, i) => (
+    <div style={{ padding: '3vw' }}>
+      {/* Character type cards skeleton - matches initial Gallery view */}
+      <div
+        className="grid gap-3"
+        style={{
+          gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+        }}
+      >
+        {/* 14 character types */}
+        {Array.from({ length: 14 }).map((_, i) => (
           <SkeletonBox
             key={i}
-            className="aspect-square"
+            style={{
+              aspectRatio: '3/4',
+              borderRadius: '12px',
+            }}
           />
         ))}
       </div>

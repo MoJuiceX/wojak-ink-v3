@@ -2,13 +2,12 @@
  * CharacterCard Component
  *
  * Individual character type card with image, name, and count.
- * Features hover effects and special styling for rare character types.
+ * Features glassmorphism and hover glow effects.
  */
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import type { CharacterTypeConfig } from '@/types/nft';
-import { GALLERY_ANIMATIONS } from '@/config/galleryAnimations';
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery';
 import { useHaptic } from '@/hooks/useHaptic';
 
@@ -18,6 +17,7 @@ interface CharacterCardProps {
   onSelect: () => void;
   priority?: boolean;
   onHover?: () => void; // For preloading NFTs on hover
+  index?: number; // For staggered animation
 }
 
 export function CharacterCard({
@@ -26,18 +26,15 @@ export function CharacterCard({
   onSelect,
   priority = false,
   onHover,
+  index: _index = 0,
 }: CharacterCardProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const haptic = useHaptic();
 
-  const animations = prefersReducedMotion
-    ? GALLERY_ANIMATIONS.reducedMotion.card
-    : GALLERY_ANIMATIONS.card;
-
   // Get accent color or default
-  const accentColor = character.accentColor || 'var(--color-brand-primary)';
+  const accentColor = character.accentColor || '#F97316';
 
   // Handle tap with haptic feedback
   const handleTap = () => {
@@ -45,22 +42,45 @@ export function CharacterCard({
     onSelect();
   };
 
+  // Premium hover animation with lift and glow
+  const hoverAnimation = prefersReducedMotion
+    ? { scale: 1 }
+    : {
+        y: -8,
+        scale: 1.02,
+        transition: { type: 'spring' as const, stiffness: 300, damping: 20 },
+      };
+
+  // Tap animation with visual feedback
+  const tapAnimation = prefersReducedMotion
+    ? { scale: 1 }
+    : {
+        scale: 0.98,
+        transition: { duration: 0.1 },
+      };
+
   return (
     <motion.button
-      className="w-full block text-left rounded-xl overflow-hidden transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 aspect-square"
+      className="character-card w-full block text-left rounded-xl overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 aspect-square"
       style={{
-        background: 'var(--color-glass-bg)',
+        // Glassmorphism background
+        background: `linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%)`,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
         border: isSelected
           ? `2px solid ${accentColor}`
-          : '1px solid var(--color-border)',
-        boxShadow: isSelected ? `0 0 20px ${accentColor}40` : 'none',
+          : '1px solid rgba(249, 115, 22, 0.2)',
+        boxShadow: isSelected
+          ? `0 0 30px ${accentColor}60, inset 0 0 20px rgba(249, 115, 22, 0.1)`
+          : 'none',
         padding: 0,
         margin: 0,
+        transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
       }}
       onClick={handleTap}
       onMouseEnter={onHover}
-      whileHover={animations.hover}
-      whileTap={animations.tap}
+      whileHover={hoverAnimation}
+      whileTap={tapAnimation}
       role="button"
       tabIndex={0}
       aria-label={`View ${character.name} NFTs, ${character.count} available`}
@@ -103,31 +123,44 @@ export function CharacterCard({
           </div>
         )}
 
-        {/* Name overlay - bottom left */}
+        {/* Name overlay - bottom left with gradient text */}
         <div className="absolute bottom-1.5 left-1.5">
           {/* Blur background layer */}
           <div
             className="absolute inset-0 -m-2"
             style={{
-              backdropFilter: 'blur(3px)',
-              WebkitBackdropFilter: 'blur(3px)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
               borderRadius: 10,
-              background: 'radial-gradient(ellipse at center, rgba(0, 0, 0, 0.15) 0%, transparent 70%)',
+              background: 'radial-gradient(ellipse at center, rgba(0, 0, 0, 0.25) 0%, transparent 70%)',
               mask: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
               WebkitMask: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
             }}
           />
-          {/* Text layer */}
+          {/* Text layer - gradient text with glow */}
           <span
-            className="relative text-sm font-medium truncate"
+            className="relative text-sm font-bold truncate character-name block"
             style={{
-              color: 'white',
-              textShadow: '0 1px 4px rgba(0, 0, 0, 0.7), 0 0 8px rgba(0, 0, 0, 0.5)',
+              background: 'linear-gradient(90deg, #F97316, #FFD700)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              filter: 'drop-shadow(0 0 8px rgba(249, 115, 22, 0.5))',
+              maxWidth: 'calc(100% - 12px)',
             }}
           >
             {character.name}
           </span>
         </div>
+
+        {/* Hover glow overlay */}
+        <div
+          className="character-card-glow absolute inset-0 pointer-events-none opacity-0 transition-opacity duration-300"
+          style={{
+            boxShadow: 'inset 0 0 30px rgba(249, 115, 22, 0.2)',
+            borderRadius: 'inherit',
+          }}
+        />
       </div>
     </motion.button>
   );

@@ -24,9 +24,10 @@ const MINIMIZE_THRESHOLD = 0.3; // Minimize when 30% is outside screen
 type EdgePosition = 'left' | 'right' | 'top' | 'bottom';
 
 export function GlobalVideoPlayer() {
-  const { videoPlayer, pauseVideo, closeVideoPlayer, nextVideo } = useMedia();
+  const { videoPlayer, pauseVideo, nextVideo } = useMedia();
   const { currentVideo, queue } = videoPlayer;
   const { settings } = useSettings();
+
 
   // Calculate video volume from settings (videos use background music volume setting)
   const videoEnabled = settings.audio.backgroundMusicEnabled;
@@ -205,10 +206,6 @@ export function GlobalVideoPlayer() {
     }
   }, []);
 
-  const handleClose = useCallback(() => {
-    videoRef.current?.pause();
-    closeVideoPlayer();
-  }, [closeVideoPlayer]);
 
   // Ensure video keeps playing during drag and track drag state
   const handleDragStart = useCallback(() => {
@@ -435,8 +432,10 @@ export function GlobalVideoPlayer() {
               style={{
                 background: isPlaying
                   ? 'linear-gradient(135deg, #ff4444 0%, #cc0000 100%)'
-                  : 'linear-gradient(135deg, var(--color-brand-primary) 0%, #ff8533 100%)',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                  : 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)',
+                boxShadow: isPlaying
+                  ? '0 0 20px rgba(255, 68, 68, 0.5), 0 4px 20px rgba(0,0,0,0.4)'
+                  : '0 0 20px rgba(249, 115, 22, 0.5), 0 4px 20px rgba(0,0,0,0.4)',
               }}
             >
               {isPlaying ? (
@@ -469,18 +468,18 @@ export function GlobalVideoPlayer() {
       ) : (
         /* Expanded: Full player with progress bar */
         <motion.div
-          className="w-full h-full rounded-xl overflow-hidden shadow-2xl cursor-grab active:cursor-grabbing"
+          className="w-full h-full rounded-xl overflow-hidden cursor-grab active:cursor-grabbing"
           style={{
-            background: 'var(--color-bg-secondary)',
-            border: '1px solid var(--color-border)',
+            background: 'rgba(20, 20, 20, 0.95)',
+            border: '1px solid rgba(249, 115, 22, 0.3)',
+            boxShadow: '0 0 40px rgba(249, 115, 22, 0.2), 0 25px 50px rgba(0, 0, 0, 0.5)',
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
           {/* Video area with hover-to-show controls */}
           <div
-            className="relative"
-            style={{ height: PLAYER_HEIGHT - 48 }}
+            className="relative h-full"
             onMouseEnter={() => setShowControls(true)}
             onMouseLeave={() => setShowControls(false)}
           >
@@ -503,7 +502,8 @@ export function GlobalVideoPlayer() {
                   <motion.div
                     className="w-14 h-14 rounded-full flex items-center justify-center pointer-events-auto cursor-pointer"
                     style={{
-                      background: isPlaying ? 'var(--color-brand-primary)' : 'var(--color-brand-primary)',
+                      background: 'rgba(249, 115, 22, 0.9)',
+                      boxShadow: '0 0 30px rgba(249, 115, 22, 0.6)',
                     }}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
@@ -518,26 +518,6 @@ export function GlobalVideoPlayer() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-
-          {/* Bottom bar: Title + Close */}
-          <div className="px-3 py-2 flex items-center gap-2" style={{ height: 48 }}>
-            <p
-              className="text-sm font-medium truncate flex-1"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              {currentVideo.title}
-            </p>
-            <button
-              className="text-xs px-2 py-1 rounded"
-              style={{
-                background: 'var(--color-bg-tertiary)',
-                color: 'var(--color-text-secondary)',
-              }}
-              onClick={handleClose}
-            >
-              Close
-            </button>
           </div>
 
           {/* Progress bar at very bottom */}

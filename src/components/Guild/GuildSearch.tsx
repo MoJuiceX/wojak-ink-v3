@@ -1,0 +1,362 @@
+/**
+ * Guild Search Component
+ *
+ * Modal for searching and joining public guilds.
+ */
+
+import React, { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Search, Loader2 } from 'lucide-react';
+import { debounce } from 'lodash';
+import { useGuild } from '../../contexts/GuildContext';
+import { GuildCard } from './GuildCard';
+import type { Guild } from '../../types/guild';
+import './Guild.css';
+
+interface GuildSearchProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const GuildSearch: React.FC<GuildSearchProps> = ({ isOpen, onClose }) => {
+  const { searchGuilds, requestToJoin } = useGuild();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Guild[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedGuild, setSelectedGuild] = useState<Guild | null>(null);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [requestSent, setRequestSent] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string | null>(null);
+
+  const performSearch = useCallback(
+    debounce(async (searchQuery: string) => {
+      if (searchQuery.length < 2) {
+        setResults([]);
+        setIsSearching(false);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const guilds = await searchGuilds(searchQuery);
+        setResults(guilds);
+      } catch (err) {
+        console.error('Search failed:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300),
+    [searchGuilds]
+  );
+
+  const handleSearchChange = (value: string) => {
+    setQuery(value);
+    performSearch(value);
+  };
+
+  const handleRequestJoin = async (guild: Guild) => {
+    setError(null);
+    setIsRequesting(true);
+
+    try {
+      await requestToJoin(guild.id);
+      setRequestSent(prev => new Set([...prev, guild.id]));
+      setSelectedGuild(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send request');
+    } finally {
+      setIsRequesting(false);
+    }
+  };
+
+  const handleClose = () => {
+    setQuery('');
+    setResults([]);
+    setSelectedGuild(null);
+    setError(null);
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0, 0, 0, 0.8)' }}
+          onClick={handleClose}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="relative rounded-xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col"
+            style={{
+              background: 'var(--color-bg-secondary)',
+              border: '1px solid var(--color-border)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              className="flex items-center justify-between p-4 border-b"
+              style={{ borderColor: 'var(--color-border)' }}
+            >
+              <h2
+                className="text-lg font-bold"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                Find a Guild
+              </h2>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="p-2 rounded-full transition-colors"
+                style={{ color: 'var(--color-text-tertiary)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+              <div
+                className="flex items-center gap-3 px-4 py-3 rounded-lg"
+                style={{
+                  background: 'var(--color-bg-tertiary)',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
+                <Search size={18} style={{ color: 'var(--color-text-tertiary)' }} />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder="Search by name or tag..."
+                  className="flex-1 bg-transparent outline-none text-sm"
+                  style={{ color: 'var(--color-text-primary)' }}
+                />
+                {isSearching && (
+                  <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-brand-primary)' }} />
+                )}
+              </div>
+            </div>
+
+            {error && (
+              <p className="px-4 py-2 text-sm" style={{ color: '#ef4444' }}>{error}</p>
+            )}
+
+            {/* Results */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {!isSearching && results.length === 0 && query.length >= 2 && (
+                <div className="text-center py-8">
+                  <span className="text-4xl block mb-2">🔍</span>
+                  <p style={{ color: 'var(--color-text-secondary)' }}>
+                    No guilds found matching "{query}"
+                  </p>
+                </div>
+              )}
+
+              {!isSearching && query.length < 2 && (
+                <div className="text-center py-8">
+                  <p style={{ color: 'var(--color-text-tertiary)' }}>
+                    Enter at least 2 characters to search
+                  </p>
+                </div>
+              )}
+
+              {!isSearching && results.map((guild) => (
+                <div key={guild.id} className="mb-4">
+                  <GuildCard
+                    guild={guild}
+                    size="medium"
+                    onClick={() => setSelectedGuild(guild)}
+                  />
+
+                  <div
+                    className="flex justify-end px-4 py-3 rounded-b-lg -mt-4"
+                    style={{ background: 'var(--color-bg-tertiary)' }}
+                  >
+                    {requestSent.has(guild.id) ? (
+                      <span className="text-sm" style={{ color: '#22c55e' }}>
+                        Request Sent ✓
+                      </span>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRequestJoin(guild);
+                        }}
+                        disabled={isRequesting}
+                        className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        style={{
+                          background: 'var(--color-brand-primary)',
+                          color: '#fff',
+                          opacity: isRequesting ? 0.5 : 1,
+                        }}
+                      >
+                        {isRequesting ? 'Sending...' : 'Request to Join'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Guild Detail Overlay */}
+            <AnimatePresence>
+              {selectedGuild && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 flex items-center justify-center p-4"
+                  style={{ background: 'rgba(0, 0, 0, 0.9)' }}
+                  onClick={() => setSelectedGuild(null)}
+                >
+                  <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.9 }}
+                    className="rounded-xl w-full max-w-sm overflow-hidden"
+                    style={{
+                      background: 'var(--color-bg-secondary)',
+                      border: '1px solid var(--color-border)',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <GuildCard guild={selectedGuild} size="large" />
+
+                    <div className="p-4 space-y-4">
+                      <div>
+                        <h4
+                          className="text-xs font-medium uppercase tracking-wide mb-2"
+                          style={{ color: 'var(--color-text-tertiary)' }}
+                        >
+                          About
+                        </h4>
+                        <p
+                          className="text-sm"
+                          style={{ color: 'var(--color-text-primary)' }}
+                        >
+                          {selectedGuild.description || 'No description provided.'}
+                        </p>
+                      </div>
+
+                      <div
+                        className="grid grid-cols-3 gap-2 p-3 rounded-lg"
+                        style={{ background: 'var(--color-bg-tertiary)' }}
+                      >
+                        <div className="text-center">
+                          <p
+                            className="text-sm font-semibold"
+                            style={{ color: 'var(--color-text-primary)' }}
+                          >
+                            {selectedGuild.memberCount}/{selectedGuild.maxMembers}
+                          </p>
+                          <p
+                            className="text-xs"
+                            style={{ color: 'var(--color-text-tertiary)' }}
+                          >
+                            Members
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p
+                            className="text-sm font-semibold"
+                            style={{ color: 'var(--color-text-primary)' }}
+                          >
+                            {selectedGuild.totalScore.toLocaleString()}
+                          </p>
+                          <p
+                            className="text-xs"
+                            style={{ color: 'var(--color-text-tertiary)' }}
+                          >
+                            Total Score
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p
+                            className="text-sm font-semibold"
+                            style={{ color: 'var(--color-text-primary)' }}
+                          >
+                            {selectedGuild.weeklyScore.toLocaleString()}
+                          </p>
+                          <p
+                            className="text-xs"
+                            style={{ color: 'var(--color-text-tertiary)' }}
+                          >
+                            Weekly
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {requestSent.has(selectedGuild.id) ? (
+                          <div
+                            className="text-center p-4 rounded-lg"
+                            style={{
+                              background: 'rgba(34, 197, 94, 0.1)',
+                              border: '1px solid rgba(34, 197, 94, 0.3)',
+                            }}
+                          >
+                            <span className="font-semibold" style={{ color: '#22c55e' }}>
+                              Request Sent
+                            </span>
+                            <p
+                              className="text-sm mt-1"
+                              style={{ color: 'var(--color-text-tertiary)' }}
+                            >
+                              Waiting for approval from guild officers
+                            </p>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleRequestJoin(selectedGuild)}
+                            disabled={isRequesting || selectedGuild.memberCount >= selectedGuild.maxMembers}
+                            className="w-full py-3 rounded-lg font-medium transition-colors"
+                            style={{
+                              background: 'var(--color-brand-primary)',
+                              color: '#fff',
+                              opacity: (isRequesting || selectedGuild.memberCount >= selectedGuild.maxMembers) ? 0.5 : 1,
+                            }}
+                          >
+                            {isRequesting ? (
+                              <span className="flex items-center justify-center gap-2">
+                                <Loader2 size={18} className="animate-spin" />
+                                Sending...
+                              </span>
+                            ) : selectedGuild.memberCount >= selectedGuild.maxMembers ? (
+                              'Guild is Full'
+                            ) : (
+                              'Request to Join'
+                            )}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setSelectedGuild(null)}
+                          className="w-full py-3 rounded-lg font-medium transition-colors"
+                          style={{
+                            background: 'transparent',
+                            color: 'var(--color-text-secondary)',
+                            border: '1px solid var(--color-border)',
+                          }}
+                        >
+                          Back to Results
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default GuildSearch;

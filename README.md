@@ -187,7 +187,7 @@ Arcade-style games with leaderboards and sound effects.
 <summary>Technical Details</summary>
 
 **Games:**
-1. **Orange Stack** - Block stacking puzzle (3 difficulties)
+1. **Brick by Brick** - Block stacking puzzle (3 difficulties)
 2. **Memory Match** - Tile-flipping memory game
 3. **Orange Pong** - Classic Pong
 4. **Wojak Runner** - Side-scrolling endless runner

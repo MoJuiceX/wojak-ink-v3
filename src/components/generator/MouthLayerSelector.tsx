@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useGenerator } from '@/contexts/GeneratorContext';
-import { traitGridVariants } from '@/config/generatorAnimations';
+import { traitGridVariants, traitCardStaggerVariants } from '@/config/generatorAnimations';
 import type { LayerImage } from '@/services/generatorService';
 
 interface MouthLayerSelectorProps {
@@ -41,52 +41,60 @@ function ImageCard({ image, isSelected, isDisabled, disabledReason, onClick, bad
 
   return (
     <motion.button
-      className="aspect-square relative rounded-xl overflow-hidden transition-all"
+      className="w-full aspect-square relative rounded-xl overflow-hidden p-1"
       style={{
-        background: 'var(--color-glass-bg)',
+        background: 'var(--generator-trait-card-bg)',
         border: isSelected
-          ? '2px solid var(--color-brand-primary)'
-          : '1px solid var(--color-border)',
+          ? '2px solid var(--generator-selected-color, #F97316)'
+          : '1px solid var(--generator-trait-card-border)',
         opacity: isDisabled ? 0.5 : 1,
         cursor: isDisabled ? 'not-allowed' : 'pointer',
+        boxShadow: isSelected
+          ? '0 0 20px var(--generator-selected-glow, rgba(249, 115, 22, 0.5)), 0 4px 12px rgba(0, 0, 0, 0.3)'
+          : '0 2px 8px rgba(0, 0, 0, 0.2)',
+        transition: 'all 0.3s ease',
       }}
-      whileHover={prefersReducedMotion || isDisabled ? undefined : { scale: 1.02 }}
+      whileHover={prefersReducedMotion || isDisabled ? undefined : { scale: 1.03 }}
       whileTap={prefersReducedMotion || isDisabled ? undefined : { scale: 0.98 }}
+      transition={{ duration: 0.2 }}
       onClick={onClick}
       disabled={isDisabled}
       title={isDisabled && disabledReason ? disabledReason : image.displayName}
     >
-      {badge && !isDisabled && (
+      {badge && !isDisabled && !isSelected && (
         <div
-          className="absolute top-1 right-1 z-10 px-1.5 py-0.5 rounded text-[10px] font-medium"
+          className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center z-10 text-xs font-bold"
           style={{
-            background: 'var(--color-brand-primary)',
+            background: 'var(--generator-badge-color, #F97316)',
             color: 'white',
           }}
         >
           {badge}
         </div>
       )}
-      <img
-        src={image.path}
-        alt={image.displayName}
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
-      />
+      <div
+        className="relative w-full h-full rounded-lg overflow-hidden trait-card-image-bg"
+      >
+        <img
+          src={image.path}
+          alt={image.displayName}
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+      {/* Check mark with pop animation */}
       {isSelected && (
-        <div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ background: 'rgba(0, 0, 0, 0.3)' }}
+        <motion.div
+          className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center z-20"
+          style={{ background: 'var(--generator-badge-color, #F97316)' }}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 25 }}
         >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--color-brand-primary)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-              <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
-            </svg>
-          </div>
-        </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
+          </svg>
+        </motion.div>
       )}
     </motion.button>
   );
@@ -143,7 +151,7 @@ export function MouthLayerSelector({ className = '' }: MouthLayerSelectorProps) 
   if (isLoading || !isInitialized) {
     return (
       <div className={`space-y-4 ${className}`}>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+        <div className="generator-options-grid">
           {Array.from({ length: 12 }).map((_, i) => (
             <TraitCardSkeleton key={i} />
           ))}
@@ -248,57 +256,70 @@ export function MouthLayerSelector({ className = '' }: MouthLayerSelectorProps) 
 
       {/* Combined mouth trait grid */}
       {!isBlocked && (mouthBaseImages.length > 0 || mouthItemImages.length > 0 || facialHairImages.length > 0) && (
-        <motion.div
-          className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"
-          variants={prefersReducedMotion ? undefined : traitGridVariants}
-          initial="initial"
-          animate="animate"
-        >
-          {/* MouthBase items */}
-          {mouthBaseImages.map((image) => {
-            const isDisabled = isLayerDisabled('MouthBase') || isOptionDisabled('MouthBase', image.displayName);
-            return (
-              <ImageCard
-                key={image.path}
-                image={image}
-                isSelected={selectedMouthBase === image.path}
-                isDisabled={isDisabled}
-                disabledReason={isDisabled ? getDisabledReasonForOption('MouthBase', image.displayName) : undefined}
-                onClick={() => handleMouthBaseClick(image)}
-              />
-            );
-          })}
-          {/* MouthItem items (Cig, Cohiba, Joint) */}
-          {mouthItemImages.map((image) => {
-            const isDisabled = isLayerDisabled('MouthItem') || isOptionDisabled('MouthItem', image.displayName);
-            return (
-              <ImageCard
-                key={image.path}
-                image={image}
-                isSelected={selectedMouthItem === image.path}
-                isDisabled={isDisabled}
-                disabledReason={isDisabled ? getDisabledReasonForOption('MouthItem', image.displayName) : undefined}
-                onClick={() => handleMouthItemClick(image)}
-                badge="+"
-              />
-            );
-          })}
-          {/* FacialHair items (Neckbeard, Stache) */}
-          {facialHairImages.map((image) => {
-            const isDisabled = isLayerDisabled('FacialHair') || isOptionDisabled('FacialHair', image.displayName);
-            return (
-              <ImageCard
-                key={image.path}
-                image={image}
-                isSelected={selectedFacialHair === image.path}
-                isDisabled={isDisabled}
-                disabledReason={isDisabled ? getDisabledReasonForOption('FacialHair', image.displayName) : undefined}
-                onClick={() => handleFacialHairClick(image)}
-                badge="+"
-              />
-            );
-          })}
-        </motion.div>
+          <motion.div
+            key="mouth-grid"
+            className="generator-options-grid"
+            variants={prefersReducedMotion ? undefined : traitGridVariants}
+            initial="initial"
+            animate="animate"
+          >
+            {/* MouthBase items */}
+            {mouthBaseImages.map((image) => {
+              const isDisabled = isLayerDisabled('MouthBase') || isOptionDisabled('MouthBase', image.displayName);
+              return (
+                <motion.div
+                  key={image.path}
+                  variants={prefersReducedMotion ? undefined : traitCardStaggerVariants}
+                >
+                  <ImageCard
+                    image={image}
+                    isSelected={selectedMouthBase === image.path}
+                    isDisabled={isDisabled}
+                    disabledReason={isDisabled ? getDisabledReasonForOption('MouthBase', image.displayName) : undefined}
+                    onClick={() => handleMouthBaseClick(image)}
+                  />
+                </motion.div>
+              );
+            })}
+            {/* MouthItem items (Cig, Cohiba, Joint) */}
+            {mouthItemImages.map((image) => {
+              const isDisabled = isLayerDisabled('MouthItem') || isOptionDisabled('MouthItem', image.displayName);
+              return (
+                <motion.div
+                  key={image.path}
+                  variants={prefersReducedMotion ? undefined : traitCardStaggerVariants}
+                >
+                  <ImageCard
+                    image={image}
+                    isSelected={selectedMouthItem === image.path}
+                    isDisabled={isDisabled}
+                    disabledReason={isDisabled ? getDisabledReasonForOption('MouthItem', image.displayName) : undefined}
+                    onClick={() => handleMouthItemClick(image)}
+                    badge="+"
+                  />
+                </motion.div>
+              );
+            })}
+            {/* FacialHair items (Neckbeard, Stache) */}
+            {facialHairImages.map((image) => {
+              const isDisabled = isLayerDisabled('FacialHair') || isOptionDisabled('FacialHair', image.displayName);
+              return (
+                <motion.div
+                  key={image.path}
+                  variants={prefersReducedMotion ? undefined : traitCardStaggerVariants}
+                >
+                  <ImageCard
+                    image={image}
+                    isSelected={selectedFacialHair === image.path}
+                    isDisabled={isDisabled}
+                    disabledReason={isDisabled ? getDisabledReasonForOption('FacialHair', image.displayName) : undefined}
+                    onClick={() => handleFacialHairClick(image)}
+                    badge="+"
+                  />
+                </motion.div>
+              );
+            })}
+          </motion.div>
       )}
 
       {/* Empty state */}

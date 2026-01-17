@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Undo2,
   Redo2,
@@ -15,24 +15,6 @@ import {
 } from 'lucide-react';
 import { useGenerator } from '@/contexts/GeneratorContext';
 import { useLayout } from '@/hooks/useLayout';
-import {
-  actionButtonVariants,
-  historyButtonVariants,
-  heartVariants,
-} from '@/config/generatorAnimations';
-
-// Dice roll animation variants
-const diceRollVariants = {
-  idle: { scale: 1, rotate: 0 },
-  rolling: {
-    scale: [1, 1.4, 1.3, 1.5, 1.2, 1],
-    rotate: [0, -20, 25, -15, 20, -10, 0],
-    transition: {
-      duration: 0.6,
-      ease: 'easeInOut' as const,
-    },
-  },
-};
 
 interface ActionBarProps {
   className?: string;
@@ -56,9 +38,9 @@ export function ActionBar({ className = '' }: ActionBarProps) {
   const { isDesktop } = useLayout();
   const [isRandomizing, setIsRandomizing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [showSoonTooltip, setShowSoonTooltip] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
+  const [showDownloadSuccess, setShowDownloadSuccess] = useState(false);
 
   const basePath = selectedLayers.Base;
   const hasSelection = !!basePath && basePath !== '' && basePath !== 'None';
@@ -174,207 +156,217 @@ export function ActionBar({ className = '' }: ActionBarProps) {
     }
   };
 
+  // Styled action button matching category tab design
+  const ActionButton = ({
+    onClick,
+    disabled,
+    isActive,
+    icon,
+    label,
+    badge,
+    children,
+  }: {
+    onClick: () => void;
+    disabled?: boolean;
+    isActive?: boolean;
+    icon: React.ReactNode;
+    label: string;
+    badge?: number;
+    children?: React.ReactNode;
+  }) => (
+    <motion.button
+      className="relative flex flex-col items-center gap-1 px-3 py-2 rounded-lg min-w-[60px]"
+      style={{
+        background: isActive
+          ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(249, 115, 22, 0.1))'
+          : 'transparent',
+        color: disabled
+          ? 'var(--color-text-muted)'
+          : isActive
+            ? 'white'
+            : 'var(--color-text-secondary)',
+        opacity: disabled ? 0.5 : 1,
+        border: isActive
+          ? '1px solid rgba(249, 115, 22, 0.6)'
+          : '1px solid transparent',
+        boxShadow: isActive
+          ? '0 0 20px rgba(249, 115, 22, 0.3), inset 0 0 15px rgba(249, 115, 22, 0.1)'
+          : 'none',
+        transition: 'all 0.3s ease',
+      }}
+      whileHover={disabled || prefersReducedMotion ? undefined : { scale: 1.02 }}
+      whileTap={disabled || prefersReducedMotion ? undefined : { scale: 0.98 }}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+    >
+      <div className="relative">
+        {icon}
+        {badge !== undefined && badge > 0 && (
+          <span
+            className="absolute -top-2 -right-2 min-w-[16px] h-4 flex items-center justify-center text-[10px] font-bold rounded-full"
+            style={{
+              background: '#F97316',
+              color: 'white',
+              boxShadow: '0 0 8px rgba(249, 115, 22, 0.5)',
+            }}
+          >
+            {badge}
+          </span>
+        )}
+      </div>
+      <span className="text-xs font-medium">{label}</span>
+      {children}
+    </motion.button>
+  );
+
   return (
     <div
-      className={`flex items-center justify-between p-3 rounded-xl ${className}`}
+      className={`flex items-center justify-center gap-2 p-2 rounded-2xl flex-wrap ${className}`}
       style={{
-        background: 'var(--color-glass-bg)',
+        background: 'rgba(0, 0, 0, 0.3)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
         border: '1px solid var(--color-border)',
       }}
     >
       {/* Randomize button */}
-      <button
-        className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
-        style={{
-          background: '#3B82F6',
-          border: '1px solid #3B82F6',
-        }}
+      <ActionButton
         onClick={handleRandomize}
-        title="Randomize"
-        aria-label="Randomize"
-      >
-        <motion.span
-          className="text-lg block"
-          variants={prefersReducedMotion ? undefined : diceRollVariants}
-          animate={isRandomizing ? 'rolling' : 'idle'}
-        >
-          🎲
-        </motion.span>
-      </button>
+        isActive={isRandomizing}
+        icon={
+          <motion.span
+            className="text-xl block"
+            animate={isRandomizing ? {
+              scale: [1, 1.15, 1],
+              rotate: [0, -10, 10, 0],
+            } : { scale: 1, rotate: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            🎲
+          </motion.span>
+        }
+        label="Random"
+      />
 
       {/* Undo button */}
-      <motion.button
-        className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
-        style={{
-          background: canUndo ? 'var(--color-glass-bg)' : 'transparent',
-          color: canUndo
-            ? 'var(--color-text-secondary)'
-            : 'var(--color-text-muted)',
-          border: `1px solid ${canUndo ? 'var(--color-border)' : 'transparent'}`,
-        }}
-        variants={prefersReducedMotion ? undefined : historyButtonVariants}
-        whileHover={canUndo ? 'hover' : undefined}
-        whileTap={canUndo ? 'tap' : undefined}
+      <ActionButton
         onClick={undo}
         disabled={!canUndo}
-        title="Undo"
-        aria-label="Undo"
-      >
-        <Undo2 size={18} />
-      </motion.button>
+        icon={<Undo2 size={20} />}
+        label="Undo"
+      />
 
       {/* Redo button */}
-      <motion.button
-        className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
-        style={{
-          background: canRedo ? 'var(--color-glass-bg)' : 'transparent',
-          color: canRedo
-            ? 'var(--color-text-secondary)'
-            : 'var(--color-text-muted)',
-          border: `1px solid ${canRedo ? 'var(--color-border)' : 'transparent'}`,
-        }}
-        variants={prefersReducedMotion ? undefined : historyButtonVariants}
-        whileHover={canRedo ? 'hover' : undefined}
-        whileTap={canRedo ? 'tap' : undefined}
+      <ActionButton
         onClick={redo}
         disabled={!canRedo}
-        title="Redo"
-        aria-label="Redo"
-      >
-        <Redo2 size={18} />
-      </motion.button>
+        icon={<Redo2 size={20} />}
+        label="Redo"
+      />
 
       {/* Save to favorites */}
-      <motion.button
-        className="relative w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
-        style={{
-          background: hasSelection ? 'var(--color-glass-bg)' : 'transparent',
-          color: hasSelection
-            ? 'var(--color-text-secondary)'
-            : 'var(--color-text-muted)',
-          border: `1px solid ${hasSelection ? 'var(--color-border)' : 'transparent'}`,
-        }}
-        variants={prefersReducedMotion ? undefined : heartVariants}
-        whileHover={hasSelection && !isSaving ? 'hover' : undefined}
-        whileTap={hasSelection && !isSaving ? 'tap' : undefined}
+      <ActionButton
         onClick={handleSaveAndOpenFavorites}
         disabled={!hasSelection || isSaving}
-        title="Save to favorites"
-        aria-label="Save to favorites"
-      >
-        <Heart size={18} />
-        {favorites.length > 0 && (
-          <span
-            className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center text-[10px] font-bold rounded-full"
-            style={{
-              background: 'var(--color-brand-primary)',
-              color: 'white',
-            }}
-          >
-            {favorites.length}
-          </span>
-        )}
-      </motion.button>
+        icon={<Heart size={20} />}
+        label="Save"
+        badge={favorites.length}
+      />
 
       {/* Export button */}
-      <motion.button
-        className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
-        style={{
-          background: hasSelection ? 'var(--color-glass-bg)' : 'transparent',
-          color: hasSelection
-            ? 'var(--color-text-secondary)'
-            : 'var(--color-text-muted)',
-          border: `1px solid ${hasSelection ? 'var(--color-border)' : 'transparent'}`,
-        }}
-        variants={prefersReducedMotion ? undefined : actionButtonVariants}
-        whileHover={hasSelection ? 'hover' : undefined}
-        whileTap={hasSelection ? 'tap' : undefined}
-        onClick={() => toggleExport(true)}
-        disabled={!hasSelection}
-        title="Export image"
-        aria-label="Export image"
-      >
-        <Download size={18} />
-      </motion.button>
+      <div className="download-btn-container relative">
+        <ActionButton
+          onClick={() => {
+            toggleExport(true);
+            if (hasSelection && !prefersReducedMotion) {
+              setShowDownloadSuccess(true);
+              setTimeout(() => setShowDownloadSuccess(false), 600);
+            }
+          }}
+          disabled={!hasSelection}
+          isActive={hasSelection}
+          icon={<Download size={20} />}
+          label="Export"
+        />
+        {/* Success sparkles */}
+        <AnimatePresence>
+          {showDownloadSuccess && (
+            <div className="success-sparkles">
+              {[...Array(6)].map((_, i) => (
+                <motion.span
+                  key={i}
+                  className="sparkle"
+                  initial={{ scale: 0, x: 0, y: 0 }}
+                  animate={{
+                    scale: [0, 1, 0],
+                    x: Math.cos((i * 60 * Math.PI) / 180) * 30,
+                    y: Math.sin((i * 60 * Math.PI) / 180) * 30,
+                  }}
+                  transition={{ duration: 0.5, delay: i * 0.04 }}
+                />
+              ))}
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Copy to clipboard button - desktop only */}
       {isDesktop && (
         <div className="relative">
-          <motion.button
-            className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
-            style={{
-              background: hasSelection ? 'var(--color-glass-bg)' : 'transparent',
-              color: hasSelection
-                ? 'var(--color-text-secondary)'
-                : 'var(--color-text-muted)',
-              border: `1px solid ${hasSelection ? 'var(--color-border)' : 'transparent'}`,
-            }}
-            variants={prefersReducedMotion ? undefined : actionButtonVariants}
-            whileHover={hasSelection && !isCopying ? 'hover' : undefined}
-            whileTap={hasSelection && !isCopying ? 'tap' : undefined}
+          <ActionButton
             onClick={handleCopyToClipboard}
             disabled={!hasSelection || isCopying}
-            title="Copy to clipboard"
-            aria-label="Copy to clipboard"
-          >
-            <Copy size={18} />
-          </motion.button>
+            icon={<Copy size={20} />}
+            label="Copy"
+          />
           {showCopied && (
-            <div
-              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded text-xs font-medium whitespace-nowrap"
+            <motion.div
+              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap"
               style={{
-                background: 'var(--color-bg-primary)',
-                color: 'var(--color-text-secondary)',
-                border: '1px solid var(--color-border)',
+                background: 'rgba(0, 0, 0, 0.9)',
+                color: '#F97316',
+                border: '1px solid rgba(249, 115, 22, 0.3)',
               }}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 5 }}
             >
               Copied!
-            </div>
+            </motion.div>
           )}
         </div>
       )}
 
-      {/* Coming soon button */}
-      <div className="relative group">
-        <button
-          className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors cursor-not-allowed"
-          style={{
-            background: 'var(--color-glass-bg)',
-            color: 'var(--color-text-muted)',
-            border: '1px solid var(--color-border)',
-            opacity: 0.5,
-          }}
-          onClick={() => setShowSoonTooltip(true)}
-          onBlur={() => setShowSoonTooltip(false)}
-          aria-label="Coming soon"
-        >
-          <span className="text-lg">🌱</span>
-        </button>
-        {/* Desktop tooltip on hover */}
-        <div
-          className="absolute bottom-full right-0 mb-2 px-2 py-1 rounded text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden sm:block"
-          style={{
-            background: 'var(--color-bg-primary)',
-            color: 'var(--color-text-secondary)',
-            border: '1px solid var(--color-border)',
-          }}
-        >
-          Soon
-        </div>
-        {/* Mobile tooltip on click */}
-        {showSoonTooltip && (
-          <div
-            className="absolute bottom-full right-0 mb-2 px-2 py-1 rounded text-xs font-medium whitespace-nowrap sm:hidden"
+      {/* Coming soon button - desktop only, grayed out */}
+      {isDesktop && (
+        <div className="relative group">
+          <motion.button
+            className="relative flex flex-col items-center gap-1 px-3 py-2 rounded-lg min-w-[60px] cursor-not-allowed"
             style={{
-              background: 'var(--color-bg-primary)',
+              background: 'transparent',
+              color: 'var(--color-text-muted)',
+              opacity: 0.4,
+              border: '1px solid transparent',
+            }}
+            aria-label="Coming soon"
+          >
+            <span className="text-xl">🌱</span>
+            <span className="text-xs font-medium">Soon</span>
+          </motion.button>
+          {/* Tooltip on hover */}
+          <div
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+            style={{
+              background: 'rgba(0, 0, 0, 0.9)',
               color: 'var(--color-text-secondary)',
-              border: '1px solid var(--color-border)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
             }}
           >
-            Soon
+            Coming Soon
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

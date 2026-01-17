@@ -1,0 +1,244 @@
+/* ============================================
+   SHARED MOBILE GAME UI
+   ============================================
+   Import this in each game's CSS file:
+   @import '@/systems/game-ui/mobile-game-ui.css';
+
+   Or import in the game component:
+   import '@/systems/game-ui/mobile-game-ui.css';
+   ============================================ */
+
+/* Mobile breakpoint: 768px and below */
+@media (max-width: 768px) {
+  /* ========================================
+     HIDE DESKTOP-ONLY ELEMENTS
+     ======================================== */
+
+  .stats-panel,
+  .desktop-stats,
+  [class*="stats-panel"]:not(.mobile-hud),
+  .game-layout > .stats-panel {
+    display: none !important;
+  }
+
+  /* ========================================
+     GAME LAYOUT - MOBILE
+     ======================================== */
+
+  .game-layout {
+    flex-direction: column !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  /* Lightbox wrapper should fill available space */
+  .lightbox-wrapper,
+  [class*="lightbox-wrapper"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    border: none !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+
+  /* ========================================
+     GAME OVER SCREEN - MOBILE LAYOUT
+     ======================================== */
+
+  .game-over-screen,
+  [class*="game-over-screen"] {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+
+  .game-over-left,
+  [class*="game-over-left"] {
+    flex: 0 0 auto !important;
+    padding: 20px !important;
+    min-height: 150px !important;
+    max-height: 200px !important;
+  }
+
+  .game-over-right,
+  [class*="game-over-right"] {
+    flex: 1 !important;
+    padding: 20px !important;
+    border-left: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    overflow-y: auto !important;
+  }
+
+  /* Smaller game over title on mobile */
+  .game-over-title,
+  [class*="game-over-title"] {
+    font-size: 28px !important;
+  }
+
+  /* Smaller sad image */
+  .sad-image-large,
+  [class*="sad-image"] {
+    width: 120px !important;
+    height: 120px !important;
+    max-height: 120px !important;
+  }
+
+  /* Score display - compact */
+  .game-over-score,
+  [class*="game-over-score"]:not([class*="value"]):not([class*="label"]) {
+    padding: 16px 24px !important;
+  }
+
+  .game-over-score-value,
+  [class*="game-over-score-value"] {
+    font-size: 40px !important;
+  }
+
+  /* ========================================
+     MENU SCREEN - MOBILE LAYOUT
+     ======================================== */
+
+  .game-menu,
+  [class*="game-menu"] {
+    padding: 16px !important;
+  }
+
+  .game-emoji,
+  [class*="game-emoji"] {
+    font-size: 60px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .game-title,
+  [class*="game-title"] {
+    font-size: 24px !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* ========================================
+     TOUCH OPTIMIZATION
+     ======================================== */
+
+  /* Larger touch targets - iOS minimum is 44px */
+  button,
+  [role="button"],
+  .play-btn,
+  .game-over-save,
+  .game-over-skip,
+  .leaderboard-toggle-btn {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  /* Disable text selection during gameplay */
+  .game-container--mobile {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
+/* Extra small mobile (380px and below) */
+@media (max-width: 380px) {
+  .game-over-title,
+  [class*="game-over-title"] {
+    font-size: 24px !important;
+  }
+
+  .game-over-score-value,
+  [class*="game-over-score-value"] {
+    font-size: 32px !important;
+  }
+
+  .sad-image-large,
+  [class*="sad-image"] {
+    width: 100px !important;
+    height: 100px !important;
+  }
+}
+
+/* Very small screens (320px and below) */
+@media (max-width: 320px) {
+  .game-over-title,
+  [class*="game-over-title"] {
+    font-size: 20px !important;
+  }
+
+  .game-over-score-value,
+  [class*="game-over-score-value"] {
+    font-size: 28px !important;
+  }
+
+  .sad-image-large,
+  [class*="sad-image"] {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  .game-menu,
+  [class*="game-menu"] {
+    padding: 12px !important;
+  }
+
+  .game-emoji,
+  [class*="game-emoji"] {
+    font-size: 48px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .game-title,
+  [class*="game-title"] {
+    font-size: 20px !important;
+  }
+}
+
+/* ========================================
+   LANDSCAPE MODE - OPTIMIZE FOR WIDE SCREENS
+   ======================================== */
+
+@media (max-height: 500px) and (orientation: landscape) {
+  /* In landscape, reduce vertical spacing */
+  .game-over-screen,
+  [class*="game-over-screen"] {
+    flex-direction: row !important;
+    overflow-x: auto !important;
+  }
+
+  .game-over-left,
+  [class*="game-over-left"] {
+    max-height: none !important;
+    min-height: auto !important;
+    width: 40% !important;
+    padding: 12px !important;
+  }
+
+  .game-over-right,
+  [class*="game-over-right"] {
+    width: 60% !important;
+    border-top: none !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+    padding: 12px !important;
+  }
+
+  .sad-image-large,
+  [class*="sad-image"] {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  .game-over-title,
+  [class*="game-over-title"] {
+    font-size: 22px !important;
+  }
+
+  .mobile-hud {
+    padding: 4px 12px !important;
+  }
+
+  .mobile-hud__value {
+    font-size: 14px !important;
+  }
+}

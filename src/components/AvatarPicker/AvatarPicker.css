@@ -1,0 +1,325 @@
+/* ===== AVATAR PICKER STYLES ===== */
+
+/* Modal Container */
+.avatar-picker-modal {
+  --width: min(90vw, 500px);
+  --height: auto;
+  --max-height: 90vh;
+  --border-radius: 20px;
+  --background: rgba(26, 26, 46, 0.98);
+}
+
+.avatar-picker-modal::part(content) {
+  border-radius: var(--border-radius);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.avatar-picker-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 90vh;
+  padding: 24px;
+  overflow: hidden;
+}
+
+/* Header */
+.avatar-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.avatar-picker-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.close-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Avatar Preview */
+.current-avatar-preview {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+/* Tab Selector */
+.avatar-tabs {
+  margin-bottom: 20px;
+  --background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.avatar-tabs ion-segment-button {
+  --color: rgba(255, 255, 255, 0.7);
+  --color-checked: #fff;
+  --indicator-color: rgba(255, 140, 50, 0.8);
+  --background-checked: transparent;
+  font-weight: 600;
+}
+
+.lock-badge {
+  margin-left: 4px;
+  font-size: 12px;
+}
+
+/* Body */
+.avatar-picker-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Emoji Picker */
+.emoji-picker {
+  padding: 4px;
+}
+
+.picker-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 16px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.emoji-option {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 28px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emoji-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}
+
+.emoji-option.selected {
+  border-color: #ff8c32;
+  background: rgba(255, 140, 50, 0.2);
+  box-shadow: 0 0 12px rgba(255, 140, 50, 0.3);
+}
+
+/* NFT Picker */
+.nft-picker {
+  padding: 4px;
+}
+
+.picker-subtitle {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 16px 0;
+}
+
+.nft-count {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: rgba(255, 140, 50, 0.9);
+  background: rgba(255, 140, 50, 0.15);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.nft-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.nft-option {
+  position: relative;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.nft-option img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.nft-option:hover {
+  transform: scale(1.03);
+  border-color: rgba(255, 140, 50, 0.5);
+}
+
+.nft-option.selected {
+  border-color: #ffd700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+}
+
+.nft-name {
+  display: block;
+  padding: 6px 4px;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* NFT Picker States */
+.nft-picker-locked,
+.nft-picker-loading,
+.nft-picker-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.lock-icon,
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.nft-picker-locked h3,
+.nft-picker-empty h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.nft-picker-locked p,
+.nft-picker-empty p {
+  margin: 0 0 20px 0;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.nft-picker-loading p {
+  margin-top: 16px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.get-nft-button {
+  display: inline-block;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #ff8c32, #ff6b00);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.get-nft-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 107, 0, 0.3);
+}
+
+/* Connect Wallet Prompt */
+.connect-wallet-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.wallet-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.connect-wallet-prompt h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.connect-wallet-prompt p {
+  margin: 0 0 24px 0;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.connect-wallet-button {
+  --background: linear-gradient(135deg, #ff8c32, #ff6b00);
+  --border-radius: 12px;
+}
+
+/* Actions */
+.avatar-picker-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.avatar-picker-actions ion-button {
+  flex: 1;
+  --border-radius: 12px;
+}
+
+.avatar-picker-actions ion-button[fill="outline"] {
+  --border-color: rgba(255, 255, 255, 0.3);
+  --color: rgba(255, 255, 255, 0.8);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .avatar-picker-content {
+    padding: 16px;
+  }
+
+  .emoji-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .emoji-option {
+    font-size: 24px;
+  }
+
+  .nft-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

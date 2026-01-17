@@ -34,6 +34,7 @@
   color: #4ade80;
   perspective: 200px;
   transform-style: preserve-3d;
+  text-shadow: 0 0 10px rgba(74, 222, 128, 0.4);
 }
 
 /* Wider for dollar sign and decimal */

@@ -1,0 +1,146 @@
+/* ===== SIGN IN BUTTON STYLES ===== */
+
+/* Loading State */
+.sign-in-button-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+}
+
+.sign-in-button-loading ion-spinner {
+  width: 24px;
+  height: 24px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Sign In Button */
+.sign-in-button {
+  --background: linear-gradient(135deg, #ff8c32, #ff6b00);
+  --background-hover: linear-gradient(135deg, #ff9c42, #ff7b10);
+  --border-radius: 10px;
+  font-weight: 600;
+}
+
+.sign-in-button.compact {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  height: 36px;
+  font-size: 0.9rem;
+}
+
+.sign-in-button.full {
+  --padding-start: 20px;
+  --padding-end: 20px;
+  height: 44px;
+}
+
+.sign-in-button ion-spinner {
+  width: 20px;
+  height: 20px;
+}
+
+/* User Avatar Button */
+.user-avatar-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.user-avatar-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.username-label {
+  padding-right: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* User Menu Popover */
+.user-menu-popover {
+  --background: rgba(26, 26, 46, 0.98);
+  --width: 260px;
+}
+
+.user-menu-popover ion-list {
+  background: transparent;
+  padding: 8px 0;
+}
+
+.user-menu-popover ion-item {
+  --background: transparent;
+  --color: #fff;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --min-height: 48px;
+  font-size: 0.95rem;
+}
+
+.user-menu-popover ion-item:hover {
+  --background: rgba(255, 255, 255, 0.1);
+}
+
+.user-menu-popover ion-icon {
+  color: rgba(255, 255, 255, 0.7);
+  margin-right: 12px;
+}
+
+/* User Menu Header */
+.user-menu-header {
+  --min-height: auto;
+  padding: 16px !important;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-menu-header .user-info {
+  display: flex;
+  flex-direction: column;
+  margin-left: 12px;
+}
+
+.user-menu-header .user-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.user-menu-header .wallet-badge {
+  font-size: 0.75rem;
+  color: #ffd700;
+  margin-top: 2px;
+}
+
+/* Sign Out Item */
+.sign-out-item {
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sign-out-item ion-icon {
+  color: #ff6666;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .username-label {
+    display: none;
+  }
+
+  .user-avatar-button {
+    padding: 4px;
+    border-radius: 50%;
+  }
+}

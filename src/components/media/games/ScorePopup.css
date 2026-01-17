@@ -1,0 +1,115 @@
+/**
+ * ScorePopup Styles
+ *
+ * Flying score popup animations.
+ */
+
+/* ============================================================================
+   SCORE POPUP
+   ============================================================================ */
+
+.score-popup {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  z-index: 200;
+  animation: score-fly-up 1s ease-out forwards;
+}
+
+.score-popup-value {
+  font-size: 36px;
+  font-weight: 900;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;
+  text-shadow:
+    0 0 20px currentColor,
+    0 0 40px currentColor,
+    0 2px 8px rgba(0, 0, 0, 0.6);
+  line-height: 1;
+}
+
+.score-popup-prefix {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+  opacity: 0.9;
+  text-shadow:
+    0 0 10px currentColor,
+    0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* With prefix variant - slightly different animation */
+.score-popup-with-prefix {
+  animation: score-fly-up-prefix 1.2s ease-out forwards;
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+@keyframes score-fly-up {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-15px) scale(1.3);
+  }
+  30% {
+    transform: translateX(-50%) translateY(-25px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-100px) scale(0.8);
+  }
+}
+
+@keyframes score-fly-up-prefix {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0) scale(0.3);
+  }
+  10% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-10px) scale(1.4);
+  }
+  25% {
+    transform: translateX(-50%) translateY(-20px) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-120px) scale(0.7);
+  }
+}
+
+/* ============================================================================
+   MOBILE RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  .score-popup-value {
+    font-size: 28px;
+  }
+
+  .score-popup-prefix {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .score-popup-value {
+    font-size: 24px;
+  }
+
+  .score-popup-prefix {
+    font-size: 10px;
+  }
+}

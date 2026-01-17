@@ -1,0 +1,58 @@
+/* Haptic Settings */
+.haptic-settings {
+  padding: 16px;
+}
+
+.haptic-settings.not-supported {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+.haptic-settings .setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.haptic-settings .setting-row:last-child {
+  border-bottom: none;
+}
+
+.haptic-settings .setting-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #fff;
+}
+
+.haptic-settings .setting-label ion-icon {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.haptic-test {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.test-button {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, rgba(255, 140, 50, 0.3), rgba(255, 100, 50, 0.2));
+  border: 1px solid rgba(255, 140, 50, 0.4);
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.test-button:hover {
+  background: linear-gradient(135deg, rgba(255, 140, 50, 0.4), rgba(255, 100, 50, 0.3));
+}
+
+.test-button:active {
+  transform: scale(0.98);
+}

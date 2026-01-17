@@ -1,10 +1,14 @@
 /**
  * Treasury API Service
  * Fetches wallet balances, tokens, and NFTs dynamically from SpaceScan
+ *
+ * NOTE: XCH price functions delegate to treasuryService for centralized caching.
+ * All components share the same 15-minute cache.
  */
 
 import { WALLET_ADDRESS } from './treasuryConstants';
 import { spacescanQueue, coingeckoQueue } from '../utils/rateLimiter';
+import { treasuryService } from './treasuryService';
 
 // Use proxies to avoid CORS issues
 // Dev: Vite proxy, Prod: Cloudflare Pages Function
@@ -499,21 +503,16 @@ export function getWalletExplorerUrl(): string {
 
 /**
  * Get current XCH price in USD
- * Returns cached price instantly, fetches fresh price in background if stale
+ * Delegates to centralized treasuryService for shared caching (15-minute cache)
  */
 export async function getXchPrice(): Promise<number> {
-  // If we have cached data, use that price
-  if (cachedData && cachedData.xch_price_usd > 0) {
-    return cachedData.xch_price_usd;
-  }
-  // Otherwise fetch fresh
-  return fetchXchPrice();
+  return treasuryService.getXchPrice();
 }
 
 /**
  * Get cached XCH price instantly (no API call)
- * Returns default price if no cache available
+ * Delegates to centralized treasuryService for shared caching
  */
 export function getCachedXchPrice(): number {
-  return cachedXchPrice;
+  return treasuryService.getCachedXchPrice();
 }

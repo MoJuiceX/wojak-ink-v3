@@ -1,0 +1,129 @@
+/* ============================================
+   MOBILE HUD - Compact horizontal stats bar
+   ============================================ */
+
+.mobile-hud {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 20px;
+  border: 1px solid var(--hud-accent, rgba(255, 107, 0, 0.4));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 200;
+  max-width: calc(100% - 24px);
+  flex-wrap: wrap;
+  justify-content: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.mobile-hud--top {
+  top: 12px;
+}
+
+.mobile-hud--bottom {
+  bottom: 12px;
+}
+
+.mobile-hud__stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 48px;
+}
+
+.mobile-hud__icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.mobile-hud__text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.mobile-hud__label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.mobile-hud__value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--stat-color, #fff);
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  line-height: 1;
+}
+
+/* Warning state - pulsing animation */
+.mobile-hud__stat--warning .mobile-hud__value {
+  color: #ef4444;
+  animation: hud-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes hud-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+/* Extra small screens - more compact */
+@media (max-width: 380px) {
+  .mobile-hud {
+    gap: 8px;
+    padding: 6px 12px;
+  }
+
+  .mobile-hud__stat {
+    min-width: 40px;
+    gap: 4px;
+  }
+
+  .mobile-hud__icon {
+    font-size: 14px;
+  }
+
+  .mobile-hud__label {
+    font-size: 8px;
+  }
+
+  .mobile-hud__value {
+    font-size: 14px;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 320px) {
+  .mobile-hud {
+    gap: 6px;
+    padding: 4px 8px;
+  }
+
+  .mobile-hud__stat {
+    min-width: 36px;
+  }
+
+  .mobile-hud__label {
+    font-size: 7px;
+  }
+
+  .mobile-hud__value {
+    font-size: 12px;
+  }
+}

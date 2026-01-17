@@ -3,10 +3,12 @@
  *
  * Browse the Wojak Farmers Plot NFT collection by character type.
  * Responsive layout: mobile grid vs desktop grid with premium hover effects.
+ * Features glassmorphism, animated backgrounds, and glowing effects.
  */
 
 import { useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import './Gallery.css';
 import { ChevronDown } from 'lucide-react';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useLayout } from '@/hooks/useLayout';
@@ -339,6 +341,9 @@ function GalleryContent() {
 
   return (
     <PageTransition>
+      {/* Animated gradient background */}
+      <div className="gallery-page-background" />
+
       <div className="min-h-full" style={{ padding: pagePadding }}>
         <div className={isDesktop ? 'space-y-8' : ''}>
           {/* Content */}

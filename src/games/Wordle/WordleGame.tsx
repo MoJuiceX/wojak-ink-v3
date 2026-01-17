@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { getRandomSolution, isValidWord } from './words';
 import { loadStats, updateStatsAfterGame, type WordleStats } from './stats';
+import { useGameEffects, GameEffects } from '@/components/media';
 import StatsModal from './StatsModal';
 import './WordleGame.css';
 
@@ -181,6 +182,21 @@ const WordleGame: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isRevealingRef = useRef(false); // Block input during reveal animation
 
+  // Universal visual effects system
+  const {
+    effects,
+    triggerShockwave,
+    triggerSparks,
+    triggerVignette,
+    triggerScreenShake,
+    addFloatingEmoji,
+    showEpicCallout,
+    triggerConfetti,
+    updateCombo,
+    resetCombo,
+    resetAllEffects,
+  } = useGameEffects();
+
   // Initialize game on mount
   useEffect(() => {
     const word = getRandomSolution();
@@ -267,6 +283,8 @@ const WordleGame: React.FC = () => {
       setRevealingRow(rowIdx);
       setRevealedCols(new Set());
 
+      let correctCount = 0;
+
       // Reveal each tile with staggered animation
       for (let i = 0; i < COLS; i++) {
         // Start flip animation for this tile
@@ -293,8 +311,25 @@ const WordleGame: React.FC = () => {
           return { ...prev, [letter]: state };
         });
 
+        // Trigger effects based on result
+        if (state === 'correct') {
+          correctCount++;
+          triggerSparks('#ff6b00');
+          addFloatingEmoji('🍊');
+          updateCombo();
+        } else if (state === 'present') {
+          triggerSparks('#FFD700');
+          addFloatingEmoji('🟡');
+        }
+
         // Wait for flip to complete before next tile
         await new Promise((resolve) => setTimeout(resolve, FLIP_DURATION / 2 + FLIP_DELAY));
+      }
+
+      // Bonus effects for multiple correct letters
+      if (correctCount >= 3) {
+        triggerShockwave('#ff6b00', 0.5);
+        showEpicCallout(correctCount === 5 ? '' : `${correctCount} CORRECT!`);
       }
 
       // Clear revealing state
@@ -305,7 +340,7 @@ const WordleGame: React.FC = () => {
       // Check if won
       return results.every((r) => r === 'correct');
     },
-    []
+    [triggerSparks, addFloatingEmoji, updateCombo, triggerShockwave, showEpicCallout]
   );
 
   /**
@@ -320,6 +355,7 @@ const WordleGame: React.FC = () => {
     if (currentCol !== COLS) {
       showToast('Not enough letters');
       shakeRow(currentRow);
+      triggerScreenShake(200);
       return;
     }
 
@@ -330,6 +366,9 @@ const WordleGame: React.FC = () => {
     if (!isValidWord(guess)) {
       showToast('Not in word list');
       shakeRow(currentRow);
+      triggerVignette('#ff4444');
+      triggerScreenShake(300);
+      resetCombo();
       return;
     }
 
@@ -346,6 +385,13 @@ const WordleGame: React.FC = () => {
     if (isWin) {
       setWinningRow(submittedRow);
       const numGuesses = submittedRow + 1; // Row is 0-indexed, guesses are 1-indexed
+
+      // Victory effects
+      triggerConfetti();
+      triggerShockwave('#FFD700', 1.0);
+      showEpicCallout(numGuesses === 1 ? 'GENIUS!' : numGuesses <= 3 ? 'BRILLIANT!' : 'VICTORY!');
+      addFloatingEmoji('🎉');
+
       setTimeout(() => {
         setGameStatus('won');
         // Update stats after win
@@ -363,6 +409,11 @@ const WordleGame: React.FC = () => {
     if (submittedRow >= ROWS - 1) {
       setGameStatus('lost');
       showToast(targetWord);
+      // Loss effects
+      triggerVignette('#ff0000');
+      triggerScreenShake(500);
+      addFloatingEmoji('😔');
+      resetCombo();
       // Update stats after loss
       const updatedStats = updateStatsAfterGame(false, 6);
       setStats(updatedStats);
@@ -385,6 +436,13 @@ const WordleGame: React.FC = () => {
     showToast,
     shakeRow,
     revealTiles,
+    triggerScreenShake,
+    triggerVignette,
+    resetCombo,
+    triggerConfetti,
+    triggerShockwave,
+    showEpicCallout,
+    addFloatingEmoji,
   ]);
 
   /**
@@ -449,8 +507,9 @@ const WordleGame: React.FC = () => {
     setLastGameWon(null);
     setLastGuessCount(undefined);
     isRevealingRef.current = false;
+    resetAllEffects();
     console.log('[Wordle] New target word:', word); // Debug only
-  }, []);
+  }, [resetAllEffects]);
 
   /**
    * Get tile classes
@@ -494,7 +553,10 @@ const WordleGame: React.FC = () => {
   };
 
   return (
-    <div ref={containerRef} className="wordle-container">
+    <div ref={containerRef} className={`wordle-container ${effects.screenShake ? 'screen-shake' : ''}`}>
+      {/* Universal Game Effects Layer */}
+      <GameEffects effects={effects} accentColor="#ff6b00" />
+
       {/* Header */}
       <div className="wordle-header">
         <div className="wordle-header-left" />

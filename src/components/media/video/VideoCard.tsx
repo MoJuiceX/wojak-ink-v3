@@ -1,19 +1,14 @@
 /**
  * Video Card Component
  *
- * Video thumbnail card with play overlay.
+ * Premium video thumbnail card with hover effects and play overlay.
+ * Features thumbnail zoom, glow effects, and smooth transitions.
  */
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Play, Subtitles, AudioLines } from 'lucide-react';
 import type { VideoItem } from '@/types/media';
-import { formatViewCount } from '@/utils/mockMediaData';
-import {
-  videoCardVariants,
-  videoThumbnailVariants,
-  playOverlayVariants,
-} from '@/config/mediaAnimations';
 
 interface VideoCardProps {
   video: VideoItem;
@@ -22,28 +17,29 @@ interface VideoCardProps {
 
 export const VideoCard = memo(function VideoCard({ video, onClick }: VideoCardProps) {
   const prefersReducedMotion = useReducedMotion();
-
-  const categoryLabels: Record<string, string> = {
-    'music-video': 'Music Video',
-    community: 'Community',
-    tutorial: 'Tutorial',
-    meme: 'Meme',
-    event: 'Event',
-  };
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <motion.button
-      className="group flex flex-col text-left rounded-xl overflow-hidden"
+      className="group flex flex-col text-left overflow-hidden w-full h-full"
       style={{
+        borderRadius: '16px',
         background: 'var(--color-glass-bg)',
-        border: '1px solid var(--color-border)',
+        border: '1px solid rgba(249, 115, 22, 0.1)',
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
-      variants={prefersReducedMotion ? undefined : videoCardVariants}
-      initial="initial"
-      animate="animate"
-      whileHover="hover"
-      whileTap="tap"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={prefersReducedMotion ? undefined : {
+        y: -8,
+        borderColor: 'rgba(249, 115, 22, 0.4)',
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(249, 115, 22, 0.2)',
+      }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
       onClick={onClick}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
     >
       {/* Thumbnail container */}
       <div className="relative aspect-video overflow-hidden">
@@ -52,29 +48,49 @@ export const VideoCard = memo(function VideoCard({ video, onClick }: VideoCardPr
           alt={video.title}
           className="w-full h-full object-cover"
           loading="lazy"
-          variants={prefersReducedMotion ? undefined : videoThumbnailVariants}
+          animate={prefersReducedMotion ? undefined : {
+            scale: isHovered ? 1.1 : 1,
+          }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
           onError={(e) => {
             (e.target as HTMLImageElement).src = '/assets/placeholder-video.jpg';
+          }}
+        />
+
+        {/* Gradient overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'linear-gradient(180deg, transparent 0%, transparent 50%, rgba(0, 0, 0, 0.8) 100%)',
           }}
         />
 
         {/* Play overlay */}
         <motion.div
           className="absolute inset-0 flex items-center justify-center"
-          style={{ background: 'rgba(0, 0, 0, 0.3)' }}
-          variants={prefersReducedMotion ? undefined : playOverlayVariants}
-          initial="initial"
-          animate="initial"
-          whileHover="hover"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: isHovered ? 1 : 0 }}
+          transition={{ duration: 0.3 }}
         >
-          <div
-            className="w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
+          <motion.div
+            className="flex items-center justify-center"
             style={{
-              background: 'var(--color-brand-primary)',
+              width: 64,
+              height: 64,
+              borderRadius: '50%',
+              background: 'rgba(249, 115, 22, 0.9)',
             }}
+            initial={{ scale: 0.8 }}
+            animate={prefersReducedMotion ? undefined : {
+              scale: isHovered ? 1 : 0.8,
+              boxShadow: isHovered
+                ? '0 0 30px rgba(249, 115, 22, 0.6)'
+                : '0 0 0px rgba(249, 115, 22, 0)',
+            }}
+            transition={{ duration: 0.3 }}
           >
-            <Play size={24} fill="white" color="white" />
-          </div>
+            <Play size={24} fill="white" color="white" style={{ marginLeft: 4 }} />
+          </motion.div>
         </motion.div>
 
         {/* Accessibility badges */}
@@ -106,26 +122,17 @@ export const VideoCard = memo(function VideoCard({ video, onClick }: VideoCardPr
         </div>
       </div>
 
-      {/* Info */}
-      <div className="p-3">
+      {/* Info section - fixed height for consistency */}
+      <div className="p-3 flex-1 flex items-start">
         <h3
-          className="text-sm font-medium line-clamp-2 mb-1"
-          style={{ color: 'var(--color-text-primary)' }}
+          className="text-sm font-semibold line-clamp-2 transition-colors duration-200 leading-tight"
+          style={{
+            color: isHovered ? '#F97316' : 'var(--color-text-primary)',
+            minHeight: '2.5em', // Ensures space for 2 lines
+          }}
         >
           {video.title}
         </h3>
-        <div
-          className="flex items-center gap-2 text-xs"
-          style={{ color: 'var(--color-text-muted)' }}
-        >
-          <span>{categoryLabels[video.category] || video.category}</span>
-          {video.viewCount && (
-            <>
-              <span>•</span>
-              <span>{formatViewCount(video.viewCount)} views</span>
-            </>
-          )}
-        </div>
       </div>
     </motion.button>
   );

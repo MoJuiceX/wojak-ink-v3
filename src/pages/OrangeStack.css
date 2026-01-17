@@ -3,22 +3,32 @@
   overflow: hidden;
 }
 
-.stack-content::before {
-  content: '';
+/* Parallax Background - tall image that scrolls up as player climbs higher */
+.stack-content .parallax-background {
   position: absolute;
-  inset: 0;
-  background-image: url('/assets/wojak-layers/BACKGROUND/Scene/BACKGROUND_Orange Grove.png');
+  left: 0;
+  right: 0;
+  /* Start at bottom of viewport, extend upward */
+  bottom: 0;
+  /* Height is taller than viewport to allow scrolling - 180vh gives room to reveal clouds */
+  height: 180vh;
+  background-image: url('/assets/Games/backgrounds/BACKGROUND_Orange Grove_brick.png');
   background-size: cover;
-  background-position: center;
+  background-position: bottom center;
   background-repeat: no-repeat;
   z-index: -2;
+  /* Smooth transition for parallax effect */
+  transition: transform 0.3s ease-out;
+  /* Prevent any interaction */
+  pointer-events: none;
 }
 
+/* Dark overlay for game visibility */
 .stack-content::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   z-index: -1;
 }
 
@@ -215,6 +225,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  box-sizing: border-box; /* Include border in height calculation - fixes gaps */
 }
 
 .stack-block.moving {
@@ -1242,26 +1253,28 @@
   transform: scale(1.02);
 }
 
-/* Slide-in panel */
-.stack-content .leaderboard-slide-panel {
+/* Full-screen leaderboard panel - covers entire game over screen */
+.stack-content .leaderboard-fullscreen-panel {
   position: absolute;
   top: 0;
   left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
   height: 100%;
   background: linear-gradient(135deg, rgba(20, 20, 35, 0.98) 0%, rgba(30, 30, 50, 0.98) 100%);
   backdrop-filter: blur(20px);
-  transform: translateX(-100%);
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 200;
+  z-index: 300;
   display: flex;
   flex-direction: column;
   padding: 20px;
-  border-right: 2px solid rgba(255, 107, 0, 0.4);
+  box-sizing: border-box;
+  animation: leaderboardFadeIn 0.3s ease;
 }
 
-.stack-content .leaderboard-slide-panel.open {
-  transform: translateX(0);
+@keyframes leaderboardFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 /* Panel header */
@@ -1866,7 +1879,7 @@
   }
 }
 
-/* DEBUG: Perfect drop button */
+/* DEBUG: Perfect drop button (large, deprecated) */
 .debug-perfect-btn {
   padding: 16px 32px;
   background: linear-gradient(135deg, #ffd700 0%, #ff6b00 100%);
@@ -1889,6 +1902,56 @@
 .debug-perfect-btn:active {
   transform: scale(0.9);
   box-shadow: 0 2px 10px rgba(255, 215, 0, 0.5);
+}
+
+/* DEBUG: Perfect drop button (small, icon-only) */
+.debug-perfect-btn-small {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.9) 0%, rgba(255, 107, 0, 0.9) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  color: #000;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(255, 215, 0, 0.4);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.debug-perfect-btn-small:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.6);
+}
+
+.debug-perfect-btn-small:active {
+  transform: scale(0.9);
+}
+
+/* Game control buttons - consistent styling (close, mute, help) */
+.game-control-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.game-control-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
 }
 
 /* ============================================
@@ -2233,9 +2296,9 @@
     letter-spacing: 1px;
   }
 
-  /* Blocks - smaller height on mobile */
+  /* Blocks - MUST match BLOCK_HEIGHT_MOBILE in OrangeStack.tsx (40px) */
   .stack-block {
-    height: 35px;
+    height: 40px;
   }
 
   .stack-ground {
@@ -2338,12 +2401,13 @@
     font-size: 8px;
   }
 
+  /* Keep same height as 768px breakpoint - JS uses same value for all mobile */
   .stack-block {
-    height: 32px;
+    height: 40px;
   }
 
   .stack-ground {
-    height: 35px;
+    height: 40px;
   }
 
   .combo-number {

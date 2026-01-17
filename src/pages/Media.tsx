@@ -1,43 +1,25 @@
 /**
  * Media Hub Page
  *
- * Games, videos, and music entertainment center.
+ * Music videos and music player.
+ * Games have been moved to /games route.
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useLayout } from '@/hooks/useLayout';
 import { useMedia } from '@/contexts/MediaContext';
-import {
-  GamesGrid,
-  GameModal,
-  VideosGrid,
-  MusicPlayer,
-} from '@/components/media';
+import { VideosGrid } from '@/components/media/video/VideosGrid';
+import { MusicPlayer } from '@/components/media/music/MusicPlayer';
 import { useMediaContent } from '@/hooks/data/useMediaData';
-import type { MiniGame, VideoItem, VideoCategory } from '@/types/media';
+import type { VideoItem } from '@/types/media';
 
 export default function Media() {
-  const { contentPadding, isDesktop } = useLayout();
+  const { isDesktop } = useLayout();
   const { setVideoQueue } = useMedia();
 
-  const [selectedGame, setSelectedGame] = useState<MiniGame | null>(null);
-  const [gameModalOpen, setGameModalOpen] = useState(false);
-  const [videoFilter, setVideoFilter] = useState<VideoCategory | 'all'>('all');
-
   // Fetch media content using TanStack Query
-  const { videos, tracks, games, isLoading } = useMediaContent(videoFilter);
-
-  const handleGameSelect = useCallback((game: MiniGame) => {
-    // Always show games in the lightbox modal
-    setSelectedGame(game);
-    setGameModalOpen(true);
-  }, []);
-
-  const handleGameModalClose = useCallback(() => {
-    setGameModalOpen(false);
-    setSelectedGame(null);
-  }, []);
+  const { videos = [], tracks = [], isLoading } = useMediaContent();
 
   const handleVideoSelect = useCallback(
     (video: VideoItem) => {
@@ -48,27 +30,19 @@ export default function Media() {
     [videos, setVideoQueue]
   );
 
+  // Use consistent 16px padding to match grid gap
+  const pagePadding = 16;
+
   return (
     <PageTransition>
-      <div className="min-h-full" style={{ padding: contentPadding }}>
+      <div className="min-h-full" style={{ padding: pagePadding }}>
         <div
           className="space-y-8 pb-24 pt-4"
           style={{ maxWidth: isDesktop ? '1200px' : undefined, margin: '0 auto' }}
         >
-          {/* Games Section */}
-          <GamesGrid games={games} onGameSelect={handleGameSelect} isLoading={isLoading} />
-
-          {/* Divider */}
-          <div
-            className="h-px"
-            style={{ background: 'var(--color-border)' }}
-          />
-
           {/* Videos Section */}
           <VideosGrid
             videos={videos}
-            filter={videoFilter}
-            onFilterChange={setVideoFilter}
             onVideoSelect={handleVideoSelect}
             isLoading={isLoading}
           />
@@ -83,13 +57,6 @@ export default function Media() {
           <MusicPlayer tracks={tracks} defaultExpanded={isDesktop} isLoading={isLoading} />
         </div>
       </div>
-
-      {/* Game Modal */}
-      <GameModal
-        game={selectedGame}
-        isOpen={gameModalOpen}
-        onClose={handleGameModalClose}
-      />
     </PageTransition>
   );
 }

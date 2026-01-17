@@ -12,8 +12,13 @@ import { useCallback } from 'react';
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 export function useAuthenticatedFetch() {
-  // Only use Clerk hook if configured
-  const auth = CLERK_ENABLED ? useAuth() : { getToken: () => Promise.resolve(null), isSignedIn: false };
+  // Only call Clerk hook if ClerkProvider exists (CLERK_ENABLED is compile-time constant)
+  const authResult = CLERK_ENABLED
+    ? useAuth()
+    : { getToken: () => Promise.resolve(null), isSignedIn: false, isLoaded: true };
+
+  // Use the auth result directly
+  const auth = authResult;
 
   const authenticatedFetch = useCallback(
     async (url: string, options: RequestInit = {}): Promise<Response> => {

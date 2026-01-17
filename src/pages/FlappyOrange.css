@@ -1,0 +1,366 @@
+/* ============================================
+   FLAPPY ORANGE GAME STYLES
+   ============================================ */
+
+.flappy-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.flappy-container.mobile {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ============================================
+   CONTROL BUTTONS
+   ============================================ */
+
+.fo-back-btn,
+.fo-sound-btn {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  z-index: 50;
+  transition: all 0.2s ease;
+}
+
+.fo-back-btn {
+  top: 12px;
+  left: 12px;
+}
+
+.fo-sound-btn {
+  top: 12px;
+  left: 64px;
+  font-size: 20px;
+}
+
+.fo-back-btn:hover,
+.fo-sound-btn:hover {
+  background: rgba(255, 107, 0, 0.3);
+  border-color: rgba(255, 107, 0, 0.5);
+}
+
+.fo-back-btn:active,
+.fo-sound-btn:active {
+  transform: scale(0.95);
+}
+
+/* Mobile button adjustments */
+@media (max-width: 480px) {
+  .fo-back-btn,
+  .fo-sound-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .fo-back-btn {
+    top: 8px;
+    left: 8px;
+  }
+
+  .fo-sound-btn {
+    top: 8px;
+    left: 56px;
+    font-size: 18px;
+  }
+}
+
+/* ============================================
+   GAME CANVAS
+   ============================================ */
+
+.fo-canvas {
+  border-radius: 12px;
+  box-shadow:
+    0 0 40px rgba(255, 107, 0, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.mobile .fo-canvas {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ============================================
+   FLOATING SCORES
+   ============================================ */
+
+.fo-floating-score {
+  position: fixed;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #ffd700;
+  text-shadow:
+    0 0 10px rgba(255, 215, 0, 0.8),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 200;
+  animation: fo-score-float 0.8s ease-out forwards;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes fo-score-float {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -150%) scale(1);
+  }
+}
+
+/* ============================================
+   GAME OVER OVERLAY
+   ============================================ */
+
+.fo-game-over-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+  animation: fo-game-over-appear 0.5s ease-out;
+}
+
+@keyframes fo-game-over-appear {
+  0% {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
+}
+
+.fo-game-over-content {
+  display: flex;
+  gap: 24px;
+  max-width: 500px;
+  width: 100%;
+  animation: fo-game-over-content 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+@keyframes fo-game-over-content {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.mobile .fo-game-over-content {
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.fo-game-over-left {
+  flex-shrink: 0;
+}
+
+.fo-sad-image {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.mobile .fo-sad-image {
+  width: 100px;
+  height: 100px;
+}
+
+.fo-game-over-emoji {
+  font-size: 5rem;
+}
+
+.fo-game-over-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.fo-game-over-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #ff6b00;
+  margin: 0;
+}
+
+.fo-game-over-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.fo-game-over-score .fo-score-value {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+  line-height: 1;
+  animation: fo-final-score-pulse 2s ease-in-out infinite;
+}
+
+@keyframes fo-final-score-pulse {
+  0%, 100% {
+    text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 50px rgba(255, 107, 0, 0.8), 0 0 80px rgba(255, 107, 0, 0.4);
+  }
+}
+
+.fo-game-over-score .fo-score-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.fo-game-over-stats {
+  display: flex;
+  gap: 24px;
+  margin: 8px 0;
+}
+
+.fo-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fo-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ff6b00;
+}
+
+.fo-stat-label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+}
+
+.fo-new-record {
+  font-size: 1rem;
+  color: #ffd700;
+  font-weight: 700;
+  animation: fo-glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes fo-glow {
+  from { text-shadow: 0 0 10px #ffd700; }
+  to { text-shadow: 0 0 30px #ffd700, 0 0 60px #ffa500; }
+}
+
+.fo-submitted {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  min-height: 1.2em;
+}
+
+.fo-game-over-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.fo-play-btn {
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #ff6b00, #ff8533);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
+}
+
+.fo-play-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(255, 107, 0, 0.5);
+}
+
+.fo-play-btn:active {
+  transform: translateY(0);
+}
+
+.fo-back-to-games-btn {
+  padding: 10px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fo-back-to-games-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 480px) {
+  .fo-game-over-title {
+    font-size: 1.5rem;
+  }
+
+  .fo-game-over-score .fo-score-value {
+    font-size: 2.5rem;
+  }
+
+  .fo-game-over-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .fo-play-btn,
+  .fo-back-to-games-btn {
+    width: 100%;
+  }
+}

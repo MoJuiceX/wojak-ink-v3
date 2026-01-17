@@ -1,0 +1,514 @@
+/* ============================================
+   CITRUS DROP GAME STYLES
+   ============================================ */
+
+.citrus-drop-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.citrus-drop-container.mobile {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ============================================
+   CONTROL BUTTONS
+   ============================================ */
+
+.cd-back-btn,
+.cd-sound-btn {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  z-index: 50;
+  transition: all 0.2s ease;
+}
+
+.cd-back-btn {
+  top: 12px;
+  left: 12px;
+}
+
+.cd-sound-btn {
+  top: 12px;
+  left: 64px;
+  font-size: 20px;
+}
+
+.cd-back-btn:hover,
+.cd-sound-btn:hover {
+  background: rgba(255, 107, 0, 0.3);
+  border-color: rgba(255, 107, 0, 0.5);
+}
+
+.cd-back-btn:active,
+.cd-sound-btn:active {
+  transform: scale(0.95);
+}
+
+/* Mobile button adjustments */
+@media (max-width: 480px) {
+  .cd-back-btn,
+  .cd-sound-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .cd-back-btn {
+    top: 8px;
+    left: 8px;
+  }
+
+  .cd-sound-btn {
+    top: 8px;
+    left: 56px;
+    font-size: 18px;
+  }
+}
+
+/* ============================================
+   HUD
+   ============================================ */
+
+.cd-hud {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 40;
+}
+
+.cd-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 107, 0, 0.3);
+}
+
+.cd-score-label {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cd-score-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 107, 0, 0.5);
+}
+
+.cd-next-fruit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.cd-next-label {
+  font-size: 0.6rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cd-next-emoji {
+  font-size: 24px;
+}
+
+.cd-combo {
+  background: linear-gradient(135deg, #ff6b00, #ff8533);
+  padding: 6px 12px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 700;
+  color: white;
+  font-size: 0.9rem;
+  animation: cd-combo-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes cd-combo-pulse {
+  from {
+    transform: scale(1);
+    box-shadow: 0 0 10px rgba(255, 107, 0, 0.5);
+  }
+  to {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 107, 0, 0.8);
+  }
+}
+
+/* ============================================
+   GAME CANVAS
+   ============================================ */
+
+.cd-canvas {
+  border-radius: 12px;
+  box-shadow:
+    0 0 40px rgba(255, 107, 0, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.mobile .cd-canvas {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ============================================
+   READY SCREEN
+   ============================================ */
+
+.cd-ready-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 24px;
+  text-align: center;
+}
+
+.cd-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #ff6b00;
+  text-shadow:
+    0 0 30px rgba(255, 107, 0, 0.5),
+    0 4px 8px rgba(0, 0, 0, 0.3);
+  animation: cd-title-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes cd-title-glow {
+  from {
+    text-shadow:
+      0 0 30px rgba(255, 107, 0, 0.5),
+      0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+  to {
+    text-shadow:
+      0 0 50px rgba(255, 107, 0, 0.8),
+      0 0 80px rgba(255, 107, 0, 0.4),
+      0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.cd-subtitle {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 10px;
+}
+
+.cd-fruit-preview {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  max-width: 350px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cd-fruit-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.cd-fruit-name {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+}
+
+.cd-play-btn {
+  padding: 16px 48px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #ff6b00, #ff8533);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.cd-play-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 30px rgba(255, 107, 0, 0.6);
+}
+
+.cd-play-btn:active {
+  transform: translateY(0);
+}
+
+.cd-instructions {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  max-width: 300px;
+}
+
+/* ============================================
+   GAME OVER OVERLAY
+   ============================================ */
+
+.cd-game-over-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+  animation: cd-game-over-appear 0.5s ease-out;
+}
+
+@keyframes cd-game-over-appear {
+  0% {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
+}
+
+.cd-game-over-content {
+  display: flex;
+  gap: 24px;
+  max-width: 500px;
+  width: 100%;
+  animation: cd-game-over-content 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+@keyframes cd-game-over-content {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.mobile .cd-game-over-content {
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.cd-game-over-left {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cd-game-over-emoji {
+  font-size: 6rem;
+  animation: cd-fruit-bounce 1s ease-in-out infinite;
+}
+
+@keyframes cd-fruit-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.cd-game-over-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.cd-game-over-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #ff6b00;
+  margin: 0;
+}
+
+.cd-game-over-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.cd-game-over-score .cd-score-value {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+  line-height: 1;
+  animation: cd-final-score-pulse 2s ease-in-out infinite;
+}
+
+@keyframes cd-final-score-pulse {
+  0%, 100% {
+    text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 50px rgba(255, 107, 0, 0.8), 0 0 80px rgba(255, 107, 0, 0.4);
+  }
+}
+
+.cd-game-over-score .cd-score-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.cd-game-over-stats {
+  display: flex;
+  gap: 24px;
+  margin: 8px 0;
+}
+
+.cd-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cd-stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ff6b00;
+  text-transform: capitalize;
+}
+
+.cd-stat-label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+}
+
+.cd-new-record {
+  font-size: 1rem;
+  color: #ffd700;
+  font-weight: 700;
+  animation: cd-glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes cd-glow {
+  from { text-shadow: 0 0 10px #ffd700; }
+  to { text-shadow: 0 0 30px #ffd700, 0 0 60px #ffa500; }
+}
+
+.cd-submitted {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  min-height: 1.2em;
+}
+
+.cd-game-over-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.cd-back-to-games-btn {
+  padding: 10px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cd-back-to-games-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 480px) {
+  .cd-title {
+    font-size: 2rem;
+  }
+
+  .cd-game-over-title {
+    font-size: 1.5rem;
+  }
+
+  .cd-game-over-score .cd-score-value {
+    font-size: 2.5rem;
+  }
+
+  .cd-game-over-emoji {
+    font-size: 4rem;
+  }
+
+  .cd-game-over-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .cd-play-btn,
+  .cd-back-to-games-btn {
+    width: 100%;
+  }
+
+  .cd-hud {
+    top: 8px;
+    right: 8px;
+  }
+
+  .cd-score {
+    padding: 6px 12px;
+  }
+
+  .cd-score-value {
+    font-size: 1.3rem;
+  }
+}

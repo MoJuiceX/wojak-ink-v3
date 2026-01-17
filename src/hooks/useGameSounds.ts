@@ -1,13 +1,16 @@
 /**
  * Game Sounds Hook
  *
- * Provides synthesized sound effects for all games using Web Audio API.
- * No external audio files needed - all sounds are generated programmatically.
+ * Provides sound effects for all games.
+ * Uses MP3-based sounds from SoundManager when available,
+ * with Web Audio API synthesized sounds as fallback.
  */
 
 import { useCallback, useRef, useEffect } from 'react';
 import { useAudio } from '@/contexts/AudioContext';
 import { useSettings } from '@/contexts/SettingsContext';
+import { SoundManager } from '@/systems/audio/SoundManager';
+import { getComboSound } from '@/systems/audio/sounds';
 
 // Create audio context singleton
 let audioContext: AudioContext | null = null;
@@ -174,7 +177,7 @@ const WIN_SOUNDS = [
 // GAME ACTION SOUNDS
 // ============================================
 
-// Orange Stack sounds
+// Brick by Brick sounds
 const createBlockLandSound = () => {
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -550,10 +553,14 @@ export function useGameSounds() {
     volumeMultiplier = effectiveVolume;
   }, [effectiveVolume]);
 
-  // Initialize audio context on first user interaction
+  // Initialize audio context and SoundManager on first user interaction
   useEffect(() => {
     const initAudio = () => {
       getAudioContext();
+      // Also initialize the MP3-based SoundManager
+      if (!SoundManager.getIsInitialized()) {
+        SoundManager.initialize();
+      }
       document.removeEventListener('click', initAudio);
       document.removeEventListener('touchstart', initAudio);
     };
@@ -565,12 +572,15 @@ export function useGameSounds() {
     };
   }, []);
 
-  // Play a random win sound (different from last one)
+  // Play a win/high-score sound - uses MP3 with synthesized fallback
   const playWinSound = useCallback(() => {
     if (!isSoundEffectsEnabled) return;
 
+    // Try MP3 first
+    SoundManager.play('high-score');
+
+    // Also play synthesized sound for extra richness
     let index = Math.floor(Math.random() * WIN_SOUNDS.length);
-    // Ensure different from last time
     if (index === lastWinSoundRef.current && WIN_SOUNDS.length > 1) {
       index = (index + 1) % WIN_SOUNDS.length;
     }
@@ -578,61 +588,91 @@ export function useGameSounds() {
     WIN_SOUNDS[index]();
   }, [isSoundEffectsEnabled]);
 
-  // Orange Stack sounds
+  // Brick by Brick sounds
   const playBlockLand = useCallback(() => {
-    if (isSoundEffectsEnabled) createBlockLandSound();
+    if (!isSoundEffectsEnabled) return;
+    // Use MP3 score sound for landing
+    SoundManager.play('score');
+    // Also play synthesized for extra feedback
+    createBlockLandSound();
   }, [isSoundEffectsEnabled]);
 
   const playPerfectBonus = useCallback(() => {
-    if (isSoundEffectsEnabled) createPerfectBonusSound();
+    if (!isSoundEffectsEnabled) return;
+    // Perfect drops use success sound
+    SoundManager.play('success');
+    createPerfectBonusSound();
   }, [isSoundEffectsEnabled]);
 
   const playCombo = useCallback((level: number) => {
-    if (isSoundEffectsEnabled) createComboSound(level);
+    if (!isSoundEffectsEnabled) return;
+    // Use escalating MP3 combo sounds
+    const comboSound = getComboSound(level);
+    SoundManager.play(comboSound);
+    // Also play synthesized for layered effect
+    createComboSound(level);
   }, [isSoundEffectsEnabled]);
 
   // Orange Pong sounds
   const playPaddleHit = useCallback(() => {
-    if (isSoundEffectsEnabled) createPaddleHitSound();
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('score');
+    createPaddleHitSound();
   }, [isSoundEffectsEnabled]);
 
   const playWallBounce = useCallback(() => {
-    if (isSoundEffectsEnabled) createWallBounceSound();
+    if (!isSoundEffectsEnabled) return;
+    createWallBounceSound();
   }, [isSoundEffectsEnabled]);
 
   const playScorePoint = useCallback(() => {
-    if (isSoundEffectsEnabled) createScorePointSound();
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('score');
+    createScorePointSound();
   }, [isSoundEffectsEnabled]);
 
   // Wojak Runner sounds
   const playCollect = useCallback(() => {
-    if (isSoundEffectsEnabled) createCollectSound();
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('currency-earn');
+    createCollectSound();
   }, [isSoundEffectsEnabled]);
 
   const playWhoosh = useCallback(() => {
-    if (isSoundEffectsEnabled) createWhooshSound();
+    if (!isSoundEffectsEnabled) return;
+    createWhooshSound();
   }, [isSoundEffectsEnabled]);
 
   const playSpeedUp = useCallback(() => {
-    if (isSoundEffectsEnabled) createSpeedUpSound();
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('level-up');
+    createSpeedUpSound();
   }, [isSoundEffectsEnabled]);
 
   // Memory Match sounds
   const playCardFlip = useCallback(() => {
-    if (isSoundEffectsEnabled) createCardFlipSound();
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('button-click');
+    createCardFlipSound();
   }, [isSoundEffectsEnabled]);
 
   const playMatchFound = useCallback(() => {
-    if (isSoundEffectsEnabled) createMatchFoundSound();
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('success');
+    createMatchFoundSound();
   }, [isSoundEffectsEnabled]);
 
   const playMismatch = useCallback(() => {
-    if (isSoundEffectsEnabled) createMismatchSound();
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('error');
+    createMismatchSound();
   }, [isSoundEffectsEnabled]);
 
   // Game over sound
   const playGameOver = useCallback(() => {
-    if (isSoundEffectsEnabled) createGameOverSound();
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('game-over');
+    createGameOverSound();
   }, [isSoundEffectsEnabled]);
 
   // Running footstep loop for continuous movement sound
@@ -651,11 +691,47 @@ export function useGameSounds() {
     };
   }, []);
 
+  // New MP3-based sounds
+  const playGameStart = useCallback(() => {
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('game-start');
+  }, [isSoundEffectsEnabled]);
+
+  const playCountdown = useCallback(() => {
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('countdown');
+  }, [isSoundEffectsEnabled]);
+
+  const playCountdownGo = useCallback(() => {
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('countdown-go');
+  }, [isSoundEffectsEnabled]);
+
+  const playWarning = useCallback(() => {
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('warning');
+  }, [isSoundEffectsEnabled]);
+
+  const playAchievement = useCallback(() => {
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('achievement');
+  }, [isSoundEffectsEnabled]);
+
+  const playLevelUp = useCallback(() => {
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('level-up');
+  }, [isSoundEffectsEnabled]);
+
+  const playButtonClick = useCallback(() => {
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('button-click');
+  }, [isSoundEffectsEnabled]);
+
   return {
     // Win/level complete
     playWinSound,
 
-    // Orange Stack
+    // Brick by Brick
     playBlockLand,
     playPerfectBonus,
     playCombo,
@@ -679,6 +755,15 @@ export function useGameSounds() {
 
     // Game over
     playGameOver,
+
+    // New MP3-based sounds
+    playGameStart,
+    playCountdown,
+    playCountdownGo,
+    playWarning,
+    playAchievement,
+    playLevelUp,
+    playButtonClick,
   };
 }
 

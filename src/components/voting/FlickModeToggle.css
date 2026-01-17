@@ -1,0 +1,311 @@
+/* ============================================
+   VOTING PANEL - BASE STYLES
+   ============================================ */
+.voting-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--color-glass-bg, rgba(20, 15, 10, 0.95));
+  border-radius: 16px;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  backdrop-filter: blur(16px);
+}
+
+/* ============================================
+   DESKTOP LAYOUT - Vertical, integrated
+   ============================================ */
+.voting-panel.desktop {
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================
+   MOBILE LAYOUT - Fixed at bottom
+   ============================================ */
+.voting-panel.mobile {
+  position: fixed;
+  bottom: 90px;
+  right: 12px;
+  z-index: 1000;
+  width: auto;
+  min-width: 180px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+.voting-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.voting-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+}
+
+/* ============================================
+   VOTE BUTTONS ROW
+   ============================================ */
+.voting-buttons-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+/* ============================================
+   VOTE BUTTON - BASE STATE
+   ============================================ */
+.vote-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(145deg, rgba(40, 35, 30, 0.8), rgba(25, 20, 15, 0.8));
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  outline: none;
+  overflow: visible;
+  filter: saturate(0.8) brightness(0.95);
+}
+
+.vote-emoji {
+  font-size: 28px;
+  line-height: 1;
+  position: relative;
+  z-index: 2;
+}
+
+.vote-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  position: relative;
+  z-index: 2;
+}
+
+.vote-btn:hover {
+  filter: saturate(1) brightness(1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   VOTE BUTTON - INACTIVE STATE
+   ============================================ */
+.vote-btn.inactive {
+  filter: saturate(0.3) brightness(0.6);
+  transform: scale(0.92);
+  opacity: 0.6;
+}
+
+.vote-btn.inactive:hover {
+  filter: saturate(0.5) brightness(0.8);
+  transform: scale(0.96);
+}
+
+/* ============================================
+   VOTE BUTTON - SELECTED STATE
+   ============================================ */
+.vote-btn.selected {
+  filter: saturate(1.2) brightness(1.1);
+  transform: scale(1);
+  border-color: #ff9500;
+  background: linear-gradient(145deg, rgba(60, 50, 40, 0.9), rgba(40, 30, 20, 0.9));
+}
+
+.vote-btn.selected .vote-count {
+  color: #ff9500;
+  text-shadow: 0 0 10px rgba(255, 149, 0, 0.5);
+}
+
+/* Glow effect behind selected button */
+.vote-glow {
+  position: absolute;
+  inset: -6px;
+  border-radius: 20px;
+  background: radial-gradient(circle, rgba(255, 149, 0, 0.4) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: glowPulse 1.5s ease-in-out infinite;
+}
+
+.vote-glow.poop {
+  background: radial-gradient(circle, rgba(139, 90, 43, 0.5) 0%, transparent 70%);
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+/* ============================================
+   SPARKLE PARTICLES
+   ============================================ */
+.sparkle-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sparkle-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: #ff9500;
+  box-shadow: 0 0 6px #ff9500, 0 0 12px rgba(255, 149, 0, 0.5);
+}
+
+/* ============================================
+   HEATMAP TOGGLE
+   ============================================ */
+.voting-heatmap-section {
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.heatmap-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.2s ease;
+}
+
+.heatmap-toggle:hover:not(.disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 149, 0, 0.4);
+  color: #fff;
+}
+
+.heatmap-toggle.active {
+  background: rgba(255, 149, 0, 0.2);
+  border-color: rgba(255, 149, 0, 0.5);
+  color: #ff9500;
+}
+
+.heatmap-toggle.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.heatmap-toggle-icon {
+  font-size: 14px;
+}
+
+.heatmap-toggle-text {
+  flex: 1;
+  text-align: center;
+}
+
+.heatmap-toggle-emoji {
+  font-size: 16px;
+}
+
+/* ============================================
+   SIGN IN PROMPT
+   ============================================ */
+.voting-signin-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  text-align: center;
+}
+
+.voting-signin-emojis {
+  font-size: 32px;
+  opacity: 0.5;
+  filter: grayscale(0.5);
+}
+
+.voting-signin-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.voting-signin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #4285f4, #34a853);
+  border: none;
+  color: #fff;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
+}
+
+.voting-signin-btn:hover {
+  box-shadow: 0 4px 16px rgba(66, 133, 244, 0.4);
+}
+
+/* ============================================
+   MOBILE ADJUSTMENTS
+   ============================================ */
+@media (max-width: 768px) {
+  .voting-panel.mobile {
+    bottom: 90px;
+    right: 8px;
+    left: auto;
+    padding: 12px;
+    min-width: 160px;
+  }
+
+  .vote-btn {
+    width: 60px;
+    height: 60px;
+  }
+
+  .vote-emoji {
+    font-size: 24px;
+  }
+
+  .vote-count {
+    font-size: 11px;
+  }
+
+  .heatmap-pill {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+}

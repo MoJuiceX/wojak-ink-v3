@@ -10,7 +10,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pin, PinOff } from 'lucide-react';
 import { LAYOUT } from '@/config/layout';
-import { NAV_ITEMS, isPathActive } from '@/config/routes';
+import { PRIMARY_NAV_ITEMS, SECONDARY_NAV_ITEMS, isPathActive } from '@/config/routes';
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery';
 import { NavItem } from './NavItem';
 import { Logo } from './Logo';
@@ -98,8 +98,10 @@ export function Sidebar({
       style={{
         top: 0,
         width,
-        background: 'var(--color-bg-secondary)',
-        borderRight: '1px solid var(--color-border)',
+        background: 'rgba(10, 10, 10, 0.95)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderRight: '1px solid rgba(249, 115, 22, 0.1)',
       }}
       onMouseLeave={handleMouseLeave}
       onKeyDown={handleKeyDown}
@@ -187,7 +189,7 @@ export function Sidebar({
         </AnimatePresence>
       </div>
 
-      {/* Navigation items - hovering here expands the sidebar */}
+      {/* Primary navigation items - hovering here expands the sidebar */}
       <nav
         className="flex-1 overflow-y-auto overflow-x-hidden py-2"
         style={{
@@ -196,20 +198,52 @@ export function Sidebar({
         }}
         onMouseEnter={handleExpandableZoneEnter}
       >
+        {/* Primary items */}
         <ul className="flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => (
+          {PRIMARY_NAV_ITEMS.map((item) => (
             <li key={item.id}>
               <NavItem
                 icon={item.icon}
                 label={item.label}
-                isActive={isPathActive(item.path, location.pathname)}
-                onClick={() => handleNavigate(item.path)}
+                isActive={item.path ? isPathActive(item.path, location.pathname) : false}
+                onClick={() => item.path && handleNavigate(item.path)}
                 showLabel={showExpanded}
                 badge={item.badge}
                 disabled={item.disabled}
                 tooltip={item.tooltip}
                 variant="sidebar"
-                path={item.path}
+                path={item.path || undefined}
+                featured={item.featured}
+              />
+            </li>
+          ))}
+        </ul>
+
+        {/* Separator between primary and secondary */}
+        <div
+          className="my-3 mx-1"
+          style={{
+            height: 1,
+            background: 'var(--color-border)',
+            opacity: 0.5,
+          }}
+        />
+
+        {/* Secondary items */}
+        <ul className="flex flex-col gap-1">
+          {SECONDARY_NAV_ITEMS.map((item) => (
+            <li key={item.id}>
+              <NavItem
+                icon={item.icon}
+                label={item.label}
+                isActive={item.path ? isPathActive(item.path, location.pathname) : false}
+                onClick={() => item.path && handleNavigate(item.path)}
+                showLabel={showExpanded}
+                badge={item.badge}
+                disabled={item.disabled}
+                tooltip={item.tooltip}
+                variant="sidebar"
+                path={item.path || undefined}
               />
             </li>
           ))}

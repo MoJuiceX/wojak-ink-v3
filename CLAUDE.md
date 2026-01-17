@@ -138,7 +138,7 @@ One folder (`~/wojak-ink`), multiple branches. Never duplicate the repo folder.
 3. **BigPulp Intelligence** - Collection stats, top attributes, sales, market heatmap
 4. **Wojak Generator** - Layer selection, preview, favorites
 5. **Media** - Music videos with floating player
-6. **Games** - Mini-games (Orange Stack, Memory Match, etc.)
+6. **Games** - Mini-games (Brick by Brick, Memory Match, etc.)
 
 ---
 

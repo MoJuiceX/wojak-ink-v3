@@ -2,15 +2,15 @@
  * Preview Canvas Component
  *
  * Displays the composited Wojak avatar with loading states.
+ * Features ambient pulsing glow behind the avatar.
+ * Shows brief glow flash when character updates (Phase 2).
  */
 
+import { useState, useEffect, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { useGenerator } from '@/contexts/GeneratorContext';
-import {
-  previewCanvasVariants,
-  skeletonPulseVariants,
-} from '@/config/generatorAnimations';
+import { skeletonPulseVariants } from '@/config/generatorAnimations';
 
 interface PreviewCanvasProps {
   size?: number;
@@ -25,9 +25,22 @@ export function PreviewCanvas({
 }: PreviewCanvasProps) {
   const { previewImage, isRendering, selectedLayers } = useGenerator();
   const prefersReducedMotion = useReducedMotion();
+  const [showUpdateGlow, setShowUpdateGlow] = useState(false);
+  const prevImageRef = useRef<string | null>(null);
 
   const basePath = selectedLayers.Base;
   const hasSelection = !!basePath && basePath !== '' && basePath !== 'None';
+
+  // Show brief glow when preview image changes
+  useEffect(() => {
+    if (previewImage && previewImage !== prevImageRef.current && !prefersReducedMotion) {
+      setShowUpdateGlow(true);
+      const timer = setTimeout(() => setShowUpdateGlow(false), 400);
+      prevImageRef.current = previewImage;
+      return () => clearTimeout(timer);
+    }
+    prevImageRef.current = previewImage;
+  }, [previewImage, prefersReducedMotion]);
 
   // If size is provided, use fixed dimensions; otherwise rely on className for sizing
   const sizeStyles = size
@@ -36,13 +49,27 @@ export function PreviewCanvas({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl ${className}`}
+      className={`relative overflow-hidden rounded-2xl ${className} ${showUpdateGlow ? 'generator-preview-canvas updated' : 'generator-preview-canvas'}`}
       style={{
         ...sizeStyles,
+        aspectRatio: '1 / 1',
         background: 'var(--color-glass-bg)',
         border: '1px solid var(--color-border)',
       }}
     >
+      {/* Pulsing ambient glow behind avatar */}
+      {hasSelection && !prefersReducedMotion && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle, rgba(249, 115, 22, 0.4) 0%, rgba(249, 115, 22, 0.1) 40%, transparent 70%)',
+            filter: 'blur(40px)',
+            animation: 'pulseGlow 3s ease-in-out infinite',
+            zIndex: 0,
+          }}
+        />
+      )}
+
       {/* Checkerboard pattern for transparency */}
       <div
         className="absolute inset-0"
@@ -59,15 +86,13 @@ export function PreviewCanvas({
         }}
       />
 
-      {/* Preview image */}
+      {/* Preview image - instant update */}
       {previewImage && (
-        <motion.img
+        <img
           src={previewImage}
           alt="Wojak preview"
           className="absolute inset-0 w-full h-full object-contain"
-          variants={prefersReducedMotion ? undefined : previewCanvasVariants}
-          initial="initial"
-          animate="animate"
+          style={{ zIndex: 1 }}
         />
       )}
 

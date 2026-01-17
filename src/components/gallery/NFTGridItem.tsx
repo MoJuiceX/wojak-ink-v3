@@ -4,8 +4,9 @@
  * Individual NFT thumbnail in the gallery grid with:
  * - Staggered cascade reveal animation
  * - Hover preloading for full-size image
+ * - Glowing border effect on hover
+ * - 3D transform hover effect
  * - Optimized rendering with GPU acceleration
- * - Loading state handling
  */
 
 import { memo, useState, useCallback } from 'react';
@@ -33,7 +34,7 @@ export const NFTGridItem = memo(function NFTGridItem({
   const prefersReducedMotion = usePrefersReducedMotion();
 
   // Preload full image on hover (for when user opens explorer)
-  const { onMouseEnter, onMouseLeave } = useHoverPreload(nft.imageUrl);
+  const { onMouseEnter: preloadEnter, onMouseLeave: preloadLeave } = useHoverPreload(nft.imageUrl);
 
   const handleClick = useCallback(() => {
     onClick(nft.id);
@@ -48,16 +49,39 @@ export const NFTGridItem = memo(function NFTGridItem({
     setImageLoaded(true);
   }, []);
 
+  // Premium hover animation with 3D effect
+  const hoverAnimation = prefersReducedMotion
+    ? {}
+    : {
+        scale: 1.1,
+        rotateY: 5,
+        rotateX: -5,
+        z: 50,
+        transition: { type: 'spring' as const, stiffness: 300, damping: 20 },
+      };
+
+  // Tap animation for mobile touch feedback
+  const tapAnimation = prefersReducedMotion
+    ? {}
+    : {
+        scale: 0.95,
+        boxShadow: '0 0 0 3px rgba(249, 115, 22, 0.5)',
+      };
+
   return (
     <motion.button
-      className="group relative aspect-square rounded-lg overflow-hidden hover:scale-110 hover:z-10 transition-transform duration-150 ease-out"
+      className="nft-grid-item group relative aspect-square rounded-lg overflow-hidden transition-all duration-150 ease-out"
       style={{
-        border: '1px solid var(--color-border)',
+        border: '1px solid rgba(249, 115, 22, 0.2)',
+        transformStyle: 'preserve-3d',
+        perspective: '1000px',
       }}
       variants={prefersReducedMotion ? undefined : nftGridItemVariants}
+      whileHover={hoverAnimation}
+      whileTap={tapAnimation}
       onClick={handleClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onMouseEnter={preloadEnter}
+      onMouseLeave={preloadLeave}
       data-preload-index={index}
     >
       {/* Loading placeholder */}

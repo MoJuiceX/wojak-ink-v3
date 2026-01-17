@@ -2,6 +2,10 @@
  * Route Configuration
  *
  * Centralized route definitions with navigation metadata.
+ *
+ * Navigation hierarchy:
+ * - PRIMARY (Bottom Nav + Sidebar top): Gallery, Generator, Games, Media
+ * - SECONDARY (More Menu + Sidebar bottom): Leaderboard, Shop, Guild, Treasury, Settings, Account
  */
 
 import {
@@ -9,17 +13,21 @@ import {
   Briefcase,
   Lightbulb,
   Palette,
-  Music,
   Settings,
   User,
+  Trophy,
+  Users,
+  ShoppingBag,
+  Gamepad2,
+  Menu,
   type LucideIcon
 } from 'lucide-react';
 
 export interface NavItem {
   /** Unique identifier */
   id: string;
-  /** Route path */
-  path: string;
+  /** Route path (null for special items like "More") */
+  path: string | null;
   /** Full label for desktop */
   label: string;
   /** Short label for mobile (optional) */
@@ -34,14 +42,17 @@ export interface NavItem {
   tooltip?: string;
   /** Requires wallet connection */
   requiredAuth?: boolean;
+  /** Featured item with special styling (e.g., BigPulp) */
+  featured?: boolean;
   /** Nested child routes (not shown in main nav) */
   children?: Omit<NavItem, 'children'>[];
 }
 
 /**
- * Main navigation items
+ * Primary navigation items (Bottom Nav + Sidebar top)
+ * Industry standard: 5 items max for mobile bottom nav
  */
-export const NAV_ITEMS: NavItem[] = [
+export const PRIMARY_NAV_ITEMS: NavItem[] = [
   {
     id: 'gallery',
     path: '/gallery',
@@ -55,6 +66,15 @@ export const NAV_ITEMS: NavItem[] = [
     ]
   },
   {
+    id: 'bigpulp',
+    path: '/bigpulp',
+    label: 'BigPulp',
+    shortLabel: 'BigPulp',
+    icon: Lightbulb,
+    featured: true,
+    badge: 'dot', // Draw attention to the AI feature
+  },
+  {
     id: 'generator',
     path: '/generator',
     label: 'Generator',
@@ -62,11 +82,49 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Palette,
   },
   {
-    id: 'bigpulp',
-    path: '/bigpulp',
-    label: 'BigPulp',
-    shortLabel: 'BigPulp',
-    icon: Lightbulb,
+    id: 'games',
+    path: '/games',
+    label: 'Games',
+    shortLabel: 'Games',
+    icon: Gamepad2,
+  },
+];
+
+/**
+ * "More" button for mobile nav - opens secondary menu
+ */
+export const MORE_NAV_ITEM: NavItem = {
+  id: 'more',
+  path: null, // Opens menu instead of navigating
+  label: 'More',
+  shortLabel: 'More',
+  icon: Menu,
+};
+
+/**
+ * Secondary navigation items (More Menu + Sidebar bottom)
+ */
+export const SECONDARY_NAV_ITEMS: NavItem[] = [
+  {
+    id: 'leaderboard',
+    path: '/leaderboard',
+    label: 'Leaderboard',
+    shortLabel: 'Ranks',
+    icon: Trophy,
+  },
+  {
+    id: 'shop',
+    path: '/shop',
+    label: 'Shop',
+    shortLabel: 'Shop',
+    icon: ShoppingBag,
+  },
+  {
+    id: 'guild',
+    path: '/guild',
+    label: 'Guild',
+    shortLabel: 'Guild',
+    icon: Users,
   },
   {
     id: 'treasury',
@@ -77,17 +135,10 @@ export const NAV_ITEMS: NavItem[] = [
     requiredAuth: true,
   },
   {
-    id: 'media',
-    path: '/media',
-    label: 'Media Hub',
-    shortLabel: 'Media',
-    icon: Music,
-  },
-  {
     id: 'settings',
     path: '/settings',
     label: 'Settings',
-    shortLabel: 'More',
+    shortLabel: 'Settings',
     icon: Settings,
     children: [
       { id: 'settings-profile', path: '/settings/profile', label: 'Profile', icon: Settings },
@@ -105,6 +156,24 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 /**
+ * Mobile bottom nav items (reordered for center FAB placement)
+ * Order: Gallery, Generator, BigPulp (center FAB), Games, More
+ */
+export const MOBILE_NAV_ITEMS: NavItem[] = [
+  PRIMARY_NAV_ITEMS[0], // Gallery
+  PRIMARY_NAV_ITEMS[2], // Generator (swapped)
+  PRIMARY_NAV_ITEMS[1], // BigPulp (center - FAB style)
+  PRIMARY_NAV_ITEMS[3], // Games
+  MORE_NAV_ITEM,
+];
+
+/**
+ * All navigation items for sidebar (Primary + Secondary)
+ * @deprecated Use PRIMARY_NAV_ITEMS and SECONDARY_NAV_ITEMS instead
+ */
+export const NAV_ITEMS: NavItem[] = [...PRIMARY_NAV_ITEMS, ...SECONDARY_NAV_ITEMS];
+
+/**
  * Default route to redirect to
  */
 export const DEFAULT_ROUTE = '/gallery';
@@ -114,6 +183,7 @@ export const DEFAULT_ROUTE = '/gallery';
  */
 export function getNavItemByPath(path: string): NavItem | undefined {
   return NAV_ITEMS.find(item => {
+    if (!item.path) return false;
     if (item.path === path) return true;
     // Check if path starts with item path (for nested routes)
     return path.startsWith(item.path + '/');
@@ -130,7 +200,8 @@ export function getNavItemById(id: string): NavItem | undefined {
 /**
  * Check if a path matches a nav item (including children)
  */
-export function isPathActive(itemPath: string, currentPath: string): boolean {
+export function isPathActive(itemPath: string | null, currentPath: string): boolean {
+  if (!itemPath) return false;
   if (itemPath === currentPath) return true;
   // For index routes, exact match only
   if (itemPath === '/') return currentPath === '/';

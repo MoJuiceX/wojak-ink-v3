@@ -1,76 +1,124 @@
 /**
  * Toast Component
  *
- * Toast notification display with animations.
+ * Premium toast notification display with animations, colored glows,
+ * action buttons, and title/message support.
  */
 
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
-import { toastVariants, reducedMotionVariants } from '@/config/settingsAnimations';
-import type { ToastType } from '@/types/settings';
+import type { Toast, ToastType } from '@/types/settings';
+import './Toast.css';
 
-const toastIcons: Record<ToastType, React.ReactNode> = {
-  success: <CheckCircle size={18} />,
-  error: <AlertCircle size={18} />,
-  info: <Info size={18} />,
-  warning: <AlertTriangle size={18} />,
+// Default icons for each toast type
+const defaultIcons: Record<ToastType, string> = {
+  success: '✅',
+  error: '❌',
+  info: '🍊',
+  warning: '⚠️',
 };
 
-const toastColors: Record<ToastType, string> = {
-  success: '#22c55e',
-  error: '#ef4444',
-  info: '#3b82f6',
-  warning: '#f59e0b',
+// Color configurations for glow effects
+const toastColors: Record<ToastType, { border: string; glow: string }> = {
+  success: {
+    border: 'rgba(34, 197, 94, 0.4)',
+    glow: 'rgba(34, 197, 94, 0.2)',
+  },
+  error: {
+    border: 'rgba(239, 68, 68, 0.4)',
+    glow: 'rgba(239, 68, 68, 0.2)',
+  },
+  info: {
+    border: 'rgba(249, 115, 22, 0.4)',
+    glow: 'rgba(249, 115, 22, 0.2)',
+  },
+  warning: {
+    border: 'rgba(245, 158, 11, 0.4)',
+    glow: 'rgba(245, 158, 11, 0.2)',
+  },
 };
+
+interface ToastItemProps {
+  toast: Toast;
+  onDismiss: () => void;
+}
+
+function ToastItem({ toast, onDismiss }: ToastItemProps) {
+  const prefersReducedMotion = useReducedMotion();
+  const colors = toastColors[toast.type];
+  const icon = toast.icon || defaultIcons[toast.type];
+
+  return (
+    <motion.div
+      layout
+      initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 50, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: 100, scale: 0.9 }}
+      transition={
+        prefersReducedMotion
+          ? { duration: 0.15 }
+          : { type: 'spring', damping: 25, stiffness: 300 }
+      }
+      className={`toast toast-${toast.type}`}
+      style={{
+        borderColor: colors.border,
+        boxShadow: `0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px ${colors.glow}`,
+      }}
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {/* Icon */}
+      <span className="toast-icon">{icon}</span>
+
+      {/* Content */}
+      <div className="toast-content">
+        {toast.title && <div className="toast-title">{toast.title}</div>}
+        <div className={`toast-message ${toast.title ? '' : 'toast-message-only'}`}>
+          {toast.message}
+        </div>
+      </div>
+
+      {/* Action button */}
+      {toast.action && (
+        <button
+          type="button"
+          className="toast-action"
+          onClick={() => {
+            toast.action?.onClick();
+            onDismiss();
+          }}
+        >
+          {toast.action.label}
+        </button>
+      )}
+
+      {/* Close button */}
+      <button
+        type="button"
+        className="toast-close"
+        onClick={onDismiss}
+        aria-label="Dismiss notification"
+      >
+        <X size={14} />
+      </button>
+    </motion.div>
+  );
+}
 
 export function ToastContainer() {
   const { toasts, dismissToast } = useToast();
-  const prefersReducedMotion = useReducedMotion();
 
   return (
-    <div
-      className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-full max-w-sm px-4 md:bottom-6 md:right-6 md:left-auto md:translate-x-0"
-      role="region"
-      aria-label="Notifications"
-    >
+    <div className="toast-container" role="region" aria-label="Notifications">
       <AnimatePresence mode="popLayout">
         {toasts.map((toast) => (
-          <motion.div
+          <ToastItem
             key={toast.id}
-            layout
-            variants={prefersReducedMotion ? reducedMotionVariants.toast : toastVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg"
-            style={{
-              background: 'var(--color-bg-secondary)',
-              border: '1px solid var(--color-border)',
-            }}
-          >
-            <span style={{ color: toastColors[toast.type] }}>
-              {toastIcons[toast.type]}
-            </span>
-            <p
-              className="flex-1 text-sm"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              {toast.message}
-            </p>
-            <button
-              type="button"
-              onClick={() => dismissToast(toast.id)}
-              className="p-1 rounded-md transition-colors hover:bg-[var(--color-glass-hover)]"
-              style={{ color: 'var(--color-text-muted)' }}
-              aria-label="Dismiss notification"
-            >
-              <X size={14} />
-            </button>
-          </motion.div>
+            toast={toast}
+            onDismiss={() => dismissToast(toast.id)}
+          />
         ))}
       </AnimatePresence>
     </div>

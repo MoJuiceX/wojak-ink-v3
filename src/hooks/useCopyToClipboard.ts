@@ -41,7 +41,7 @@ export function useCopyToClipboard() {
         if (haptic) hapticSuccess();
 
         if (shouldShowToast) {
-          showToast('success', successMessage, 2000);
+          showToast('success', successMessage, { duration: 2000 });
         }
 
         // Reset after delay

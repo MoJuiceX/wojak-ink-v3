@@ -229,7 +229,7 @@ SpaceScan is EXTREMELY strict: 1 request per 20 seconds!
 
 **Games:**
 
-1. **Orange Stack** (`src/pages/OrangeStack.tsx`)
+1. **Brick by Brick** (`src/pages/OrangeStack.tsx`)
    - Block stacking puzzle (Tetris-like)
    - 3 difficulty levels
    - Scoring: perfect, near-perfect, speed, combo bonuses

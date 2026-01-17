@@ -11,8 +11,8 @@ import { Play, Pause } from 'lucide-react';
 import { useSettings } from '@/contexts/SettingsContext';
 import './KnifeGame.css';
 
-const AUDIO_URL = '/assets/games/The New Knife Game Song - Rusty Cage.mp3';
-const IMAGE_URL = '/assets/games/Knife_Game.png';
+const AUDIO_URL = '/assets/Games/games_media/The New Knife Game Song - Rusty Cage.mp3';
+const IMAGE_URL = '/assets/Games/games_media/Knife_Game.png';
 
 const KnifeGame: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
