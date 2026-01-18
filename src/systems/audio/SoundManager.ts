@@ -129,6 +129,22 @@ class SoundManagerClass {
    * Play a sound
    */
   play(name: SoundName, volumeMultiplier: number = 1): void {
+    this.playWithOptions(name, { volumeMultiplier });
+  }
+
+  /**
+   * Play a sound with options (pitch variation, volume)
+   */
+  playWithOptions(
+    name: SoundName,
+    options: {
+      volumeMultiplier?: number;
+      pitchVariation?: number; // 0-1, how much to vary pitch (0.1 = ±10%)
+      pitchShift?: number; // Direct pitch multiplier (1.0 = normal, 1.2 = higher, 0.8 = lower)
+    } = {}
+  ): void {
+    const { volumeMultiplier = 1, pitchVariation = 0, pitchShift = 1 } = options;
+
     // If not initialized, queue the sound
     if (!this.isInitialized) {
       this.pendingSounds.push({ name, volume: volumeMultiplier });
@@ -157,12 +173,44 @@ class SoundManagerClass {
       this.getVolumeForCategory(pool.definition.category) *
       volumeMultiplier;
 
+    // Apply pitch variation
+    let finalPitch = pitchShift;
+    if (pitchVariation > 0) {
+      // Random variation: e.g., 0.1 means pitch can be 0.9 to 1.1
+      const variation = (Math.random() * 2 - 1) * pitchVariation;
+      finalPitch = pitchShift * (1 + variation);
+    }
+    instance.audio.playbackRate = Math.max(0.5, Math.min(2, finalPitch));
+
     instance.audio.play().catch(() => {
       // Autoplay was prevented - this is normal on first interaction
     });
 
     // Rotate to next instance
     pool.currentIndex = (pool.currentIndex + 1) % pool.instances.length;
+  }
+
+  /**
+   * Play vote throw sound with satisfying variation
+   */
+  playVoteThrow(): void {
+    this.playWithOptions('vote-whoosh', {
+      volumeMultiplier: 0.8,
+      pitchVariation: 0.15,
+      pitchShift: 1.1, // Slightly higher pitch feels more energetic
+    });
+  }
+
+  /**
+   * Play vote impact sound (donut or poop) with satisfying variation
+   */
+  playVoteImpact(type: 'donut' | 'poop'): void {
+    const soundName = type === 'donut' ? 'vote-splat' : 'vote-plop';
+    this.playWithOptions(soundName as SoundName, {
+      volumeMultiplier: 1.0,
+      pitchVariation: 0.2, // More variation keeps it fresh
+      pitchShift: type === 'donut' ? 1.15 : 0.95, // Donut higher, poop lower
+    });
   }
 
   /**

@@ -8,7 +8,7 @@
  * UPDATED: Added emoji flick voting system
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useClerk } from '@clerk/clerk-react';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useLayout } from '@/hooks/useLayout';
@@ -60,8 +60,40 @@ export default function GamesHub() {
   } = useFlickVoting('games');
 
   // Track user's vote balances (decreases when they vote)
-  const [donutBalance, setDonutBalance] = useState(100);
-  const [poopBalance, setPoopBalance] = useState(50);
+  // Persist to localStorage so balance survives navigation
+  const [donutBalance, setDonutBalance] = useState(() => {
+    try {
+      const saved = localStorage.getItem('wojak_donut_balance');
+      return saved !== null ? parseInt(saved, 10) : 100;
+    } catch {
+      return 100;
+    }
+  });
+  const [poopBalance, setPoopBalance] = useState(() => {
+    try {
+      const saved = localStorage.getItem('wojak_poop_balance');
+      return saved !== null ? parseInt(saved, 10) : 50;
+    } catch {
+      return 50;
+    }
+  });
+
+  // Save balances to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('wojak_donut_balance', String(donutBalance));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [donutBalance]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('wojak_poop_balance', String(poopBalance));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [poopBalance]);
 
   const toggleRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -149,7 +181,7 @@ export default function GamesHub() {
     const xPercent = ((clickX - cardRect.left) / cardRect.width) * 100;
     const yPercent = ((clickY - cardRect.top) / cardRect.height) * 100;
 
-    SoundManager.play('vote-whoosh');
+    SoundManager.playVoteThrow();
 
     setFlickState({
       flyingEmoji: {
@@ -169,7 +201,7 @@ export default function GamesHub() {
 
     const { type, end, targetId, xPercent, yPercent } = flickState.flyingEmoji;
 
-    SoundManager.play(type === 'donut' ? 'vote-splat' : 'vote-plop');
+    SoundManager.playVoteImpact(type);
     addVote(targetId, type, xPercent, yPercent);
 
     // Save vote locally for heatmap display
