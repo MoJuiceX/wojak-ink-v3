@@ -7,7 +7,6 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Matter from 'matter-js';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useGameSounds } from '@/hooks/useGameSounds';
@@ -75,7 +74,6 @@ const darkenColor = (hex: string, percent: number): string => {
 // ============================================
 
 const CitrusDrop: React.FC = () => {
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
