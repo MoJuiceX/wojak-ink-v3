@@ -434,7 +434,8 @@ const OrangePong: React.FC = () => {
             // Rally bonus - extra points for long rallies
             const rallyBonus = Math.min(rallyRef.current * 5, 100);
             const scoreAmount = 50 + rallyBonus;
-            addScorePopupRef.current(scoreAmount, 30, 50, '#00ff88', rallyRef.current >= 5 ? 'RALLY BONUS' : undefined);
+            const popupText = rallyRef.current >= 5 ? `+${scoreAmount} RALLY BONUS` : `+${scoreAmount}`;
+            addScorePopupRef.current(popupText, 30, 50, '#00ff88');
 
             // +50 points for scoring against AI + rally bonus
             setTotalPoints(prev => prev + scoreAmount);

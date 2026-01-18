@@ -597,65 +597,8 @@ const MemoryMatch: React.FC = () => {
   const currentConfig = getRoundConfig(round);
   const requiredPairs = currentConfig.pairs;
 
-  // Developer mode: jump directly to a specific round (pauses timer)
-  const devJumpToRound = async (targetRound: number) => {
-    if (metadata.length === 0) {
-      alert('Metadata not loaded yet - wait a moment');
-      return;
-    }
-
-    // Clear preloaded cards to avoid interference
-    preloadedCardsRef.current = null;
-
-    const config = getRoundConfig(targetRound);
-    console.log(`DEV: Loading round ${targetRound}`, config);
-
-    const newCards = shuffleCards(config.pairs, config.baseFilter);
-    console.log(`DEV: Generated ${newCards.length} cards`);
-
-    if (newCards.length === 0) {
-      alert(`No cards for round ${targetRound} - baseFilter: ${config.baseFilter}`);
-      return;
-    }
-
-    // Set all state at once to avoid race conditions
-    setDevMode(true);
-    setGameState('loading');
-
-    await preloadImages(newCards);
-
-    // Batch state updates
-    setRound(targetRound);
-    setTotalScore(0);
-    setCards(newCards);
-    setFlippedCards([]);
-    setMoves(0);
-    setMatches(0);
-    setTimeLeft(999);
-    setIsChecking(false);
-    setGameState('playing');
-
-    console.log(`DEV: Round ${targetRound} loaded with ${newCards.length} cards`);
-  };
-
   return (
     <div className={`memory-container ${gameState === 'playing' ? 'playing-mode' : ''}`}>
-      {/* Developer Panel - Jump to any round (DEV ONLY) */}
-      {import.meta.env.DEV && (
-        <div className="dev-panel">
-          <span className="dev-label">DEV</span>
-          {Array.from({ length: 17 }, (_, i) => i + 1).map(num => (
-            <button
-              key={num}
-              className={`dev-btn ${round === num && gameState === 'playing' ? 'active' : ''}`}
-              onClick={() => devJumpToRound(num)}
-              title={`Round ${num}: ${getRoundConfig(num).pairs} pairs${getRoundConfig(num).baseFilter ? ` (${getRoundConfig(num).baseFilter})` : ''}`}
-            >
-              {num}
-            </button>
-          ))}
-        </div>
-      )}
       {/* Animated background elements - only show on menu and game over */}
       {gameState !== 'playing' && gameState !== 'loading' && (
         <div className="memory-bg-elements">

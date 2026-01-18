@@ -722,28 +722,6 @@ const OrangeStack: React.FC = () => {
     dropBlock();
   };
 
-  // DEBUG: Perfect drop - simulates a perfect block drop
-  const debugPerfectDrop = useCallback(() => {
-    if (gameState !== 'playing' || blocks.length === 0) return;
-
-    const lastBlock = blocksRef.current[blocksRef.current.length - 1];
-    if (!lastBlock) return;
-
-    // Create a perfectly aligned block
-    const perfectBlock: Block = {
-      id: blockIdRef.current++,
-      x: lastBlock.x,
-      width: lastBlock.width,
-      y: blocksRef.current.length,
-    };
-
-    // Force the current block ref to this perfect position
-    currentBlockRef.current = perfectBlock;
-
-    // Now call dropBlock which will see this perfect position
-    dropBlock();
-  }, [gameState, blocks.length, dropBlock]);
-
   // Camera system for tall stacks - responsive for mobile
   const GROUND_HEIGHT = isMobile ? 40 : 50;
   const CONTAINER_HEIGHT = CONTAINER_HEIGHT_RESPONSIVE;
@@ -1273,28 +1251,6 @@ const OrangeStack: React.FC = () => {
 
               {/* Tap hint */}
               <div className="tap-hint">Tap to drop!</div>
-
-              {/* DEBUG: Perfect drop button - rendered via portal to be above click capture layer */}
-              {createPortal(
-                <button
-                  className="debug-perfect-btn-small"
-                  style={{
-                    position: 'fixed',
-                    top: isMobile ? 50 : 12,
-                    right: 100, // Position to the left of mute button
-                    zIndex: 99999,
-                    pointerEvents: 'auto',
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    debugPerfectDrop();
-                  }}
-                >
-                  ⚡
-                </button>,
-                document.body
-              )}
             </div>
             </div>{/* Close centered container */}
           </div>
