@@ -146,7 +146,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 500;
+  pointer-events: auto;
   padding: 20px;
   animation: fo-game-over-appear 0.5s ease-out;
 }
@@ -324,21 +325,177 @@
   transform: translateY(0);
 }
 
-.fo-back-to-games-btn {
-  padding: 10px 24px;
-  font-size: 0.9rem;
+.fo-leaderboard-btn {
+  padding: 12px 20px;
+  font-size: 0.95rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
-  background: transparent;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.fo-back-to-games-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+.fo-leaderboard-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
   border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Back to Games - positioned in safe area (bottom right corner) */
+.fo-back-to-games-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 100;
+}
+
+.fo-back-to-games-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ============================================
+   LEADERBOARD OVERLAY & PANEL
+   ============================================ */
+
+.fo-leaderboard-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 700;
+  animation: fo-fade-in 0.2s ease;
+}
+
+@keyframes fo-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fo-leaderboard-panel {
+  width: 360px;
+  max-width: 90%;
+  max-height: 80%;
+  background: rgba(20, 20, 30, 0.98);
+  border: 1px solid rgba(255, 107, 0, 0.4);
+  border-radius: 20px;
+  padding: 24px;
+  backdrop-filter: blur(20px);
+  animation: fo-scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow-y: auto;
+}
+
+@keyframes fo-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fo-leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fo-leaderboard-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ff6b00;
+}
+
+.fo-leaderboard-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.25rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.fo-leaderboard-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.fo-leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fo-leaderboard-entry {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: background 0.2s ease;
+}
+
+.fo-leaderboard-entry:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.fo-leaderboard-entry.current-user {
+  background: rgba(255, 107, 0, 0.2);
+  border: 1px solid rgba(255, 107, 0, 0.5);
+}
+
+.fo-leaderboard-rank {
+  width: 36px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.fo-leaderboard-entry:nth-child(1) .fo-leaderboard-rank { color: #FFD700; }
+.fo-leaderboard-entry:nth-child(2) .fo-leaderboard-rank { color: #C0C0C0; }
+.fo-leaderboard-entry:nth-child(3) .fo-leaderboard-rank { color: #CD7F32; }
+
+.fo-leaderboard-name {
+  flex: 1;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.fo-leaderboard-score {
+  color: #ff6b00;
+  font-weight: 700;
+  min-width: 50px;
+  text-align: right;
+  font-size: 1rem;
 }
 
 /* ============================================
@@ -355,12 +512,37 @@
   }
 
   .fo-game-over-buttons {
-    flex-direction: column;
+    flex-direction: row;
     width: 100%;
+    gap: 8px;
   }
 
   .fo-play-btn,
+  .fo-leaderboard-btn {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+
   .fo-back-to-games-btn {
-    width: 100%;
+    bottom: 16px;
+    right: 16px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+  }
+
+  .fo-leaderboard-panel {
+    width: calc(100% - 32px);
+    max-height: 70%;
+    padding: 20px;
+  }
+
+  .fo-leaderboard-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .fo-leaderboard-entry {
+    padding: 10px 12px;
+    font-size: 0.9rem;
   }
 }

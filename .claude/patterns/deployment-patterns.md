@@ -1,137 +1,101 @@
-# Deployment Patterns (Cloudflare)
+# Deployment Patterns
 
-<!-- Last updated: 2026-01-18 -->
-<!-- Source: Consolidated from LEARNINGS.md and CLAUDE.md -->
+> Patterns for Cloudflare Pages, Vite builds, and git workflow.
 
-## Build & Deploy
+## Quick Commands
 
-### Standard Deploy
 ```bash
-npm run build
+# Development
+npm run dev -- --host     # Dev server (network accessible for phone testing)
+
+# Build
+npm run build             # Production build
+
+# Deploy
 npx wrangler pages deploy dist --project-name=wojak-ink
+
+# Database migration
+npx wrangler d1 execute wojak-users --file=./functions/migrations/XXX.sql
 ```
 
-### Development Server
-```bash
-npm run dev -- --host     # Accessible on network for phone testing
-```
+## Vite Cache Issues
 
-### Custom Skill
-Use `/deploy` skill for guided deployment with checks.
+### Hook Errors After HMR
 
-## Environment Configuration
+**Problem**: Pages randomly stop loading with "Cannot read properties of null (reading 'useContext')"
 
-### Vite Proxies (vite.config.ts)
-Required for CORS in development:
+**Cause**: Vite's dependency pre-bundling cache gets corrupted during hot reload
 
-```typescript
-proxy: {
-  '/mintgarden-api': {
-    target: 'https://api.mintgarden.io',
-    changeOrigin: true,
-    rewrite: (path) => path.replace(/^\/mintgarden-api/, ''),
-  },
-  '/dexie-api': {
-    target: 'https://api.dexie.space',
-    changeOrigin: true,
-    rewrite: (path) => path.replace(/^\/dexie-api/, ''),
-  },
-  '/spacescan-api': {
-    target: 'https://api.spacescan.io',
-    changeOrigin: true,
-    rewrite: (path) => path.replace(/^\/spacescan-api/, ''),
-  },
-  '/coingecko-api': {
-    target: 'https://api.coingecko.com',
-    changeOrigin: true,
-    rewrite: (path) => path.replace(/^\/coingecko-api/, ''),
-  },
-}
-```
-
-### Cloudflare Workers
-```typescript
-// Worker bindings in wrangler.toml
-[vars]
-CLERK_PUBLISHABLE_KEY = "pk_..."
-
-[[d1_databases]]
-binding = "DB"
-database_name = "wojak-users"
-database_id = "..."
-```
-
-## Troubleshooting
-
-### Vite Cache Corruption
-When pages randomly stop loading with hook errors:
+**Fix**:
 ```bash
 rm -rf node_modules/.vite && npm run dev -- --host
 ```
 
-**Symptoms:**
-- "Cannot read properties of null (reading 'useContext')"
-- Multiple pages break after HMR
-- Hook-related errors after hot reload
-
-### Build Failures
-1. Check for TypeScript errors: `npm run build 2>&1 | head -50`
-2. Check for missing imports
-3. Verify environment variables are set
-
-### Deploy Failures
-1. Check Cloudflare dashboard for worker errors
-2. Verify D1 database bindings
-3. Check function routes in `/functions/`
-
-## Cloudflare-Specific
-
-### Pages Functions
-Location: `/functions/api/*.ts`
-```typescript
-export const onRequest: PagesFunction<Env> = async (context) => {
-  const { env, request } = context;
-  // Access D1: env.DB
-  // Access KV: env.KV
-};
-```
-
-### D1 Database Commands
-```bash
-# List databases
-npx wrangler d1 list
-
-# Execute SQL
-npx wrangler d1 execute wojak-users --file=./migrations/001.sql
-
-# Interactive shell
-npx wrangler d1 execute wojak-users --command="SELECT * FROM users LIMIT 5"
-```
-
-### Workers Cron (fetch-sales.ts)
-Runs every 30 minutes to aggregate trade data:
-```typescript
-// workers/fetch-sales.ts
-export default {
-  async scheduled(event: ScheduledEvent, env: Env) {
-    // Fetch from Dexie API
-    // Store aggregated data
-  },
-};
-```
+**When to suspect**: Multiple pages suddenly break with hook errors after making changes
 
 ## Git Workflow
 
-### Branch Strategy
+### The Rule
+**Everything stays local until explicitly told to push.**
+
+### Process
+1. Make changes locally
+2. User tests on their device (http://192.168.x.x:port)
+3. Iterate until user is satisfied
+4. User says "push to GitHub" → commit, push, deploy
+
+### Do NOT
+- Push to GitHub without explicit permission
+- Deploy to production without explicit permission
+- Auto-commit changes
+- Create new folders for "redesigns" or "versions"
+
+### Branches, Not Folders
 ```bash
-git checkout -b feature-name   # Create feature branch
-git checkout main              # Return to stable
-git merge feature-name         # Merge when ready
-git branch -d feature-name     # Clean up
+# For experiments/redesigns:
+git checkout -b experiment-name    # Create branch
+git checkout main                  # Go back to stable
+git merge experiment-name          # Merge when ready
+git branch -d experiment-name      # Delete after merge
 ```
 
-### Never Do
-- Push without explicit permission
-- Deploy without explicit permission
-- Create folders for "redesigns" - use branches
-- Duplicate the repo folder
+One folder (`~/wojak-ink`), multiple branches. Never duplicate the repo folder.
+
+## Cloudflare Pages
+
+### Environment Variables
+Set in Cloudflare Dashboard → Pages → Settings → Environment variables
+
+Required:
+- `CLERK_SECRET_KEY` - Clerk authentication
+- `ANTHROPIC_API_KEY` - BigPulp AI (Claude)
+
+### API Routes
+Place in `functions/api/` directory. Cloudflare automatically deploys as Workers.
+
+```
+functions/
+├── api/
+│   ├── auth/
+│   │   └── verify.ts
+│   ├── currency/
+│   │   ├── balance.ts
+│   │   └── spend.ts
+│   └── leaderboard/
+│       └── [gameId].ts
+```
+
+### Build Output
+- Output directory: `dist/`
+- Build command: `npm run build`
+- Node version: 18+
+
+## Common Issues
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| Hook errors after changes | Vite cache corruption | `rm -rf node_modules/.vite` |
+| API route 404 | Wrong file location | Must be in `functions/api/` |
+| Env var not found | Not set in Cloudflare | Set in Pages settings |
+| Deploy fails | Build error | Run `npm run build` locally first |
+| CORS errors in dev | Missing proxy | Add to vite.config.ts |

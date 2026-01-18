@@ -12,6 +12,108 @@ Status: ACTIVE | STALE | ARCHIVED
 
 ## Active Learnings
 
+### [2026-01-18] [BUG] Game Navigation - Back Button Goes to Gallery
+**Problem**: Clicking "Back to Games" in 6 games navigated to gallery instead of games hub
+**Cause**: Games used `window.history.back()` which goes to previous page in history
+**Solution**: Replace with `useNavigate` from react-router-dom, navigate to `/games` explicitly
+**Files**:
+- `src/pages/CitrusDrop.tsx`
+- `src/pages/BlockPuzzle.tsx`
+- `src/pages/BrickBreaker.tsx`
+- `src/pages/FlappyOrange.tsx`
+- `src/pages/OrangeSnake.tsx`
+- `src/pages/WojakWhack.tsx`
+**Code**:
+```typescript
+// WRONG - goes to whatever page user came from
+window.history.back()
+
+// RIGHT - always goes to games hub
+import { useNavigate } from 'react-router-dom';
+const navigate = useNavigate();
+navigate('/games');
+// Or fallback: window.location.href = '/games';
+```
+**Status**: ACTIVE
+
+---
+
+### [2026-01-18] [PATTERN] Game Over UI - Leaderboard Overlay Pattern
+**Problem**:
+1. Leaderboard sliding in pushed content around (bad UX)
+2. "Back to Games" button too close to tap area (accidental clicks)
+**Solution**:
+1. Leaderboard opens as centered modal overlay, doesn't shift content
+2. Click outside to close
+3. "Back to Games" positioned in bottom-right corner (safe area)
+**Files**: `src/pages/FlappyOrange.tsx`, `src/pages/FlappyOrange.css`
+**Code**:
+```tsx
+{/* Leaderboard - overlays on top, doesn't shift content */}
+{showLeaderboardPanel && (
+  <div className="leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
+    <div className="leaderboard-panel" onClick={e => e.stopPropagation()}>
+      {/* content */}
+    </div>
+  </div>
+)}
+
+{/* Back to Games - in safe area (bottom right) */}
+<button className="back-to-games-btn" style={{ position: 'absolute', bottom: 20, right: 20 }}>
+  Back to Games
+</button>
+```
+**Status**: ACTIVE - Should be applied to all games for consistency
+
+---
+
+### [2026-01-18] [PATTERN] Flappy Orange Difficulty Tuning
+**Problem**: Game was too hard, users died immediately
+**Solution**: Tuned physics for 10-15 seconds of easy play before difficulty ramps
+**Files**: `src/pages/FlappyOrange.tsx`
+**Code**:
+```typescript
+const PHYSICS = {
+  GRAVITY: 0.2,            // Very floaty
+  JUMP_VELOCITY: -6,       // Gentle jump
+  MAX_FALL_SPEED: 5,       // Slow fall
+  ROTATION_SPEED: 0.04,    // Subtle rotation
+};
+
+const BIRD_RADIUS = 14;    // Forgiving hitbox
+const PIPE_GAP = 220;      // Wide gap
+const PIPE_SPACING = 320;  // Lots of time between pipes
+
+// Speed: no increase for first 5 pipes (~10-15 sec easy intro)
+const speed = 1.5 + Math.max(0, Math.floor((score - 5) / 20)) * 0.15;
+
+// First pipe spawns far away (3 sec of free flying)
+x: isFirst ? CANVAS_WIDTH + PIPE_WIDTH + 300 : CANVAS_WIDTH + PIPE_WIDTH
+```
+**Status**: ACTIVE
+
+---
+
+### [2026-01-18] [DECISION] Knowledge Flywheel v2.0 Implementation
+**Problem**: Flywheel was partially implemented - CLAUDE.md referenced pattern files that didn't exist
+**Solution**: Created all missing directories and files
+**Created**:
+```
+.claude/patterns/api-patterns.md      # API rates, CAT tokens, caching
+.claude/patterns/ui-patterns.md       # Animations, sounds, game UI
+.claude/patterns/database-patterns.md # D1 queries, migrations
+.claude/patterns/deployment-patterns.md # Cloudflare, Vite, git
+.claude/rules/.gitkeep
+docs/adr/template.md
+docs/adr/0001-cloudflare-d1-database.md
+docs/adr/0002-clerk-authentication.md
+docs/adr/0003-server-side-currency.md
+docs/archive/.gitkeep
+```
+**Status**: ACTIVE - Flywheel now fully operational
+
+---
+
 ### [2026-01-18] [PATTERN] Landing Page Floating NFTs Animation
 **Problem**: NFTs "jumping" when scale animation restarts, and overlapping scroll dots
 **Solution**:

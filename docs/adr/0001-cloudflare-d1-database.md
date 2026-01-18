@@ -1,31 +1,47 @@
-# ADR-0001: Use Cloudflare D1 for User Data
+# ADR-0001: Cloudflare D1 Database
 
-**Status**: Accepted
-**Date**: 2026-01-18
-**Author**: MoJuiceX
+## Status
+ACCEPTED
 
 ## Context
-The wojak.ink platform needs persistent storage for user data including currency balances (Ink, Donuts, Poops), transaction history, and game scores. Previously, this data was stored in localStorage which was vulnerable to manipulation and didn't persist across devices.
+The application needed a database for:
+- User accounts and authentication state
+- Game leaderboards and high scores
+- Currency balances (donuts/poops)
+- Transaction history
+
+Options considered:
+1. **Cloudflare D1** - SQLite at the edge
+2. **Supabase** - PostgreSQL with real-time
+3. **PlanetScale** - MySQL serverless
+4. **Turso** - Distributed SQLite
 
 ## Decision
-Use Cloudflare D1 (SQLite at the edge) for all user data storage, accessed via Cloudflare Workers/Pages Functions with JWT authentication via Clerk.
+Use Cloudflare D1 because:
+- Already using Cloudflare Pages for hosting
+- Zero additional latency (same edge network)
+- Generous free tier
+- SQLite syntax is simple and well-documented
+- Native integration with Wrangler CLI
 
 ## Consequences
+
 ### Positive
-- Data persists across devices and sessions
-- Server-side validation prevents client manipulation
-- Zero cold-start latency (edge deployment)
-- Integrated with existing Cloudflare Pages hosting
-- SQLite is well-understood and easy to query
-- Atomic transactions via batch() API
+- Single vendor (Cloudflare) for hosting + database
+- Low latency for API routes
+- Simple deployment with `wrangler d1 execute`
+- No connection pooling needed
 
 ### Negative
-- D1 has limitations (no RETURNING clause, limited JOIN support in batch)
-- Requires JWT verification on every API call (adds latency)
-- Need to manage database migrations manually
-- Storage costs (though minimal for our scale)
+- No `RETURNING` clause - must use `batch()` pattern
+- Limited SQL features compared to PostgreSQL
+- Migrations are manual (no ORM migration tool)
+- Beta product with occasional stability issues
+
+### Neutral
+- Learning curve for D1-specific patterns
+- Must use `batch()` for transactions
 
 ## References
-- [Cloudflare D1 Documentation](https://developers.cloudflare.com/d1/)
-- FIX-20: Server-Side User Economy implementation
-- `.claude/patterns/database-patterns.md`
+- [Cloudflare D1 Docs](https://developers.cloudflare.com/d1/)
+- `.claude/patterns/database-patterns.md` for D1-specific code patterns

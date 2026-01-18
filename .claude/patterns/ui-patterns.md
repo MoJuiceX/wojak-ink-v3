@@ -1,19 +1,17 @@
 # UI Patterns
 
-<!-- Last updated: 2026-01-18 -->
-<!-- Source: Consolidated from LEARNINGS.md -->
+> Consolidated patterns for animations, state management, and CSS conventions.
 
 ## Animation Patterns
 
-### Framer Motion AnimatePresence
-- Use `mode="popLayout"` for smooth crossfades without layout jump
-- Use `mode="wait"` when old element must exit before new enters
-- Scale animations should happen ONCE on mount, then only floating/breathing
+### Floating NFTs Without Jump
+
+Use `AnimatePresence mode="popLayout"` for smooth crossfades:
 
 ```tsx
 <AnimatePresence mode="popLayout">
   <motion.img
-    key={image}
+    key={image.id}
     initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
     exit={{ opacity: 0, scale: 1.05 }}
@@ -22,55 +20,39 @@
 </AnimatePresence>
 ```
 
-### Breathing/Floating Animation
-- Continuous y-axis movement for idle state
-- Different durations per element for organic feel
-- xDrift for subtle horizontal sway
+**Key insight**: Scale animation ONCE on mount, then only floating/breathing animation continues.
+
+### Rotating Text (Taglines)
 
 ```tsx
-animate={{
-  y: [0, -15, 0],
-  x: [0, xDrift * 0.5, 0],
-}}
-transition={{
-  duration: position.duration, // 10-15s
-  repeat: Infinity,
-  ease: 'easeInOut',
-}}
-```
+const TAGLINES = ['First tagline', 'Second tagline', ...];
+const [index, setIndex] = useState(0);
 
-### Parallax Layers
-- Background: -150px at 30% scroll
-- Mid-layer: -80px at 30% scroll
-- Front-layer: -30px at 30% scroll
-- Use `useTransform` from Framer Motion
-
-## Component Patterns
-
-### Rotating Content (Taglines, Images)
-- Use setInterval in useEffect with cleanup
-- Respect `prefersReducedMotion`
-- Use AnimatePresence for smooth transitions
-
-```tsx
 useEffect(() => {
   if (prefersReducedMotion) return;
   const interval = setInterval(() => {
-    setIndex(prev => (prev + 1) % ITEMS.length);
+    setIndex(prev => (prev + 1) % TAGLINES.length);
   }, 4000);
   return () => clearInterval(interval);
 }, [prefersReducedMotion]);
-```
 
-### Floating NFTs Per Section
-- Each section needs unique image pool to avoid repetition
-- HERO_IMAGES, COLLECTION_IMAGES, CTA_IMAGES as separate arrays
-- Position right-side NFTs at x: 78-82% to avoid scroll dots
+<AnimatePresence mode="wait">
+  <motion.span
+    key={index}
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+  >
+    {TAGLINES[index]}
+  </motion.span>
+</AnimatePresence>
+```
 
 ## Sound Patterns
 
-### Vote Sound Pitch Variation
-Makes sounds less repetitive and more satisfying:
+### Pitch Variation for Satisfying Sounds
+
+Makes repetitive sounds less annoying:
 
 ```typescript
 // In SoundManager.ts
@@ -79,41 +61,88 @@ instance.audio.playbackRate = pitchShift * (1 + (Math.random() * 2 - 1) * pitchV
 // pitchShift: 1.1 for positive sounds, 0.95 for negative
 ```
 
-## State Management
+## State Persistence
 
-### Persistent State Across Navigation
-Use localStorage with useState initializer:
+### localStorage with useState Initializer
+
+For state that survives navigation:
 
 ```typescript
 const [balance, setBalance] = useState(() => {
-  const saved = localStorage.getItem('key');
-  return saved !== null ? parseInt(saved, 10) : defaultValue;
+  try {
+    const saved = localStorage.getItem('key');
+    return saved !== null ? parseInt(saved, 10) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
 });
 
 useEffect(() => {
-  localStorage.setItem('key', String(balance));
+  try {
+    localStorage.setItem('key', String(balance));
+  } catch {}
 }, [balance]);
-```
-
-### Query Invalidation After Async Load
-When async data loads after initial render, invalidate dependent queries:
-
-```typescript
-// After sync completes
-queryClient.invalidateQueries({ queryKey: ['bigPulp'] });
 ```
 
 ## CSS Conventions
 
-### Naming
-- Avoid generic class names (use `.color-orange` not `.orange`)
+### Class Naming
+- Avoid generic class names that might conflict
+- Use `.color-orange` not `.orange`
 - Game.css has `.orange { position: absolute }` - don't reuse
 
 ### Tables
-- Use `table-layout: fixed` for stable column widths
+- Use `table-layout: fixed` for stable column widths (no jumping on sort/filter)
 - Attribute names left-aligned, numeric columns centered
 
-### Subtle UI Elements (Floating Icons)
-- Transparent background, no hover background effect
-- Just opacity change on hover
-- Position with negative values if needed (`top: -6`)
+### Display Rules
+- **Always show USD alongside XCH** - e.g., "0.8 XCH" with "$4" below
+- Format: XCH on its own line, USD + label together (e.g., "$4 Floor Price")
+
+## Game Over UI Pattern
+
+Standard structure for all games:
+
+```tsx
+{gameState === 'gameover' && (
+  <div className="game-over-overlay">
+    {/* Main content - stays fixed */}
+    <div className="game-over-content">
+      <h2>Game Over!</h2>
+      <div className="score">{score}</div>
+
+      {/* Buttons: Play Again + Leaderboard side by side */}
+      <div className="game-over-buttons">
+        <button onClick={resetGame}>Play Again</button>
+        <button onClick={() => setShowLeaderboard(true)}>Leaderboard</button>
+      </div>
+    </div>
+
+    {/* Leaderboard - overlays on top, doesn't shift content */}
+    {showLeaderboard && (
+      <div className="leaderboard-overlay" onClick={() => setShowLeaderboard(false)}>
+        <div className="leaderboard-panel" onClick={e => e.stopPropagation()}>
+          {/* Leaderboard content */}
+        </div>
+      </div>
+    )}
+
+    {/* Back to Games - in safe area (bottom right) */}
+    <button className="back-to-games-btn">Back to Games</button>
+  </div>
+)}
+```
+
+**Key rules**:
+- Leaderboard opens as overlay, doesn't push content
+- "Back to Games" in bottom-right corner (away from tap area)
+- Click outside leaderboard to close
+
+## Common UI Issues
+
+| Issue | Fix |
+|-------|-----|
+| Content shifts when panel opens | Use absolute positioning for panel overlay |
+| Accidental button clicks | Place navigation buttons away from game tap area |
+| Animations jumping | Use `mode="popLayout"` for AnimatePresence |
+| Sounds repetitive | Add pitch variation (±15-20%) |

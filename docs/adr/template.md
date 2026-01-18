@@ -1,21 +1,27 @@
-# ADR-XXXX: [Title]
+# ADR-XXXX: Title
 
-**Status**: Proposed | Accepted | Deprecated | Superseded by ADR-XXXX
-**Date**: YYYY-MM-DD
-**Author**: [Name]
+## Status
+PROPOSED | ACCEPTED | DEPRECATED | SUPERSEDED
 
 ## Context
-[2-3 sentences: What prompted this decision?]
+What is the issue that we're seeing that is motivating this decision or change?
 
 ## Decision
-[1-2 sentences: What did we decide?]
+What is the change that we're proposing and/or doing?
 
 ## Consequences
+What becomes easier or more difficult to do because of this change?
+
 ### Positive
-- [Benefit]
+- ...
 
 ### Negative
-- [Trade-off]
+- ...
+
+### Neutral
+- ...
 
 ## References
-- [Links to related docs/discussions]
+- Related ADRs
+- External documentation
+- Discussion links

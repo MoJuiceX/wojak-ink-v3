@@ -1,46 +1,61 @@
-# ADR-0003: Move Currency from localStorage to Server
+# ADR-0003: Server-Side Currency
 
-**Status**: Accepted
-**Date**: 2026-01-18
-**Author**: MoJuiceX
+## Status
+ACCEPTED
 
 ## Context
-The game economy (Ink currency, Donuts, Poops) was initially stored in localStorage for simplicity. This created several problems:
-1. Users could manipulate balances via browser DevTools
-2. Balances didn't sync across devices
-3. Clearing browser data lost all progress
-4. No audit trail for transactions
+The games hub has a currency system (donuts and poops) that users earn from games and spend on features. Initially implemented client-side with localStorage.
 
-This was tracked as FIX-20 in the project.
+**Problem**: Client-side currency is trivially exploitable:
+- Users can modify localStorage directly
+- Browser DevTools can change balance
+- No audit trail for transactions
 
 ## Decision
-Migrate all currency and transaction data to Cloudflare D1 with server-side validation:
+Move all currency mutations to server-side API routes:
 
-1. **All mutations through API** - No direct localStorage writes for currency
-2. **Server validates every transaction** - Check balance before deducting
-3. **Transaction log** - Every change recorded with timestamp and source
-4. **Optimistic UI with rollback** - Show immediate feedback, rollback on server error
+1. **Balance stored in D1 database**, not localStorage
+2. **All mutations through authenticated API endpoints**
+3. **Atomic transactions** using D1 `batch()`
+4. **Transaction log** for audit trail
 
 ## Consequences
+
 ### Positive
-- Cheating prevention (server authority)
-- Cross-device persistence
-- Audit trail for debugging
-- Foundation for future features (trading, leaderboards)
-- Can implement rate limiting per user
+- Secure against client manipulation
+- Full transaction history
+- Can implement server-side validation
+- Enables future features (trading, marketplace)
 
 ### Negative
-- Added latency for every currency action
-- Requires authentication (Clerk JWT)
-- More complex error handling
-- Network dependency (offline play limited)
+- Requires API call for every balance change
+- Added latency for currency operations
+- More complex implementation
+- Requires authentication for all currency features
+
+### Neutral
+- Read-only balance can be cached client-side
+- Must handle offline gracefully
 
 ## Implementation
-- Database: Cloudflare D1 (see ADR-0001)
-- Auth: Clerk JWT (see ADR-0002)
-- API routes: `/functions/api/economy/*`
-- Patterns: `.claude/patterns/database-patterns.md`
+
+```typescript
+// API: functions/api/currency/spend.ts
+export async function onRequestPost(context) {
+  const { userId } = await verifyAuth(context);
+  const { amount, reason } = await context.request.json();
+
+  // Atomic deduction + logging
+  await context.env.DB.batch([
+    db.prepare('UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?')
+      .bind(amount, userId, amount),
+    db.prepare('INSERT INTO transactions (user_id, amount, type, reason) VALUES (?, ?, ?, ?)')
+      .bind(userId, -amount, 'spend', reason),
+  ]);
+}
+```
 
 ## References
-- FIX-20-server-side-user-economy.md
-- Related: ADR-0001 (D1 Database), ADR-0002 (Clerk Auth)
+- ADR-0001: Cloudflare D1 Database
+- ADR-0002: Clerk Authentication
+- `.claude/patterns/database-patterns.md`

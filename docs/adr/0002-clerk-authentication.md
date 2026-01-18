@@ -1,42 +1,55 @@
-# ADR-0002: Use Clerk for Authentication
+# ADR-0002: Clerk Authentication
 
-**Status**: Accepted
-**Date**: 2026-01-18
-**Author**: MoJuiceX
+## Status
+ACCEPTED
 
 ## Context
-The platform needs user authentication to:
-1. Identify users across sessions
-2. Secure API endpoints for currency transactions
-3. Prevent impersonation and cheating
-4. Enable cross-device account access
+The application needed user authentication for:
+- Game leaderboards (linking scores to users)
+- Currency system (secure balance tracking)
+- Future social features
 
-Options considered: Firebase Auth, Auth0, Clerk, custom JWT solution.
+Options considered:
+1. **Clerk** - Full-featured auth with React SDK
+2. **Auth0** - Enterprise auth platform
+3. **Supabase Auth** - PostgreSQL-based auth
+4. **Custom JWT** - Roll our own
 
 ## Decision
-Use Clerk for authentication with JWT verification on Cloudflare Workers.
-
-Key implementation details:
-- User ID is in the `sub` claim of the JWT
-- Use `verifyClerkJWT(token, env)` helper for verification
-- Clerk tokens expire after 60 seconds
-- Frontend uses `@clerk/clerk-react` hooks
+Use Clerk because:
+- Excellent React SDK with pre-built components
+- Social login (Google, Twitter) out of the box
+- Works well with Cloudflare Workers (JWT verification)
+- Good developer experience
+- Generous free tier (5,000 MAU)
 
 ## Consequences
+
 ### Positive
-- Quick setup with React SDK
-- Built-in UI components (SignIn, SignUp, UserButton)
-- JWT verification works well with Cloudflare Workers
-- Handles OAuth providers (Google, etc.)
-- Good free tier for small projects
+- No need to build login/signup UI
+- Social providers configured in dashboard
+- JWT tokens work with edge functions
+- User management dashboard included
 
 ### Negative
-- Vendor lock-in to Clerk's ecosystem
+- Vendor lock-in for auth
+- Must verify JWTs on every API request
 - Token expiration (60s) requires refresh handling
-- Additional network request for JWT verification
-- Monthly cost if user count grows
+- Additional latency for token verification
+
+### Neutral
+- User ID is in `sub` claim of JWT
+- Must sync Clerk user to D1 on first login
+
+## Implementation Notes
+
+```typescript
+// JWT verification in API routes
+const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+const payload = await verifyClerkJWT(token, env.CLERK_SECRET_KEY);
+const userId = payload.sub;
+```
 
 ## References
-- [Clerk Documentation](https://clerk.com/docs)
-- [Clerk + Cloudflare Workers Guide](https://clerk.com/docs/references/backend/cloudflare)
-- `.claude/patterns/api-patterns.md` (Authentication section)
+- [Clerk Docs](https://clerk.com/docs)
+- [Clerk + Cloudflare Workers](https://clerk.com/docs/references/nextjs/edge-middleware)

@@ -6,6 +6,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useGameHaptics } from '@/systems/haptics';
@@ -82,6 +83,7 @@ const DIFFICULTY_CONFIG = {
 // =============================================================================
 
 export default function WojakWhack() {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   // Hooks
@@ -479,7 +481,7 @@ export default function WojakWhack() {
       {/* Control buttons */}
       <button
         className="ww-back-btn"
-        onClick={() => window.history.back()}
+        onClick={() => navigate('/games')}
         aria-label="Back to games"
       >
         ←
@@ -591,7 +593,7 @@ export default function WojakWhack() {
               </button>
               <button
                 className="ww-back-to-games-btn"
-                onClick={() => window.history.back()}
+                onClick={() => navigate('/games')}
               >
                 Back to Games
               </button>

@@ -5,6 +5,7 @@
  */
 
 import { useRef, useEffect, useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useGameHaptics } from '@/systems/haptics';
@@ -109,6 +110,7 @@ const POWERUP_ICONS: Record<PowerupType, string> = {
 // =============================================================================
 
 export default function BrickBreaker() {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -909,7 +911,7 @@ export default function BrickBreaker() {
       {/* Control buttons */}
       <button
         className="bb-back-btn"
-        onClick={() => window.history.back()}
+        onClick={() => navigate('/games')}
         aria-label="Back to games"
       >
         ←
@@ -969,7 +971,7 @@ export default function BrickBreaker() {
               </button>
               <button
                 className="bb-back-to-games-btn"
-                onClick={() => window.history.back()}
+                onClick={() => navigate('/games')}
               >
                 Back to Games
               </button>

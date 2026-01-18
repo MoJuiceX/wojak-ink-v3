@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { IonIcon } from '@ionic/react';
 import { arrowBack, volumeHigh, volumeMute } from 'ionicons/icons';
 import { useGameSounds } from '@/hooks/useGameSounds';
@@ -148,6 +149,7 @@ const checkCircleCollision = (
 // ============================================
 
 const OrangeSnake: React.FC = () => {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -920,7 +922,7 @@ const OrangeSnake: React.FC = () => {
       {/* Control Buttons */}
       <button
         className="os-back-btn"
-        onClick={() => window.history.back()}
+        onClick={() => navigate('/games')}
         aria-label="Back to games"
       >
         <IonIcon icon={arrowBack} />
@@ -996,7 +998,7 @@ const OrangeSnake: React.FC = () => {
                 <button onClick={resetGame} className="os-play-btn">
                   Play Again
                 </button>
-                <button onClick={() => window.history.back()} className="os-back-to-games-btn">
+                <button onClick={() => navigate('/games')} className="os-back-to-games-btn">
                   Back to Games
                 </button>
               </div>

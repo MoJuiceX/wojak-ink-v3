@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { IonIcon } from '@ionic/react';
 import { arrowBack, volumeHigh, volumeMute } from 'ionicons/icons';
 import { useGameSounds } from '@/hooks/useGameSounds';
@@ -7,23 +8,22 @@ import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useGameEffects, GameEffects } from '@/components/media';
-import { ShareButton } from '@/systems/sharing';
 import './FlappyOrange.css';
 
 // ============================================
 // PHYSICS CONSTANTS - Tuned for fun, forgiving gameplay
 // ============================================
 const PHYSICS = {
-  GRAVITY: 0.35,           // Much gentler gravity (was 0.6)
-  JUMP_VELOCITY: -8,       // Smoother jump (was -11)
-  MAX_FALL_SPEED: 8,       // Slower max fall (was 15)
-  ROTATION_SPEED: 0.06,    // Gentler rotation
+  GRAVITY: 0.2,            // Very floaty for easy control
+  JUMP_VELOCITY: -6,       // Gentle, controllable jump
+  MAX_FALL_SPEED: 5,       // Slow fall for easy recovery
+  ROTATION_SPEED: 0.04,    // Subtle rotation
 };
 
-const BIRD_RADIUS = 16;    // Slightly smaller hitbox (was 18)
-const PIPE_WIDTH = 55;     // Slightly narrower pipes (was 60)
-const PIPE_GAP = 200;      // Much wider gap to fly through (was 160)
-const PIPE_SPACING = 280;  // More time between pipes (was 220)
+const BIRD_RADIUS = 14;    // Forgiving hitbox (was 16)
+const PIPE_WIDTH = 52;     // Slightly narrower pipes (was 55)
+const PIPE_GAP = 220;      // Very wide gap to fly through (was 200)
+const PIPE_SPACING = 320;  // Lots of time between pipes (was 280)
 
 // ============================================
 // TYPES
@@ -49,6 +49,7 @@ const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/Games/games_med
 // MAIN COMPONENT
 // ============================================
 const FlappyOrange: React.FC = () => {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -67,11 +68,13 @@ const FlappyOrange: React.FC = () => {
 
   // Leaderboard
   const {
+    leaderboard: globalLeaderboard,
     submitScore,
     isSignedIn,
     userDisplayName,
     isSubmitting,
   } = useLeaderboard('flappy-orange');
+  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   // Canvas dimensions
   const CANVAS_WIDTH = isMobile ? Math.min(window.innerWidth, 500) : 500;
@@ -155,8 +158,8 @@ const FlappyOrange: React.FC = () => {
     const gapY = Math.random() * (maxGapY - minGapY) + minGapY;
 
     return {
-      // First pipe spawns further away to give player time to orient
-      x: isFirst ? CANVAS_WIDTH + PIPE_WIDTH + 150 : CANVAS_WIDTH + PIPE_WIDTH,
+      // First pipe spawns much further away for easy start (~3 seconds of free flying)
+      x: isFirst ? CANVAS_WIDTH + PIPE_WIDTH + 300 : CANVAS_WIDTH + PIPE_WIDTH,
       gapY,
       passed: false,
     };
@@ -377,8 +380,9 @@ const FlappyOrange: React.FC = () => {
   // Update pipes
   const updatePipes = useCallback((pipes: Pipe[], currentScore: number): { pipes: Pipe[]; newScore: number } => {
     let newScore = currentScore;
-    // Slower base speed, very gradual increase (was: 3 + floor(score/20) * 0.3)
-    const speed = 2 + Math.floor(currentScore / 30) * 0.2;
+    // Easy start, difficulty ramps after 5 pipes (~10-15 seconds of easy play)
+    // Speed: 1.5 base, no increase until 5 pipes, then +0.15 per 20 pipes
+    const speed = 1.5 + Math.max(0, Math.floor((currentScore - 5) / 20)) * 0.15;
 
     pipes.forEach(pipe => {
       pipe.x -= speed;
@@ -739,7 +743,7 @@ const FlappyOrange: React.FC = () => {
       {/* Control Buttons */}
       <button
         className="fo-back-btn"
-        onClick={() => window.history.back()}
+        onClick={() => navigate('/games')}
         aria-label="Back to games"
       >
         <IonIcon icon={arrowBack} />
@@ -779,7 +783,8 @@ const FlappyOrange: React.FC = () => {
 
       {/* Game Over Overlay */}
       {gameState === 'gameover' && (
-        <div className="fo-game-over-overlay">
+        <div className="fo-game-over-overlay" onClick={(e) => e.stopPropagation()}>
+          {/* Main Game Over Content - stays fixed */}
           <div className="fo-game-over-content">
             <div className="fo-game-over-left">
               {sadImage ? (
@@ -813,30 +818,53 @@ const FlappyOrange: React.FC = () => {
                 </div>
               )}
 
+              {/* Buttons: Play Again + Leaderboard */}
               <div className="fo-game-over-buttons">
                 <button onClick={resetGame} className="fo-play-btn">
                   Play Again
                 </button>
                 <button
-                  onClick={() => window.history.back()}
-                  className="fo-back-to-games-btn"
+                  onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                  className="fo-leaderboard-btn"
                 >
-                  Back to Games
+                  Leaderboard
                 </button>
               </div>
-
-              <ShareButton
-                scoreData={{
-                  gameId: 'flappy-orange',
-                  gameName: 'Flappy Orange',
-                  score,
-                  highScore,
-                  isNewHighScore: isNewPersonalBest || score > highScore,
-                }}
-                variant="button"
-              />
             </div>
           </div>
+
+          {/* Leaderboard Panel - overlays on top */}
+          {showLeaderboardPanel && (
+            <div className="fo-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
+              <div className="fo-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
+                <div className="fo-leaderboard-header">
+                  <h3>Leaderboard</h3>
+                  <button className="fo-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                </div>
+                <div className="fo-leaderboard-list">
+                  {Array.from({ length: 10 }, (_, index) => {
+                    const entry = globalLeaderboard[index];
+                    const isCurrentUser = entry && score === entry.score;
+                    return (
+                      <div key={index} className={`fo-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                        <span className="fo-leaderboard-rank">#{index + 1}</span>
+                        <span className="fo-leaderboard-name">{entry?.displayName || '---'}</span>
+                        <span className="fo-leaderboard-score">{entry?.score ?? '-'}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Back to Games - positioned in safe area (bottom right) */}
+          <button
+            onClick={() => { window.location.href = '/games'; }}
+            className="fo-back-to-games-btn"
+          >
+            Back to Games
+          </button>
         </div>
       )}
     </div>

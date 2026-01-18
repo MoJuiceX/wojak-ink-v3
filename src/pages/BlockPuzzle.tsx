@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { IonIcon } from '@ionic/react';
 import { arrowBack, volumeHigh, volumeMute, pause, play } from 'ionicons/icons';
 import { useGameSounds } from '@/hooks/useGameSounds';
@@ -230,6 +231,7 @@ const isGameOver = (grid: Grid, pieces: DraggablePiece[]): boolean => {
 // MAIN COMPONENT
 // ============================================
 const BlockPuzzle: React.FC = () => {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { playBlockLand, playPerfectBonus, playCombo, playGameOver, playGameStart } = useGameSounds();
   const { hapticScore, hapticCombo, hapticHighScore, hapticGameOver, hapticButton, hapticSuccess } = useGameHaptics();
@@ -816,7 +818,7 @@ const BlockPuzzle: React.FC = () => {
       {/* Control Buttons */}
       <button
         className="bp-back-btn"
-        onClick={() => window.history.back()}
+        onClick={() => navigate('/games')}
         aria-label="Back to games"
       >
         <IonIcon icon={arrowBack} />
@@ -849,7 +851,7 @@ const BlockPuzzle: React.FC = () => {
             <button onClick={togglePause} className="bp-resume-btn">
               Resume
             </button>
-            <button onClick={() => window.history.back()} className="bp-quit-btn">
+            <button onClick={() => navigate('/games')} className="bp-quit-btn">
               Quit Game
             </button>
           </div>
@@ -905,7 +907,7 @@ const BlockPuzzle: React.FC = () => {
                   Play Again
                 </button>
                 <button
-                  onClick={() => window.history.back()}
+                  onClick={() => navigate('/games')}
                   className="bp-back-to-games-btn"
                 >
                   Back to Games

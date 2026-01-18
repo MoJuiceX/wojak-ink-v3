@@ -1,122 +1,110 @@
-# Database Patterns (Cloudflare D1)
+# Database Patterns
 
-<!-- Last updated: 2026-01-18 -->
-<!-- Source: Consolidated from LEARNINGS.md and CLAUDE.md -->
+> Patterns for Cloudflare D1 database operations, migrations, and data integrity.
 
-## Schema Conventions
+## D1 Fundamentals
 
-### User Economy Tables
-```sql
-CREATE TABLE users (
-  id TEXT PRIMARY KEY,           -- Clerk user_id from JWT sub claim
-  ink_balance INTEGER DEFAULT 0,
-  donuts INTEGER DEFAULT 0,
-  poops INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE transactions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id TEXT NOT NULL,
-  type TEXT NOT NULL,            -- 'game_reward', 'vote', 'purchase', etc.
-  amount INTEGER NOT NULL,
-  currency TEXT NOT NULL,        -- 'ink', 'donuts', 'poops'
-  source TEXT,                   -- 'emoji_flick', 'pong', etc.
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id)
-);
-```
-
-### Timestamps
-- Always use TEXT for timestamps (D1/SQLite compatible)
-- Default to CURRENT_TIMESTAMP
-- Update `updated_at` on modifications
-
-## Query Patterns
-
-### Atomic Operations with batch()
-D1 requires batch() for multiple related operations:
+### No RETURNING Clause
+D1 doesn't support `RETURNING` - use `batch()` for atomic operations:
 
 ```typescript
-const results = await env.DB.batch([
-  env.DB.prepare('UPDATE users SET ink_balance = ink_balance + ? WHERE id = ?')
-    .bind(amount, userId),
-  env.DB.prepare('INSERT INTO transactions (user_id, type, amount, currency) VALUES (?, ?, ?, ?)')
-    .bind(userId, 'game_reward', amount, 'ink'),
+// WRONG
+const result = await db.prepare('INSERT INTO users ... RETURNING *').run();
+
+// RIGHT
+const results = await db.batch([
+  db.prepare('INSERT INTO users (id, name) VALUES (?, ?)').bind(userId, name),
+  db.prepare('SELECT * FROM users WHERE id = ?').bind(userId),
+]);
+const newUser = results[1].results[0];
+```
+
+### Batch for Transactions
+
+```typescript
+// Atomic multi-table update
+const results = await db.batch([
+  db.prepare('UPDATE users SET balance = balance - ? WHERE id = ?').bind(amount, userId),
+  db.prepare('INSERT INTO transactions (user_id, amount, type) VALUES (?, ?, ?)').bind(userId, amount, 'purchase'),
+  db.prepare('SELECT balance FROM users WHERE id = ?').bind(userId),
 ]);
 ```
 
-### No RETURNING Clause
-D1 doesn't support `RETURNING *`. Use separate SELECT:
+## Migration Commands
 
-```typescript
-// Wrong
-const result = await env.DB.prepare('INSERT INTO users ... RETURNING *').run();
+```bash
+# Execute migration
+npx wrangler d1 execute wojak-users --file=./functions/migrations/XXX.sql
 
-// Correct
-await env.DB.prepare('INSERT INTO users ...').run();
-const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
+# Execute with local database (for testing)
+npx wrangler d1 execute wojak-users --local --file=./functions/migrations/XXX.sql
 ```
 
-### Get-or-Create Pattern
+## Schema Conventions
+
+```sql
+-- Always include timestamps
+CREATE TABLE items (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Index foreign keys
+CREATE INDEX idx_items_user_id ON items(user_id);
+```
+
+## Currency Handling
+
+### Server-Side Only (Critical)
+
+**Never trust client for currency mutations.** All balance changes must go through API:
+
 ```typescript
-async function getOrCreateUser(db: D1Database, userId: string) {
-  let user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first();
-  if (!user) {
-    await db.prepare('INSERT INTO users (id) VALUES (?)').bind(userId).run();
-    user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first();
+// API route: functions/api/currency/spend.ts
+export async function onRequestPost(context) {
+  const { userId } = await verifyAuth(context);
+  const { amount } = await context.request.json();
+
+  // Validate on server
+  const user = await getUser(context.env.DB, userId);
+  if (user.balance < amount) {
+    return new Response('Insufficient balance', { status: 400 });
   }
-  return user;
+
+  // Atomic update
+  await context.env.DB.batch([
+    db.prepare('UPDATE users SET balance = balance - ? WHERE id = ?').bind(amount, userId),
+    db.prepare('INSERT INTO transactions ...'),
+  ]);
 }
 ```
 
-## Migration Patterns
+## Query Patterns
 
-### File Naming
-```
-functions/migrations/
-├── 001_create_users.sql
-├── 002_create_transactions.sql
-└── 003_add_voting_tables.sql
-```
-
-### Running Migrations
-```bash
-# Local development
-npx wrangler d1 execute wojak-users --local --file=./functions/migrations/XXX.sql
-
-# Production
-npx wrangler d1 execute wojak-users --file=./functions/migrations/XXX.sql
+### Pagination
+```typescript
+const { results } = await db
+  .prepare('SELECT * FROM items WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?')
+  .bind(userId, limit, offset)
+  .all();
 ```
 
-### Migration Content
-```sql
--- 001_create_users.sql
--- Description: Create users table for economy system
--- Date: 2026-01-18
-
-CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY,
-  ink_balance INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
--- Always use IF NOT EXISTS for safety
--- Include description comment at top
+### Aggregations
+```typescript
+const { results } = await db
+  .prepare('SELECT COUNT(*) as count, SUM(amount) as total FROM transactions WHERE user_id = ?')
+  .bind(userId)
+  .all();
+const { count, total } = results[0];
 ```
 
-## Caching Strategy
+## Common Issues
 
-| Data | Cache Location | TTL |
-|------|---------------|-----|
-| User balances | TanStack Query | 30 seconds |
-| Transaction history | TanStack Query | 1 minute |
-| Leaderboards | TanStack Query | 5 minutes |
-
-## Common Gotchas
-
-1. **No JOINs in batch()** - Run separate queries
-2. **TEXT for all IDs** - Clerk IDs are strings
-3. **No AUTO_INCREMENT on TEXT** - Use INTEGER for auto-increment
-4. **Wrangler D1 local vs remote** - Add `--local` flag for dev
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| "RETURNING not supported" | D1 limitation | Use batch() with SELECT |
+| Transaction not atomic | Multiple separate queries | Use batch() |
+| Slow queries | Missing index | Add index on foreign keys |
