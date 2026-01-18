@@ -1,18 +1,27 @@
 # Learnings Log
 
 <!-- Last consolidated: 2026-01-18 -->
-<!-- Next review: 2026-01-25 -->
+<!-- Active entries: 14 (target: <50) -->
+<!-- Health check: .claude/scripts/knowledge-health.sh -->
 
 ## Format Guide
-Each entry: `### [DATE] [CATEGORY] Title`
-Categories: BUG, PATTERN, GOTCHA, API, PERF, DECISION
-Status: ACTIVE | STALE | ARCHIVED
+Entry format: `### [DATE] [CATEGORY] [PRIORITY] Title`
+- **Categories**: BUG, PATTERN, GOTCHA, API, PERF, DECISION
+- **Priority**: P0=critical, P1=important, P2=nice-to-know
+- **Status**: ACTIVE | STALE | ARCHIVED
+- **ID**: LEARN-YYYY-MM-DD-NNN (for cross-referencing)
+
+### Event-Driven Triggers
+- **>30 active entries** → Consolidate before adding more
+- **Entry >90 days old** → Mark STALE, review for archival
+- **3+ related entries** → Consolidate into pattern file
 
 ---
 
 ## Active Learnings
 
-### [2026-01-18] [BUG] Game Navigation - Back Button Goes to Gallery
+### [2026-01-18] [BUG] [P1] Game Navigation - Back Button Goes to Gallery
+**ID**: LEARN-2026-01-18-001
 **Problem**: Clicking "Back to Games" in 6 games navigated to gallery instead of games hub
 **Cause**: Games used `window.history.back()` which goes to previous page in history
 **Solution**: Replace with `useNavigate` from react-router-dom, navigate to `/games` explicitly
@@ -38,7 +47,8 @@ navigate('/games');
 
 ---
 
-### [2026-01-18] [PATTERN] Game Over UI - Leaderboard Overlay Pattern
+### [2026-01-18] [PATTERN] [P1] Game Over UI - Leaderboard Overlay Pattern
+**ID**: LEARN-2026-01-18-002
 **Problem**:
 1. Leaderboard sliding in pushed content around (bad UX)
 2. "Back to Games" button too close to tap area (accidental clicks)
@@ -166,7 +176,8 @@ useEffect(() => {
 
 ---
 
-### [2026-01-18] [BUG] Vite Cache Corruption - Hook Errors After HMR
+### [2026-01-18] [BUG] [P0] Vite Cache Corruption - Hook Errors After HMR
+**ID**: LEARN-2026-01-18-003
 **Problem**: Pages randomly stop loading with "Cannot read properties of null (reading 'useContext')"
 **Cause**: Vite's dependency pre-bundling cache gets corrupted during hot reload
 **Solution**: `rm -rf node_modules/.vite && npm run dev -- --host`

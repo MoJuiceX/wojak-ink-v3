@@ -91,7 +91,14 @@ const CitrusDrop: React.FC = () => {
     addScorePopup,
     triggerVignette,
   } = useGameEffects();
-  const { submitScore, isSignedIn } = useLeaderboard('citrus-drop');
+  const {
+    leaderboard: globalLeaderboard,
+    submitScore,
+    isSignedIn,
+    userDisplayName,
+    isSubmitting,
+  } = useLeaderboard('citrus-drop');
+  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   // Game dimensions
   const [dimensions, setDimensions] = useState({ width: 400, height: 600 });
@@ -763,7 +770,7 @@ const CitrusDrop: React.FC = () => {
   }, [startGame]);
 
   const handleBack = useCallback(() => {
-    navigate('/games');
+    window.location.href = '/games';
   }, []);
 
   // ============================================
@@ -846,7 +853,8 @@ const CitrusDrop: React.FC = () => {
 
       {/* Game Over Overlay */}
       {gameState === 'gameover' && (
-        <div className="cd-game-over-overlay">
+        <div className="cd-game-over-overlay" onClick={(e) => e.stopPropagation()}>
+          {/* Main Game Over Content - stays fixed */}
           <div className="cd-game-over-content">
             <div className="cd-game-over-left">
               <span className="cd-game-over-emoji">
@@ -869,20 +877,59 @@ const CitrusDrop: React.FC = () => {
                   <span className="cd-stat-label">Merges</span>
                 </div>
               </div>
-              {isNewRecord && <div className="cd-new-record">🏆 NEW RECORD!</div>}
-              {submitted && (
-                <div className="cd-submitted">Score submitted to leaderboard</div>
+              {isNewRecord && <div className="cd-new-record">NEW RECORD!</div>}
+              {isSignedIn && (
+                <div className="cd-submitted">
+                  {isSubmitting ? 'Saving...' : submitted ? `Saved as ${userDisplayName}!` : ''}
+                </div>
               )}
+              {/* Buttons: Play Again + Leaderboard */}
               <div className="cd-game-over-buttons">
                 <button className="cd-play-btn" onClick={resetGame}>
-                  PLAY AGAIN
+                  Play Again
                 </button>
-                <button className="cd-back-to-games-btn" onClick={handleBack}>
-                  Back to Games
+                <button
+                  onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                  className="cd-leaderboard-btn"
+                >
+                  Leaderboard
                 </button>
               </div>
             </div>
           </div>
+
+          {/* Leaderboard Panel - overlays on top */}
+          {showLeaderboardPanel && (
+            <div className="cd-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
+              <div className="cd-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
+                <div className="cd-leaderboard-header">
+                  <h3>Leaderboard</h3>
+                  <button className="cd-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                </div>
+                <div className="cd-leaderboard-list">
+                  {Array.from({ length: 10 }, (_, index) => {
+                    const entry = globalLeaderboard[index];
+                    const isCurrentUser = entry && score === entry.score;
+                    return (
+                      <div key={index} className={`cd-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                        <span className="cd-leaderboard-rank">#{index + 1}</span>
+                        <span className="cd-leaderboard-name">{entry?.displayName || '---'}</span>
+                        <span className="cd-leaderboard-score">{entry?.score ?? '-'}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Back to Games - positioned in safe area (bottom right) */}
+          <button
+            onClick={handleBack}
+            className="cd-back-to-games-btn"
+          >
+            Back to Games
+          </button>
         </div>
       )}
     </div>

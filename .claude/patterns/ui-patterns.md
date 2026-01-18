@@ -4,6 +4,14 @@
 
 ## Animation Patterns
 
+### AnimatePresence Modes
+
+| Mode | Use Case |
+|------|----------|
+| `mode="popLayout"` | Smooth crossfades, no layout jump (floating NFTs) |
+| `mode="wait"` | Sequential animations (rotating text, step wizards) |
+| `mode="sync"` | Simultaneous enter/exit (tab panels) |
+
 ### Floating NFTs Without Jump
 
 Use `AnimatePresence mode="popLayout"` for smooth crossfades:
@@ -86,7 +94,26 @@ useEffect(() => {
 
 ## CSS Conventions
 
-### Class Naming
+### Z-Index Hierarchy (Standard)
+```css
+/* Game overlays */
+.game-over-overlay { z-index: 500; }
+.leaderboard-overlay { z-index: 700; }
+
+/* App-wide modals */
+.modal-overlay { z-index: 1000; }
+.toast-container { z-index: 1100; }
+```
+
+### Game CSS Class Naming
+**CRITICAL**: Every game MUST prefix all CSS classes with game initials:
+- FlappyOrange: `fo-game-over`, `fo-play-btn`
+- BlockPuzzle: `bp-game-over`, `bp-play-btn`
+- OrangeSnake: `osn-game-over`, `osn-play-btn`
+
+This prevents CSS conflicts when multiple games share similar elements.
+
+### General Class Naming
 - Avoid generic class names that might conflict
 - Use `.color-orange` not `.orange`
 - Game.css has `.orange { position: absolute }` - don't reuse

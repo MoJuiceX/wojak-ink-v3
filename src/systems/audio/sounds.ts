@@ -45,84 +45,84 @@ export const SOUND_DEFINITIONS: SoundDefinition[] = [
   // Gameplay sounds
   {
     name: 'score',
-    url: `${SOUNDS_BASE_URL}/score.mp3`,
+    url: `${SOUNDS_BASE_URL}/score.wav`,
     volume: 0.5,
     maxInstances: 5, // Can overlap for rapid scoring
     category: 'sfx'
   },
   {
     name: 'combo-1',
-    url: `${SOUNDS_BASE_URL}/combo-1.mp3`,
+    url: `${SOUNDS_BASE_URL}/combo-1.wav`,
     volume: 0.6,
     maxInstances: 1,
     category: 'sfx'
   },
   {
     name: 'combo-2',
-    url: `${SOUNDS_BASE_URL}/combo-2.mp3`,
+    url: `${SOUNDS_BASE_URL}/combo-2.wav`,
     volume: 0.65,
     maxInstances: 1,
     category: 'sfx'
   },
   {
     name: 'combo-3',
-    url: `${SOUNDS_BASE_URL}/combo-3.mp3`,
+    url: `${SOUNDS_BASE_URL}/combo-3.wav`,
     volume: 0.7,
     maxInstances: 1,
     category: 'sfx'
   },
   {
     name: 'combo-4',
-    url: `${SOUNDS_BASE_URL}/combo-4.mp3`,
+    url: `${SOUNDS_BASE_URL}/combo-4.wav`,
     volume: 0.75,
     maxInstances: 1,
     category: 'sfx'
   },
   {
     name: 'combo-5',
-    url: `${SOUNDS_BASE_URL}/combo-5.mp3`,
+    url: `${SOUNDS_BASE_URL}/combo-5.wav`,
     volume: 0.8,
     maxInstances: 1,
     category: 'sfx'
   },
   {
     name: 'combo-max',
-    url: `${SOUNDS_BASE_URL}/combo-max.mp3`,
+    url: `${SOUNDS_BASE_URL}/combo-max.wav`,
     volume: 0.85,
     maxInstances: 1,
     category: 'sfx'
   },
   {
     name: 'high-score',
-    url: `${SOUNDS_BASE_URL}/high-score.mp3`,
+    url: `${SOUNDS_BASE_URL}/high-score.wav`,
     volume: 0.8,
     maxInstances: 1,
     category: 'sfx'
   },
   {
     name: 'game-over',
-    url: `${SOUNDS_BASE_URL}/game-over.mp3`,
+    url: `${SOUNDS_BASE_URL}/game-over.wav`,
     volume: 0.6,
     maxInstances: 1,
     category: 'sfx'
   },
   {
     name: 'game-start',
-    url: `${SOUNDS_BASE_URL}/game-start.mp3`,
+    url: `${SOUNDS_BASE_URL}/game-start.wav`,
     volume: 0.7,
     maxInstances: 1,
     category: 'sfx'
   },
   {
     name: 'countdown',
-    url: `${SOUNDS_BASE_URL}/countdown.mp3`,
+    url: `${SOUNDS_BASE_URL}/countdown.wav`,
     volume: 0.6,
     maxInstances: 1,
     category: 'sfx'
   },
   {
     name: 'countdown-go',
-    url: `${SOUNDS_BASE_URL}/countdown-go.mp3`,
+    url: `${SOUNDS_BASE_URL}/countdown-go.wav`,
     volume: 0.7,
     maxInstances: 1,
     category: 'sfx'
@@ -131,7 +131,7 @@ export const SOUND_DEFINITIONS: SoundDefinition[] = [
   // UI sounds
   {
     name: 'button-click',
-    url: `${SOUNDS_BASE_URL}/button-click.mp3`,
+    url: `${SOUNDS_BASE_URL}/button-click.wav`,
     volume: 0.4,
     maxInstances: 3,
     category: 'ui'
@@ -140,21 +140,21 @@ export const SOUND_DEFINITIONS: SoundDefinition[] = [
   // Reward sounds
   {
     name: 'achievement',
-    url: `${SOUNDS_BASE_URL}/achievement.mp3`,
+    url: `${SOUNDS_BASE_URL}/achievement.wav`,
     volume: 0.75,
     maxInstances: 1,
     category: 'sfx'
   },
   {
     name: 'currency-earn',
-    url: `${SOUNDS_BASE_URL}/currency-earn.mp3`,
+    url: `${SOUNDS_BASE_URL}/currency-earn.wav`,
     volume: 0.5,
     maxInstances: 3,
     category: 'sfx'
   },
   {
     name: 'level-up',
-    url: `${SOUNDS_BASE_URL}/level-up.mp3`,
+    url: `${SOUNDS_BASE_URL}/level-up.wav`,
     volume: 0.7,
     maxInstances: 1,
     category: 'sfx'
@@ -163,21 +163,21 @@ export const SOUND_DEFINITIONS: SoundDefinition[] = [
   // Feedback sounds
   {
     name: 'warning',
-    url: `${SOUNDS_BASE_URL}/warning.mp3`,
+    url: `${SOUNDS_BASE_URL}/warning.wav`,
     volume: 0.5,
     maxInstances: 1,
     category: 'sfx'
   },
   {
     name: 'success',
-    url: `${SOUNDS_BASE_URL}/success.mp3`,
+    url: `${SOUNDS_BASE_URL}/success.wav`,
     volume: 0.6,
     maxInstances: 1,
     category: 'sfx'
   },
   {
     name: 'error',
-    url: `${SOUNDS_BASE_URL}/error.mp3`,
+    url: `${SOUNDS_BASE_URL}/error.wav`,
     volume: 0.5,
     maxInstances: 1,
     category: 'sfx'
@@ -186,28 +186,28 @@ export const SOUND_DEFINITIONS: SoundDefinition[] = [
   // Voting sounds
   {
     name: 'vote-whoosh',
-    url: `${SOUNDS_BASE_URL}/vote-whoosh.mp3`,
+    url: `${SOUNDS_BASE_URL}/vote-whoosh.wav`,
     volume: 0.5,
     maxInstances: 3,
     category: 'sfx'
   },
   {
     name: 'vote-splat',
-    url: `${SOUNDS_BASE_URL}/vote-splat.mp3`,
+    url: `${SOUNDS_BASE_URL}/vote-splat.wav`,
     volume: 0.6,
     maxInstances: 3,
     category: 'sfx'
   },
   {
     name: 'vote-plop',
-    url: `${SOUNDS_BASE_URL}/vote-plop.mp3`,
+    url: `${SOUNDS_BASE_URL}/vote-plop.wav`,
     volume: 0.6,
     maxInstances: 3,
     category: 'sfx'
   },
   {
     name: 'vote-rain',
-    url: `${SOUNDS_BASE_URL}/vote-rain.mp3`,
+    url: `${SOUNDS_BASE_URL}/vote-rain.wav`,
     volume: 0.4,
     maxInstances: 1,
     category: 'sfx'

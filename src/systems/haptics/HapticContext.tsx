@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { HapticManager } from './HapticManager';
-import { type HapticPattern, getComboHaptic } from './patterns';
+import { type HapticPattern, getComboHaptic, getDynamicComboPattern } from './patterns';
 
 interface HapticContextType {
   // State
@@ -31,9 +31,17 @@ export const HapticProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, []);
 
   // Trigger combo haptic based on level
+  // Uses dynamic pattern for escalating "I want to feel the next one" sensation
   const triggerCombo = useCallback((level: number) => {
-    const pattern = getComboHaptic(level);
-    HapticManager.trigger(pattern);
+    // For levels 1-5, use predefined patterns for consistency
+    if (level <= 5) {
+      const pattern = getComboHaptic(level);
+      HapticManager.trigger(pattern);
+    } else {
+      // For higher levels, use dynamic escalating pattern
+      const dynamicPattern = getDynamicComboPattern(level);
+      HapticManager.triggerCustom(dynamicPattern);
+    }
   }, []);
 
   // Stop vibration

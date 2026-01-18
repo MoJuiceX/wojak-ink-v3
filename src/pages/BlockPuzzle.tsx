@@ -8,7 +8,6 @@ import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useGameEffects, GameEffects } from '@/components/media';
-import { ShareButton } from '@/systems/sharing';
 import './BlockPuzzle.css';
 
 // ============================================
@@ -253,6 +252,7 @@ const BlockPuzzle: React.FC = () => {
     userDisplayName,
     isSubmitting,
   } = useLeaderboard('block-puzzle');
+  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   // Game state
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
@@ -863,7 +863,8 @@ const BlockPuzzle: React.FC = () => {
 
       {/* Game Over Screen */}
       {gameState === 'gameover' && (
-        <div className="bp-game-over-overlay">
+        <div className="bp-game-over-overlay" onClick={(e) => e.stopPropagation()}>
+          {/* Main Game Over Content - stays fixed */}
           <div className="bp-game-over-content">
             <div className="bp-game-over-left">
               {sadImage ? (
@@ -893,7 +894,7 @@ const BlockPuzzle: React.FC = () => {
               </div>
 
               {(isNewPersonalBest || score > highScore) && score > 0 && (
-                <div className="bp-new-record">🌟 New Personal Best! 🌟</div>
+                <div className="bp-new-record">New Personal Best!</div>
               )}
 
               {isSignedIn && (
@@ -902,30 +903,53 @@ const BlockPuzzle: React.FC = () => {
                 </div>
               )}
 
+              {/* Buttons: Play Again + Leaderboard */}
               <div className="bp-game-over-buttons">
                 <button onClick={startGame} className="bp-play-btn">
                   Play Again
                 </button>
                 <button
-                  onClick={() => navigate('/games')}
-                  className="bp-back-to-games-btn"
+                  onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                  className="bp-leaderboard-btn"
                 >
-                  Back to Games
+                  Leaderboard
                 </button>
               </div>
-
-              <ShareButton
-                scoreData={{
-                  gameId: 'block-puzzle',
-                  gameName: 'Block Puzzle',
-                  score,
-                  highScore,
-                  isNewHighScore: isNewPersonalBest || score > highScore,
-                }}
-                variant="button"
-              />
             </div>
           </div>
+
+          {/* Leaderboard Panel - overlays on top */}
+          {showLeaderboardPanel && (
+            <div className="bp-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
+              <div className="bp-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
+                <div className="bp-leaderboard-header">
+                  <h3>Leaderboard</h3>
+                  <button className="bp-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                </div>
+                <div className="bp-leaderboard-list">
+                  {Array.from({ length: 10 }, (_, index) => {
+                    const entry = globalLeaderboard[index];
+                    const isCurrentUser = entry && score === entry.score;
+                    return (
+                      <div key={index} className={`bp-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                        <span className="bp-leaderboard-rank">#{index + 1}</span>
+                        <span className="bp-leaderboard-name">{entry?.displayName || '---'}</span>
+                        <span className="bp-leaderboard-score">{entry?.score ?? '-'}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Back to Games - positioned in safe area (bottom right) */}
+          <button
+            onClick={() => { window.location.href = '/games'; }}
+            className="bp-back-to-games-btn"
+          >
+            Back to Games
+          </button>
         </div>
       )}
 

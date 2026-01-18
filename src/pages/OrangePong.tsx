@@ -94,6 +94,10 @@ const OrangePong: React.FC = () => {
   const [rally, setRally] = useState(0);
   const rallyRef = useRef(0);
 
+  // Subtle hit ripples at paddle contact points
+  const [hitRipples, setHitRipples] = useState<Array<{ id: number; x: number; y: number }>>([]);
+  const hitRippleIdRef = useRef(0);
+
   // Sound refs for use in game loop
   const playPaddleHitRef = useRef(playPaddleHit);
   const playWallBounceRef = useRef(playWallBounce);
@@ -144,6 +148,16 @@ const OrangePong: React.FC = () => {
     setBallY(height / 2 - BALL_SIZE / 2);
     setBallVX(5 * direction);
     setBallVY((Math.random() - 0.5) * 6);
+  }, []);
+
+  // Add a subtle hit ripple at the paddle contact point
+  const addHitRipple = useCallback((x: number, y: number) => {
+    const id = hitRippleIdRef.current++;
+    setHitRipples(prev => [...prev, { id, x, y }]);
+    // Remove after animation completes
+    setTimeout(() => {
+      setHitRipples(prev => prev.filter(r => r.id !== id));
+    }, 400);
   }, []);
 
   const startGame = () => {
@@ -356,14 +370,9 @@ const OrangePong: React.FC = () => {
             setRally(rallyRef.current);
             updateComboRef.current(rallyRef.current);
 
-            // Calculate ball position as percentage for effects
-            const ballXPercent = ((newX + BALL_SIZE / 2) / width) * 100;
-            const ballYPercent = ((newY + BALL_SIZE / 2) / height) * 100;
+            // Subtle hit ripple at paddle contact point
+            addHitRipple(playerPaddleX, newY + BALL_SIZE / 2);
 
-            triggerShockwaveRef.current(ballXPercent, ballYPercent);
-            if (rallyRef.current >= 3) {
-              triggerSparksRef.current(ballXPercent, ballYPercent);
-            }
             if (rallyRef.current >= 5) {
               addFloatingEmojiRef.current('🔥');
             }
@@ -396,14 +405,12 @@ const OrangePong: React.FC = () => {
               setBallVY(newVY);
               playPaddleHitRef.current();
 
-              // Visual effects on AI hit (smaller effect)
+              // Visual effects on AI hit
               rallyRef.current += 1;
               setRally(rallyRef.current);
 
-              // Small shockwave on AI side
-              const ballXPercent = ((newX + BALL_SIZE / 2) / width) * 100;
-              const ballYPercent = ((newY + BALL_SIZE / 2) / height) * 100;
-              triggerShockwaveRef.current(ballXPercent, ballYPercent);
+              // Subtle hit ripple at AI paddle contact point
+              addHitRipple(aiPaddleX + PADDLE_WIDTH, newY + BALL_SIZE / 2);
             }
 
             // AI movement - fixed difficulty
@@ -600,6 +607,15 @@ const OrangePong: React.FC = () => {
               >
                 &#x1F34A;
               </div>
+
+              {/* Subtle hit ripples at paddle contact points */}
+              {hitRipples.map(ripple => (
+                <div
+                  key={ripple.id}
+                  className="pong-hit-ripple"
+                  style={{ left: ripple.x, top: ripple.y }}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -615,140 +631,117 @@ const OrangePong: React.FC = () => {
 
         {/* Game Over */}
         {gameState === 'gameover' && (
-          <div className="game-over-screen">
-            {/* Left side - Image/Emoji */}
-            <div className="game-over-left">
-              {playerScore >= WIN_SCORE ? (
-                <div className="game-over-emoji">🏆</div>
-              ) : sadImage ? (
-                <img
-                  src={sadImage}
-                  alt="Game Over"
-                  className="sad-image-large"
-                />
-              ) : (
-                <div className="game-over-emoji">😢</div>
-              )}
-
-              {/* Slide-in Leaderboard Panel */}
-              <div className={`leaderboard-slide-panel ${showLeaderboardPanel ? 'open' : ''}`}>
-                <div className="leaderboard-panel-header">
-                  <h3>{globalLeaderboard.length > 0 ? 'Global Leaderboard' : 'Leaderboard'}</h3>
-                  <button className="leaderboard-close-btn" onClick={() => setShowLeaderboardPanel(false)}>×</button>
-                </div>
-                <div className="leaderboard-panel-list">
-                  {Array.from({ length: 10 }, (_, index) => {
-                    const entry = displayLeaderboard[index];
-                    const isCurrentUser = entry && totalPoints === entry.score;
-                    return (
-                      <div key={index} className={`leaderboard-panel-entry ${isCurrentUser ? 'current-user' : ''}`}>
-                        <span className="leaderboard-panel-rank">#{index + 1}</span>
-                        <span className="leaderboard-panel-name">{entry?.name || '---'}</span>
-                        <span className="leaderboard-panel-score">{entry?.score || '-'}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Right side - Content */}
-            <div className="game-over-right">
-              <div className="game-over-title">
-                {playerScore >= WIN_SCORE ? 'You Won!' : 'Game Over!'}
-              </div>
-
-              <div className="game-over-reason">
-                {playerScore >= WIN_SCORE
-                  ? `You beat the AI ${playerScore} - ${aiScore}!`
-                  : `AI beat you ${aiScore} - ${playerScore}`}
-              </div>
-
-              <div className="game-over-score">
-                <span className="game-over-score-value">{totalPoints}</span>
-                <span className="game-over-score-label">total points</span>
-              </div>
-
-              <div className="game-over-match-score">
-                Played for {playTime} seconds
-              </div>
-
-              {/* New Personal Best celebration */}
-              {(isNewPersonalBest || totalPoints > highScore) && totalPoints > 0 && (
-                <div className="game-over-record">🌟 New Personal Best! 🌟</div>
-              )}
-
-              {totalPoints > 0 ? (
-                isSignedIn ? (
-                  // Signed-in user - auto-submitted
-                  <div className="game-over-form">
-                    <div className="game-over-submitted">
-                      {isSubmitting ? (
-                        <span>Saving score...</span>
-                      ) : scoreSubmitted ? (
-                        <span>Score saved as {userDisplayName || 'Anonymous'}!</span>
-                      ) : null}
-                    </div>
-                    <div className="game-over-buttons">
-                      <button onClick={startGame} className="play-btn">
-                        Play Again
-                      </button>
-                      <button onClick={goToMenu} className="play-btn" style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
-                        Menu
-                      </button>
-                    </div>
-                    {/* Leaderboard button */}
-                    <button
-                      className="leaderboard-toggle-btn"
-                      onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                    >
-                      {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
-                    </button>
-                  </div>
+          <div className="pong-game-over-overlay" onClick={(e) => e.stopPropagation()}>
+            {/* Main Game Over Content - stays fixed */}
+            <div className="pong-game-over-content">
+              <div className="pong-game-over-left">
+                {playerScore >= WIN_SCORE ? (
+                  <div className="pong-game-over-emoji">🏆</div>
+                ) : sadImage ? (
+                  <img src={sadImage} alt="Game Over" className="pong-sad-image" />
                 ) : (
-                  // Guest - show name input
-                  <div className="game-over-form">
+                  <div className="pong-game-over-emoji">😢</div>
+                )}
+              </div>
+              <div className="pong-game-over-right">
+                <h2 className="pong-game-over-title">
+                  {playerScore >= WIN_SCORE ? 'You Won!' : 'Game Over!'}
+                </h2>
+
+                <div className="pong-game-over-reason">
+                  {playerScore >= WIN_SCORE
+                    ? `You beat the AI ${playerScore} - ${aiScore}!`
+                    : `AI beat you ${aiScore} - ${playerScore}`}
+                </div>
+
+                <div className="pong-game-over-score">
+                  <span className="pong-score-value">{totalPoints}</span>
+                  <span className="pong-score-label">total points</span>
+                </div>
+
+                <div className="pong-game-over-stats">
+                  <div className="pong-stat">
+                    <span className="pong-stat-value">{playTime}s</span>
+                    <span className="pong-stat-label">time</span>
+                  </div>
+                  <div className="pong-stat">
+                    <span className="pong-stat-value">{highScore}</span>
+                    <span className="pong-stat-label">best</span>
+                  </div>
+                </div>
+
+                {(isNewPersonalBest || totalPoints > highScore) && totalPoints > 0 && (
+                  <div className="pong-new-record">New Personal Best!</div>
+                )}
+
+                {isSignedIn && (
+                  <div className="pong-submitted">
+                    {isSubmitting ? 'Saving...' : scoreSubmitted ? `Saved as ${userDisplayName}!` : ''}
+                  </div>
+                )}
+
+                {/* Guest name input */}
+                {!isSignedIn && totalPoints > 0 && (
+                  <div className="pong-guest-form">
                     <input
                       type="text"
-                      className="game-over-input"
+                      className="pong-name-input"
                       placeholder="Enter your name"
                       value={playerName}
                       onChange={(e) => setPlayerName(e.target.value)}
                       maxLength={15}
                       onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
                     />
-                    <div className="game-over-buttons">
-                      <button
-                        onClick={saveScoreLocal}
-                        className="game-over-save"
-                        disabled={!playerName.trim()}
-                      >
-                        Save Score
-                      </button>
-                      <button onClick={skipSaveScore} className="game-over-skip">
-                        Skip
-                      </button>
-                    </div>
-                    {/* Leaderboard button */}
-                    <button
-                      className="leaderboard-toggle-btn"
-                      onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                    >
-                      {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
-                    </button>
                   </div>
-                )
-              ) : (
-                <div className="game-over-buttons-single">
-                  <button onClick={startGame} className="play-btn">
-                    Try Again
+                )}
+
+                {/* Buttons: Play Again + Leaderboard */}
+                <div className="pong-game-over-buttons">
+                  <button onClick={!isSignedIn && playerName.trim() ? saveScoreLocal : startGame} className="pong-play-btn">
+                    {!isSignedIn && playerName.trim() ? 'Save & Play' : 'Play Again'}
                   </button>
-                  <button onClick={goToMenu} className="game-over-skip">
-                    Menu
+                  <button
+                    onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                    className="pong-leaderboard-btn"
+                  >
+                    Leaderboard
                   </button>
                 </div>
-              )}
+              </div>
             </div>
+
+            {/* Leaderboard Panel - overlays on top */}
+            {showLeaderboardPanel && (
+              <div className="pong-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
+                <div className="pong-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
+                  <div className="pong-leaderboard-header">
+                    <h3>{globalLeaderboard.length > 0 ? 'Leaderboard' : 'Leaderboard'}</h3>
+                    <button className="pong-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                  </div>
+                  <div className="pong-leaderboard-list">
+                    {Array.from({ length: 10 }, (_, index) => {
+                      const entry = displayLeaderboard[index];
+                      const isCurrentUser = entry && totalPoints === entry.score;
+                      return (
+                        <div key={index} className={`pong-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                          <span className="pong-leaderboard-rank">#{index + 1}</span>
+                          <span className="pong-leaderboard-name">{entry?.name || '---'}</span>
+                          <span className="pong-leaderboard-score">{entry?.score ?? '-'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Back to Games - positioned in safe area (bottom right) */}
+            <button
+              onClick={() => { window.location.href = '/games'; }}
+              className="pong-back-to-games-btn"
+            >
+              Back to Games
+            </button>
           </div>
         )}
       </div>

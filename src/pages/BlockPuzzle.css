@@ -176,24 +176,29 @@
 }
 
 /* ============================================
-   BACK TO GAMES BUTTON (Game Over)
+   BACK TO GAMES BUTTON (Game Over - Safe Area)
    ============================================ */
 
 .bp-back-to-games-btn {
-  padding: 10px 24px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  z-index: 100;
 }
 
 .bp-back-to-games-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 /* ============================================
@@ -603,7 +608,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 500;
+  pointer-events: auto;
   padding: 20px;
   animation: bp-game-over-appear 0.5s ease-out;
 }
@@ -646,22 +652,25 @@
 
 .bp-game-over-left {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .bp-sad-image {
-  width: 120px;
-  height: 120px;
+  width: 200px;
+  height: 200px;
   object-fit: contain;
   border-radius: 12px;
 }
 
 .mobile .bp-sad-image {
-  width: 100px;
-  height: 100px;
+  width: 150px;
+  height: 150px;
 }
 
 .bp-game-over-emoji {
-  font-size: 5rem;
+  font-size: 8rem;
 }
 
 .bp-game-over-right {
@@ -784,6 +793,157 @@
 
 .bp-play-btn:active {
   transform: translateY(0);
+}
+
+.bp-leaderboard-btn {
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bp-leaderboard-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   LEADERBOARD OVERLAY & PANEL
+   ============================================ */
+
+.bp-leaderboard-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 700;
+  animation: bp-fade-in 0.2s ease;
+}
+
+@keyframes bp-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bp-leaderboard-panel {
+  width: 360px;
+  max-width: 90%;
+  max-height: 80%;
+  background: rgba(20, 20, 30, 0.98);
+  border: 1px solid rgba(255, 107, 0, 0.4);
+  border-radius: 20px;
+  padding: 24px;
+  backdrop-filter: blur(20px);
+  animation: bp-scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow-y: auto;
+}
+
+@keyframes bp-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.bp-leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bp-leaderboard-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ff6b00;
+}
+
+.bp-leaderboard-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.25rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.bp-leaderboard-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.bp-leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bp-leaderboard-entry {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: background 0.2s ease;
+}
+
+.bp-leaderboard-entry:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.bp-leaderboard-entry.current-user {
+  background: rgba(255, 107, 0, 0.2);
+  border: 1px solid rgba(255, 107, 0, 0.5);
+}
+
+.bp-leaderboard-rank {
+  width: 36px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.bp-leaderboard-entry:nth-child(1) .bp-leaderboard-rank { color: #FFD700; }
+.bp-leaderboard-entry:nth-child(2) .bp-leaderboard-rank { color: #C0C0C0; }
+.bp-leaderboard-entry:nth-child(3) .bp-leaderboard-rank { color: #CD7F32; }
+
+.bp-leaderboard-name {
+  flex: 1;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.bp-leaderboard-score {
+  color: #ff6b00;
+  font-weight: 700;
+  min-width: 50px;
+  text-align: right;
+  font-size: 1rem;
 }
 
 /* ============================================
@@ -966,6 +1126,52 @@
     width: 75px;
     height: 75px;
     border-radius: 8px;
+  }
+}
+
+/* Mobile game over and leaderboard adjustments */
+@media (max-width: 480px) {
+  .bp-game-over-title {
+    font-size: 1.5rem;
+  }
+
+  .bp-game-over-score .bp-score-value {
+    font-size: 2.5rem;
+  }
+
+  .bp-game-over-buttons {
+    flex-direction: row;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .bp-play-btn,
+  .bp-leaderboard-btn {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+
+  .bp-back-to-games-btn {
+    bottom: 16px;
+    right: 16px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+  }
+
+  .bp-leaderboard-panel {
+    width: calc(100% - 32px);
+    max-height: 70%;
+    padding: 20px;
+  }
+
+  .bp-leaderboard-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .bp-leaderboard-entry {
+    padding: 10px 12px;
+    font-size: 0.9rem;
   }
 }
 

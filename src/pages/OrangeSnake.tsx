@@ -7,15 +7,13 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { IonIcon } from '@ionic/react';
-import { arrowBack, volumeHigh, volumeMute } from 'ionicons/icons';
+import { volumeHigh, volumeMute } from 'ionicons/icons';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useGameEffects, GameEffects } from '@/components/media';
-import { ShareButton } from '@/systems/sharing';
 import './OrangeSnake.css';
 
 // ============================================
@@ -149,7 +147,6 @@ const checkCircleCollision = (
 // ============================================
 
 const OrangeSnake: React.FC = () => {
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -167,8 +164,14 @@ const OrangeSnake: React.FC = () => {
     triggerScreenShake,
     resetAllEffects,
   } = useGameEffects();
-  const { submitScore, isSignedIn, userDisplayName, isSubmitting } =
-    useLeaderboard('orange-snake');
+  const {
+    leaderboard: globalLeaderboard,
+    submitScore,
+    isSignedIn,
+    userDisplayName,
+    isSubmitting,
+  } = useLeaderboard('orange-snake');
+  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   // Canvas dimensions
   const CANVAS_WIDTH = isMobile ? Math.min(window.innerWidth, 500) : 600;
@@ -919,17 +922,9 @@ const OrangeSnake: React.FC = () => {
       ref={containerRef}
       className={`orange-snake-container ${isMobile ? 'mobile' : 'desktop'}`}
     >
-      {/* Control Buttons */}
+      {/* Sound Button */}
       <button
-        className="os-back-btn"
-        onClick={() => navigate('/games')}
-        aria-label="Back to games"
-      >
-        <IonIcon icon={arrowBack} />
-      </button>
-
-      <button
-        className="os-sound-btn"
+        className="osn-sound-btn"
         onClick={toggleSound}
         aria-label={soundEnabled ? 'Mute sounds' : 'Unmute sounds'}
       >
@@ -946,46 +941,47 @@ const OrangeSnake: React.FC = () => {
         height={CANVAS_HEIGHT}
         onClick={gameState === 'idle' ? startGame : undefined}
         onPointerMove={handlePointerMove}
-        className="os-canvas"
+        className="osn-canvas"
         style={{ touchAction: 'none' }}
       />
 
       {/* Game Over Overlay */}
       {gameState === 'gameover' && (
-        <div className="os-game-over-overlay">
-          <div className="os-game-over-content">
-            <div className="os-game-over-left">
+        <div className="osn-game-over-overlay" onClick={(e) => e.stopPropagation()}>
+          {/* Main Game Over Content - stays fixed */}
+          <div className="osn-game-over-content">
+            <div className="osn-game-over-left">
               {sadImage ? (
-                <img src={sadImage} alt="Game Over" className="os-sad-image" />
+                <img src={sadImage} alt="Game Over" className="osn-sad-image" />
               ) : (
-                <div className="os-game-over-emoji">🐍</div>
+                <div className="osn-game-over-emoji">🐍</div>
               )}
             </div>
-            <div className="os-game-over-right">
-              <h2 className="os-game-over-title">Game Over!</h2>
+            <div className="osn-game-over-right">
+              <h2 className="osn-game-over-title">Game Over!</h2>
 
-              <div className="os-game-over-score">
-                <span className="os-score-value">{score}</span>
-                <span className="os-score-label">max length</span>
+              <div className="osn-game-over-score">
+                <span className="osn-score-value">{score}</span>
+                <span className="osn-score-label">max length</span>
               </div>
 
-              <div className="os-game-over-stats">
-                <div className="os-stat">
-                  <span className="os-stat-value">{highScore}</span>
-                  <span className="os-stat-label">best</span>
+              <div className="osn-game-over-stats">
+                <div className="osn-stat">
+                  <span className="osn-stat-value">{highScore}</span>
+                  <span className="osn-stat-label">best</span>
                 </div>
-                <div className="os-stat">
-                  <span className="os-stat-value">{gameStateRef.current.killCount}</span>
-                  <span className="os-stat-label">kills</span>
+                <div className="osn-stat">
+                  <span className="osn-stat-value">{gameStateRef.current.killCount}</span>
+                  <span className="osn-stat-label">kills</span>
                 </div>
               </div>
 
               {isNewPersonalBest && score > 0 && (
-                <div className="os-new-record">New Personal Best!</div>
+                <div className="osn-new-record">New Personal Best!</div>
               )}
 
               {isSignedIn && (
-                <div className="os-submitted">
+                <div className="osn-submitted">
                   {isSubmitting
                     ? 'Saving...'
                     : scoreSubmitted
@@ -994,27 +990,53 @@ const OrangeSnake: React.FC = () => {
                 </div>
               )}
 
-              <div className="os-game-over-buttons">
-                <button onClick={resetGame} className="os-play-btn">
+              {/* Buttons: Play Again + Leaderboard */}
+              <div className="osn-game-over-buttons">
+                <button onClick={resetGame} className="osn-play-btn">
                   Play Again
                 </button>
-                <button onClick={() => navigate('/games')} className="os-back-to-games-btn">
-                  Back to Games
+                <button
+                  onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                  className="osn-leaderboard-btn"
+                >
+                  Leaderboard
                 </button>
               </div>
-
-              <ShareButton
-                scoreData={{
-                  gameId: 'orange-snake',
-                  gameName: 'Orange Snake',
-                  score,
-                  highScore,
-                  isNewHighScore: isNewPersonalBest,
-                }}
-                variant="button"
-              />
             </div>
           </div>
+
+          {/* Leaderboard Panel - overlays on top */}
+          {showLeaderboardPanel && (
+            <div className="osn-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
+              <div className="osn-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
+                <div className="osn-leaderboard-header">
+                  <h3>Leaderboard</h3>
+                  <button className="osn-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                </div>
+                <div className="osn-leaderboard-list">
+                  {Array.from({ length: 10 }, (_, index) => {
+                    const entry = globalLeaderboard[index];
+                    const isCurrentUser = entry && score === entry.score;
+                    return (
+                      <div key={index} className={`osn-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                        <span className="osn-leaderboard-rank">#{index + 1}</span>
+                        <span className="osn-leaderboard-name">{entry?.displayName || '---'}</span>
+                        <span className="osn-leaderboard-score">{entry?.score ?? '-'}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Back to Games - positioned in safe area (bottom right) */}
+          <button
+            onClick={() => { window.location.href = '/games'; }}
+            className="osn-back-to-games-btn"
+          >
+            Back to Games
+          </button>
         </div>
       )}
     </div>

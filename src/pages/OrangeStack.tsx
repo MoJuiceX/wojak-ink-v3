@@ -11,7 +11,6 @@ import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useAudio } from '@/contexts/AudioContext';
 import { useIsMobile } from '@/hooks/useMediaQuery';
-import { ShareButton } from '@/systems/sharing';
 import './OrangeStack.css';
 
 interface Block {
@@ -1294,167 +1293,109 @@ const OrangeStack: React.FC = () => {
           )}
 
           {gameState === 'gameover' && (
-            <div className="game-over-screen">
-              {/* Left side - Image or Emoji */}
-              <div className="game-over-left">
-                {sadImage ? (
-                  <img
-                    src={sadImage}
-                    alt="Game Over"
-                    className="sad-image-large"
-                  />
-                ) : (
-                  <div className="game-over-emoji">🏆</div>
-                )}
-              </div>
-
-              {/* Full-screen Leaderboard Panel - only rendered when open */}
-              {showLeaderboardPanel && (
-                <div className="leaderboard-fullscreen-panel">
-                  <div className="leaderboard-panel-header">
-                    <h3>{globalLeaderboard.length > 0 ? 'Global Leaderboard' : 'Leaderboard'}</h3>
-                    <button className="leaderboard-close-btn" onClick={() => setShowLeaderboardPanel(false)}>×</button>
-                  </div>
-                  <div className="leaderboard-panel-list">
-                    {Array.from({ length: 10 }, (_, index) => {
-                      const entry = displayLeaderboard[index];
-                      const isCurrentUser = entry && score === entry.score;
-                      return (
-                        <div key={index} className={`leaderboard-panel-entry ${isCurrentUser ? 'current-user' : ''}`}>
-                          <span className="leaderboard-panel-rank">#{index + 1}</span>
-                          <span className="leaderboard-panel-name">{entry?.name || '---'}</span>
-                          <span className="leaderboard-panel-score">{entry?.score || '-'}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Right side - Score and form */}
-              <div className="game-over-right">
-                <div className="game-over-title">{level === MAX_LEVEL && levelScore >= LEVEL_CONFIG[MAX_LEVEL].blocksToComplete ? 'You Win!' : 'Game Over!'}</div>
-                <div className="game-over-reason">Reached Level {level}</div>
-                <div className="game-over-score">
-                  <span className="game-over-score-value">{score}</span>
-                  <span className="game-over-score-label">total points</span>
-                </div>
-
-                {/* New Personal Best celebration */}
-                {(isNewPersonalBest || score > highScore) && score > 0 && (
-                  <div className="game-over-record">🌟 New Personal Best! 🌟</div>
-                )}
-
-                {score > 0 ? (
-                  isSignedIn ? (
-                    // Signed-in user - auto-submitted
-                    <div className="game-over-form">
-                      <div className="game-over-submitted">
-                        {isSubmitting ? (
-                          <span>Saving score...</span>
-                        ) : scoreSubmitted ? (
-                          <span>Score saved as {userDisplayName || 'Anonymous'}!</span>
-                        ) : null}
-                      </div>
-                      <div className="game-over-buttons">
-                        <IonButton onClick={startGame} className="play-btn">
-                          Play Again
-                        </IonButton>
-                        <IonButton onClick={goToMenu} className="play-btn menu-btn">
-                          Menu
-                        </IonButton>
-                      </div>
-                      {/* Leaderboard button */}
-                      <button
-                        className="leaderboard-toggle-btn"
-                        onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                      >
-                        {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
-                      </button>
-                      {/* Share button */}
-                      <ShareButton
-                        scoreData={{
-                          gameId: 'orange-stack',
-                          gameName: 'Brick by Brick',
-                          score,
-                          highScore,
-                          isNewHighScore: isNewPersonalBest || score > highScore,
-                          rank: undefined
-                        }}
-                        variant="button"
-                      />
-                    </div>
+            <div className="os-game-over-overlay" onClick={(e) => e.stopPropagation()}>
+              {/* Main Game Over Content - stays fixed */}
+              <div className="os-game-over-content">
+                <div className="os-game-over-left">
+                  {sadImage ? (
+                    <img src={sadImage} alt="Game Over" className="os-sad-image" />
                   ) : (
-                    // Guest - show name input
-                    <div className="game-over-form">
+                    <div className="os-game-over-emoji">🏆</div>
+                  )}
+                </div>
+                <div className="os-game-over-right">
+                  <h2 className="os-game-over-title">
+                    {level === MAX_LEVEL && levelScore >= LEVEL_CONFIG[MAX_LEVEL].blocksToComplete ? 'You Win!' : 'Game Over!'}
+                  </h2>
+
+                  <div className="os-game-over-reason">
+                    Reached Level {level}
+                  </div>
+
+                  <div className="os-game-over-score">
+                    <span className="os-score-value">{score}</span>
+                    <span className="os-score-label">total points</span>
+                  </div>
+
+                  <div className="os-game-over-stats">
+                    <div className="os-stat">
+                      <span className="os-stat-value">{highScore}</span>
+                      <span className="os-stat-label">best</span>
+                    </div>
+                  </div>
+
+                  {(isNewPersonalBest || score > highScore) && score > 0 && (
+                    <div className="os-new-record">New Personal Best!</div>
+                  )}
+
+                  {isSignedIn && (
+                    <div className="os-submitted">
+                      {isSubmitting ? 'Saving...' : scoreSubmitted ? `Saved as ${userDisplayName}!` : ''}
+                    </div>
+                  )}
+
+                  {/* Guest name input */}
+                  {!isSignedIn && score > 0 && (
+                    <div className="os-guest-form">
                       <input
                         type="text"
-                        className="game-over-input"
+                        className="os-name-input"
                         placeholder="Enter your name"
                         value={playerName}
                         onChange={(e) => setPlayerName(e.target.value)}
                         maxLength={15}
                         onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
                       />
-                      <div className="game-over-buttons">
-                        <button onClick={saveScoreLocal} className="game-over-save" disabled={!playerName.trim()}>
-                          Save Score
-                        </button>
-                        <button onClick={goToMenu} className="game-over-skip">
-                          Skip
-                        </button>
-                      </div>
-                      {/* Leaderboard button for guests too */}
-                      <button
-                        className="leaderboard-toggle-btn"
-                        onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                      >
-                        {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
-                      </button>
-                      {/* Share button */}
-                      <ShareButton
-                        scoreData={{
-                          gameId: 'orange-stack',
-                          gameName: 'Brick by Brick',
-                          score,
-                          highScore,
-                          isNewHighScore: isNewPersonalBest || score > highScore,
-                          rank: undefined
-                        }}
-                        variant="button"
-                      />
                     </div>
-                  )
-                ) : (
-                  <div className="game-over-buttons-single">
-                    <IonButton onClick={startGame} className="play-btn">
-                      Try Again
-                    </IonButton>
-                    <button onClick={goToMenu} className="game-over-skip">
-                      Menu
+                  )}
+
+                  {/* Buttons: Play Again + Leaderboard */}
+                  <div className="os-game-over-buttons">
+                    <button onClick={!isSignedIn && playerName.trim() ? saveScoreLocal : startGame} className="os-play-btn">
+                      {!isSignedIn && playerName.trim() ? 'Save & Play' : 'Play Again'}
                     </button>
-                    {/* Leaderboard button */}
                     <button
-                      className="leaderboard-toggle-btn"
                       onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                      className="os-leaderboard-btn"
                     >
-                      {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
+                      Leaderboard
                     </button>
-                    {/* Share button */}
-                    <ShareButton
-                      scoreData={{
-                        gameId: 'orange-stack',
-                        gameName: 'Brick by Brick',
-                        score,
-                        highScore,
-                        isNewHighScore: false,
-                        rank: undefined
-                      }}
-                      variant="button"
-                    />
                   </div>
-                )}
+                </div>
               </div>
+
+              {/* Leaderboard Panel - overlays on top */}
+              {showLeaderboardPanel && (
+                <div className="os-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
+                  <div className="os-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
+                    <div className="os-leaderboard-header">
+                      <h3>Leaderboard</h3>
+                      <button className="os-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                    </div>
+                    <div className="os-leaderboard-list">
+                      {Array.from({ length: 10 }, (_, index) => {
+                        const entry = displayLeaderboard[index];
+                        const isCurrentUser = entry && score === entry.score;
+                        return (
+                          <div key={index} className={`os-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                            <span className="os-leaderboard-rank">#{index + 1}</span>
+                            <span className="os-leaderboard-name">{entry?.name || '---'}</span>
+                            <span className="os-leaderboard-score">{entry?.score ?? '-'}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Back to Games - positioned in safe area (bottom right) */}
+              <button
+                onClick={() => { window.location.href = '/games'; }}
+                className="os-back-to-games-btn"
+              >
+                Back to Games
+              </button>
             </div>
           )}
         </div>

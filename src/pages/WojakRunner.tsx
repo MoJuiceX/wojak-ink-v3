@@ -563,119 +563,111 @@ const WojakRunner: React.FC = () => {
         >
           {/* Game Over - Save Score Screen */}
           {gameState === 'gameover' && (
-            <div className="game-over-screen">
-              {/* Left side - Sad Image */}
-              <div className="game-over-left">
-                {sadImage ? (
-                  <img
-                    src={sadImage}
-                    alt="Game Over"
-                    className="sad-image-large"
-                  />
-                ) : (
-                  <div className="game-over-emoji">💀</div>
-                )}
+            <div className="wr-game-over-overlay" onClick={(e) => e.stopPropagation()}>
+              {/* Main Game Over Content - stays fixed */}
+              <div className="wr-game-over-content">
+                <div className="wr-game-over-left">
+                  {sadImage ? (
+                    <img src={sadImage} alt="Game Over" className="wr-sad-image" />
+                  ) : (
+                    <div className="wr-game-over-emoji">💀</div>
+                  )}
+                </div>
+                <div className="wr-game-over-right">
+                  <h2 className="wr-game-over-title">Game Over!</h2>
 
-                {/* Slide-in Leaderboard Panel */}
-                <div className={`leaderboard-slide-panel ${showLeaderboardPanel ? 'open' : ''}`}>
-                  <div className="leaderboard-panel-header">
-                    <h3>{globalLeaderboard.length > 0 ? 'Global Leaderboard' : 'Leaderboard'}</h3>
-                    <button className="leaderboard-close-btn" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                  <div className="wr-game-over-reason">
+                    You crashed into an obstacle!
                   </div>
-                  <div className="leaderboard-panel-list">
-                    {Array.from({ length: 10 }, (_, index) => {
-                      const entry = displayLeaderboard[index];
-                      const isCurrentUser = entry && totalScore === entry.score;
-                      return (
-                        <div key={index} className={`leaderboard-panel-entry ${isCurrentUser ? 'current-user' : ''}`}>
-                          <span className="leaderboard-panel-rank">#{index + 1}</span>
-                          <span className="leaderboard-panel-name">{entry?.name || '---'}</span>
-                          <span className="leaderboard-panel-score">{entry?.score || '-'}</span>
-                        </div>
-                      );
-                    })}
+
+                  <div className="wr-game-over-score">
+                    <span className="wr-score-value">{totalScore}</span>
+                    <span className="wr-score-label">points</span>
+                  </div>
+
+                  <div className="wr-game-over-stats">
+                    <div className="wr-stat">
+                      <span className="wr-stat-value">{Math.floor(distance / 10)}m</span>
+                      <span className="wr-stat-label">distance</span>
+                    </div>
+                    <div className="wr-stat">
+                      <span className="wr-stat-value">{highScore}</span>
+                      <span className="wr-stat-label">best</span>
+                    </div>
+                  </div>
+
+                  {(isNewPersonalBest || totalScore >= highScore) && totalScore > 0 && (
+                    <div className="wr-new-record">New Personal Best!</div>
+                  )}
+
+                  {isSignedIn && (
+                    <div className="wr-submitted">
+                      {isSubmitting ? 'Saving...' : scoreSubmitted ? `Saved as ${userDisplayName}!` : ''}
+                    </div>
+                  )}
+
+                  {/* Guest name input */}
+                  {!isSignedIn && (
+                    <div className="wr-guest-form">
+                      <input
+                        type="text"
+                        className="wr-name-input"
+                        placeholder="Enter your name"
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                        maxLength={15}
+                        onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
+                      />
+                    </div>
+                  )}
+
+                  {/* Buttons: Play Again + Leaderboard */}
+                  <div className="wr-game-over-buttons">
+                    <button onClick={!isSignedIn && playerName.trim() ? saveScoreLocal : startGame} className="wr-play-btn">
+                      {!isSignedIn && playerName.trim() ? 'Save & Play' : 'Play Again'}
+                    </button>
+                    <button
+                      onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                      className="wr-leaderboard-btn"
+                    >
+                      Leaderboard
+                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* Right side - Content */}
-              <div className="game-over-right">
-                <div className="game-over-title">Game Over!</div>
-
-                <div className="game-over-reason">
-                  You crashed into an obstacle!
-                </div>
-
-                <div className="game-over-score">
-                  <span className="game-over-score-value">{totalScore}</span>
-                  <span className="game-over-score-label">points</span>
-                </div>
-
-                {/* New Personal Best celebration */}
-                {(isNewPersonalBest || totalScore >= highScore) && totalScore > 0 && (
-                  <div className="game-over-record">🌟 New Personal Best! 🌟</div>
-                )}
-
-                {isSignedIn ? (
-                  // Signed-in user - auto-submitted
-                  <div className="game-over-form">
-                    <div className="game-over-submitted">
-                      {isSubmitting ? (
-                        <span>Saving score...</span>
-                      ) : scoreSubmitted ? (
-                        <span>Score saved as {userDisplayName || 'Anonymous'}!</span>
-                      ) : null}
+              {/* Leaderboard Panel - overlays on top */}
+              {showLeaderboardPanel && (
+                <div className="wr-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
+                  <div className="wr-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
+                    <div className="wr-leaderboard-header">
+                      <h3>Leaderboard</h3>
+                      <button className="wr-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
                     </div>
-                    <div className="game-over-buttons">
-                      <button onClick={startGame} className="play-btn">
-                        Play Again
-                      </button>
-                      <button onClick={goToMenu} className="play-btn" style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
-                        Menu
-                      </button>
+                    <div className="wr-leaderboard-list">
+                      {Array.from({ length: 10 }, (_, index) => {
+                        const entry = displayLeaderboard[index];
+                        const isCurrentUser = entry && totalScore === entry.score;
+                        return (
+                          <div key={index} className={`wr-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                            <span className="wr-leaderboard-rank">#{index + 1}</span>
+                            <span className="wr-leaderboard-name">{entry?.name || '---'}</span>
+                            <span className="wr-leaderboard-score">{entry?.score ?? '-'}</span>
+                          </div>
+                        );
+                      })}
                     </div>
-                    {/* Leaderboard button */}
-                    <button
-                      className="leaderboard-toggle-btn"
-                      onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                    >
-                      {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
-                    </button>
                   </div>
-                ) : (
-                  // Guest - show name input
-                  <div className="game-over-form">
-                    <input
-                      type="text"
-                      className="game-over-input"
-                      placeholder="Enter your name"
-                      value={playerName}
-                      onChange={(e) => setPlayerName(e.target.value)}
-                      maxLength={15}
-                      onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
-                    />
-                    <div className="game-over-buttons">
-                      <button
-                        onClick={saveScoreLocal}
-                        className="game-over-save"
-                        disabled={!playerName.trim()}
-                      >
-                        Save Score
-                      </button>
-                      <button onClick={skipSaveScore} className="game-over-skip">
-                        Skip
-                      </button>
-                    </div>
-                    {/* Leaderboard button */}
-                    <button
-                      className="leaderboard-toggle-btn"
-                      onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                    >
-                      {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
-                    </button>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
+
+              {/* Back to Games - positioned in safe area (bottom right) */}
+              <button
+                onClick={() => { window.location.href = '/games'; }}
+                className="wr-back-to-games-btn"
+              >
+                Back to Games
+              </button>
             </div>
           )}
         </div>

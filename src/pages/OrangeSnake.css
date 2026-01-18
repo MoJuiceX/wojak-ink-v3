@@ -25,8 +25,7 @@
    CONTROL BUTTONS
    ============================================ */
 
-.os-back-btn,
-.os-sound-btn {
+.osn-sound-btn {
   position: absolute;
   width: 44px;
   height: 44px;
@@ -37,51 +36,30 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   color: white;
-  font-size: 22px;
+  font-size: 20px;
   cursor: pointer;
   z-index: 50;
   transition: all 0.2s ease;
-}
-
-.os-back-btn {
   top: 12px;
   left: 12px;
 }
 
-.os-sound-btn {
-  top: 12px;
-  left: 64px;
-  font-size: 20px;
-}
-
-.os-back-btn:hover,
-.os-sound-btn:hover {
+.osn-sound-btn:hover {
   background: rgba(255, 107, 0, 0.3);
   border-color: rgba(255, 107, 0, 0.5);
 }
 
-.os-back-btn:active,
-.os-sound-btn:active {
+.osn-sound-btn:active {
   transform: scale(0.95);
 }
 
 @media (max-width: 480px) {
-  .os-back-btn,
-  .os-sound-btn {
+  .osn-sound-btn {
     width: 40px;
     height: 40px;
-    font-size: 20px;
-  }
-
-  .os-back-btn {
+    font-size: 18px;
     top: 8px;
     left: 8px;
-  }
-
-  .os-sound-btn {
-    top: 8px;
-    left: 56px;
-    font-size: 18px;
   }
 }
 
@@ -89,7 +67,7 @@
    GAME CANVAS
    ============================================ */
 
-.os-canvas {
+.osn-canvas {
   border-radius: 12px;
   box-shadow:
     0 0 40px rgba(255, 107, 0, 0.2),
@@ -97,7 +75,7 @@
   cursor: none;
 }
 
-.mobile .os-canvas {
+.mobile .osn-canvas {
   border-radius: 0;
   box-shadow: none;
 }
@@ -106,19 +84,20 @@
    GAME OVER OVERLAY
    ============================================ */
 
-.os-game-over-overlay {
+.osn-game-over-overlay {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 500;
+  pointer-events: auto;
   padding: 20px;
-  animation: os-game-over-appear 0.5s ease-out;
+  animation: osn-game-over-appear 0.5s ease-out;
 }
 
-@keyframes os-game-over-appear {
+@keyframes osn-game-over-appear {
   0% {
     opacity: 0;
     backdrop-filter: blur(0px);
@@ -129,15 +108,15 @@
   }
 }
 
-.os-game-over-content {
+.osn-game-over-content {
   display: flex;
   gap: 24px;
   max-width: 500px;
   width: 100%;
-  animation: os-game-over-content 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+  animation: osn-game-over-content 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
 }
 
-@keyframes os-game-over-content {
+@keyframes osn-game-over-content {
   0% {
     opacity: 0;
     transform: scale(0.8) translateY(30px);
@@ -148,33 +127,36 @@
   }
 }
 
-.mobile .os-game-over-content {
+.mobile .osn-game-over-content {
   flex-direction: column;
   align-items: center;
   gap: 16px;
 }
 
-.os-game-over-left {
+.osn-game-over-left {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.os-sad-image {
-  width: 120px;
-  height: 120px;
+.osn-sad-image {
+  width: 200px;
+  height: 200px;
   object-fit: contain;
   border-radius: 12px;
 }
 
-.mobile .os-sad-image {
-  width: 100px;
-  height: 100px;
+.mobile .osn-sad-image {
+  width: 150px;
+  height: 150px;
 }
 
-.os-game-over-emoji {
-  font-size: 5rem;
+.osn-game-over-emoji {
+  font-size: 8rem;
 }
 
-.os-game-over-right {
+.osn-game-over-right {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -182,30 +164,30 @@
   gap: 8px;
 }
 
-.os-game-over-title {
+.osn-game-over-title {
   font-size: 1.8rem;
   font-weight: 800;
   color: #ff6b00;
   margin: 0;
 }
 
-.os-game-over-score {
+.osn-game-over-score {
   display: flex;
   flex-direction: column;
   align-items: center;
   margin: 8px 0;
 }
 
-.os-game-over-score .os-score-value {
+.osn-game-over-score .osn-score-value {
   font-size: 3rem;
   font-weight: 800;
   color: #fff;
   text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
   line-height: 1;
-  animation: os-final-score-pulse 2s ease-in-out infinite;
+  animation: osn-final-score-pulse 2s ease-in-out infinite;
 }
 
-@keyframes os-final-score-pulse {
+@keyframes osn-final-score-pulse {
   0%, 100% {
     text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
   }
@@ -214,62 +196,62 @@
   }
 }
 
-.os-game-over-score .os-score-label {
+.osn-game-over-score .osn-score-label {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
   letter-spacing: 2px;
 }
 
-.os-game-over-stats {
+.osn-game-over-stats {
   display: flex;
   gap: 24px;
   margin: 8px 0;
 }
 
-.os-stat {
+.osn-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.os-stat-value {
+.osn-stat-value {
   font-size: 1.5rem;
   font-weight: 700;
   color: #ff6b00;
 }
 
-.os-stat-label {
+.osn-stat-label {
   font-size: 0.7rem;
   color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
 }
 
-.os-new-record {
+.osn-new-record {
   font-size: 1rem;
   color: #ffd700;
   font-weight: 700;
-  animation: os-glow 1s ease-in-out infinite alternate;
+  animation: osn-glow 1s ease-in-out infinite alternate;
 }
 
-@keyframes os-glow {
+@keyframes osn-glow {
   from { text-shadow: 0 0 10px #ffd700; }
   to { text-shadow: 0 0 30px #ffd700, 0 0 60px #ffa500; }
 }
 
-.os-submitted {
+.osn-submitted {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
   min-height: 1.2em;
 }
 
-.os-game-over-buttons {
+.osn-game-over-buttons {
   display: flex;
   gap: 12px;
   margin-top: 12px;
 }
 
-.os-play-btn {
+.osn-play-btn {
   padding: 12px 32px;
   font-size: 1rem;
   font-weight: 700;
@@ -282,30 +264,187 @@
   box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
 }
 
-.os-play-btn:hover {
+.osn-play-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 30px rgba(255, 107, 0, 0.5);
 }
 
-.os-play-btn:active {
+.osn-play-btn:active {
   transform: translateY(0);
 }
 
-.os-back-to-games-btn {
-  padding: 10px 24px;
-  font-size: 0.9rem;
+.osn-leaderboard-btn {
+  padding: 12px 20px;
+  font-size: 0.95rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
-  background: transparent;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.os-back-to-games-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+.osn-leaderboard-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
   border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Back to Games - positioned in safe area (bottom right corner) */
+.osn-back-to-games-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 100;
+}
+
+.osn-back-to-games-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ============================================
+   LEADERBOARD OVERLAY & PANEL
+   ============================================ */
+
+.osn-leaderboard-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 700;
+  animation: osn-fade-in 0.2s ease;
+}
+
+@keyframes osn-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.osn-leaderboard-panel {
+  width: 360px;
+  max-width: 90%;
+  max-height: 80%;
+  background: rgba(20, 20, 30, 0.98);
+  border: 1px solid rgba(255, 107, 0, 0.4);
+  border-radius: 20px;
+  padding: 24px;
+  backdrop-filter: blur(20px);
+  animation: osn-scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow-y: auto;
+}
+
+@keyframes osn-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.osn-leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.osn-leaderboard-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ff6b00;
+}
+
+.osn-leaderboard-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.25rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.osn-leaderboard-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.osn-leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.osn-leaderboard-entry {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: background 0.2s ease;
+}
+
+.osn-leaderboard-entry:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.osn-leaderboard-entry.current-user {
+  background: rgba(255, 107, 0, 0.2);
+  border: 1px solid rgba(255, 107, 0, 0.5);
+}
+
+.osn-leaderboard-rank {
+  width: 36px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.osn-leaderboard-entry:nth-child(1) .osn-leaderboard-rank { color: #FFD700; }
+.osn-leaderboard-entry:nth-child(2) .osn-leaderboard-rank { color: #C0C0C0; }
+.osn-leaderboard-entry:nth-child(3) .osn-leaderboard-rank { color: #CD7F32; }
+
+.osn-leaderboard-name {
+  flex: 1;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.osn-leaderboard-score {
+  color: #ff6b00;
+  font-weight: 700;
+  min-width: 50px;
+  text-align: right;
+  font-size: 1rem;
 }
 
 /* ============================================
@@ -313,21 +452,46 @@
    ============================================ */
 
 @media (max-width: 480px) {
-  .os-game-over-title {
+  .osn-game-over-title {
     font-size: 1.5rem;
   }
 
-  .os-game-over-score .os-score-value {
+  .osn-game-over-score .osn-score-value {
     font-size: 2.5rem;
   }
 
-  .os-game-over-buttons {
-    flex-direction: column;
+  .osn-game-over-buttons {
+    flex-direction: row;
     width: 100%;
+    gap: 8px;
   }
 
-  .os-play-btn,
-  .os-back-to-games-btn {
-    width: 100%;
+  .osn-play-btn,
+  .osn-leaderboard-btn {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+
+  .osn-back-to-games-btn {
+    bottom: 16px;
+    right: 16px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+  }
+
+  .osn-leaderboard-panel {
+    width: calc(100% - 32px);
+    max-height: 70%;
+    padding: 20px;
+  }
+
+  .osn-leaderboard-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .osn-leaderboard-entry {
+    padding: 10px 12px;
+    font-size: 0.9rem;
   }
 }

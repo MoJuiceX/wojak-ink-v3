@@ -1,6 +1,12 @@
 /**
  * Vibration patterns for different game events
  *
+ * JUICE PHILOSOPHY:
+ * - Sync haptics with audio for unified feedback
+ * - Escalating intensity for combos (matches sound escalation)
+ * - Celebration patterns for achievements
+ * - Soft, not harsh for negative feedback
+ *
  * Pattern format: number | number[]
  * - Single number: vibrate for that many milliseconds
  * - Array: [vibrate, pause, vibrate, pause, ...]
@@ -36,34 +42,34 @@ export interface HapticDefinition {
 }
 
 export const HAPTIC_PATTERNS: Record<HapticPattern, number | number[]> = {
-  // Basic taps
-  'light': 10,
-  'medium': 25,
-  'heavy': 50,
+  // Basic taps - snappy and satisfying
+  'light': 8,          // Quick pop feeling
+  'medium': 20,        // Noticeable but not intrusive
+  'heavy': 40,         // Strong feedback
 
-  // Gameplay
-  'score': 15,                          // Quick tap on score
-  'combo-1': [20, 10, 20],              // Double tap for low combo
-  'combo-2': [25, 15, 25, 15, 25],      // Triple tap for medium combo
-  'combo-3': [30, 10, 30, 10, 30, 10, 30], // Quad tap for high combo
-  'combo-max': [50, 20, 50, 20, 50, 20, 100], // Epic combo
-  'collision': [40, 20, 30],            // Impact feeling
+  // Gameplay - THE ADDICTION ENGINE (synced with sound escalation)
+  'score': 12,                                    // Quick satisfying pop
+  'combo-1': [15, 20, 15],                        // Light double tap
+  'combo-2': [18, 15, 18, 15, 25],                // Escalating triple
+  'combo-3': [22, 12, 22, 12, 30, 12, 35],        // Building quad
+  'combo-max': [30, 15, 35, 15, 40, 15, 50, 20, 80], // Epic celebration burst
+  'collision': [25, 15, 20],                      // Impact but not harsh
 
-  // Game state
-  'high-score': [100, 50, 100, 50, 200], // Celebration
-  'game-over': [100, 100, 200],         // Finality
-  'level-up': [50, 30, 50, 30, 100],    // Achievement feeling
+  // Game state - celebration or gentle feedback
+  'high-score': [40, 30, 50, 30, 60, 40, 100],   // Triumphant fanfare pattern
+  'game-over': [60, 80, 40],                     // Soft double tap, NOT punishing
+  'level-up': [30, 25, 40, 25, 60],              // Rising celebration
 
-  // UI
-  'button': 10,                          // Subtle button feedback
-  'success': [30, 20, 50],              // Positive feedback
-  'error': [50, 30, 50, 30, 50],        // Negative feedback
-  'warning': [40, 40, 40],              // Alert
+  // UI - subtle and responsive
+  'button': 8,                                    // Barely there, just confirms tap
+  'success': [20, 25, 35],                       // Positive light tap
+  'error': [35, 50, 25],                         // Soft bonk, not harsh
+  'warning': [25, 40, 25],                       // Gentle alert pulse
 
   // Other
-  'achievement': [50, 50, 50, 50, 150], // Special unlock
-  'countdown': 30,                       // Countdown tick
-  'countdown-go': [50, 30, 100],        // GO! moment
+  'achievement': [30, 20, 30, 20, 50, 30, 80],  // Fanfare pattern - celebration!
+  'countdown': 20,                               // Consistent tick
+  'countdown-go': [35, 25, 60],                 // Energetic start signal
 };
 
 /**
@@ -78,6 +84,45 @@ export const getComboHaptic = (comboLevel: number): HapticPattern => {
 };
 
 /**
+ * Get a dynamic combo pattern that escalates with level
+ * Creates the "I want to feel the next one" sensation
+ */
+export const getDynamicComboPattern = (comboLevel: number): number | number[] => {
+  const level = Math.max(1, Math.min(comboLevel, 15));
+
+  // Base vibration duration increases with level
+  const baseDuration = 10 + level * 2;
+
+  // Number of pulses increases with level (1-5)
+  const pulseCount = Math.min(Math.floor((level + 1) / 2), 5);
+
+  if (pulseCount === 1) {
+    return baseDuration;
+  }
+
+  // Build escalating pattern
+  const pattern: number[] = [];
+  for (let i = 0; i < pulseCount; i++) {
+    // Each pulse slightly longer than the last
+    const pulseDuration = baseDuration + i * 5;
+    pattern.push(pulseDuration);
+
+    // Add pause between pulses (except after last)
+    if (i < pulseCount - 1) {
+      pattern.push(15 - i); // Pauses get shorter for urgency
+    }
+  }
+
+  // Final pulse is extra strong at high levels
+  if (level >= 8) {
+    pattern.push(25); // Extra pause
+    pattern.push(baseDuration + 30); // Big finale
+  }
+
+  return pattern;
+};
+
+/**
  * Scale a pattern's intensity (multiply all values)
  */
 export const scalePattern = (
@@ -88,4 +133,12 @@ export const scalePattern = (
     return Math.round(pattern * scale);
   }
   return pattern.map(v => Math.round(v * scale));
+};
+
+/**
+ * Create a celebration pattern for achievements
+ */
+export const createCelebrationPattern = (): number[] => {
+  // Fanfare: tap-tap-tap-TAP-TAAAP
+  return [30, 20, 30, 20, 50, 30, 80];
 };

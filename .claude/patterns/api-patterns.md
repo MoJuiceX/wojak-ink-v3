@@ -94,6 +94,53 @@ queryClient.invalidateQueries({ queryKey: ['bigPulp'] });
 - Use `useXchPrice()` hook for real-time price from CoinGecko
 - The title bar already shows current XCH price
 
+## Cloudflare Workers API Routes
+
+All API routes live in `functions/api/`:
+
+```
+functions/api/
+├── leaderboard/
+│   ├── submit.ts          # POST - submit game score
+│   └── [gameId].ts        # GET - fetch leaderboard by game
+├── profile.ts             # GET/POST - user profile CRUD
+├── me.ts                  # GET - current authenticated user
+├── messages/              # Messaging system
+│   ├── index.ts           # GET/POST - list/send messages
+│   ├── unread-count.ts    # GET - unread message count
+│   └── [id]/read.ts       # POST - mark message as read
+├── trade-values.ts        # GET - XCH price data
+└── {service}/[[path]].ts  # Proxy routes for external APIs
+    ├── dexie/[[path]].ts
+    ├── mintgarden/[[path]].ts
+    ├── spacescan/[[path]].ts
+    ├── coingecko/[[path]].ts
+    └── parsebot/[[path]].ts
+```
+
+### Authentication Pattern
+```typescript
+// In any API route
+import { authenticateRequest } from '../lib/auth';
+
+export const onRequestPost: PagesFunction = async (context) => {
+  const { user, error } = await authenticateRequest(context.request, context.env);
+  if (error) return new Response(JSON.stringify({ error }), { status: 401 });
+
+  // user.id is the Clerk user_id (from JWT sub claim)
+  // ...
+};
+```
+
+### Error Response Format
+```typescript
+// Standard error response
+return new Response(JSON.stringify({ error: 'Message here' }), {
+  status: 400, // or 401, 403, 404, 500
+  headers: { 'Content-Type': 'application/json' }
+});
+```
+
 ## Common Issues
 
 | Issue | Cause | Fix |
@@ -103,3 +150,5 @@ queryClient.invalidateQueries({ queryKey: ['bigPulp'] });
 | BigPulp shows empty after reload | Query cached before sync | Invalidate queries after sync |
 | NFT shows "Wojak #XXXX" | Not using metadata | Use `getNftName()` |
 | fixSuspiciousSales not working | Ran before sync | Ensure it runs AFTER sync completes |
+| API returns 401 | Clerk token expired | Tokens expire after 60s, refresh |
+| Leaderboard not updating | Score not submitted | Check isSignedIn before submit |

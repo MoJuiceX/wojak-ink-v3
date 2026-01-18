@@ -204,44 +204,72 @@ export function getFallbackLogo(symbol: string): string {
 /**
  * Hardcoded NFT collection data for instant display.
  * These are the main NFT collections held by the treasury wallet.
- * Preview images use MintGarden CDN which is reliable.
- * Update periodically if collection holdings change significantly.
+ * Preview images use MintGarden mainnet CDN (assets.mainnet.mintgarden.io).
+ * Collection IDs and counts verified against actual treasury holdings.
  * Last updated: January 2025
  */
 const FALLBACK_NFT_COLLECTIONS: CachedNFTCollection[] = [
   {
-    collectionId: 'col1z0ef7w5n4vq9qkue67y8jnwumd9wpp0lflff9r25t0g28mf0dmwqqjdpga9',
+    collectionId: 'col1dxaskla4hrqyp9vxvg7vz3sc8mgfaw3q93hcmmtc4yr0e688tx2qd7tu7d',
     collectionName: 'Mojo Friends',
-    previewImage: 'https://assets.mintgarden.io/thumbnails/c4bb41ed14c0a39f6c1b4dc0cbaf66f4fbd1de51a553e48e8bde6a5eb6dc7fb2.webp',
-    count: 8,
+    previewImage: 'https://assets.mainnet.mintgarden.io/thumbnails/col1dxaskla4hrqyp9vxvg7vz3sc8mgfaw3q93hcmmtc4yr0e688tx2qd7tu7d.webp',
+    count: 46,
     nfts: [],
   },
   {
-    collectionId: 'col17csgxawjp7d2j4clspf5y7vvmll7y4rpzwdp4akdtq78p56maujsmhqvx5',
+    collectionId: 'col10j9r3aqx6qunaxg0ldy08ypjvnn7thnrw835uzllf2tafxpxqx4syn5uyg',
     collectionName: 'NeckLords',
-    previewImage: 'https://assets.mintgarden.io/thumbnails/5b7dbf8b82c8ff76a6fbb1c2df67ee3cac4a04ebc04a3c84f1f0d8bffe61f9a2.webp',
-    count: 3,
+    previewImage: 'https://assets.mainnet.mintgarden.io/thumbnails/col10j9r3aqx6qunaxg0ldy08ypjvnn7thnrw835uzllf2tafxpxqx4syn5uyg.webp',
+    count: 7,
     nfts: [],
   },
   {
-    collectionId: 'col18xt62r9e3t3qz47vk9hfvycmdpgvlkquzge7k4xhk65y55jq8jrsqqaag4',
-    collectionName: 'Sealed Sats',
-    previewImage: 'https://assets.mintgarden.io/thumbnails/sealed-sats-preview.webp',
-    count: 2,
-    nfts: [],
-  },
-  {
-    collectionId: 'col1lcpkj6gxsm8u9y7jyaxqp2ytq3ue3vm3g2y9l4kzwhp7d0ektvrq6d8tdp',
-    collectionName: 'Chia Friends',
-    previewImage: 'https://assets.mintgarden.io/thumbnails/9f5eb87ad5fe9c51e3c4d7c0b3a8ce1f2e6d94a8b7c2d1e0f3a4b5c6d7e8f9a0.webp',
+    collectionId: 'col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah',
+    collectionName: 'Wojak Farmers Plot',
+    previewImage: 'https://assets.mainnet.mintgarden.io/thumbnails/col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah.webp',
     count: 1,
     nfts: [],
   },
   {
-    collectionId: 'col1nftx7tjxwgqvqnqfj8wgqm5yw0gwc42mcpt7r5dc7m3k3l0y77nspqpfv0',
-    collectionName: 'Wojak Farmers Plot',
-    previewImage: 'https://assets.mintgarden.io/thumbnails/wojak-farmers-preview.webp',
-    count: 5,
+    collectionId: 'col1usgumm07jjcvu9mtjhk0uy952v93dcgm9rstyzqvs3hl40f88a7qnhzjug',
+    collectionName: 'PIXEL WIzNerdz',
+    previewImage: 'https://assets.mainnet.mintgarden.io/thumbnails/col1usgumm07jjcvu9mtjhk0uy952v93dcgm9rstyzqvs3hl40f88a7qnhzjug.webp',
+    count: 2,
+    nfts: [],
+  },
+  {
+    collectionId: 'col1tezjkmzhnry4uhy3xpg0f2n2twdxy6mdrcsfknt5y845wut5jazqlv80yt',
+    collectionName: 'TangBears on Chia',
+    previewImage: 'https://assets.mainnet.mintgarden.io/thumbnails/col1tezjkmzhnry4uhy3xpg0f2n2twdxy6mdrcsfknt5y845wut5jazqlv80yt.webp',
+    count: 1,
+    nfts: [],
+  },
+  {
+    collectionId: 'col1plry33gyzls4hds5e0kfd4tqv455rgm5u3gw8ww444m7w5jq2lrs4tqhfy',
+    collectionName: 'The Casting',
+    previewImage: 'https://assets.mainnet.mintgarden.io/thumbnails/col1plry33gyzls4hds5e0kfd4tqv455rgm5u3gw8ww444m7w5jq2lrs4tqhfy.webp',
+    count: 1,
+    nfts: [],
+  },
+  {
+    collectionId: 'col14kh39nze5e0c3l4w45d5r5jnm36kxe5zzasmlsqqqhwnphu3edfsh8wl49',
+    collectionName: 'Spellbeaks',
+    previewImage: 'https://assets.mainnet.mintgarden.io/thumbnails/col14kh39nze5e0c3l4w45d5r5jnm36kxe5zzasmlsqqqhwnphu3edfsh8wl49.webp',
+    count: 1,
+    nfts: [],
+  },
+  {
+    collectionId: 'col1dvgy0lmaqx765hcjauwt492pj967cgcd2qtrzfq9kwuhkpl0nyks42fe2f',
+    collectionName: 'ÆTHERSPAWN',
+    previewImage: 'https://assets.mainnet.mintgarden.io/thumbnails/col1dvgy0lmaqx765hcjauwt492pj967cgcd2qtrzfq9kwuhkpl0nyks42fe2f.webp',
+    count: 1,
+    nfts: [],
+  },
+  {
+    collectionId: 'col1h8rvc3pcsjsr4632nts2x5v4pvqm583p40gfhv0u84j8mseju5vqy4j6ul',
+    collectionName: 'LORDTS',
+    previewImage: 'https://assets.mainnet.mintgarden.io/thumbnails/col1h8rvc3pcsjsr4632nts2x5v4pvqm583p40gfhv0u84j8mseju5vqy4j6ul.webp',
+    count: 1,
     nfts: [],
   },
 ];

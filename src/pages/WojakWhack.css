@@ -276,13 +276,13 @@
   bottom: 15%;
   left: 50%;
   transform: translateX(-50%) translateY(100%);
-  font-size: 50px;
+  font-size: 200px;
   z-index: 2;
   pointer-events: none;
 }
 
 .mobile .ww-character {
-  font-size: 40px;
+  font-size: 150px;
 }
 
 .ww-character.popping {
@@ -418,7 +418,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 500;
+  pointer-events: auto;
   padding: 20px;
   animation: ww-game-over-appear 0.5s ease-out;
 }
@@ -436,11 +437,8 @@
 
 .ww-game-over-content {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 12px;
-  max-width: 400px;
+  gap: 24px;
+  max-width: 500px;
   width: 100%;
   animation: ww-game-over-content 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
 }
@@ -456,12 +454,33 @@
   }
 }
 
+.mobile .ww-game-over-content {
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.ww-game-over-left {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .ww-game-over-emoji {
-  font-size: 5rem;
+  font-size: 8rem;
+}
+
+.ww-game-over-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
 }
 
 .ww-game-over-title {
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: 800;
   color: #ff6b00;
   margin: 0;
@@ -475,7 +494,7 @@
 }
 
 .ww-final-score-value {
-  font-size: 3.5rem;
+  font-size: 3rem;
   font-weight: 800;
   color: #fff;
   text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
@@ -548,12 +567,12 @@
 .ww-game-over-buttons {
   display: flex;
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .ww-play-btn {
-  padding: 14px 36px;
-  font-size: 1.1rem;
+  padding: 12px 32px;
+  font-size: 1rem;
   font-weight: 700;
   color: #fff;
   background: linear-gradient(135deg, #ff6b00, #ff8533);
@@ -573,21 +592,178 @@
   transform: translateY(0);
 }
 
-.ww-back-to-games-btn {
-  padding: 12px 24px;
-  font-size: 0.9rem;
+.ww-leaderboard-btn {
+  padding: 12px 20px;
+  font-size: 0.95rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
-  background: transparent;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.ww-back-to-games-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+.ww-leaderboard-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
   border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Back to Games - positioned in safe area (bottom right corner) */
+.ww-back-to-games-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 100;
+}
+
+.ww-back-to-games-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ============================================
+   LEADERBOARD OVERLAY & PANEL
+   ============================================ */
+
+.ww-leaderboard-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 700;
+  animation: ww-fade-in 0.2s ease;
+}
+
+@keyframes ww-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ww-leaderboard-panel {
+  width: 360px;
+  max-width: 90%;
+  max-height: 80%;
+  background: rgba(20, 20, 30, 0.98);
+  border: 1px solid rgba(255, 107, 0, 0.4);
+  border-radius: 20px;
+  padding: 24px;
+  backdrop-filter: blur(20px);
+  animation: ww-scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow-y: auto;
+}
+
+@keyframes ww-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.ww-leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ww-leaderboard-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ff6b00;
+}
+
+.ww-leaderboard-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.25rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.ww-leaderboard-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.ww-leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ww-leaderboard-entry {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: background 0.2s ease;
+}
+
+.ww-leaderboard-entry:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ww-leaderboard-entry.current-user {
+  background: rgba(255, 107, 0, 0.2);
+  border: 1px solid rgba(255, 107, 0, 0.5);
+}
+
+.ww-leaderboard-rank {
+  width: 36px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.ww-leaderboard-entry:nth-child(1) .ww-leaderboard-rank { color: #FFD700; }
+.ww-leaderboard-entry:nth-child(2) .ww-leaderboard-rank { color: #C0C0C0; }
+.ww-leaderboard-entry:nth-child(3) .ww-leaderboard-rank { color: #CD7F32; }
+
+.ww-leaderboard-name {
+  flex: 1;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.ww-leaderboard-score {
+  color: #ff6b00;
+  font-weight: 700;
+  min-width: 50px;
+  text-align: right;
+  font-size: 1rem;
 }
 
 /* ============================================
@@ -620,12 +796,37 @@
   }
 
   .ww-game-over-buttons {
-    flex-direction: column;
+    flex-direction: row;
     width: 100%;
+    gap: 8px;
   }
 
   .ww-play-btn,
+  .ww-leaderboard-btn {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+
   .ww-back-to-games-btn {
-    width: 100%;
+    bottom: 16px;
+    right: 16px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+  }
+
+  .ww-leaderboard-panel {
+    width: calc(100% - 32px);
+    max-height: 70%;
+    padding: 20px;
+  }
+
+  .ww-leaderboard-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .ww-leaderboard-entry {
+    padding: 10px 12px;
+    font-size: 0.9rem;
   }
 }

@@ -3,6 +3,12 @@
  *
  * Core sound management class using audio element pooling for low latency.
  * Handles preloading, volume control, and sound playback.
+ *
+ * JUICE PHILOSOPHY:
+ * - All sounds have slight pitch variation (±5%) to prevent fatigue
+ * - Positive sounds pitched slightly up (1.05-1.1)
+ * - Negative sounds pitched slightly down (0.95)
+ * - Combos escalate in pitch to create "I want to hear the next one" addiction
  */
 
 import { type SoundName, type SoundDefinition, SOUND_DEFINITIONS } from './sounds';
@@ -17,6 +23,42 @@ interface SoundPool {
   instances: SoundInstance[];
   currentIndex: number;
 }
+
+// Default pitch settings for sound categories
+const SOUND_PITCH_DEFAULTS: Partial<Record<SoundName, { base: number; variation: number }>> = {
+  // Positive sounds - pitched slightly up
+  'score': { base: 1.05, variation: 0.05 },
+  'success': { base: 1.08, variation: 0.05 },
+  'high-score': { base: 1.0, variation: 0.03 },
+  'achievement': { base: 1.0, variation: 0.02 },
+  'currency-earn': { base: 1.1, variation: 0.08 },
+  'level-up': { base: 1.05, variation: 0.03 },
+
+  // Combo sounds - escalating pitch built into the sounds
+  'combo-1': { base: 1.0, variation: 0.03 },
+  'combo-2': { base: 1.0, variation: 0.03 },
+  'combo-3': { base: 1.0, variation: 0.03 },
+  'combo-4': { base: 1.0, variation: 0.03 },
+  'combo-5': { base: 1.0, variation: 0.03 },
+  'combo-max': { base: 1.0, variation: 0.02 },
+
+  // Neutral/feedback sounds
+  'button-click': { base: 1.0, variation: 0.05 },
+  'countdown': { base: 1.0, variation: 0.0 }, // Keep consistent
+  'countdown-go': { base: 1.05, variation: 0.02 },
+  'game-start': { base: 1.02, variation: 0.02 },
+
+  // Negative sounds - pitched slightly down, NOT punishing
+  'game-over': { base: 0.98, variation: 0.02 },
+  'error': { base: 0.95, variation: 0.03 },
+  'warning': { base: 1.0, variation: 0.02 },
+
+  // Vote sounds - playful variation
+  'vote-whoosh': { base: 1.1, variation: 0.15 },
+  'vote-splat': { base: 1.15, variation: 0.2 },
+  'vote-plop': { base: 0.95, variation: 0.2 },
+  'vote-rain': { base: 1.0, variation: 0.0 },
+};
 
 class SoundManagerClass {
   private pools: Map<SoundName, SoundPool> = new Map();
@@ -126,10 +168,25 @@ class SoundManagerClass {
   }
 
   /**
-   * Play a sound
+   * Play a sound with automatic pitch variation for juicy feel
    */
   play(name: SoundName, volumeMultiplier: number = 1): void {
-    this.playWithOptions(name, { volumeMultiplier });
+    // Get default pitch settings for this sound
+    const pitchDefaults = SOUND_PITCH_DEFAULTS[name];
+
+    if (pitchDefaults) {
+      this.playWithOptions(name, {
+        volumeMultiplier,
+        pitchShift: pitchDefaults.base,
+        pitchVariation: pitchDefaults.variation,
+      });
+    } else {
+      // No defaults - use small default variation to prevent fatigue
+      this.playWithOptions(name, {
+        volumeMultiplier,
+        pitchVariation: 0.03, // ±3% by default
+      });
+    }
   }
 
   /**
@@ -211,6 +268,50 @@ class SoundManagerClass {
       pitchVariation: 0.2, // More variation keeps it fresh
       pitchShift: type === 'donut' ? 1.15 : 0.95, // Donut higher, poop lower
     });
+  }
+
+  /**
+   * Play combo sound with escalating pitch based on combo level
+   * THE ADDICTION ENGINE: Each level sounds slightly higher,
+   * making players subconsciously want to hear the next one
+   */
+  playCombo(level: number): void {
+    // Get the appropriate combo sound
+    let soundName: SoundName;
+    if (level >= 10) soundName = 'combo-max';
+    else if (level >= 8) soundName = 'combo-5';
+    else if (level >= 6) soundName = 'combo-4';
+    else if (level >= 4) soundName = 'combo-3';
+    else if (level >= 2) soundName = 'combo-2';
+    else soundName = 'combo-1';
+
+    // Calculate pitch multiplier based on combo level
+    // Each level adds ~6% pitch (roughly a semitone)
+    const semitones = Math.min(level - 1, 11); // Cap at one octave
+    const pitchMultiplier = Math.pow(2, semitones / 12);
+
+    // Clamp to reasonable range
+    const finalPitch = Math.min(Math.max(pitchMultiplier, 0.8), 2.0);
+
+    this.playWithOptions(soundName, {
+      volumeMultiplier: Math.min(0.6 + level * 0.05, 1.0), // Volume increases with combo
+      pitchShift: finalPitch,
+      pitchVariation: 0.02, // Small variation to keep it fresh
+    });
+  }
+
+  /**
+   * Play a satisfying score sound with slight positive pitch
+   */
+  playScore(): void {
+    this.play('score');
+  }
+
+  /**
+   * Play game over sound - gentle, not punishing
+   */
+  playGameOver(): void {
+    this.play('game-over');
   }
 
   /**

@@ -124,7 +124,10 @@ export default function BrickBreaker() {
     showEpicCallout,
     addScorePopup,
   } = useGameEffects();
-  const { submitScore, isSignedIn } = useLeaderboard('brick-breaker');
+  const { submitScore, isSignedIn, leaderboard: globalLeaderboard } = useLeaderboard('brick-breaker');
+
+  // Leaderboard panel state
+  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   // Game dimensions
   const [gameWidth, setGameWidth] = useState(DESKTOP_WIDTH);
@@ -937,46 +940,85 @@ export default function BrickBreaker() {
 
       {/* Game over overlay */}
       {status === 'gameover' && (
-        <div className="bb-game-over-overlay">
+        <div className="bb-game-over-overlay" onClick={(e) => e.stopPropagation()}>
+          {/* Main Game Over Content */}
           <div className="bb-game-over-content">
-            <div className="bb-game-over-emoji">💥</div>
-            <h2 className="bb-game-over-title">GAME OVER</h2>
-
-            <div className="bb-game-over-score">
-              <span className="bb-score-value">{score}</span>
-              <span className="bb-score-label">Final Score</span>
+            <div className="bb-game-over-left">
+              <div className="bb-game-over-emoji">💥</div>
             </div>
+            <div className="bb-game-over-right">
+              <h2 className="bb-game-over-title">GAME OVER</h2>
 
-            <div className="bb-game-over-stats">
-              <div className="bb-stat">
-                <span className="bb-stat-value">{level}</span>
-                <span className="bb-stat-label">Level</span>
+              <div className="bb-game-over-score">
+                <span className="bb-score-value">{score}</span>
+                <span className="bb-score-label">Final Score</span>
               </div>
-              <div className="bb-stat">
-                <span className="bb-stat-value">{totalBricksDestroyedRef.current}</span>
-                <span className="bb-stat-label">Bricks</span>
-              </div>
-            </div>
 
-            {isNewHighScore && <div className="bb-new-record">NEW HIGH SCORE!</div>}
-            {submitted && (
-              <div className="bb-submitted">
-                {isSignedIn ? 'Score submitted!' : 'Sign in to save scores'}
+              <div className="bb-game-over-stats">
+                <div className="bb-stat">
+                  <span className="bb-stat-value">{level}</span>
+                  <span className="bb-stat-label">Level</span>
+                </div>
+                <div className="bb-stat">
+                  <span className="bb-stat-value">{totalBricksDestroyedRef.current}</span>
+                  <span className="bb-stat-label">Bricks</span>
+                </div>
               </div>
-            )}
 
-            <div className="bb-game-over-buttons">
-              <button className="bb-play-btn" onClick={startGame}>
-                PLAY AGAIN
-              </button>
-              <button
-                className="bb-back-to-games-btn"
-                onClick={() => navigate('/games')}
-              >
-                Back to Games
-              </button>
+              {isNewHighScore && <div className="bb-new-record">NEW HIGH SCORE!</div>}
+              {submitted && (
+                <div className="bb-submitted">
+                  {isSignedIn ? 'Score submitted!' : 'Sign in to save scores'}
+                </div>
+              )}
+
+              {/* Buttons: Play Again + Leaderboard */}
+              <div className="bb-game-over-buttons">
+                <button className="bb-play-btn" onClick={startGame}>
+                  Play Again
+                </button>
+                <button
+                  onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                  className="bb-leaderboard-btn"
+                >
+                  Leaderboard
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Leaderboard Panel - overlays on top */}
+          {showLeaderboardPanel && (
+            <div className="bb-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
+              <div className="bb-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
+                <div className="bb-leaderboard-header">
+                  <h3>Leaderboard</h3>
+                  <button className="bb-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                </div>
+                <div className="bb-leaderboard-list">
+                  {Array.from({ length: 10 }, (_, index) => {
+                    const entry = globalLeaderboard[index];
+                    const isCurrentUser = entry && score === entry.score;
+                    return (
+                      <div key={index} className={`bb-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                        <span className="bb-leaderboard-rank">#{index + 1}</span>
+                        <span className="bb-leaderboard-name">{entry?.displayName || '---'}</span>
+                        <span className="bb-leaderboard-score">{entry?.score ?? '-'}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Back to Games - positioned in safe area (bottom right) */}
+          <button
+            onClick={() => { window.location.href = '/games'; }}
+            className="bb-back-to-games-btn"
+          >
+            Back to Games
+          </button>
         </div>
       )}
     </div>

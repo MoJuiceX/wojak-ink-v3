@@ -5,7 +5,6 @@ import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useAudio } from '@/contexts/AudioContext';
 import { useGameEffects, GameEffects } from '@/components/media';
-import { ShareButton } from '@/systems/sharing';
 import './MemoryMatch.css';
 
 interface NFTMetadata {
@@ -40,7 +39,7 @@ const ROUND_CONFIG: { pairs: number; baseFilter?: string }[] = [
 ];
 
 // Base time for round 1, increases 20% each round
-const BASE_TIME = 35;
+const BASE_TIME = 40; // Increased 15% from 35
 const TIME_INCREASE_PER_ROUND = 1.20; // 20% more time each round
 
 interface Card {
@@ -138,6 +137,9 @@ const MemoryMatch: React.FC = () => {
 
   // Track flipped cards with ref to avoid race conditions with rapid clicks
   const flippedCardsRef = useRef<number[]>([]);
+  // Debounce rapid clicks - track last click time
+  const lastClickTimeRef = useRef<number>(0);
+  const CLICK_DEBOUNCE_MS = 100; // Minimum ms between clicks
 
   // Load metadata on mount
   useEffect(() => {
@@ -285,6 +287,7 @@ const MemoryMatch: React.FC = () => {
     setCards(newCards);
     setFlippedCards([]);
     flippedCardsRef.current = []; // Reset ref too
+    lastClickTimeRef.current = 0; // Reset debounce timer
     setMoves(0);
     setMatches(0);
     setTimeLeft(config.time);
@@ -415,6 +418,11 @@ const MemoryMatch: React.FC = () => {
   const handleCardClick = (cardId: number) => {
     if (gameState !== 'playing' || isChecking) return;
 
+    // Debounce rapid clicks to prevent race conditions
+    const now = Date.now();
+    if (now - lastClickTimeRef.current < CLICK_DEBOUNCE_MS) return;
+    lastClickTimeRef.current = now;
+
     // Use ref for immediate, synchronous checks to prevent race conditions
     const currentFlipped = flippedCardsRef.current;
 
@@ -476,78 +484,105 @@ const MemoryMatch: React.FC = () => {
 
       if (firstCard.nftId === secondCard.nftId) {
         // Match found!
+        // Capture config values BEFORE setTimeout to avoid closure issues
+        const pairsForMilestone = Math.floor(currentConfig.pairs * 0.75);
+
         setTimeout(() => {
-          playMatchFound();
-          hapticSuccess(); // Success haptic on match
-          setCards(prev =>
-            prev.map(c =>
-              c.id === firstId || c.id === secondId
-                ? { ...c, isMatched: true }
-                : c
-            )
-          );
-
-          // Update streak and combo
-          const newStreak = streak + 1;
-          setStreak(newStreak);
-          updateCombo(newStreak);
-
-          // Calculate time bonus for fast matches
-          const now = Date.now();
-          const timeSinceLastMatch = lastMatchTime ? now - lastMatchTime : 999999;
-          const isFastMatch = timeSinceLastMatch < 2500;
-          setLastMatchTime(now);
-
-          // Trigger visual effects
-          triggerBigMoment({
-            shockwave: true,
-            sparks: newStreak >= 2,
-            shake: newStreak >= 4,
-            vignette: newStreak >= 5,
-            emoji: newStreak >= 3 ? '🔥' : '✨',
-            score: 10 + (newStreak * 5),
-            scorePrefix: isFastMatch ? 'FAST' : undefined,
-            x: 50,
-            y: 50,
-          });
-
-          // Fast match bonus callout
-          if (isFastMatch && newStreak >= 2) {
-            setTimeout(() => showEpicCallout('⚡ SPEED BONUS!'), 400);
+          try {
+            playMatchFound();
+            hapticSuccess(); // Success haptic on match
+          } catch (e) {
+            // Sound/haptic errors shouldn't break the game
           }
 
-          // Update match count
-          setMatches(prev => {
-            const newMatches = prev + 1;
-            // Milestone celebrations
-            if (newMatches === 5) {
-              setTimeout(() => showEpicCallout('🎯 HALFWAY!'), 500);
-            } else if (newMatches === Math.floor(currentConfig.pairs * 0.75)) {
-              setTimeout(() => showEpicCallout('🔥 ALMOST THERE!'), 500);
-            }
-            return newMatches;
-          });
+          try {
+            setCards(prev =>
+              prev.map(c =>
+                c.id === firstId || c.id === secondId
+                  ? { ...c, isMatched: true }
+                  : c
+              )
+            );
 
-          flippedCardsRef.current = [];
-          setFlippedCards([]);
-          setIsChecking(false);
+            // Update streak and combo
+            const newStreak = streak + 1;
+            setStreak(newStreak);
+            updateCombo(newStreak);
+
+            // Calculate time bonus for fast matches
+            const now = Date.now();
+            const timeSinceLastMatch = lastMatchTime ? now - lastMatchTime : 999999;
+            const isFastMatch = timeSinceLastMatch < 2500;
+            setLastMatchTime(now);
+
+            // Trigger visual effects
+            try {
+              triggerBigMoment({
+                shockwave: true,
+                sparks: newStreak >= 2,
+                shake: newStreak >= 4,
+                vignette: newStreak >= 5,
+                emoji: newStreak >= 3 ? '🔥' : '✨',
+                score: 10 + (newStreak * 5),
+                scorePrefix: isFastMatch ? 'FAST' : undefined,
+                x: 50,
+                y: 50,
+              });
+
+              // Fast match bonus callout
+              if (isFastMatch && newStreak >= 2) {
+                setTimeout(() => showEpicCallout('⚡ SPEED BONUS!'), 400);
+              }
+            } catch (e) {
+              // Visual effects errors shouldn't break the game
+            }
+
+            // Update match count - CRITICAL for game completion
+            setMatches(prev => {
+              const newMatches = prev + 1;
+              // Milestone celebrations
+              try {
+                if (newMatches === 5) {
+                  setTimeout(() => showEpicCallout('🎯 HALFWAY!'), 500);
+                } else if (newMatches === pairsForMilestone) {
+                  setTimeout(() => showEpicCallout('🔥 ALMOST THERE!'), 500);
+                }
+              } catch (e) {
+                // Callout errors shouldn't break match counting
+              }
+              return newMatches;
+            });
+          } catch (e) {
+            console.error('Error in match handler:', e);
+          } finally {
+            // ALWAYS reset state to allow more clicks
+            flippedCardsRef.current = [];
+            setFlippedCards([]);
+            setIsChecking(false);
+          }
         }, 800);
       } else {
         // No match - flip back and reset streak
         setTimeout(() => {
-          setCards(prev =>
-            prev.map(c =>
-              c.id === firstId || c.id === secondId
-                ? { ...c, isFlipped: false }
-                : c
-            )
-          );
-          // Reset streak on mismatch
-          setStreak(0);
-          resetCombo();
-          flippedCardsRef.current = [];
-          setFlippedCards([]);
-          setIsChecking(false);
+          try {
+            setCards(prev =>
+              prev.map(c =>
+                c.id === firstId || c.id === secondId
+                  ? { ...c, isFlipped: false }
+                  : c
+              )
+            );
+            // Reset streak on mismatch
+            setStreak(0);
+            resetCombo();
+          } catch (e) {
+            console.error('Error in mismatch handler:', e);
+          } finally {
+            // ALWAYS reset state to allow more clicks
+            flippedCardsRef.current = [];
+            setFlippedCards([]);
+            setIsChecking(false);
+          }
         }, 1200);
       }
     }
@@ -654,166 +689,107 @@ const MemoryMatch: React.FC = () => {
 
           {/* Game Over - Time's Up */}
           {gameState === 'gameover' && (
-            <div className="game-over-screen">
-              {/* Left side - Image */}
-              <div className="game-over-left">
-                {sadImage ? (
-                  <img
-                    src={sadImage}
-                    alt="Game Over"
-                    className="sad-image-large"
-                  />
-                ) : (
-                  <div className="game-over-emoji">⏰</div>
-                )}
-
-                {/* Slide-in Leaderboard Panel */}
-                <div className={`leaderboard-slide-panel ${showLeaderboardPanel ? 'open' : ''}`}>
-                  <div className="leaderboard-panel-header">
-                    <h3>{globalLeaderboard.length > 0 ? 'Global Leaderboard' : 'Leaderboard'}</h3>
-                    <button className="leaderboard-close-btn" onClick={() => setShowLeaderboardPanel(false)}>×</button>
-                  </div>
-                  <div className="leaderboard-panel-list">
-                    {Array.from({ length: 10 }, (_, index) => {
-                      const entry = displayLeaderboard[index];
-                      const isCurrentUser = entry && totalScore === entry.score;
-                      return (
-                        <div key={index} className={`leaderboard-panel-entry ${isCurrentUser ? 'current-user' : ''}`}>
-                          <span className="leaderboard-panel-rank">#{index + 1}</span>
-                          <span className="leaderboard-panel-name">{entry?.name || '---'}</span>
-                          <span className="leaderboard-panel-score">{entry?.score || '-'}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right side - Content */}
-              <div className="game-over-right">
-                <div className="game-over-title">Time's Up!</div>
-
-                <div className="game-over-reason">
-                  You reached Round {round}
-                </div>
-
-                <div className="game-over-score">
-                  <span className="game-over-score-value">{totalScore}</span>
-                  <span className="game-over-score-label">total points</span>
-                </div>
-
-                {/* New Personal Best celebration */}
-                {(isNewPersonalBest || totalScore > highScore) && totalScore > 0 && (
-                  <div className="game-over-record">🌟 New Personal Best! 🌟</div>
-                )}
-
-                {totalScore > 0 ? (
-                  isSignedIn ? (
-                    // Signed-in user - auto-submitted
-                    <div className="game-over-form">
-                      <div className="game-over-submitted">
-                        {isSubmitting ? (
-                          <span>Saving score...</span>
-                        ) : scoreSubmitted ? (
-                          <span>Score saved as {userDisplayName || 'Anonymous'}!</span>
-                        ) : null}
-                      </div>
-                      <div className="game-over-buttons">
-                        <button onClick={startGame} className="play-btn">
-                          Play Again
-                        </button>
-                        <button onClick={goToMenu} className="play-btn" style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
-                          Menu
-                        </button>
-                      </div>
-                      {/* Leaderboard button */}
-                      <button
-                        className="leaderboard-toggle-btn"
-                        onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                      >
-                        {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
-                      </button>
-                      {/* Share button */}
-                      <ShareButton
-                        scoreData={{
-                          gameId: 'memory-match',
-                          gameName: 'Memory Match',
-                          score: totalScore,
-                          highScore,
-                          isNewHighScore: isNewPersonalBest || totalScore > highScore,
-                          rank: undefined
-                        }}
-                        variant="button"
-                      />
-                    </div>
+            <div className="mm-game-over-overlay" onClick={(e) => e.stopPropagation()}>
+              {/* Main Game Over Content - stays fixed */}
+              <div className="mm-game-over-content">
+                <div className="mm-game-over-left">
+                  {sadImage ? (
+                    <img src={sadImage} alt="Game Over" className="mm-sad-image" />
                   ) : (
-                    // Guest - show name input
-                    <div className="game-over-form">
+                    <div className="mm-game-over-emoji">⏰</div>
+                  )}
+                </div>
+                <div className="mm-game-over-right">
+                  <h2 className="mm-game-over-title">Time's Up!</h2>
+
+                  <div className="mm-game-over-reason">
+                    You reached Round {round}
+                  </div>
+
+                  <div className="mm-game-over-score">
+                    <span className="mm-score-value">{totalScore}</span>
+                    <span className="mm-score-label">total points</span>
+                  </div>
+
+                  <div className="mm-game-over-stats">
+                    <div className="mm-stat">
+                      <span className="mm-stat-value">{highScore}</span>
+                      <span className="mm-stat-label">best</span>
+                    </div>
+                  </div>
+
+                  {(isNewPersonalBest || totalScore > highScore) && totalScore > 0 && (
+                    <div className="mm-new-record">New Personal Best!</div>
+                  )}
+
+                  {isSignedIn && (
+                    <div className="mm-submitted">
+                      {isSubmitting ? 'Saving...' : scoreSubmitted ? `Saved as ${userDisplayName}!` : ''}
+                    </div>
+                  )}
+
+                  {/* Guest name input */}
+                  {!isSignedIn && totalScore > 0 && (
+                    <div className="mm-guest-form">
                       <input
                         type="text"
-                        className="game-over-input"
+                        className="mm-name-input"
                         placeholder="Enter your name"
                         value={playerName}
                         onChange={(e) => setPlayerName(e.target.value)}
                         maxLength={15}
                         onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
                       />
-                      <div className="game-over-buttons">
-                        <button
-                          onClick={saveScoreLocal}
-                          className="game-over-save"
-                          disabled={!playerName.trim()}
-                        >
-                          Save Score
-                        </button>
-                        <button onClick={skipSaveScore} className="game-over-skip">
-                          Skip
-                        </button>
-                      </div>
-                      {/* Leaderboard button */}
-                      <button
-                        className="leaderboard-toggle-btn"
-                        onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                      >
-                        {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
-                      </button>
-                      {/* Share button */}
-                      <ShareButton
-                        scoreData={{
-                          gameId: 'memory-match',
-                          gameName: 'Memory Match',
-                          score: totalScore,
-                          highScore,
-                          isNewHighScore: isNewPersonalBest || totalScore > highScore,
-                          rank: undefined
-                        }}
-                        variant="button"
-                      />
                     </div>
-                  )
-                ) : (
-                  <div className="game-over-buttons-single">
-                    <button onClick={startGame} className="play-btn">
-                      Try Again
+                  )}
+
+                  {/* Buttons: Play Again + Leaderboard */}
+                  <div className="mm-game-over-buttons">
+                    <button onClick={!isSignedIn && playerName.trim() ? saveScoreLocal : startGame} className="mm-play-btn">
+                      {!isSignedIn && playerName.trim() ? 'Save & Play' : 'Play Again'}
                     </button>
-                    <button onClick={goToMenu} className="game-over-skip">
-                      Menu
+                    <button
+                      onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                      className="mm-leaderboard-btn"
+                    >
+                      Leaderboard
                     </button>
-                    {/* Share button */}
-                    <ShareButton
-                      scoreData={{
-                        gameId: 'memory-match',
-                        gameName: 'Memory Match',
-                        score: totalScore,
-                        highScore,
-                        isNewHighScore: false,
-                        rank: undefined
-                      }}
-                      variant="button"
-                    />
                   </div>
-                )}
+                </div>
               </div>
+
+              {/* Leaderboard Panel - overlays on top */}
+              {showLeaderboardPanel && (
+                <div className="mm-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
+                  <div className="mm-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
+                    <div className="mm-leaderboard-header">
+                      <h3>Leaderboard</h3>
+                      <button className="mm-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                    </div>
+                    <div className="mm-leaderboard-list">
+                      {Array.from({ length: 10 }, (_, index) => {
+                        const entry = displayLeaderboard[index];
+                        const isCurrentUser = entry && totalScore === entry.score;
+                        return (
+                          <div key={index} className={`mm-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                            <span className="mm-leaderboard-rank">#{index + 1}</span>
+                            <span className="mm-leaderboard-name">{entry?.name || '---'}</span>
+                            <span className="mm-leaderboard-score">{entry?.score ?? '-'}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Back to Games - positioned in safe area (bottom right) */}
+              <button
+                onClick={() => { window.location.href = '/games'; }}
+                className="mm-back-to-games-btn"
+              >
+                Back to Games
+              </button>
             </div>
           )}
 

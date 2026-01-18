@@ -948,7 +948,8 @@
 }
 
 .sad-image-large {
-  width: 100%;
+  width: 200px;
+  height: 200px;
   max-width: 387px;
   height: auto;
   max-height: 90%;
@@ -968,7 +969,7 @@
 }
 
 .game-over-emoji {
-  font-size: 180px;
+  font-size: 8rem;
   animation: bounce 1.5s ease-in-out infinite;
   filter: drop-shadow(0 8px 32px rgba(0, 0, 0, 0.4));
 }
@@ -1215,6 +1216,7 @@
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  line-height: 1;
 }
 
 .juggle-container .leaderboard-close-btn:hover {
@@ -1365,6 +1367,8 @@
   }
 
   .juggle-container .sad-image-large {
+    width: 150px;
+    height: 150px;
     max-height: 140px;
     max-width: 200px;
   }
