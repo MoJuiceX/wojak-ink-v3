@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 public/assets/wojak-layers/*.md
+
+# Local Claude context (personal preferences)
+.claude/CLAUDE.local.md

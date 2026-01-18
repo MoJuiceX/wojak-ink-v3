@@ -1,294 +1,175 @@
-# Session Learnings Log
+# Learnings Log
 
-> Append learnings here during sessions. Periodically merge into CLAUDE.md.
+<!-- Last consolidated: 2026-01-18 -->
+<!-- Next review: 2026-01-25 -->
+
+## Format Guide
+Each entry: `### [DATE] [CATEGORY] Title`
+Categories: BUG, PATTERN, GOTCHA, API, PERF, DECISION
+Status: ACTIVE | STALE | ARCHIVED
 
 ---
 
-## Template
+## Active Learnings
 
-```markdown
-### [Date] - [Topic]
-**What we did:**
-- ...
-
-**What we learned:**
-- ...
-
-**Should add to CLAUDE.md:**
-- [ ] New pattern/convention
-- [ ] New gotcha/fix
-- [ ] Updated file reference
+### [2026-01-18] [PATTERN] Landing Page Floating NFTs Animation
+**Problem**: NFTs "jumping" when scale animation restarts, and overlapping scroll dots
+**Solution**:
+- Use `AnimatePresence mode="popLayout"` for smooth crossfades without layout jump
+- Scale animation ONCE on mount, then only floating/breathing animation continues
+- Position right-side NFTs at x: 78-82% to avoid scroll navigation dots
+**Files**: `src/components/landing/FloatingNFTs.tsx`
+**Code**:
+```tsx
+<AnimatePresence mode="popLayout">
+  <motion.img
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0, scale: 1.05 }}
+    transition={{ duration: 1.2, ease: 'easeInOut' }}
+  />
+</AnimatePresence>
 ```
+**Status**: ACTIVE
 
 ---
 
-## Recent Learnings
+### [2026-01-18] [PATTERN] Rotating Taglines with AnimatePresence
+**Problem**: Taglines needed smooth rotation every 4 seconds
+**Solution**: useState + setInterval with AnimatePresence mode="wait"
+**Files**: `src/components/landing/HeroSection.tsx`
+**Code**:
+```tsx
+const TAGLINES = ['4,200 Unique Wojaks on Chia', 'Banger NFTs on Chia', ...];
 
-### 2026-01-14 - CAT Token Price Fixes
-**What we did:**
-- Fixed SPROUT, PIZZA, G4M token conversion rates
-- Added `fixSuspiciousSales()` auto-correction
-- Fixed NFT naming to use base character from metadata
-
-**What we learned:**
-- CAT tokens need manual rate lookup (Dexie doesn't provide rates)
-- `fixSuspiciousSales()` must run AFTER sync, not before
-- NFT names come from "Base" attribute in metadata
-
-**Added to CLAUDE.md:** ✅ Done
-
----
-
-### 2026-01-14 - Context Management System
-**What we did:**
-- Created automatic learnings capture system
-- Added LEARNINGS.md for quick capture
-- Added scripts for AI-powered CLAUDE.md updates
-- Made pre-compression capture MANDATORY in CLAUDE.md
-
-**What we learned:**
-- Context compression loses detailed debugging steps
-- Best time to capture learnings is BEFORE compression
-- CLAUDE.md instructions need to be MANDATORY with specific triggers
-- Self-referential instructions work: Claude reads CLAUDE.md and follows it
-
-**Key insight:**
-The article about "context as moat" applies directly to CLAUDE.md:
-- Same model + better context = better results
-- Context compounds over time
-- Automated capture creates a flywheel effect
-
-**Added to CLAUDE.md:** ✅ Done
-
----
-
-### 2026-01-14 - Git Workflow: Branches Not Folders
-**What happened:**
-- Had two folders: `wojak-ink-mobile` and `wojak-ink-redesign`
-- Both were clones of the same repo, causing confusion
-- One folder was stale, the other had all the work
-
-**What we learned:**
-- NEVER create a new folder for a "redesign" or "version"
-- Use git branches instead: `git checkout -b redesign`
-- One folder, multiple branches = the git way
-- Duplicate folders lead to stale code and confusion
-
-**The fix:**
-```bash
-# For experiments/redesigns:
-git checkout -b experiment-name    # Create branch
-git checkout main                  # Go back to stable
-git merge experiment-name          # Merge when ready
+useEffect(() => {
+  if (prefersReducedMotion) return;
+  const interval = setInterval(() => {
+    setTaglineIndex(prev => (prev + 1) % TAGLINES.length);
+  }, 4000);
+  return () => clearInterval(interval);
+}, [prefersReducedMotion]);
 ```
-
-**Cleanup done:**
-- Renamed `wojak-ink-redesign` → `wojak-ink`
-- Deleted stale `wojak-ink-mobile`
-- New project path: `/Users/abit_hex/wojak-ink`
-
-**Added to CLAUDE.md:** ✅ Done
+**Status**: ACTIVE
 
 ---
 
-### 2026-01-14 - Context7 Plugin Installed
-**What it does:**
-- Fetches live, up-to-date documentation for any library
-- Better than Claude's training data (which can be outdated)
-- Works with Ionic, React, Vite, TanStack Query, etc.
+### [2026-01-18] [BUG] Pong Crash on Win - e.match is not a function
+**Problem**: Error `e.match is not a function` when winning Pong game
+**Cause**: `addScorePopup(scoreAmount, ...)` passed a number, but function expects string
+**Solution**: Changed to `addScorePopup(\`+${scoreAmount}\`, ...)`
+**Files**: `src/pages/OrangePong.tsx:437`
+**Lesson**: When error says "X.match is not a function", search for `.match(` calls and check if variable is actually a string
+**Status**: ACTIVE
 
-**How to use:**
+---
+
+### [2026-01-18] [BUG] Vite Cache Corruption - Hook Errors After HMR
+**Problem**: Pages randomly stop loading with "Cannot read properties of null (reading 'useContext')"
+**Cause**: Vite's dependency pre-bundling cache gets corrupted during hot reload
+**Solution**: `rm -rf node_modules/.vite && npm run dev -- --host`
+**Lesson**: When multiple pages suddenly break with hook errors after HMR, clear Vite cache first
+**Status**: ACTIVE - Promoted to Critical Rules
+
+---
+
+### [2026-01-18] [PATTERN] Vote Sound Pitch Variation
+**Problem**: Vote sounds become repetitive and annoying
+**Solution**: Random pitch variation makes sounds more satisfying
+**Files**: `src/systems/audio/SoundManager.ts`
+**Code**:
+```typescript
+instance.audio.playbackRate = pitchShift * (1 + (Math.random() * 2 - 1) * pitchVariation);
+// pitchVariation: 0.15-0.2 (±15-20%)
+// pitchShift: 1.1 for positive sounds, 0.95 for negative
 ```
-/docs ionic react          # Explicit lookup
-/docs vite proxy           # Specific topic
-"How do I use IonModal?"   # Natural question (auto-triggers)
+**Status**: ACTIVE
+
+---
+
+### [2026-01-18] [PATTERN] Persistent State Across Navigation
+**Problem**: Game balance (donuts/poops) resets when navigating away
+**Solution**: localStorage with useState initializer pattern
+**Files**: `src/pages/GamesHub.tsx`
+**Code**:
+```typescript
+const [balance, setBalance] = useState(() => {
+  const saved = localStorage.getItem('key');
+  return saved !== null ? parseInt(saved, 10) : defaultValue;
+});
+useEffect(() => {
+  localStorage.setItem('key', String(balance));
+}, [balance]);
 ```
-
-**When it auto-triggers:**
-- Questions about library APIs
-- Setup questions for frameworks
-- Code generation involving specific libraries
-- Mentions of React, Ionic, Vite, Prisma, etc.
-
-**Added to CLAUDE.md:** ✅ Done
+**Status**: ACTIVE
 
 ---
 
-### 2026-01-14 - Fixed "No Sales Available" in BigPulp Top 10
-**The problem:**
-- BigPulp page loads and calls `getTopSales()`
-- Sales databank is empty (sync delayed 3 seconds)
-- TanStack Query caches empty array for 1 minute
-- Sync completes with 750+ sales but cached empty result persists
-- User sees "No sales available"
-
-**The fix:**
-- After sync completes, invalidate BigPulp queries
-- Added `queryClient.invalidateQueries({ queryKey: ['bigPulp'] })` in SalesProvider
-- This forces BigPulp components to refetch with new data
-
-**File changed:** `src/providers/SalesProvider.tsx`
-
-**Key learning:**
-When async data loads after initial render, invalidate queries that depend on it.
-
----
-
-### 2026-01-14 - Documentation Pipeline (/sync-docs)
-**What we did:**
-- Created `/sync-docs` skill for automated documentation
-- Created expandable README.md with `<details>` sections
-- Created PROJECT_DOCUMENTATION.md for LLM handoff
-- Updated CLAUDE.md compression workflow to include /sync-docs
-
-**The Pipeline:**
+### [2026-01-14] [PATTERN] Query Invalidation After Async Load
+**Problem**: BigPulp shows "No sales available" after page load
+**Cause**: TanStack Query caches empty array, sync completes later with 750+ sales
+**Solution**: Invalidate queries after sync completes
+**Files**: `src/providers/SalesProvider.tsx`
+**Code**:
+```typescript
+// After sync completes
+queryClient.invalidateQueries({ queryKey: ['bigPulp'] });
 ```
-Session Work → Compression Trigger
-       │
-       ▼
-  LEARNINGS.md → README.md + PROJECT_DOC.md → git push
-```
-
-**Files created:**
-- `~/.claude/skills/sync-docs/SKILL.md` - Skill definition
-- `/Users/abit_hex/wojak-ink/README.md` - Expandable GitHub readme
-- `/Users/abit_hex/wojak-ink/PROJECT_DOCUMENTATION.md` - Comprehensive LLM doc
-
-**How it works:**
-1. Before compression, run `/sync-docs`
-2. Skill updates README.md (Recent Updates section from LEARNINGS.md)
-3. Skill updates PROJECT_DOCUMENTATION.md (full context)
-4. Commits and pushes to GitHub
+**Status**: ACTIVE
 
 ---
 
-### 2026-01-14 - Full Codebase Exploration & Architecture Documentation
-**What we did:**
-- Deep exploration of entire codebase (59,810 lines)
-- Documented API architecture, rate limits, caching strategy
-- Created 2 new skills: `/status` and `/analyze`
-- Updated CLAUDE.md with critical architecture knowledge
-
-**Key discoveries:**
-- 5 external APIs with different rate limits (SpaceScan is VERY strict: 1 req/20s)
-- 3-tier fallback system: Dexie → localStorage → Parse.bot
-- Smart rate limiter in `src/utils/rateLimiter.ts` (450 lines)
-- Preload coordinator predicts user actions and preloads images
-
-**Architecture patterns:**
-- TanStack Query for volatile data (listings, prices)
-- localStorage for persistent data (sales, favorites, settings)
-- Zustand for global state (4 stores)
-- 11 React Contexts for feature-specific state
-
-**What NOT to add:**
-- Repomix plugin (codebase is well-organized)
-- PR review tools (solo developer)
-- Complex sync debugging (uses localStorage, not IndexedDB)
-
-**New skills added:**
-- `/status` - Quick health check (sales count, cache status, sync time)
-- `/analyze [id]` - NFT lookup (traits, sales, BigPulp commentary)
+### [2026-01-14] [GOTCHA] CAT Token Rates Must Run After Sync
+**Problem**: `fixSuspiciousSales()` wasn't correcting bad conversions
+**Cause**: Function ran before sync completed
+**Solution**: Ensure it runs AFTER `syncDexieSales()` completes
+**Status**: ACTIVE - Consolidated to api-patterns.md
 
 ---
 
-### 2026-01-14 - Custom Skills Created
-**What we did:**
-- Created 4 custom skills in `~/.claude/skills/`
-
-**Skills:**
-| Skill | Command | What it does |
-|-------|---------|--------------|
-| deploy | `/deploy` | Build + deploy to Cloudflare Pages |
-| dev | `/dev` | Start dev server with --host for phone testing |
-| sync-sales | `/sync-sales` | Debug sales data issues, run manual sync |
-| add-token | `/add-token` | Add new CAT token conversion rate |
-
-**Location:** `~/.claude/skills/[skill-name]/SKILL.md`
-
-**Usage examples:**
-```
-/deploy           # Build and deploy to production
-/deploy --check   # Build only (dry run)
-/dev              # Start dev server
-/sync-sales       # Diagnose sales issues
-/add-token PIZZA  # Guide to add token rate
-```
+### [2026-01-14] [DECISION] Git Branches Not Folders
+**Problem**: Had two folders (`wojak-ink-mobile`, `wojak-ink-redesign`) causing confusion
+**Solution**: Use git branches: `git checkout -b experiment`
+**Lesson**: One folder, multiple branches = the git way
+**Status**: ACTIVE - Promoted to CLAUDE.md
 
 ---
 
-### 2026-01-18 - Session: Landing Page Redesign, Sound System, Bug Fixes
+## Archived Learnings
 
-**What we did:**
-- Implemented FIX-21 landing page redesign with floating NFTs, rotating taglines, premium effects
-- Added pitch variation to vote sounds for more satisfying feedback
-- Fixed Pong crash on win
-- Removed developer debug buttons from games
-- Fixed sidebar pin positioning
-- Added persistent donut/poop balance
-
-**Bugs fixed:**
-
-1. **Pong crash on win** - Error: `e.match is not a function`
-   - **Cause:** `addScorePopup(scoreAmount, ...)` in `OrangePong.tsx:437` passed a number, but function expects string
-   - **Fix:** Changed to `addScorePopup(\`+${scoreAmount}\`, ...)`
-   - **Lesson:** When error says "X.match is not a function", search for `.match(` calls and check if the variable is actually a string
-
-2. **Vite cache corruption** - Pages randomly stop loading with hook errors like "Cannot read properties of null (reading 'useContext')"
-   - **Cause:** Vite's dependency pre-bundling cache gets corrupted during hot reload
-   - **Fix:** `rm -rf node_modules/.vite && npm run dev -- --host`
-   - **Lesson:** When multiple pages suddenly break with hook errors after HMR, clear Vite cache first
-
-3. **Treasury showing 0 XCH** - Market cap and volume showed 0
-   - **Cause:** Was incorrectly using a different calculation instead of existing `fetchCollectionStats` service
-   - **Fix:** Reused the proven `fetchCollectionStats` from `tradeValuesService.ts`
-   - **Lesson:** Check if functionality already exists before implementing new code
-
-**Patterns learned:**
-
-1. **Vote sound pitch variation** - Makes sounds less repetitive and more satisfying
-   ```typescript
-   // In SoundManager.ts
-   instance.audio.playbackRate = pitchShift * (1 + (Math.random() * 2 - 1) * pitchVariation);
-   // pitchVariation: 0.15-0.2 (±15-20%)
-   // pitchShift: 1.1 for positive sounds, 0.95 for negative
-   ```
-
-2. **Persistent state across navigation** - Use localStorage with useState initializer
-   ```typescript
-   const [balance, setBalance] = useState(() => {
-     const saved = localStorage.getItem('key');
-     return saved !== null ? parseInt(saved, 10) : defaultValue;
-   });
-   useEffect(() => {
-     localStorage.setItem('key', String(balance));
-   }, [balance]);
-   ```
-
-3. **Floating NFT animations** - Each section needs unique image pool to avoid repetition
-   - HERO_IMAGES, COLLECTION_IMAGES, CTA_IMAGES as separate arrays
-   - Use AnimatePresence with mode="wait" for proper fade transitions
-
-4. **Subtle UI elements** - For floating icons like sidebar pin:
-   - Use transparent background, no hover background effect
-   - Just opacity change on hover
-   - Position with negative values if needed (`top: -6`)
-
-**Files changed:**
-- `src/pages/OrangePong.tsx` - Fixed addScorePopup call
-- `src/pages/OrangeStack.tsx` - Removed debug button
-- `src/pages/MemoryMatch.tsx` - Removed DEV panel
-- `src/systems/audio/SoundManager.ts` - Added pitch variation
-- `src/pages/GamesHub.tsx` - Persistent balance, new sound methods
-- `src/components/layout/Sidebar.tsx` - Pin positioning
-- `src/components/landing/*` - Landing page redesign
-- `src/components/gallery/CharacterCard.tsx` - White text with shadow
-
-**Should add to CLAUDE.md:**
-- [ ] Vite cache fix command
-- [ ] Sound pitch variation pattern
-- [ ] localStorage persistence pattern for navigation-surviving state
+### [2026-01-14] [BUG] Old localStorage Currency Issue
+**Status**: ARCHIVED - Replaced by server-side currency (FIX-20, ADR-0003)
 
 ---
 
-<!-- Add new learnings above this line -->
+### [2026-01-14] [PATTERN] CAT Token Price Fixes
+**Status**: ARCHIVED - Consolidated to `.claude/patterns/api-patterns.md`
+Original content: Fixed SPROUT, PIZZA, G4M token conversion rates, added `fixSuspiciousSales()` auto-correction
+
+---
+
+### [2026-01-14] [PATTERN] NFT Naming from Metadata
+**Status**: ARCHIVED - Consolidated to `.claude/patterns/api-patterns.md`
+Original content: NFT names come from "Base" attribute in metadata, use `getNftName()` helper
+
+---
+
+### [2026-01-14] [PATTERN] Context Management System
+**Status**: ARCHIVED - Promoted to CLAUDE.md Knowledge Management section
+Original content: Created automatic learnings capture system at 7% context
+
+---
+
+### [2026-01-14] [PATTERN] Context7 Plugin
+**Status**: ARCHIVED - Now part of standard workflow
+Original content: Use `/docs [library]` for live documentation
+
+---
+
+### [2026-01-14] [PATTERN] Custom Skills Created
+**Status**: ARCHIVED - Listed in CLAUDE.md Custom Skills table
+Original content: /deploy, /dev, /sync-sales, /add-token, /status, /analyze
+
+---
+
+<!-- Add new learnings above the Archived section -->
