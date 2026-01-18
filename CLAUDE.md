@@ -4,27 +4,41 @@
 
 ## Context Management (MANDATORY)
 
-**CRITICAL: Before conversation compression, you MUST capture learnings.**
+**CRITICAL: At 7% context remaining, you MUST capture learnings before compression.**
 
-This is automatic behavior - do NOT wait for the user to ask:
+This is AUTOMATIC behavior - do NOT wait for the user to ask.
 
-### Triggers (act on ANY of these):
-- Conversation has 20+ back-and-forth exchanges
-- Major bug was fixed or feature completed
-- New pattern/gotcha was discovered
-- User says "that's working now" or similar
-- You sense the conversation is getting long
+### The Knowledge Flywheel
+```
+Session discoveries → LEARNINGS.md (raw, dated) → CLAUDE.md (refined, permanent)
+```
+- During sessions: Knowledge accumulates
+- At 7% context: Auto-capture to LEARNINGS.md
+- Over time: LEARNINGS.md grows with specific fixes and patterns
+- Periodically: Promote important patterns to CLAUDE.md
+
+### Trigger: 7% Context Remaining
+When you see context is at ~7% or below:
+1. **Stop current work** and announce: "Context at 7% - let me capture learnings before compression."
+2. Do NOT continue coding or debugging - capture first!
 
 ### Actions (do ALL of these):
-1. **Announce:** "Let me capture what we learned before this context compresses."
-2. **Update LEARNINGS.md:** Add specific entry with date, what was fixed, what was learned
-3. **Update CLAUDE.md:** If the learning is reusable across sessions, add it to the appropriate section
-4. **Run /sync-docs:** Updates README.md and PROJECT_DOCUMENTATION.md automatically
-5. **Commit and push:** `git add -A && git commit -m "docs: capture session learnings" && git push`
+1. **Announce:** "Context at 7% - capturing session learnings."
+2. **Update LEARNINGS.md:** Add dated entry with:
+   - Bugs fixed (include file paths, line numbers, actual error messages)
+   - Patterns discovered (include code snippets)
+   - What was tried and failed (so we don't repeat mistakes)
+3. **Commit and push:** `git add LEARNINGS.md && git commit -m "docs: capture session learnings" && git push`
+4. **(Optional) Update CLAUDE.md:** If learning is reusable across all sessions
+
+### Why 7%?
+- Capture process uses ~2-3% context (reading, writing, git commands)
+- 7% gives buffer if something needs clarifying
+- Better to capture slightly early than lose everything
 
 ### Why This Matters:
 After compression, detailed debugging steps and specific fixes are lost forever.
-Capturing BEFORE compression preserves the full context for future sessions.
+The LEARNINGS.md file is our memory - it grows over time and nothing is lost.
 
 ## What Is This
 
