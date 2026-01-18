@@ -217,4 +217,78 @@ Session Work → Compression Trigger
 
 ---
 
+### 2026-01-18 - Session: Landing Page Redesign, Sound System, Bug Fixes
+
+**What we did:**
+- Implemented FIX-21 landing page redesign with floating NFTs, rotating taglines, premium effects
+- Added pitch variation to vote sounds for more satisfying feedback
+- Fixed Pong crash on win
+- Removed developer debug buttons from games
+- Fixed sidebar pin positioning
+- Added persistent donut/poop balance
+
+**Bugs fixed:**
+
+1. **Pong crash on win** - Error: `e.match is not a function`
+   - **Cause:** `addScorePopup(scoreAmount, ...)` in `OrangePong.tsx:437` passed a number, but function expects string
+   - **Fix:** Changed to `addScorePopup(\`+${scoreAmount}\`, ...)`
+   - **Lesson:** When error says "X.match is not a function", search for `.match(` calls and check if the variable is actually a string
+
+2. **Vite cache corruption** - Pages randomly stop loading with hook errors like "Cannot read properties of null (reading 'useContext')"
+   - **Cause:** Vite's dependency pre-bundling cache gets corrupted during hot reload
+   - **Fix:** `rm -rf node_modules/.vite && npm run dev -- --host`
+   - **Lesson:** When multiple pages suddenly break with hook errors after HMR, clear Vite cache first
+
+3. **Treasury showing 0 XCH** - Market cap and volume showed 0
+   - **Cause:** Was incorrectly using a different calculation instead of existing `fetchCollectionStats` service
+   - **Fix:** Reused the proven `fetchCollectionStats` from `tradeValuesService.ts`
+   - **Lesson:** Check if functionality already exists before implementing new code
+
+**Patterns learned:**
+
+1. **Vote sound pitch variation** - Makes sounds less repetitive and more satisfying
+   ```typescript
+   // In SoundManager.ts
+   instance.audio.playbackRate = pitchShift * (1 + (Math.random() * 2 - 1) * pitchVariation);
+   // pitchVariation: 0.15-0.2 (±15-20%)
+   // pitchShift: 1.1 for positive sounds, 0.95 for negative
+   ```
+
+2. **Persistent state across navigation** - Use localStorage with useState initializer
+   ```typescript
+   const [balance, setBalance] = useState(() => {
+     const saved = localStorage.getItem('key');
+     return saved !== null ? parseInt(saved, 10) : defaultValue;
+   });
+   useEffect(() => {
+     localStorage.setItem('key', String(balance));
+   }, [balance]);
+   ```
+
+3. **Floating NFT animations** - Each section needs unique image pool to avoid repetition
+   - HERO_IMAGES, COLLECTION_IMAGES, CTA_IMAGES as separate arrays
+   - Use AnimatePresence with mode="wait" for proper fade transitions
+
+4. **Subtle UI elements** - For floating icons like sidebar pin:
+   - Use transparent background, no hover background effect
+   - Just opacity change on hover
+   - Position with negative values if needed (`top: -6`)
+
+**Files changed:**
+- `src/pages/OrangePong.tsx` - Fixed addScorePopup call
+- `src/pages/OrangeStack.tsx` - Removed debug button
+- `src/pages/MemoryMatch.tsx` - Removed DEV panel
+- `src/systems/audio/SoundManager.ts` - Added pitch variation
+- `src/pages/GamesHub.tsx` - Persistent balance, new sound methods
+- `src/components/layout/Sidebar.tsx` - Pin positioning
+- `src/components/landing/*` - Landing page redesign
+- `src/components/gallery/CharacterCard.tsx` - White text with shadow
+
+**Should add to CLAUDE.md:**
+- [ ] Vite cache fix command
+- [ ] Sound pitch variation pattern
+- [ ] localStorage persistence pattern for navigation-surviving state
+
+---
+
 <!-- Add new learnings above this line -->
