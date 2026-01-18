@@ -112,29 +112,14 @@ export function DesktopCharacterCard({
           draggable={false}
         />
 
-        {/* Name overlay - bottom left with gradient text */}
-        <div className="absolute bottom-2 left-2">
-          {/* Blur background layer */}
-          <div
-            className="absolute inset-0 -m-2"
-            style={{
-              backdropFilter: 'blur(4px)',
-              WebkitBackdropFilter: 'blur(4px)',
-              borderRadius: 12,
-              background: 'radial-gradient(ellipse at center, rgba(0, 0, 0, 0.25) 0%, transparent 70%)',
-              mask: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
-              WebkitMask: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
-            }}
-          />
-          {/* Text layer - gradient text with glow */}
+        {/* Name overlay - bottom left with text shadow */}
+        <div className="absolute bottom-2 left-2 right-2">
           <span
-            className="relative text-base font-bold truncate"
+            className="relative text-sm font-bold"
             style={{
-              background: 'linear-gradient(90deg, #F97316, #FFD700)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              filter: 'drop-shadow(0 0 8px rgba(249, 115, 22, 0.5))',
+              color: '#ffffff',
+              textShadow: '0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.8)',
+              lineHeight: 1.2,
             }}
           >
             {character.name}

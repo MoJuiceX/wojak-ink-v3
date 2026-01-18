@@ -97,8 +97,8 @@ function AppContent() {
   const handleStartupComplete = () => {
     // Mark boot as complete for this session
     markBootComplete();
-    // Navigate to Gallery FIRST, before showing content
-    navigate('/gallery', { replace: true });
+    // Navigate to Landing page FIRST, before showing content
+    navigate('/landing', { replace: true });
     // Small delay ensures navigation completes before content becomes visible
     setTimeout(() => {
       setIsStartupComplete(true);
@@ -112,7 +112,7 @@ function AppContent() {
     <PreloadProvider>
       <GalleryProvider>
         <LayoutProvider>
-          {/* Boot Sequence - shows until complete, then navigates to Gallery */}
+          {/* Boot Sequence - shows until complete, then navigates to Landing */}
           {!isStartupComplete && !isLandingPage && (
             <StartupSequence onComplete={handleStartupComplete} />
           )}

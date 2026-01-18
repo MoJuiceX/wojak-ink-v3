@@ -1,143 +1,192 @@
 /**
  * Final CTA Section
  *
- * End of landing page with wallet connect prompt,
- * navigation options, and social links.
+ * - Centered "Enter the Grove" button
+ * - Floating NFTs on left and right
+ * - No wallet connect button
  */
 
-import React from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
-interface FinalCTAProps {
-  onNavigate: (path: string) => void;
+// FinalCTA uses all available NFTs - it's the last section so variety matters
+const CTA_IMAGES = [
+  '/assets/gallery-previews/wojak.png',
+  '/assets/gallery-previews/waifu.png',
+  '/assets/gallery-previews/soyjak.png',
+  '/assets/gallery-previews/baddie.png',
+  '/assets/gallery-previews/alien-wojak.png',
+  '/assets/gallery-previews/alien-waifu.png',
+  '/assets/gallery-previews/bepe-wojak.png',
+  '/assets/gallery-previews/monkey-zoo.png',
+  '/assets/gallery-previews/papa-tang.png',
+  '/assets/gallery-previews/bepe-baddie.png',
+  '/assets/gallery-previews/alien-baddie.png',
+  '/assets/gallery-previews/alien-soyjak.png',
+];
+
+const POSITIONS = {
+  left: [
+    { x: '5%', y: '20%', size: 100, delay: 0 },
+    { x: '8%', y: '50%', size: 80, delay: 0.3 },
+    { x: '3%', y: '75%', size: 90, delay: 0.6 },
+  ],
+  right: [
+    { x: '85%', y: '15%', size: 90, delay: 0.2 },
+    { x: '88%', y: '45%', size: 85, delay: 0.5 },
+    { x: '82%', y: '70%', size: 95, delay: 0.8 },
+  ],
+};
+
+function getRandomImages(count: number, offset: number = 0): string[] {
+  // Use offset to get different starting images for left vs right
+  const start = offset % CTA_IMAGES.length;
+  const result: string[] = [];
+  for (let i = 0; i < count; i++) {
+    result.push(CTA_IMAGES[(start + i * 2) % CTA_IMAGES.length]);
+  }
+  return result;
 }
 
-const NAV_OPTIONS = [
-  { label: 'Gallery', path: '/gallery' },
-  { label: 'BigPulp', path: '/bigpulp' },
-  { label: 'Generator', path: '/generator' },
-  { label: 'Games', path: '/games' },
-];
-
-const SOCIAL_LINKS = [
-  { icon: '𝕏', href: 'https://twitter.com/MoJuiceX', label: 'Twitter' },
-  { icon: '💬', href: 'https://discord.gg/wojak', label: 'Discord' },
-];
-
-export const FinalCTA: React.FC<FinalCTAProps> = ({ onNavigate }) => {
+export const FinalCTA: React.FC = () => {
+  const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
+  const [leftImages, setLeftImages] = useState<string[]>(() => getRandomImages(3, 0));
+  const [rightImages, setRightImages] = useState<string[]>(() => getRandomImages(3, 5));
+
+  // Rotate images
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+
+    const interval = setInterval(() => {
+      const side = Math.random() > 0.5 ? 'left' : 'right';
+      const setter = side === 'left' ? setLeftImages : setRightImages;
+
+      setter(prev => {
+        const newImages = [...prev];
+        const randomIndex = Math.floor(Math.random() * 3);
+        const allCurrentImages = [...leftImages, ...rightImages];
+        const currentSet = new Set(allCurrentImages);
+        const available = CTA_IMAGES.filter(img => !currentSet.has(img));
+        if (available.length > 0) {
+          newImages[randomIndex] = available[Math.floor(Math.random() * available.length)];
+        }
+        return newImages;
+      });
+    }, 7000);
+
+    return () => clearInterval(interval);
+  }, [prefersReducedMotion, leftImages, rightImages]);
 
   return (
-    <motion.div
-      className="final-cta"
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      viewport={{ once: true }}
-    >
-      <motion.h2
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        viewport={{ once: true }}
-      >
-        Ready to Join?
-      </motion.h2>
-      <motion.p
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        viewport={{ once: true }}
-      >
-        Explore the collection, analyze with BigPulp, create your avatar, and
-        compete in games.
-      </motion.p>
-
-      {/* Primary CTAs */}
-      <motion.div
-        className="cta-buttons"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        viewport={{ once: true }}
-      >
-        <motion.button
-          className="cta-btn primary"
-          onClick={() => onNavigate('/gallery')}
-          whileHover={!prefersReducedMotion ? { scale: 1.05, y: -2 } : {}}
-          whileTap={!prefersReducedMotion ? { scale: 0.95 } : {}}
-        >
-          Enter the Grove
-        </motion.button>
-        <motion.button
-          className="cta-btn secondary"
-          onClick={() => onNavigate('/account')}
-          whileHover={!prefersReducedMotion ? { scale: 1.05 } : {}}
-          whileTap={!prefersReducedMotion ? { scale: 0.95 } : {}}
-        >
-          Connect Wallet
-        </motion.button>
-      </motion.div>
-
-      {/* Quick nav links */}
-      <motion.div
-        style={{
-          display: 'flex',
-          gap: 16,
-          justifyContent: 'center',
-          marginBottom: 32,
-          flexWrap: 'wrap',
-        }}
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        viewport={{ once: true }}
-      >
-        {NAV_OPTIONS.map((option) => (
-          <motion.button
-            key={option.path}
-            onClick={() => onNavigate(option.path)}
+    <div className="final-cta-container">
+      {/* Left Floating NFTs */}
+      <div className="cta-floating-nfts left">
+        {POSITIONS.left.map((pos, index) => (
+          <motion.div
+            key={`left-${index}`}
+            className="cta-floating-nft"
             style={{
-              background: 'none',
-              border: 'none',
-              color: 'rgba(255, 255, 255, 0.6)',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              padding: '8px 16px',
+              left: pos.x,
+              top: pos.y,
+              width: pos.size,
+              height: pos.size,
             }}
-            whileHover={
-              !prefersReducedMotion ? { color: '#F97316', x: 3 } : {}
+            animate={
+              !prefersReducedMotion
+                ? {
+                    y: [0, -15, 0],
+                    rotate: [-5, 5, -5],
+                  }
+                : {}
             }
+            transition={{
+              y: { duration: 4 + pos.delay, repeat: Infinity, ease: 'easeInOut' },
+              rotate: { duration: 5 + pos.delay, repeat: Infinity, ease: 'easeInOut' },
+            }}
           >
-            {option.label} →
-          </motion.button>
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={leftImages[index]}
+                src={leftImages[index]}
+                alt=""
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8 }}
+              />
+            </AnimatePresence>
+          </motion.div>
         ))}
-      </motion.div>
+      </div>
 
-      {/* Social links */}
-      <motion.div
-        className="social-links"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        viewport={{ once: true }}
-      >
-        {SOCIAL_LINKS.map((link) => (
-          <motion.a
-            key={link.label}
-            href={link.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="social-link"
-            aria-label={link.label}
-            whileHover={!prefersReducedMotion ? { scale: 1.1 } : {}}
-            whileTap={!prefersReducedMotion ? { scale: 0.9 } : {}}
+      {/* Right Floating NFTs */}
+      <div className="cta-floating-nfts right">
+        {POSITIONS.right.map((pos, index) => (
+          <motion.div
+            key={`right-${index}`}
+            className="cta-floating-nft"
+            style={{
+              left: pos.x,
+              top: pos.y,
+              width: pos.size,
+              height: pos.size,
+            }}
+            animate={
+              !prefersReducedMotion
+                ? {
+                    y: [0, -12, 0],
+                    rotate: [5, -5, 5],
+                  }
+                : {}
+            }
+            transition={{
+              y: { duration: 3.5 + pos.delay, repeat: Infinity, ease: 'easeInOut' },
+              rotate: { duration: 4.5 + pos.delay, repeat: Infinity, ease: 'easeInOut' },
+            }}
           >
-            {link.icon}
-          </motion.a>
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={rightImages[index]}
+                src={rightImages[index]}
+                alt=""
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8 }}
+              />
+            </AnimatePresence>
+          </motion.div>
         ))}
+      </div>
+
+      {/* Centered CTA Content */}
+      <motion.div
+        className="cta-content-centered"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+      >
+        <h2>Ready to Join?</h2>
+        <p>Become part of the Wojak Farmer's Plot community</p>
+
+        <motion.button
+          className="enter-grove-btn large"
+          onClick={() => navigate('/gallery')}
+          whileHover={{
+            scale: 1.05,
+            boxShadow: '0 0 50px rgba(249, 115, 22, 0.6)',
+          }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <span className="btn-glow" />
+          <span className="btn-text">Enter the Grove</span>
+          <span className="btn-arrow">→</span>
+        </motion.button>
       </motion.div>
-    </motion.div>
+    </div>
   );
 };
 

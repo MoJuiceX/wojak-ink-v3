@@ -115,21 +115,22 @@ export function Sidebar({
       aria-label="Main navigation"
       aria-expanded={showExpanded}
     >
-      {/* Collapsed state: small subtle pin button in top-right corner of sidebar */}
+      {/* Collapsed state: small subtle pin button at top-right of the orange logo */}
       <AnimatePresence>
         {!showExpanded && (
           <motion.button
             key="pin-collapsed"
             className="absolute rounded transition-colors z-10 flex items-center justify-center"
             style={{
-              top: 2,
-              right: 2,
-              width: 14,
-              height: 14,
+              top: -6,
+              left: 38,
+              width: 23,
+              height: 23,
               color: pinnedState === 'minimized'
                 ? 'var(--color-brand-primary)'
                 : 'var(--color-text-muted)',
-              opacity: pinnedState === 'minimized' ? 1 : 0.5,
+              opacity: pinnedState === 'minimized' ? 1 : 0.4,
+              background: 'transparent',
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -137,7 +138,6 @@ export function Sidebar({
             }}
             whileHover={{
               opacity: 1,
-              background: 'var(--color-glass-hover)',
             }}
             initial={{ opacity: 0 }}
             animate={{ opacity: pinnedState === 'minimized' ? 1 : 0.5 }}
@@ -146,7 +146,7 @@ export function Sidebar({
             title={pinnedState === 'minimized' ? 'Unpin sidebar' : 'Pin sidebar minimized'}
             aria-label={pinnedState === 'minimized' ? 'Unpin sidebar' : 'Pin sidebar minimized'}
           >
-            {pinnedState === 'minimized' ? <PinOff size={10} /> : <Pin size={10} />}
+            {pinnedState === 'minimized' ? <PinOff size={16} /> : <Pin size={16} />}
           </motion.button>
         )}
       </AnimatePresence>
@@ -166,7 +166,7 @@ export function Sidebar({
           {showExpanded && (
             <motion.button
               key="pin-expanded"
-              className="p-2 rounded-lg transition-colors"
+              className="p-2 rounded-lg transition-colors flex items-center justify-center"
               style={{
                 color: pinnedState === 'expanded'
                   ? 'var(--color-brand-primary)'

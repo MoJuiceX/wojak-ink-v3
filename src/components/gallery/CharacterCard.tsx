@@ -123,30 +123,14 @@ export function CharacterCard({
           </div>
         )}
 
-        {/* Name overlay - bottom left with gradient text */}
-        <div className="absolute bottom-1.5 left-1.5">
-          {/* Blur background layer */}
-          <div
-            className="absolute inset-0 -m-2"
-            style={{
-              backdropFilter: 'blur(4px)',
-              WebkitBackdropFilter: 'blur(4px)',
-              borderRadius: 10,
-              background: 'radial-gradient(ellipse at center, rgba(0, 0, 0, 0.25) 0%, transparent 70%)',
-              mask: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
-              WebkitMask: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
-            }}
-          />
-          {/* Text layer - gradient text with glow */}
+        {/* Name overlay - bottom left with text shadow */}
+        <div className="absolute bottom-1.5 left-1.5 right-1.5">
           <span
-            className="relative text-sm font-bold truncate character-name block"
+            className="relative text-xs font-bold character-name block"
             style={{
-              background: 'linear-gradient(90deg, #F97316, #FFD700)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              filter: 'drop-shadow(0 0 8px rgba(249, 115, 22, 0.5))',
-              maxWidth: 'calc(100% - 12px)',
+              color: '#ffffff',
+              textShadow: '0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.8)',
+              lineHeight: 1.2,
             }}
           >
             {character.name}

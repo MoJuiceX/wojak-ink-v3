@@ -10,7 +10,7 @@ import { motion, useInView, useReducedMotion } from 'framer-motion';
 
 interface FeatureSectionProps {
   title: string;
-  description: string;
+  description: React.ReactNode;
   icon: string;
   ctaText: string;
   onCTA: () => void;

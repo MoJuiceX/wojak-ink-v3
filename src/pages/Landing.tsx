@@ -1,8 +1,8 @@
 /**
  * Landing Page - Immersive Scrollytelling Experience
  *
- * Pudgy Penguins-inspired landing page introducing the Wojak.ink ecosystem
- * through scroll-driven parallax animations and animated reveals.
+ * Premium landing page with Lenis smooth scroll, floating NFTs,
+ * and real-time API data integration.
  */
 
 import { useRef, useState, useEffect } from 'react';
@@ -17,6 +17,7 @@ import { GamesPreview } from '@/components/landing/GamesPreview';
 import { CommunityPreview } from '@/components/landing/CommunityPreview';
 import { ScrollNav } from '@/components/landing/ScrollNav';
 import { FinalCTA } from '@/components/landing/FinalCTA';
+import { SectionFloatingNFTs } from '@/components/landing/SectionFloatingNFTs';
 import './Landing.css';
 
 const SECTIONS = [
@@ -25,7 +26,7 @@ const SECTIONS = [
   { id: 'bigpulp', label: 'BigPulp' },
   { id: 'generator', label: 'Create' },
   { id: 'games', label: 'Play' },
-  { id: 'community', label: 'Community' },
+  { id: 'treasury', label: 'Treasury' },
   { id: 'cta', label: 'Join' },
 ];
 
@@ -78,10 +79,11 @@ export const Landing = () => {
 
       {/* Collection / Gallery Section */}
       <section id="collection" className="landing-section">
+        <SectionFloatingNFTs count={4} opacity={0.2} />
         <FeatureSection
-          title="4,200 Unique Wojaks"
-          description="Explore the complete Wojak Farmers Plot collection. 14 character types, infinite possibilities. Each NFT is a unique piece of Chia blockchain history."
-          icon="🖼️"
+          title="The Collection"
+          description={<>Explore the complete Wojak Farmer's Plot collection.<br />4,200 unique NFTs waiting to be discovered.</>}
+          icon=""
           ctaText="Browse Gallery"
           onCTA={() => handleCTA('/gallery')}
         >
@@ -91,9 +93,10 @@ export const Landing = () => {
 
       {/* BigPulp Intelligence Section */}
       <section id="bigpulp" className="landing-section">
+        <SectionFloatingNFTs count={4} opacity={0.15} />
         <FeatureSection
           title="Meet BigPulp"
-          description="Your AI-powered NFT analyst. Get instant insights on any Wojak - rarity rankings, market analysis, trait breakdowns, and personalized recommendations."
+          description="Your AI-powered NFT analyst. Get instant insights on any Wojak—rarity rankings, market analysis, trade breakdowns, and more. Discover patterns and data not even the artist could tell you."
           icon="🍊"
           ctaText="Ask BigPulp"
           onCTA={() => handleCTA('/bigpulp')}
@@ -105,9 +108,10 @@ export const Landing = () => {
 
       {/* Generator Section */}
       <section id="generator" className="landing-section">
+        <SectionFloatingNFTs count={4} opacity={0.2} />
         <FeatureSection
           title="Build Your Wojak"
-          description="Create custom Wojak avatars with our layer-based generator. Mix and match backgrounds, bases, accessories, and more to design your perfect profile picture."
+          description="Create your custom Wojak using the same base layers the artist used to craft 4,200 unique pieces. Mix and match Background, Base, Clothes, Face, Mouth, Face Wear, and Head attributes."
           icon="🎨"
           ctaText="Start Creating"
           onCTA={() => handleCTA('/generator')}
@@ -118,11 +122,12 @@ export const Landing = () => {
 
       {/* Games Section */}
       <section id="games" className="landing-section">
+        <SectionFloatingNFTs count={4} opacity={0.2} />
         <FeatureSection
-          title="Compete & Earn"
-          description="Play mini-games, climb the leaderboard, and earn bragging rights. Brick by Brick, Memory Match, Wojak Runner, and more await!"
+          title="Play & Have Fun"
+          description="Play games with the community! Compete on individual and guild leaderboards. Earn 🍊 Oranges and 💎 Gems to personalize your account, vote on community decisions, and unlock items in the shop."
           icon="🎮"
-          ctaText="Play Games"
+          ctaText="Start Playing"
           onCTA={() => handleCTA('/games')}
           reverse
         >
@@ -130,12 +135,13 @@ export const Landing = () => {
         </FeatureSection>
       </section>
 
-      {/* Community / Treasury Section */}
-      <section id="community" className="landing-section">
+      {/* Treasury Section */}
+      <section id="treasury" className="landing-section">
+        <SectionFloatingNFTs count={4} opacity={0.2} />
         <FeatureSection
           title="Join the Grove"
-          description="Connect with fellow collectors, join a guild, and track the community treasury. Together we grow stronger."
-          icon="🌳"
+          description="Connect with fellow collectors, join a guild, and track the community's treasury. Watch the collection grow in real-time. Together, we grow stronger."
+          icon="🏦"
           ctaText="View Treasury"
           onCTA={() => handleCTA('/treasury')}
         >
@@ -145,7 +151,7 @@ export const Landing = () => {
 
       {/* Final CTA Section */}
       <section id="cta" className="landing-section final-cta-section">
-        <FinalCTA onNavigate={handleCTA} />
+        <FinalCTA />
       </section>
     </div>
   );

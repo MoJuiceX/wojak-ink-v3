@@ -1,17 +1,19 @@
 /**
  * Generator Preview
  *
- * Layer composition animation showing how the avatar
- * generator works.
+ * Shows the 7 correct metadata attributes with layer visualization.
  */
 
 import { motion } from 'framer-motion';
 
-const LAYERS = [
-  { name: 'Background', icon: '🌄', delay: 0 },
-  { name: 'Base Character', icon: '👤', delay: 0.1 },
-  { name: 'Expression', icon: '😀', delay: 0.2 },
-  { name: 'Accessories', icon: '🎩', delay: 0.3 },
+const ATTRIBUTES = [
+  { name: 'Background', count: 45, icon: '🌄' },
+  { name: 'Base', count: 14, icon: '👤' },
+  { name: 'Clothes', count: 36, icon: '👕' },
+  { name: 'Face', count: 6, icon: '😶' },
+  { name: 'Mouth', count: 20, icon: '👄' },
+  { name: 'Face Wear', count: 18, icon: '👓' },
+  { name: 'Head', count: 40, icon: '👑' },
 ];
 
 export const GeneratorPreview = () => {
@@ -43,19 +45,21 @@ export const GeneratorPreview = () => {
         ))}
       </div>
 
-      {/* Layer labels */}
-      <div className="layer-labels">
-        {LAYERS.map((layer) => (
+      {/* Attribute pills */}
+      <div className="attribute-pills">
+        {ATTRIBUTES.map((attr, index) => (
           <motion.div
-            key={layer.name}
-            className="layer-label"
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ delay: layer.delay + 0.3, duration: 0.3 }}
+            key={attr.name}
+            className="attribute-pill"
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.08 + 0.3, duration: 0.3 }}
             viewport={{ once: true }}
+            whileHover={{ scale: 1.05, y: -2 }}
           >
-            <span className="layer-label-icon">{layer.icon}</span>
-            {layer.name}
+            <span className="attribute-icon">{attr.icon}</span>
+            <span className="attribute-name">{attr.name}</span>
+            <span className="attribute-count">{attr.count}</span>
           </motion.div>
         ))}
       </div>

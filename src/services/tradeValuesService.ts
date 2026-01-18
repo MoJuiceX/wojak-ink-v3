@@ -353,10 +353,10 @@ export async function fetchCollectionStats(): Promise<CollectionStats> {
     // Return fallback values
     return {
       supply: 4200,
-      floor_xch: 0.8,
-      volume_xch: 483,
-      trade_count: 723,
-      market_cap_xch: 3360,
+      floor_xch: 4.85,
+      volume_xch: 527,
+      trade_count: 753,
+      market_cap_xch: 20369,
       collectors: 89,
     };
   }
