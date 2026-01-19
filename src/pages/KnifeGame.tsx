@@ -9,6 +9,8 @@ import { useState, useRef, useEffect } from 'react';
 import { IonContent, IonPage } from '@ionic/react';
 import { Play, Pause } from 'lucide-react';
 import { useSettings } from '@/contexts/SettingsContext';
+import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import './KnifeGame.css';
 
 const AUDIO_URL = '/assets/Games/games_media/The New Knife Game Song - Rusty Cage.mp3';
@@ -21,6 +23,11 @@ const KnifeGame: React.FC = () => {
   const [duration, setDuration] = useState(75); // 1:15
   const audioRef = useRef<HTMLAudioElement>(null);
   const { settings } = useSettings();
+
+  // Navigation guard - prevents accidental exits during gameplay
+  const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
+    isPlaying: isPlaying,
+  });
 
   // Calculate volume from settings
   const musicEnabled = settings.audio.backgroundMusicEnabled;
@@ -155,6 +162,19 @@ const KnifeGame: React.FC = () => {
             onCanPlay={handleCanPlay}
             onDurationChange={handleLoadedMetadata}
             onEnded={handleEnded}
+          />
+
+          {/* Exit Game Confirmation Dialog */}
+          <ConfirmModal
+            isOpen={showExitDialog}
+            onClose={cancelExit}
+            onConfirm={confirmExit}
+            title="Leave Game?"
+            message="Your progress will be lost. Are you sure you want to leave?"
+            confirmText="Leave"
+            cancelText="Stay"
+            variant="warning"
+            icon="🎮"
           />
         </div>
       </IonContent>

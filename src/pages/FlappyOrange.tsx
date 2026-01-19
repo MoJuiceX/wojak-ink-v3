@@ -8,6 +8,8 @@ import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useGameEffects, GameEffects } from '@/components/media';
+import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import './FlappyOrange.css';
 
 // ============================================
@@ -118,6 +120,17 @@ const FlappyOrange: React.FC = () => {
   }>>([]);
 
   const gameStartTimeRef = useRef<number>(0);
+
+  // Navigation guard - prevents accidental exits during gameplay
+  const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
+    isPlaying: gameState === 'playing',
+  });
+
+  // Ref for game loop to check dialog state
+  const showExitDialogRef = useRef(false);
+  useEffect(() => {
+    showExitDialogRef.current = showExitDialog;
+  }, [showExitDialog]);
 
   // Generate stars for night sky
   const generateStars = useCallback(() => {
@@ -699,8 +712,8 @@ const FlappyOrange: React.FC = () => {
     const gameLoop = () => {
       const state = gameStateRef.current;
 
-      // Update
-      if (state.gameState === 'playing') {
+      // Update (pause when exit dialog is shown)
+      if (state.gameState === 'playing' && !showExitDialogRef.current) {
         state.bird = updateBird(state.bird);
         const { pipes, newScore } = updatePipes(state.pipes, state.score);
         state.pipes = pipes;
@@ -867,6 +880,19 @@ const FlappyOrange: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* Exit Game Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={showExitDialog}
+        onClose={cancelExit}
+        onConfirm={confirmExit}
+        title="Leave Game?"
+        message="Your progress will be lost. Are you sure you want to leave?"
+        confirmText="Leave"
+        cancelText="Stay"
+        variant="warning"
+        icon="🎮"
+      />
     </div>
   );
 };

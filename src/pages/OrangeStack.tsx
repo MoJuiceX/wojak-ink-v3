@@ -11,6 +11,8 @@ import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useAudio } from '@/contexts/AudioContext';
 import { useIsMobile } from '@/hooks/useMediaQuery';
+import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import './OrangeStack.css';
 
 interface Block {
@@ -143,6 +145,17 @@ const OrangeStack: React.FC = () => {
   const INITIAL_WIDTH_RESPONSIVE = isMobile ? Math.floor(window.innerWidth * 0.5) : 220; // 50% of screen width on mobile
 
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'levelComplete' | 'gameover'>('idle');
+
+  // Navigation guard - prevents accidental exits during gameplay
+  const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
+    isPlaying: gameState === 'playing',
+  });
+
+  // Ref for game loop to check dialog state
+  const showExitDialogRef = useRef(false);
+  useEffect(() => {
+    showExitDialogRef.current = showExitDialog;
+  }, [showExitDialog]);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [currentBlock, setCurrentBlock] = useState<Block | null>(null);
   const [score, setScore] = useState(0);
@@ -663,12 +676,15 @@ const OrangeStack: React.FC = () => {
 
   // Animation loop
   useEffect(() => {
-    if (gameState !== 'playing' || !currentBlock) return;
+    if (gameState !== 'playing' || !currentBlock || showExitDialog) return;
 
     // Use responsive game width for consistent block bouncing
     const areaWidth = GAME_WIDTH_RESPONSIVE;
 
     const animate = () => {
+      // Pause animation when exit dialog is shown
+      if (showExitDialogRef.current) return;
+
       setCurrentBlock(prev => {
         if (!prev) return prev;
 
@@ -706,7 +722,7 @@ const OrangeStack: React.FC = () => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [gameState, currentBlock, speed, direction, isSlowMo]);
+  }, [gameState, currentBlock, speed, direction, isSlowMo, showExitDialog]);
 
   // Handle tap/click with debounce to prevent double-firing on mobile
   const handleTap = () => {
@@ -1401,6 +1417,18 @@ const OrangeStack: React.FC = () => {
         </div>
         )}
 
+        {/* Exit Game Confirmation Dialog */}
+        <ConfirmModal
+          isOpen={showExitDialog}
+          onClose={cancelExit}
+          onConfirm={confirmExit}
+          title="Leave Game?"
+          message="Your progress will be lost. Are you sure you want to leave?"
+          confirmText="Leave"
+          cancelText="Stay"
+          variant="warning"
+          icon="🎮"
+        />
       </IonContent>
     </IonPage>
   );

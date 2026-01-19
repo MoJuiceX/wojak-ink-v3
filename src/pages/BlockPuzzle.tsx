@@ -8,6 +8,8 @@ import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useGameEffects, GameEffects } from '@/components/media';
+import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import './BlockPuzzle.css';
 
 // ============================================
@@ -305,6 +307,11 @@ const BlockPuzzle: React.FC = () => {
     return localStorage.getItem('blockPuzzleSoundEnabled') !== 'false';
   });
   const [isPaused, setIsPaused] = useState(false);
+
+  // Navigation guard - prevents accidental exits during gameplay
+  const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
+    isPlaying: gameState === 'playing',
+  });
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -1109,6 +1116,19 @@ const BlockPuzzle: React.FC = () => {
           +{score.value}
         </div>
       ))}
+
+      {/* Exit Game Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={showExitDialog}
+        onClose={cancelExit}
+        onConfirm={confirmExit}
+        title="Leave Game?"
+        message="Your progress will be lost. Are you sure you want to leave?"
+        confirmText="Leave"
+        cancelText="Stay"
+        variant="warning"
+        icon="🎮"
+      />
     </div>
   );
 };

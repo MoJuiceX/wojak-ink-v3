@@ -18,6 +18,7 @@ export type HapticPattern =
   | 'light'           // Light tap
   | 'medium'          // Medium tap
   | 'heavy'           // Heavy tap
+  | 'hover'           // Ultra-light hover feedback
   | 'score'           // Points earned
   | 'combo-1'         // Low combo
   | 'combo-2'         // Medium combo
@@ -26,6 +27,7 @@ export type HapticPattern =
   | 'high-score'      // New high score
   | 'game-over'       // Game ended
   | 'success'         // Generic success
+  | 'mismatch'        // Memory match mismatch - double tap error
   | 'error'           // Generic error/fail
   | 'warning'         // Warning alert
   | 'button'          // Button press
@@ -33,7 +35,29 @@ export type HapticPattern =
   | 'countdown'       // Countdown tick
   | 'countdown-go'    // Countdown GO!
   | 'collision'       // Hit/collision
-  | 'level-up';       // Level up
+  | 'urgency-tick'    // Timer urgency tick (final seconds)
+  | 'level-up'        // Level up
+  // Brick Breaker specific
+  | 'bb-paddle-hit'       // Ball hits paddle
+  | 'bb-brick-normal'     // Normal brick destroyed
+  | 'bb-brick-crack'      // Strong brick cracked (not destroyed)
+  | 'bb-brick-strong'     // Strong brick destroyed
+  | 'bb-unbreakable'      // Ball hits unbreakable brick
+  | 'bb-powerup-collect'  // Powerup collected
+  | 'bb-ball-lost'        // Ball falls off screen
+  | 'bb-near-miss'        // Ball barely missed paddle
+  | 'bb-level-complete'   // Level completed
+  | 'bb-combo-break'      // Combo was lost (timeout)
+  // Orange Juggle specific
+  | 'oj-orange-hit'       // Orange bounced off orangutan
+  | 'oj-golden-hit'       // Golden orange hit - celebratory
+  | 'oj-orange-drop'      // Orange dropped/missed
+  | 'oj-banana-collect'   // Banana powerup collected
+  | 'oj-rum-collect'      // Rum powerup collected
+  | 'oj-camel-warning'    // Camel is about to spawn
+  | 'oj-camel-impact'     // Hit by camel - game over
+  | 'oj-near-miss'        // Barely caught the orange
+  | 'oj-level-complete';  // Level completed
 
 export interface HapticDefinition {
   name: HapticPattern;
@@ -46,6 +70,7 @@ export const HAPTIC_PATTERNS: Record<HapticPattern, number | number[]> = {
   'light': 8,          // Quick pop feeling
   'medium': 20,        // Noticeable but not intrusive
   'heavy': 40,         // Strong feedback
+  'hover': 5,          // Ultra-light, barely perceptible
 
   // Gameplay - THE ADDICTION ENGINE (synced with sound escalation)
   'score': 12,                                    // Quick satisfying pop
@@ -63,13 +88,38 @@ export const HAPTIC_PATTERNS: Record<HapticPattern, number | number[]> = {
   // UI - subtle and responsive
   'button': 8,                                    // Barely there, just confirms tap
   'success': [20, 25, 35],                       // Positive light tap
+  'mismatch': [10, 50, 10],                      // Memory match double-tap error (not harsh)
   'error': [35, 50, 25],                         // Soft bonk, not harsh
   'warning': [25, 40, 25],                       // Gentle alert pulse
+  'urgency-tick': 8,                             // Subtle tick for final countdown
 
   // Other
   'achievement': [30, 20, 30, 20, 50, 30, 80],  // Fanfare pattern - celebration!
   'countdown': 20,                               // Consistent tick
   'countdown-go': [35, 25, 60],                 // Energetic start signal
+
+  // Brick Breaker specific - distinct feedback for each event
+  'bb-paddle-hit': 20,                          // Medium pulse - ball bounced
+  'bb-brick-normal': 12,                        // Light tap - satisfying pop
+  'bb-brick-crack': 18,                         // Medium tap - damaged but not destroyed
+  'bb-brick-strong': [20, 30, 15],              // Double pulse - heavier reward
+  'bb-unbreakable': 30,                         // Heavy thud - solid obstacle
+  'bb-powerup-collect': [10, 20, 8, 20, 6],     // Triple pulse - reward pattern
+  'bb-ball-lost': 50,                           // Long pulse - disappointing drop
+  'bb-near-miss': 5,                            // Ultra-light - barely perceptible warning
+  'bb-level-complete': [25, 50, 20, 50, 15],    // Success pattern - celebration
+  'bb-combo-break': [15, 40, 10],               // Double tap - disappointment but not harsh
+
+  // Orange Juggle specific - bouncy and playful
+  'oj-orange-hit': 20,                          // Medium bounce pulse - satisfying juggle
+  'oj-golden-hit': [15, 25, 12, 25, 10],        // Celebratory triple burst - special orange!
+  'oj-orange-drop': 50,                         // Long drop feeling - disappointment
+  'oj-banana-collect': [10, 20, 8, 20, 6],      // Energetic triple - speed boost reward
+  'oj-rum-collect': [30, 80, 25],               // Woozy double - sluggish feeling
+  'oj-camel-warning': [15, 100, 15, 100, 15],   // Urgent triple - danger incoming!
+  'oj-camel-impact': 80,                        // Heavy game over pulse - big hit
+  'oj-near-miss': 5,                            // Ultra-light warning tap
+  'oj-level-complete': [25, 50, 20, 50, 15, 50, 10], // Extended celebration burst
 };
 
 /**

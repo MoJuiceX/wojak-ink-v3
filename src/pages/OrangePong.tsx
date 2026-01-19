@@ -4,6 +4,8 @@ import { useGameSounds } from '@/hooks/useGameSounds';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useAudio } from '@/contexts/AudioContext';
 import { useGameEffects, GameEffects } from '@/components/media';
+import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import './OrangePong.css';
 
 const PADDLE_HEIGHT = 80;
@@ -62,6 +64,11 @@ const OrangePong: React.FC = () => {
   const { isBackgroundMusicPlaying, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
 
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
+
+  // Navigation guard - prevents accidental exits during gameplay
+  const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
+    isPlaying: gameState === 'playing',
+  });
   const [playerScore, setPlayerScore] = useState(0);
   const [aiScore, setAiScore] = useState(0);
   const [totalPoints, setTotalPoints] = useState(0);
@@ -89,6 +96,12 @@ const OrangePong: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
   const playerYRef = useRef(0);
+
+  // Ref for game loop to check dialog state
+  const showExitDialogRef = useRef(false);
+  useEffect(() => {
+    showExitDialogRef.current = showExitDialog;
+  }, [showExitDialog]);
 
   // Rally tracking for combo effects
   const [rally, setRally] = useState(0);
@@ -316,7 +329,7 @@ const OrangePong: React.FC = () => {
 
   // Time-based scoring: +1 point every second while playing
   useEffect(() => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || showExitDialog) return;
 
     const timer = setInterval(() => {
       setPlayTime(prev => prev + 1);
@@ -324,13 +337,19 @@ const OrangePong: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameState]);
+  }, [gameState, showExitDialog]);
 
   // Game loop
   useEffect(() => {
     if (gameState !== 'playing') return;
 
     const gameLoop = () => {
+      // Pause game loop when exit dialog is shown
+      if (showExitDialogRef.current) {
+        animationRef.current = requestAnimationFrame(gameLoop);
+        return;
+      }
+
       const width = gameAreaRef.current?.offsetWidth || 300;
       const height = gameAreaRef.current?.offsetHeight || 500;
 
@@ -746,6 +765,19 @@ const OrangePong: React.FC = () => {
         )}
       </div>
       )}
+
+      {/* Exit Game Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={showExitDialog}
+        onClose={cancelExit}
+        onConfirm={confirmExit}
+        title="Leave Game?"
+        message="Your progress will be lost. Are you sure you want to leave?"
+        confirmText="Leave"
+        cancelText="Stay"
+        variant="warning"
+        icon="🎮"
+      />
     </div>
   );
 };

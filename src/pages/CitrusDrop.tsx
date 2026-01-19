@@ -13,6 +13,8 @@ import { useGameSounds } from '@/hooks/useGameSounds';
 import { useGameHaptics } from '@/systems/haptics';
 import { useGameEffects } from '@/components/media';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
+import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import './CitrusDrop.css';
 
 const { Engine, World, Bodies, Body, Events } = Matter;
@@ -98,11 +100,16 @@ const CitrusDrop: React.FC = () => {
   } = useLeaderboard('citrus-drop');
   const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
+  // Game state (moved before useGameNavigationGuard to avoid initialization order issue)
+  const [gameState, setGameState] = useState<GameState>('ready');
+
+  // Navigation guard - prevents accidental exits during gameplay
+  const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
+    isPlaying: gameState === 'playing',
+  });
+
   // Game dimensions
   const [dimensions, setDimensions] = useState({ width: 400, height: 600 });
-
-  // Game state
-  const [gameState, setGameState] = useState<GameState>('ready');
   const [score, setScore] = useState(0);
   const [highestFruit, setHighestFruit] = useState(0);
   const [combo, setCombo] = useState(0);
@@ -128,6 +135,9 @@ const CitrusDrop: React.FC = () => {
   const highestFruitRef = useRef(highestFruit);
   const comboRef = useRef(combo);
 
+  // Ref for game loop to check dialog state
+  const showExitDialogRef = useRef(false);
+
   useEffect(() => {
     gameStateRef.current = gameState;
   }, [gameState]);
@@ -140,6 +150,9 @@ const CitrusDrop: React.FC = () => {
   useEffect(() => {
     comboRef.current = combo;
   }, [combo]);
+  useEffect(() => {
+    showExitDialogRef.current = showExitDialog;
+  }, [showExitDialog]);
 
   // Calculate dimensions based on container
   useEffect(() => {
@@ -636,7 +649,7 @@ const CitrusDrop: React.FC = () => {
 
     // Game loop
     const gameLoop = () => {
-      if (engineRef.current?.enabled !== false) {
+      if (engineRef.current?.enabled !== false && !showExitDialogRef.current) {
         Engine.update(engine, 1000 / 60);
         render();
         checkGameOver();
@@ -930,6 +943,19 @@ const CitrusDrop: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* Exit Game Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={showExitDialog}
+        onClose={cancelExit}
+        onConfirm={confirmExit}
+        title="Leave Game?"
+        message="Your progress will be lost. Are you sure you want to leave?"
+        confirmText="Leave"
+        cancelText="Stay"
+        variant="warning"
+        icon="🎮"
+      />
     </div>
   );
 };

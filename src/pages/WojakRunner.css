@@ -67,7 +67,7 @@
   backdrop-filter: blur(20px);
   box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4), inset 0 0 30px rgba(255, 107, 0, 0.05);
   min-width: 140px;
-  height: 500px;
+  height: 650px;
   z-index: 10;
 }
 
@@ -139,8 +139,8 @@
 /* Lightbox Wrapper - RIGHT side */
 .runner-container .lightbox-wrapper {
   position: relative;
-  width: 400px;
-  height: 500px;
+  width: 550px;
+  height: 650px;
   background: linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.4) 100%);
   border: 2px solid rgba(255, 107, 0, 0.5);
   border-left: none;
@@ -651,6 +651,49 @@
 .wr-leaderboard-score { color: #ff6b00; font-weight: 700; min-width: 50px; text-align: right; font-size: 1rem; }
 
 /* Mobile responsive */
+@media (max-width: 768px) {
+  /* Full screen game on mobile */
+  .runner-container .game-layout {
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .runner-container .stats-panel {
+    flex-direction: row;
+    width: 100%;
+    height: auto;
+    min-width: unset;
+    padding: 8px 16px;
+    gap: 8px;
+    border-radius: 0;
+    border: none;
+    border-bottom: 2px solid rgba(255, 107, 0, 0.4);
+    background: linear-gradient(180deg, rgba(20, 20, 35, 0.95) 0%, rgba(20, 20, 35, 0.8) 100%);
+  }
+
+  .runner-container .stat-item {
+    flex: 1;
+    padding: 8px;
+  }
+
+  .runner-container .stat-label {
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .runner-container .stat-value {
+    font-size: 18px;
+  }
+
+  .runner-container .lightbox-wrapper {
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    border-radius: 0;
+    border: none;
+  }
+}
+
 @media (max-width: 480px) {
   .wr-game-over-content { flex-direction: column; align-items: center; gap: 16px; }
   .wr-sad-image { width: 150px; height: 150px; }
@@ -1043,4 +1086,107 @@
   70% { transform: translate(-6px, 4px); }
   80% { transform: translate(4px, 6px); }
   90% { transform: translate(-2px, -2px); }
+}
+
+/* ============================================
+   EFFECT POSITION OVERRIDES
+   Move effects to left/right sides to keep street visible
+   ============================================ */
+
+/* Shockwave - move to left side */
+.runner-container .effect-shockwave {
+  left: 15% !important;
+  top: 40% !important;
+}
+
+/* Sparks - move to right side */
+.runner-container .effect-sparks {
+  left: 85% !important;
+  top: 40% !important;
+}
+
+/* Floating emojis - alternate left/right sides */
+.runner-container .effect-floating-emoji:nth-child(odd) {
+  left: 10% !important;
+}
+.runner-container .effect-floating-emoji:nth-child(even) {
+  left: 90% !important;
+}
+
+/* Epic callout - move completely outside playing field at bottom */
+.runner-container .effect-epic-callout {
+  top: auto !important;
+  bottom: -2% !important;
+  font-size: 22px;
+}
+
+/* Combo display - move to left side */
+.runner-container .effect-combo {
+  left: 12% !important;
+  top: 35% !important;
+  transform: translate(-50%, -50%) scale(0.8);
+}
+
+.runner-container .effect-combo .combo-number {
+  font-size: 48px;
+}
+
+.runner-container .effect-combo .combo-label {
+  font-size: 12px;
+  letter-spacing: 3px;
+}
+
+/* Score popups - alternate left/right */
+.runner-container .effect-score-popup:nth-child(odd) {
+  left: 12% !important;
+}
+.runner-container .effect-score-popup:nth-child(even) {
+  left: 88% !important;
+}
+
+.runner-container .effect-score-popup .score-popup-value {
+  font-size: 24px;
+}
+
+/* Vignette - keep full screen but subtle */
+.runner-container .effect-vignette {
+  opacity: 0.6;
+}
+
+/* Confetti - spread wider to sides */
+.runner-container .confetti-piece:nth-child(odd) {
+  left: calc(var(--confetti-x) * 0.3) !important;
+}
+.runner-container .confetti-piece:nth-child(even) {
+  left: calc(70% + var(--confetti-x) * 0.3) !important;
+}
+
+/* Mobile adjustments for effects */
+@media (max-width: 768px) {
+  .runner-container .effect-epic-callout {
+    top: auto !important;
+    bottom: -12% !important;
+    font-size: 20px;
+  }
+
+  .runner-container .effect-combo {
+    left: 8% !important;
+    top: 25% !important;
+  }
+
+  .runner-container .effect-combo .combo-number {
+    font-size: 36px;
+  }
+
+  .runner-container .effect-shockwave {
+    left: 12% !important;
+  }
+
+  .runner-container .effect-sparks {
+    left: 88% !important;
+  }
+
+  .runner-container .effect-score-popup .score-popup-value {
+    font-size: 20px;
+  }
 }

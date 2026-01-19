@@ -86,6 +86,103 @@
 }
 
 /* ============================================
+   STATS OVERLAY - Floating outside canvas like Memory Match
+   ============================================ */
+
+.bb-stats-overlay {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  pointer-events: none;
+
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  padding: 8px 16px;
+
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 107, 0, 0.3);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.bb-stats-overlay .bb-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 12px;
+  min-width: 60px;
+  background: rgba(255, 107, 0, 0.1);
+  border: 1px solid rgba(255, 107, 0, 0.2);
+  border-radius: 8px;
+}
+
+.bb-stats-overlay .bb-stat-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: rgba(255, 107, 0, 0.8);
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.bb-stats-overlay .bb-stat-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+
+/* Stat color variants */
+.bb-stats-overlay .bb-stat.level-stat {
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+.bb-stats-overlay .bb-stat.level-stat .bb-stat-label { color: rgba(251, 191, 36, 0.9); }
+.bb-stats-overlay .bb-stat.level-stat .bb-stat-value { color: #fbbf24; }
+
+.bb-stats-overlay .bb-stat.score-stat {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+.bb-stats-overlay .bb-stat.score-stat .bb-stat-label { color: rgba(34, 197, 94, 0.9); }
+.bb-stats-overlay .bb-stat.score-stat .bb-stat-value { color: #22c55e; }
+
+.bb-stats-overlay .bb-stat.lives-stat {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+.bb-stats-overlay .bb-stat.lives-stat .bb-stat-label { color: rgba(239, 68, 68, 0.9); }
+.bb-stats-overlay .bb-stat.lives-stat .bb-stat-value { font-size: 16px; }
+
+@media (max-width: 480px) {
+  .bb-stats-overlay {
+    top: 8px;
+    gap: 4px;
+    padding: 6px 10px;
+  }
+
+  .bb-stats-overlay .bb-stat {
+    padding: 4px 8px;
+    min-width: 45px;
+  }
+
+  .bb-stats-overlay .bb-stat-label {
+    font-size: 7px;
+  }
+
+  .bb-stats-overlay .bb-stat-value {
+    font-size: 14px;
+  }
+
+  .bb-stats-overlay .bb-stat.lives-stat .bb-stat-value {
+    font-size: 12px;
+  }
+}
+
+/* ============================================
    GAME CANVAS
    ============================================ */
 

@@ -68,9 +68,9 @@
   width: 140px;
   min-width: 140px;
   max-width: 140px;
-  height: 500px;
-  min-height: 500px;
-  max-height: 500px;
+  height: 650px;
+  min-height: 650px;
+  max-height: 650px;
   flex-shrink: 0;
   flex-grow: 0;
   z-index: 10;
@@ -242,9 +242,9 @@
   width: 600px;
   min-width: 600px;
   max-width: 600px;
-  height: 500px;
-  min-height: 500px;
-  max-height: 500px;
+  height: 650px;
+  min-height: 650px;
+  max-height: 650px;
   flex-shrink: 0;
   flex-grow: 0;
   background: linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.4) 100%);

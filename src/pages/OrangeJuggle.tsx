@@ -5,33 +5,11 @@ import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useGameHaptics } from '@/systems/haptics';
 import { ShareButton } from '@/systems/sharing';
+import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 // import { useMedia } from '@/contexts/MediaContext'; // Temporarily disabled
 import './OrangeJuggle.css';
 
-// Sound effect for bouncing (Web Audio API for low latency)
-const createBounceSound = () => {
-  try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    return () => {
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
-
-      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.1);
-    };
-  } catch (e) {
-    return () => {}; // Fallback if Web Audio not supported
-  }
-};
 
 // Game constants
 const PADDLE_SIZE = 150; // Match the sprite display size
@@ -105,8 +83,23 @@ type GameMode = 'campaign';
 const OrangeJuggle: React.FC = () => {
   // Audio context for sound effects
   const { isSoundEffectsEnabled, isBackgroundMusicPlaying, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
-  const { playGameStart, playLevelUp, playGameOver, playWarning, playCombo } = useGameSounds();
-  const { hapticScore, hapticCombo, hapticHighScore, hapticGameOver, hapticLevelUp, hapticCollision, hapticWarning } = useGameHaptics();
+  const {
+    playGameStart, playLevelUp, playGameOver, playWarning, playCombo,
+    // Orange Juggle specific sounds
+    playOrangeJuggleHit, playOrangeDrop, playGoldenOrangeHit,
+    playBananaCollect, playRumCollect, playCamelWarning, playCamelImpact,
+    playOrangeJuggleCombo, playOrangeJuggleComboBreak,
+    startRumAmbient, stopRumAmbient, startBananaAmbient, stopBananaAmbient,
+    playOrangeJuggleLevelComplete, playArmSwing
+  } = useGameSounds();
+  const {
+    hapticScore, hapticCombo, hapticHighScore, hapticGameOver, hapticLevelUp, hapticCollision, hapticWarning,
+    // Orange Juggle specific haptics
+    hapticOJOrangeHit, hapticOJGoldenHit, hapticOJOrangeDrop,
+    hapticOJBananaCollect, hapticOJRumCollect,
+    hapticOJCamelWarning, hapticOJCamelImpact,
+    hapticOJNearMiss, hapticOJLevelComplete
+  } = useGameHaptics();
   // const { videoPlayer, musicPlayer } = useMedia(); // Temporarily disabled
 
   // Global leaderboard hook
@@ -129,6 +122,12 @@ const OrangeJuggle: React.FC = () => {
 
   // Game state
   const [gameState, setGameState] = useState<GameState>('menu');
+
+  // Navigation guard - prevents accidental exits during gameplay
+  const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
+    isPlaying: gameState === 'playing',
+  });
+
   const [gameMode, setGameMode] = useState<GameMode | null>(null);
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
@@ -138,8 +137,6 @@ const OrangeJuggle: React.FC = () => {
   const [lostByCamel, setLostByCamel] = useState(false); // Track if lost by hitting camel
   const [sadImage, setSadImage] = useState(''); // Random sad image for camel loss
 
-  // Sound effect refs
-  const bounceSoundRef = useRef<(() => void) | null>(null);
 
   // High scores and leaderboard
   const [highScore, setHighScore] = useState(() => {
@@ -179,6 +176,7 @@ const OrangeJuggle: React.FC = () => {
   const paddleRef = useRef({ x: 0, y: 0 });
   const scoreRef = useRef(0);
   const comboRef = useRef(0);
+  const streakRef = useRef(0); // Consecutive hits for sound escalation (can exceed 10)
   const objectsRef = useRef<GameObject[]>([]); // Direct access to objects for game loop
   const speedModifierRef = useRef(1);
   const powerupTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -188,18 +186,22 @@ const OrangeJuggle: React.FC = () => {
   const bananaCountRef = useRef(0); // Track consecutive bananas for speed boost
   const isReversedRef = useRef(false); // Whether controls are reversed
 
-  // Initialize bounce sound effect
-  useEffect(() => {
-    bounceSoundRef.current = createBounceSound();
-  }, []);
+  // Ref for game loop to check dialog state
+  const showExitDialogRef = useRef(false);
 
-  // Auto-start game on mount (unified intro from GameModal)
+
+  // Keep exit dialog ref in sync with state
+  useEffect(() => {
+    showExitDialogRef.current = showExitDialog;
+  }, [showExitDialog]);
+
+  // Auto-start game when in menu state (on mount or after returning to menu)
   useEffect(() => {
     if (gameState === 'menu' && !gameMode) {
       startGame('campaign');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [gameState, gameMode]);
 
   // Background music disabled for now - can re-enable later
   // useEffect(() => {
@@ -212,12 +214,6 @@ const OrangeJuggle: React.FC = () => {
   //   }
   // }, [gameState, videoPlayer?.isPlaying, musicPlayer?.isPlaying, isBackgroundMusicPlaying, playBackgroundMusic]);
 
-  // Play bounce sound helper
-  const playBounceSound = useCallback(() => {
-    if (isSoundEffectsEnabled && bounceSoundRef.current) {
-      bounceSoundRef.current();
-    }
-  }, [isSoundEffectsEnabled]);
 
   // Trigger orangutan bounce animation
   const triggerOrangutanBounce = useCallback(() => {
@@ -325,6 +321,7 @@ const OrangeJuggle: React.FC = () => {
     goldenSpawnTimeRef.current = Date.now() + 15000;
     scoreRef.current = 0;
     comboRef.current = 0;
+    streakRef.current = 0; // Reset streak for sound escalation
     lastHitTimeRef.current = Date.now(); // Start combo decay timer from now
     // Reset power-up state
     speedModifierRef.current = 1;
@@ -384,6 +381,7 @@ const OrangeJuggle: React.FC = () => {
     setObjects([]);
     setCombo(0);
     comboRef.current = 0;
+    streakRef.current = 0; // Reset streak for new level
     lastHitTimeRef.current = Date.now(); // Reset combo decay timer
     goldenSpawnTimeRef.current = Date.now() + 15000;
     // Reset power-up state for new level
@@ -501,6 +499,12 @@ const OrangeJuggle: React.FC = () => {
     if (gameState !== 'playing') return;
 
     const gameLoop = () => {
+      // Pause game loop when exit dialog is shown
+      if (showExitDialogRef.current) {
+        animationRef.current = requestAnimationFrame(gameLoop);
+        return;
+      }
+
       const width = gameAreaRef.current?.offsetWidth || 300;
       const height = gameAreaRef.current?.offsetHeight || 500;
       // Get gravity based on current level
@@ -656,6 +660,10 @@ const OrangeJuggle: React.FC = () => {
 
       // Check if combo should be reset (when a juggled orange hits the ground)
       if (droppedOrangeIds.length > 0) {
+        // Play orange drop sound and haptic
+        playOrangeDrop();
+        hapticOJOrangeDrop(); // Long drop feeling
+
         // Count oranges that are actively being juggled:
         // - wasHit = true (player has hit it)
         // - vy < 0 (moving upward, meaning it was just hit and is in the air)
@@ -672,7 +680,14 @@ const OrangeJuggle: React.FC = () => {
 
         // Reset combo if NO other oranges are actively being juggled (moving upward)
         if (orangesActivelyJuggled.length === 0) {
+          // Play combo break sound if we had a combo going
+          const lostCombo = comboRef.current;
+          const lostStreak = streakRef.current;
+          if (lostCombo >= 3) {
+            playOrangeJuggleComboBreak(lostStreak); // Use streak for more dramatic break sound
+          }
           comboRef.current = 0;
+          streakRef.current = 0; // Reset streak when combo breaks
           setCombo(0);
         }
       }
@@ -680,6 +695,12 @@ const OrangeJuggle: React.FC = () => {
       // Apply collected power-up (stacking effects)
       if (collectedPowerup) {
         if (collectedPowerup === 'banana') {
+          // Play banana collect sound/haptic and stop rum ambient if playing
+          playBananaCollect();
+          hapticOJBananaCollect(); // Energetic triple pulse
+          stopRumAmbient();
+          startBananaAmbient();
+
           // Banana: faster movement, reset rum count and reversed controls
           rumCountRef.current = 0;
           setRumCount(0);
@@ -696,6 +717,12 @@ const OrangeJuggle: React.FC = () => {
           setSpeedModifier(BANANA_SPEEDS[speedIndex]);
           setActivePowerup('banana');
         } else {
+          // Play rum collect sound/haptic and stop banana ambient if playing
+          playRumCollect();
+          hapticOJRumCollect(); // Woozy double pulse
+          stopBananaAmbient();
+          startRumAmbient();
+
           // Rum: slower movement, reset banana count
           bananaCountRef.current = 0;
           setBananaCount(0);
@@ -720,7 +747,8 @@ const OrangeJuggle: React.FC = () => {
 
       // Process collision results - score points!
       if (hitOrange || hitGolden) {
-        comboRef.current = Math.min(comboRef.current + 1, 10);
+        comboRef.current = Math.min(comboRef.current + 1, 10); // Multiplier caps at 10x
+        streakRef.current++; // Streak continues for sound escalation (no cap!)
         let points = hitGolden ? 50 * comboRef.current : 10 * comboRef.current;
         // 2x multiplier when controls are reversed (rum effect) - risk/reward!
         if (isReversedRef.current) {
@@ -731,20 +759,29 @@ const OrangeJuggle: React.FC = () => {
         setCombo(comboRef.current);
         lastHitTimeRef.current = Date.now(); // Reset combo decay timer
 
-        // Play bounce sound and trigger orangutan animation + haptic
-        playBounceSound();
-        triggerOrangutanBounce();
-        // Haptic feedback on hit - escalate with combo
-        if (comboRef.current >= 3) {
-          hapticCombo(comboRef.current);
+        // Play hit sounds and haptics - different for golden vs regular orange
+        if (hitGolden) {
+          playGoldenOrangeHit();
+          hapticOJGoldenHit(); // Celebratory triple burst
         } else {
-          hapticScore();
+          // Position-based pitch variation (0 = left edge, 1 = right edge)
+          const hitPosition = paddleRef.current.x / (width - PADDLE_SIZE);
+          playOrangeJuggleHit(hitPosition);
+          hapticOJOrangeHit(); // Medium bounce pulse
+        }
+        // Play combo escalation sound - uses streak for continuous escalation!
+        playOrangeJuggleCombo(streakRef.current);
+        triggerOrangutanBounce();
+        // Additional haptic feedback on combo escalation
+        if (comboRef.current >= 3) {
+          hapticCombo(comboRef.current); // Escalating combo haptic
         }
       }
 
       // Combo decay - reset combo if no hits for too long
       if (comboRef.current > 0 && Date.now() - lastHitTimeRef.current > COMBO_DECAY_TIME) {
         comboRef.current = 0;
+        streakRef.current = 0; // Reset streak when combo decays
         setCombo(0);
       }
 
@@ -801,6 +838,9 @@ const OrangeJuggle: React.FC = () => {
       if (currentConfig.camelChance > 0 && Date.now() > nextCamelSpawnRef.current) {
         // Roll the dice - spawn camel based on chance
         if (Math.random() < currentConfig.camelChance) {
+          // Play camel warning sound and haptic
+          playCamelWarning();
+          hapticOJCamelWarning(); // Urgent triple pulse - danger incoming!
           setTimeout(() => {
             spawnObject('camel');
           }, 0);
@@ -815,8 +855,11 @@ const OrangeJuggle: React.FC = () => {
         if (animationRef.current) {
           cancelAnimationFrame(animationRef.current);
         }
-        // Haptic collision feedback
-        hapticCollision();
+        // Play camel impact sound and haptic
+        playCamelImpact();
+        stopRumAmbient();
+        stopBananaAmbient();
+        hapticOJCamelImpact(); // Heavy game over pulse
         // Set camel loss state and pick random sad image
         setLostByCamel(true);
         setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
@@ -846,11 +889,20 @@ const OrangeJuggle: React.FC = () => {
     const config = LEVEL_CONFIG[level as keyof typeof LEVEL_CONFIG] || LEVEL_CONFIG[1];
 
     timerRef.current = setInterval(() => {
+      // Pause timer when exit dialog is shown
+      if (showExitDialogRef.current) return;
+
       setTimeLeft(prev => {
         if (prev <= 1) {
+          // Stop ambient loops when level ends
+          stopRumAmbient();
+          stopBananaAmbient();
+
           // Time's up! Use scoreRef.current to get latest score (avoids stale closure)
           const currentScore = scoreRef.current;
           if (currentScore >= config.targetScore) {
+            // Play level complete sound
+            playOrangeJuggleLevelComplete();
             if (level >= 5) {
               // Completed all levels - go to save score screen
               hapticHighScore(); // Victory haptic
@@ -861,11 +913,12 @@ const OrangeJuggle: React.FC = () => {
                 localStorage.setItem('orangeJuggleHighScore', String(currentScore));
               }
             } else {
-              hapticLevelUp(); // Level complete haptic
+              hapticOJLevelComplete(); // Extended celebration burst
               setGameState('levelComplete');
             }
           } else {
             // Didn't reach target score - game over
+            playGameOver();
             hapticGameOver();
             setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
             setGameState('saveScore'); // Still allow saving score
@@ -895,6 +948,9 @@ const OrangeJuggle: React.FC = () => {
     setPlayerName('');
     objectsRef.current = [];
     setObjects([]);
+    // Stop ambient loops
+    stopRumAmbient();
+    stopBananaAmbient();
     // Reset power-up state
     speedModifierRef.current = 1;
     setSpeedModifier(1);
@@ -1245,6 +1301,19 @@ const OrangeJuggle: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Exit Game Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={showExitDialog}
+        onClose={cancelExit}
+        onConfirm={confirmExit}
+        title="Leave Game?"
+        message="Your progress will be lost. Are you sure you want to leave?"
+        confirmText="Leave"
+        cancelText="Stay"
+        variant="warning"
+        icon="🎮"
+      />
     </div>
   );
 };

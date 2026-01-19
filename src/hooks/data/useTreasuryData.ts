@@ -27,20 +27,22 @@ export function useTreasuryWalletData() {
   // Get cached data synchronously for instant display (always returns data, never null)
   const cachedData = treasuryService.getCachedWalletData();
   const isCacheStale = treasuryService.isCacheStale();
-  const hasNftCollections = (cachedData?.nftCollections?.length ?? 0) > 0;
+  // Check if we have actual NFTs (not just empty collections)
+  const totalNfts = cachedData?.nftCollections?.reduce((sum, c) => sum + (c.nfts?.length ?? 0), 0) ?? 0;
+  const hasActualNfts = totalNfts > 0;
 
   return useQuery({
     queryKey: treasuryKeys.walletData(),
     queryFn: () => treasuryService.fetchWalletData(),
-    // If we have no NFT collections, set staleTime to 0 to force refetch
-    staleTime: hasNftCollections ? DATA_CACHE_MAP.walletBalance.staleTime : 0,
+    // If we have no actual NFTs, set staleTime to 0 to force refetch
+    staleTime: hasActualNfts ? DATA_CACHE_MAP.walletBalance.staleTime : 0,
     gcTime: DATA_CACHE_MAP.walletBalance.gcTime,
     // Show cached/fallback data immediately - NEVER show loading state
     initialData: cachedData,
-    // Mark initialData as stale if we have no NFT collections
-    initialDataUpdatedAt: hasNftCollections ? undefined : 0,
-    // Only refetch if cache is stale
-    refetchOnMount: isCacheStale || !hasNftCollections,
+    // Mark initialData as stale if we have no actual NFTs
+    initialDataUpdatedAt: hasActualNfts ? undefined : 0,
+    // Only refetch if cache is stale or no actual NFTs
+    refetchOnMount: isCacheStale || !hasActualNfts,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     retry: false, // Don't retry on failure - just use cache

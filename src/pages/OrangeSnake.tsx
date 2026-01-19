@@ -14,6 +14,8 @@ import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useGameEffects, GameEffects } from '@/components/media';
+import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import './OrangeSnake.css';
 
 // ============================================
@@ -173,6 +175,20 @@ const OrangeSnake: React.FC = () => {
   } = useLeaderboard('orange-snake');
   const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
+  // React state for UI (moved before useGameNavigationGuard to avoid initialization order issue)
+  const [gameState, setGameState] = useState<GameState>('idle');
+
+  // Navigation guard - prevents accidental exits during gameplay
+  const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
+    isPlaying: gameState === 'playing',
+  });
+
+  // Ref for game loop to check dialog state
+  const showExitDialogRef = useRef(false);
+  useEffect(() => {
+    showExitDialogRef.current = showExitDialog;
+  }, [showExitDialog]);
+
   // Canvas dimensions
   const CANVAS_WIDTH = isMobile ? Math.min(window.innerWidth, 500) : 600;
   const CANVAS_HEIGHT = isMobile ? Math.min(window.innerHeight - 140, 700) : 500;
@@ -197,7 +213,6 @@ const OrangeSnake: React.FC = () => {
   });
 
   // React state for UI
-  const [gameState, setGameState] = useState<GameState>('idle');
   const [score, setScore] = useState(STARTING_LENGTH);
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('orangeSnakeHighScore') || '0', 10);
@@ -707,8 +722,11 @@ const OrangeSnake: React.FC = () => {
     const gameLoop = () => {
       const state = gameStateRef.current;
 
-      if (state.gameStatus !== 'playing') {
+      if (state.gameStatus !== 'playing' || showExitDialogRef.current) {
         render(ctx);
+        if (state.gameStatus === 'playing' && !showExitDialogRef.current) {
+          animationRef.current = requestAnimationFrame(gameLoop);
+        }
         return;
       }
 
@@ -792,6 +810,7 @@ const OrangeSnake: React.FC = () => {
     return () => cancelAnimationFrame(animationRef.current);
   }, [
     gameState,
+    showExitDialog,
     CANVAS_WIDTH,
     CANVAS_HEIGHT,
     updateSnakeDirection,
@@ -1039,6 +1058,19 @@ const OrangeSnake: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* Exit Game Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={showExitDialog}
+        onClose={cancelExit}
+        onConfirm={confirmExit}
+        title="Leave Game?"
+        message="Your progress will be lost. Are you sure you want to leave?"
+        confirmText="Leave"
+        cancelText="Stay"
+        variant="warning"
+        icon="🎮"
+      />
     </div>
   );
 };

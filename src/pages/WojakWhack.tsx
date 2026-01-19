@@ -12,6 +12,8 @@ import { useGameSounds } from '@/hooks/useGameSounds';
 import { useGameHaptics } from '@/systems/haptics';
 import { useGameEffects } from '@/components/media';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
+import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import './WojakWhack.css';
 
 // =============================================================================
@@ -121,6 +123,11 @@ export default function WojakWhack() {
   const [isNewHighScore, setIsNewHighScore] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // Navigation guard - prevents accidental exits during gameplay
+  const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
+    isPlaying: status === 'playing',
+  });
+
   // Refs for intervals/timeouts
   const timerRef = useRef<number | null>(null);
   const spawnTimeoutRef = useRef<number | null>(null);
@@ -128,6 +135,9 @@ export default function WojakWhack() {
   const maxComboRef = useRef(0);
   const statusRef = useRef<GameStatus>('idle');
   const holesRef = useRef<Hole[]>(holes);
+
+  // Ref for game loop to check dialog state
+  const showExitDialogRef = useRef(false);
 
   // Keep refs in sync
   useEffect(() => {
@@ -137,6 +147,10 @@ export default function WojakWhack() {
   useEffect(() => {
     holesRef.current = holes;
   }, [holes]);
+
+  useEffect(() => {
+    showExitDialogRef.current = showExitDialog;
+  }, [showExitDialog]);
 
   useEffect(() => {
     if (combo > maxComboRef.current) {
@@ -194,7 +208,7 @@ export default function WojakWhack() {
   }, []);
 
   const spawnCharacter = useCallback(() => {
-    if (statusRef.current !== 'playing') return;
+    if (statusRef.current !== 'playing' || showExitDialogRef.current) return;
 
     const holeId = getAvailableHole();
     if (holeId === null) return;
@@ -224,7 +238,7 @@ export default function WojakWhack() {
   }, [difficulty, getAvailableHole, getRandomCharacter, hideCharacter]);
 
   const scheduleNextSpawn = useCallback(() => {
-    if (statusRef.current !== 'playing') return;
+    if (statusRef.current !== 'playing' || showExitDialogRef.current) return;
 
     const config = DIFFICULTY_CONFIG[difficulty as 1 | 2 | 3] || DIFFICULTY_CONFIG[1];
     const delay = config.spawnMin + Math.random() * (config.spawnMax - config.spawnMin);
@@ -641,6 +655,19 @@ export default function WojakWhack() {
           </button>
         </div>
       )}
+
+      {/* Exit Game Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={showExitDialog}
+        onClose={cancelExit}
+        onConfirm={confirmExit}
+        title="Leave Game?"
+        message="Your progress will be lost. Are you sure you want to leave?"
+        confirmText="Leave"
+        cancelText="Stay"
+        variant="warning"
+        icon="🎮"
+      />
     </div>
   );
 }

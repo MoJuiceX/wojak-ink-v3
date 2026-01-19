@@ -4,6 +4,8 @@ import { useGameSounds } from '@/hooks/useGameSounds';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useAudio } from '@/contexts/AudioContext';
 import { useGameEffects, GameEffects } from '@/components/media';
+import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import './WojakRunner.css';
 
 interface Obstacle {
@@ -66,6 +68,11 @@ const WojakRunner: React.FC = () => {
   const { isBackgroundMusicPlaying, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
 
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
+
+  // Navigation guard - prevents accidental exits during gameplay
+  const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
+    isPlaying: gameState === 'playing',
+  });
   const [playerLane, setPlayerLane] = useState(1);
   const [obstacles, setObstacles] = useState<Obstacle[]>([]);
   const [collectibles, setCollectibles] = useState<Collectible[]>([]);
@@ -91,6 +98,9 @@ const WojakRunner: React.FC = () => {
   const collectibleIdRef = useRef(0);
   const touchStartXRef = useRef(0);
   const lastSpawnRef = useRef(0);
+
+  // Ref for game loop to check dialog state
+  const showExitDialogRef = useRef(false);
 
   // Collect streak tracking
   const [collectStreak, setCollectStreak] = useState(0);
@@ -136,6 +146,11 @@ const WojakRunner: React.FC = () => {
     resetComboRef.current = resetCombo;
     addScorePopupRef.current = addScorePopup;
   }, [triggerShockwave, triggerSparks, triggerVignette, triggerScreenShake, addFloatingEmoji, showEpicCallout, triggerConfetti, updateCombo, resetCombo, addScorePopup]);
+
+  // Keep exit dialog ref in sync for game loop
+  useEffect(() => {
+    showExitDialogRef.current = showExitDialog;
+  }, [showExitDialog]);
 
   // Start/stop running sound based on game state
   useEffect(() => {
@@ -276,6 +291,12 @@ const WojakRunner: React.FC = () => {
     if (gameState !== 'playing') return;
 
     const gameLoop = () => {
+      // Pause game loop when exit dialog is shown
+      if (showExitDialogRef.current) {
+        animationRef.current = requestAnimationFrame(gameLoop);
+        return;
+      }
+
       const height = gameAreaRef.current?.offsetHeight || 600;
 
       // Update distance and speed (no sound on speed increase - silent)
@@ -673,6 +694,19 @@ const WojakRunner: React.FC = () => {
         </div>
       </div>
       )}
+
+      {/* Exit Game Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={showExitDialog}
+        onClose={cancelExit}
+        onConfirm={confirmExit}
+        title="Leave Game?"
+        message="Your progress will be lost. Are you sure you want to leave?"
+        confirmText="Leave"
+        cancelText="Stay"
+        variant="warning"
+        icon="🎮"
+      />
     </div>
   );
 };

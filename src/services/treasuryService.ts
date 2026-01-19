@@ -348,25 +348,42 @@ function getCachedNFTCollections(): NFTCollection[] {
 
 /**
  * Fetch NFTs from MintGarden API and group by collection
+ * Handles pagination to fetch all NFTs
  */
 async function fetchNFTCollections(): Promise<NFTCollection[]> {
   // Get cached/fallback collections to use if API fails
   const fallbackCollections = getCachedNFTCollections();
 
   try {
-    // Use MintGarden API with puzzle hash and type=owned
-    const response = await fetch(
-      `${MINTGARDEN_API}/address/${WALLET_PUZZLE_HASH}/nfts?size=100&type=owned`
-    );
+    const allNfts: Record<string, unknown>[] = [];
+    let nextCursor: string | null = null;
+    let pageCount = 0;
+    const maxPages = 5; // Safety limit to prevent infinite loops
 
-    if (!response.ok) {
-      throw new Error(`MintGarden NFT API error: ${response.status}`);
-    }
+    // Fetch all pages of NFTs
+    do {
+      const url: string = nextCursor
+        ? `${MINTGARDEN_API}/address/${WALLET_PUZZLE_HASH}/nfts?size=100&type=owned&cursor=${encodeURIComponent(nextCursor)}`
+        : `${MINTGARDEN_API}/address/${WALLET_PUZZLE_HASH}/nfts?size=100&type=owned`;
 
-    const data = await response.json();
-    const nfts = data.items || data.data || data.nfts || [];
+      const response: Response = await fetch(url);
 
-    if (!Array.isArray(nfts) || nfts.length === 0) {
+      if (!response.ok) {
+        throw new Error(`MintGarden NFT API error: ${response.status}`);
+      }
+
+      const data: { items?: Record<string, unknown>[]; data?: Record<string, unknown>[]; nfts?: Record<string, unknown>[]; next?: string } = await response.json();
+      const nfts = data.items || data.data || data.nfts || [];
+
+      if (Array.isArray(nfts) && nfts.length > 0) {
+        allNfts.push(...nfts);
+      }
+
+      nextCursor = data.next || null;
+      pageCount++;
+    } while (nextCursor && pageCount < maxPages);
+
+    if (allNfts.length === 0) {
       // No NFTs from API - use fallback
       return fallbackCollections;
     }
@@ -374,14 +391,14 @@ async function fetchNFTCollections(): Promise<NFTCollection[]> {
     // Group NFTs by collection
     const collectionMap = new Map<string, NFTCollection>();
 
-    for (const nft of nfts) {
-      const collectionId = nft.collection_id || 'unknown';
-      const collectionName = nft.collection_name || 'Unknown Collection';
+    for (const nft of allNfts) {
+      const collectionId = (nft.collection_id as string) || 'unknown';
+      const collectionName = (nft.collection_name as string) || 'Unknown Collection';
 
       const nftItem: NFTItem = {
-        nftId: nft.encoded_id || nft.id || '',
-        name: nft.name || `NFT #${nft.edition_number || 'Unknown'}`,
-        imageUrl: nft.thumbnail_uri || nft.data_uris?.[0] || '',
+        nftId: (nft.encoded_id as string) || (nft.id as string) || '',
+        name: (nft.name as string) || `NFT #${nft.edition_number || 'Unknown'}`,
+        imageUrl: (nft.thumbnail_uri as string) || (nft.data_uris as string[])?.[0] || '',
         collectionId,
         collectionName,
       };
@@ -547,9 +564,9 @@ class TreasuryService implements ITreasuryService {
   isCacheStale(): boolean {
     const localCache = loadCache();
     if (!localCache) return true;
-    // Also consider stale if we have no NFT collections in memory cache
-    // (NFTs aren't persisted to localStorage, so we need to refetch)
-    if (!cachedWalletData?.nftCollections?.length) return true;
+    // Check if we have actual NFTs (not just empty collections)
+    const totalNfts = cachedWalletData?.nftCollections?.reduce((sum, c) => sum + (c.nfts?.length ?? 0), 0) ?? 0;
+    if (totalNfts === 0) return true;
     return !isCacheFresh(localCache.lastUpdated);
   }
 
