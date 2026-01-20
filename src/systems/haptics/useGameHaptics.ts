@@ -187,6 +187,88 @@ export const useGameHaptics = () => {
     trigger('oj-level-complete');
   }, [trigger]);
 
+  // ========== COLOR REACTION SPECIFIC HAPTICS ==========
+
+  // Ultra-light tap confirmation
+  const hapticCRTap = useCallback(() => {
+    trigger('cr-tap');
+  }, [trigger]);
+
+  // PERFECT reaction (<300ms) - celebratory burst
+  const hapticCRPerfect = useCallback(() => {
+    trigger('cr-perfect');
+  }, [trigger]);
+
+  // GREAT reaction (<500ms) - strong success
+  const hapticCRGreat = useCallback(() => {
+    trigger('cr-great');
+  }, [trigger]);
+
+  // GOOD reaction (<700ms) - medium success
+  const hapticCRGood = useCallback(() => {
+    trigger('cr-good');
+  }, [trigger]);
+
+  // OK reaction (<1000ms) - light success
+  const hapticCROk = useCallback(() => {
+    trigger('cr-ok');
+  }, [trigger]);
+
+  // Wrong tap - gentle error
+  const hapticCRWrong = useCallback(() => {
+    trigger('cr-wrong');
+  }, [trigger]);
+
+  // Match window expired - single pulse
+  const hapticCRMiss = useCallback(() => {
+    trigger('cr-miss');
+  }, [trigger]);
+
+  // Ultra-light tick in final 500ms
+  const hapticCRCountdownTick = useCallback(() => {
+    trigger('cr-countdown-tick');
+  }, [trigger]);
+
+  // Double tap warning at 750ms
+  const hapticCRCountdownWarning = useCallback(() => {
+    trigger('cr-countdown-warning');
+  }, [trigger]);
+
+  // Rapid triple at 300ms - urgent!
+  const hapticCRCountdownCritical = useCallback(() => {
+    trigger('cr-countdown-critical');
+  }, [trigger]);
+
+  // Medium-heavy life loss pulse
+  const hapticCRLoseLife = useCallback(() => {
+    trigger('cr-lose-life');
+  }, [trigger]);
+
+  // Urgent last life warning
+  const hapticCRLastLife = useCallback(() => {
+    trigger('cr-last-life');
+  }, [trigger]);
+
+  // 5x streak milestone
+  const hapticCRStreak5 = useCallback(() => {
+    trigger('cr-streak-5');
+  }, [trigger]);
+
+  // 10x streak milestone
+  const hapticCRStreak10 = useCallback(() => {
+    trigger('cr-streak-10');
+  }, [trigger]);
+
+  // 15x streak milestone
+  const hapticCRStreak15 = useCallback(() => {
+    trigger('cr-streak-15');
+  }, [trigger]);
+
+  // 20x streak milestone - maximum!
+  const hapticCRStreak20 = useCallback(() => {
+    trigger('cr-streak-20');
+  }, [trigger]);
+
   return {
     // Game events
     hapticScore,
@@ -230,6 +312,24 @@ export const useGameHaptics = () => {
     hapticOJCamelImpact,
     hapticOJNearMiss,
     hapticOJLevelComplete,
+
+    // Color Reaction specific
+    hapticCRTap,
+    hapticCRPerfect,
+    hapticCRGreat,
+    hapticCRGood,
+    hapticCROk,
+    hapticCRWrong,
+    hapticCRMiss,
+    hapticCRCountdownTick,
+    hapticCRCountdownWarning,
+    hapticCRCountdownCritical,
+    hapticCRLoseLife,
+    hapticCRLastLife,
+    hapticCRStreak5,
+    hapticCRStreak10,
+    hapticCRStreak15,
+    hapticCRStreak20,
 
     // State
     isSupported,

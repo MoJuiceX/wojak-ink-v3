@@ -35,6 +35,9 @@ export interface MiniGame {
   // Intro screen
   shortDescription?: string; // Short tagline for intro screen (1-2 sentences)
   introBackground?: string; // Custom background image path (defaults to Orange Grove)
+
+  // Availability
+  disabled?: boolean; // If true, game is grayed out and not playable
 }
 
 export type GameStatus = 'available' | 'coming-soon' | 'maintenance';

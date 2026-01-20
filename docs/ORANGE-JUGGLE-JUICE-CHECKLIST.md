@@ -40,16 +40,16 @@
 
 ## Phase 3: Core Visual Juice
 
-- [ ] **25. Orange squash on impact** — Compress on hit, recover smoothly
-- [ ] **26. Orange velocity stretch** — Elongate in movement direction
-- [ ] **27. Orangutan arm animation** — Arm swings with follow-through
-- [ ] **28. Impact flash on collision** — White expanding circle at contact
-- [ ] **29. Orange trail effect** — Motion trail with combo color escalation
-- [ ] **30. Particle burst on hit** — 12-16 colorful particles
-- [ ] **31. Screen shake** — Variable intensity with decay
-- [ ] **32. Freeze frame on big hits** — 40-100ms pause for impact
-- [ ] **33. Combo glow effect** — Orangutan glows brighter with combo
-- [ ] **34. Multiple orange panic indicators** — Visual cues for simultaneous oranges
+- [x] **25. Orange squash on impact** — Compress on hit, recover smoothly
+- [x] **26. Orange velocity stretch** — Elongate in movement direction
+- [x] **27. Orangutan arm animation** — Arm swings with follow-through
+- [x] **28. Impact flash on collision** — White expanding circle at contact
+- [x] **29. Orange trail effect** — Motion trail with combo color escalation
+- [x] **30. Particle burst on hit** — 12-16 colorful particles
+- [x] **31. Screen shake** — Variable intensity with decay
+- [x] **32. Freeze frame on big hits** — 40-100ms pause for impact
+- [x] **33. Combo glow effect** — Orangutan glows brighter with combo
+- [x] **34. Multiple orange panic indicators** — Visual cues for simultaneous oranges
 
 ---
 
@@ -129,16 +129,16 @@
 | 22 | Combo escalation haptic | OrangeJuggle.tsx | Uses existing hapticCombo system |
 | 23 | Near-miss haptic | patterns.ts, useGameHaptics.ts | Pattern ready, awaiting detection |
 | 24 | Level complete haptic | patterns.ts, useGameHaptics.ts, OrangeJuggle.tsx | Extended celebration burst |
-| 25 | Orange squash | | |
-| 26 | Orange velocity stretch | | |
-| 27 | Orangutan arm animation | | |
-| 28 | Impact flash | | |
-| 29 | Orange trail effect | | |
-| 30 | Particle burst | | |
-| 31 | Screen shake | | |
-| 32 | Freeze frame | | |
-| 33 | Combo glow effect | | |
-| 34 | Panic indicators | | |
+| 25 | Orange squash | OrangeJuggle.tsx | squashX/squashY on collision, smooth recovery |
+| 26 | Orange velocity stretch | OrangeJuggle.tsx | CSS transform scale based on velocity |
+| 27 | Orangutan arm animation | OrangeJuggle.tsx, OrangeJuggle.css | swing-left/right CSS animations |
+| 28 | Impact flash | OrangeJuggle.tsx, OrangeJuggle.css | White radial gradient flash on hit |
+| 29 | Orange trail effect | OrangeJuggle.tsx, OrangeJuggle.css | Trail points with combo color escalation |
+| 30 | Particle burst | OrangeJuggle.tsx, OrangeJuggle.css | 12-16 particles with physics |
+| 31 | Screen shake | OrangeJuggle.tsx | Transform on lightbox-wrapper with decay |
+| 32 | Freeze frame | OrangeJuggle.tsx | Skip physics via freezeFrameUntilRef |
+| 33 | Combo glow effect | OrangeJuggle.tsx, OrangeJuggle.css | 4-level combo glow with pulsing colors |
+| 34 | Panic indicators | OrangeJuggle.tsx, OrangeJuggle.css | Vignette overlay + landing zone dots |
 | 35 | Golden orange glow | | |
 | 36 | Banana glow/float | | |
 | 37 | Rum wobble | | |
@@ -174,9 +174,9 @@
 
 **Total Enhancements:** 62
 
-**Completed:** 24 / 62
+**Completed:** 34 / 62
 
-**Progress:** 38.7% (Phase 1 & 2 Complete)
+**Progress:** 54.8% (Phases 1, 2 & 3 Complete)
 
 ---
 
@@ -212,4 +212,4 @@
 
 ---
 
-*Last updated: 2026-01-18*
+*Last updated: 2026-01-19*

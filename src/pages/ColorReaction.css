@@ -1,5 +1,12 @@
 /* Color Reaction Game Styles - Mobile First */
 
+/* Override combo position - move to left side so it doesn't block labels */
+.color-reaction-container .effect-combo {
+  top: 50%;
+  left: 15%;
+  transform: translate(-50%, -50%);
+}
+
 .color-reaction-container {
   /* Mobile-first: fill parent container */
   width: 100%;
@@ -103,17 +110,17 @@
 }
 
 .color-label {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
   text-transform: uppercase;
-  letter-spacing: 2px;
-  font-weight: 600;
+  letter-spacing: 3px;
+  font-weight: 700;
 }
 
-/* Color Display Circles - Mobile sizes */
+/* Color Display Circles - Mobile sizes (bigger for better playability) */
 .color-display {
-  width: 120px;
-  height: 120px;
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -123,7 +130,7 @@
 }
 
 .color-emoji {
-  font-size: 48px;
+  font-size: 60px;
 }
 
 .target-display {
@@ -151,18 +158,1111 @@
 }
 
 .countdown-ring-progress {
-  transition: stroke-dasharray 0.05s linear;
+  transition: stroke-dasharray 0.05s linear, stroke 0.2s ease;
 }
 
-/* Desktop: larger circles */
+/* ========== PHASE 3: URGENCY SYSTEM ========== */
+
+/* TASK 30: Ring color transitions based on urgency */
+.countdown-ring.urgency-normal .countdown-ring-progress {
+  stroke: #2ecc71; /* Green */
+}
+
+.countdown-ring.urgency-warning .countdown-ring-progress {
+  stroke: #f1c40f; /* Yellow */
+}
+
+.countdown-ring.urgency-critical .countdown-ring-progress {
+  stroke: #e74c3c; /* Red */
+}
+
+/* TASK 31: Ring pulse animation - faster with urgency */
+.countdown-ring.urgency-normal {
+  animation: ring-pulse-normal 1s ease-in-out infinite;
+}
+
+.countdown-ring.urgency-warning {
+  animation: ring-pulse-warning 0.6s ease-in-out infinite;
+}
+
+.countdown-ring.urgency-critical {
+  animation: ring-pulse-critical 0.3s ease-in-out infinite;
+}
+
+@keyframes ring-pulse-normal {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes ring-pulse-warning {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.04); opacity: 0.9; }
+}
+
+@keyframes ring-pulse-critical {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.06); opacity: 0.85; }
+}
+
+/* TASK 32: TAP NOW text urgency - pulses and changes color */
+.tap-now.urgency-normal {
+  color: #2ecc71;
+  animation: tap-pulse-normal 1s ease-in-out infinite;
+}
+
+.tap-now.urgency-warning {
+  color: #f1c40f;
+  animation: tap-pulse-warning 0.5s ease-in-out infinite;
+}
+
+.tap-now.urgency-critical {
+  color: #e74c3c;
+  animation: tap-pulse-critical 0.2s ease-in-out infinite;
+  font-weight: 900;
+  text-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+}
+
+@keyframes tap-pulse-normal {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes tap-pulse-warning {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.9; }
+}
+
+@keyframes tap-pulse-critical {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.85; }
+}
+
+/* TASK 34: Circle shake in critical state */
+.critical-shake {
+  animation: critical-shake 0.1s ease-in-out infinite;
+}
+
+@keyframes critical-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+/* TASK 35: Background urgency tint */
+.container-urgency-normal {
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.container-urgency-warning {
+  background: linear-gradient(180deg, #2a2a1e 0%, #26313e 100%);
+}
+
+.container-urgency-critical {
+  background: linear-gradient(180deg, #2e1a1a 0%, #3e1621 100%);
+}
+
+/* TASK 36: Remaining time display */
+.remaining-time {
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: monospace;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.remaining-time.urgency-normal {
+  color: #2ecc71;
+}
+
+.remaining-time.urgency-warning {
+  color: #f1c40f;
+}
+
+.remaining-time.urgency-critical {
+  color: #e74c3c;
+  animation: time-flash 0.2s ease-in-out infinite;
+}
+
+@keyframes time-flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* TASK 38: Vignette urgency effect */
+.container-urgency-warning::after,
+.container-urgency-critical::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.container-urgency-warning::after {
+  box-shadow: inset 0 0 100px rgba(241, 196, 15, 0.15);
+}
+
+.container-urgency-critical::after {
+  box-shadow: inset 0 0 120px rgba(231, 76, 60, 0.25);
+  animation: vignette-pulse 0.3s ease-in-out infinite;
+}
+
+@keyframes vignette-pulse {
+  0%, 100% { box-shadow: inset 0 0 120px rgba(231, 76, 60, 0.25); }
+  50% { box-shadow: inset 0 0 150px rgba(231, 76, 60, 0.35); }
+}
+
+/* ========== END URGENCY SYSTEM ========== */
+
+/* ========== PHASE 4: PERFECT CELEBRATION ========== */
+
+/* TASK 40: Gold screen flash on PERFECT */
+.perfect-flash {
+  animation: perfect-flash-anim 0.15s ease-out;
+}
+
+.perfect-flash::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.6) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 100;
+  animation: flash-fade 0.15s ease-out forwards;
+}
+
+@keyframes flash-fade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes perfect-flash-anim {
+  0% { filter: brightness(1.5); }
+  100% { filter: brightness(1); }
+}
+
+/* TASK 45: Circle pulse on PERFECT */
+.perfect-pulse {
+  animation: perfect-circle-pulse 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes perfect-circle-pulse {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* TASK 47: Reaction time display with emphasis */
+.perfect-reaction-time {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 200;
+  animation: reaction-time-entrance 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+.reaction-ms {
+  font-size: 48px;
+  font-weight: 900;
+  color: #FFD700;
+  text-shadow:
+    0 0 20px rgba(255, 215, 0, 0.8),
+    0 0 40px rgba(255, 215, 0, 0.5),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+  animation: reaction-glow 0.5s ease-in-out infinite alternate;
+}
+
+.reaction-label {
+  font-size: 18px;
+  font-weight: 700;
+  color: #FFD700;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  margin-top: -5px;
+}
+
+@keyframes reaction-time-entrance {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes reaction-glow {
+  0% { text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.5); }
+  100% { text-shadow: 0 0 30px rgba(255, 215, 0, 1), 0 0 60px rgba(255, 215, 0, 0.7), 0 4px 8px rgba(0, 0, 0, 0.5); }
+}
+
+/* TASK 48: Connection line between circles on PERFECT */
+.connection-line {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 150px;
+  background: linear-gradient(to bottom, #FFD700 0%, rgba(255, 215, 0, 0.5) 50%, #FFD700 100%);
+  transform: translate(-50%, -50%);
+  border-radius: 3px;
+  z-index: 50;
+  animation: connection-pulse 0.5s ease-out;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.4);
+}
+
+@keyframes connection-pulse {
+  0% { opacity: 0; transform: translate(-50%, -50%) scaleY(0); }
+  30% { opacity: 1; transform: translate(-50%, -50%) scaleY(1.2); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scaleY(1); }
+}
+
+/* ========== END PERFECT CELEBRATION ========== */
+
+/* ========== PHASE 5: VISUAL JUICE ENHANCEMENT ========== */
+
+/* TASK 49: Circle squash on tap */
+.tap-squash {
+  animation: squash-bounce 0.1s ease-out;
+}
+
+@keyframes squash-bounce {
+  0% { transform: scale(1, 1); }
+  50% { transform: scale(1.1, 0.9); }
+  100% { transform: scale(1, 1); }
+}
+
+/* TASK 50: Color change animation with bounce (handled by transition + this) */
+.color-display {
+  transition: background-color 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* TASK 51: Impact flash on correct - white expanding circle */
+.impact-flash::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, transparent 70%);
+  transform: translate(-50%, -50%) scale(0);
+  animation: impact-expand 0.15s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes impact-expand {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+/* TASK 56: Circle glow during match window */
+.match-glow {
+  box-shadow:
+    0 0 30px rgba(46, 204, 113, 0.6),
+    0 0 60px rgba(46, 204, 113, 0.3),
+    0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: match-glow-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes match-glow-pulse {
+  0%, 100% { box-shadow: 0 0 30px rgba(46, 204, 113, 0.6), 0 0 60px rgba(46, 204, 113, 0.3), 0 8px 32px rgba(0, 0, 0, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(46, 204, 113, 0.8), 0 0 80px rgba(46, 204, 113, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3); }
+}
+
+/* TASK 60: Background pulse on match/correct */
+.background-pulse {
+  animation: bg-pulse 0.3s ease-out;
+}
+
+@keyframes bg-pulse {
+  0% { filter: brightness(1.3); }
+  100% { filter: brightness(1); }
+}
+
+/* TASK 61: Streak fire effect at high streaks */
+.streak-fire {
+  position: relative;
+}
+
+.streak-fire::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(to top, rgba(255, 107, 0, 0.3) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+  animation: fire-flicker 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes fire-flicker {
+  0% { opacity: 0.5; height: 80px; }
+  100% { opacity: 0.8; height: 100px; }
+}
+
+/* TASK 53: Enhanced floating score with rating styling */
+.floating-score.correct {
+  color: #2ecc71;
+  text-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+  animation: float-up-correct 1.2s ease-out forwards;
+}
+
+.floating-score.wrong {
+  color: #e74c3c;
+  text-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+  animation: float-up-wrong 1.2s ease-out forwards;
+}
+
+@keyframes float-up-correct {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  50% { transform: translateY(-30px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(-60px) scale(1); opacity: 0; }
+}
+
+@keyframes float-up-wrong {
+  0% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+  25% { transform: translateY(-10px) scale(1.1) rotate(-5deg); }
+  50% { transform: translateY(-20px) scale(1) rotate(5deg); opacity: 0.8; }
+  100% { transform: translateY(-40px) scale(0.8) rotate(0deg); opacity: 0; }
+}
+
+/* TASK 58: Hearts bounce on life loss */
+.heart.breaking {
+  animation: heart-break 0.4s ease-out;
+}
+
+@keyframes heart-break {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.3); }
+  50% { transform: scale(0.8); }
+  100% { transform: scale(1); }
+}
+
+.heart.lost {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+/* TASK 62: Emoji burst effect (already using addFloatingEmoji, enhance here) */
+.color-reaction-container .floating-emoji {
+  animation: emoji-burst 0.8s ease-out forwards;
+}
+
+@keyframes emoji-burst {
+  0% { transform: scale(0) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.5) rotate(180deg); opacity: 1; }
+  100% { transform: scale(1) rotate(360deg) translateY(-50px); opacity: 0; }
+}
+
+/* ========== END VISUAL JUICE ENHANCEMENT ========== */
+
+/* ========== PHASE 6: STREAK & SCORING POLISH ========== */
+
+/* TASK 63: Combo meter visual */
+.combo-meter {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  max-width: 300px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.combo-meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2ecc71 0%, #f1c40f 50%, #e74c3c 100%);
+  border-radius: 4px;
+  transition: width 0.2s ease-out;
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+}
+
+.combo-meter-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* TASK 66: Score multiplier badge */
+.multiplier-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 4px;
+  animation: multiplier-pulse 0.5s ease-in-out infinite alternate;
+}
+
+.multiplier-badge.x2 {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: white;
+}
+
+.multiplier-badge.x3 {
+  background: linear-gradient(135deg, #f1c40f, #f39c12);
+  color: #1a1a2e;
+}
+
+.multiplier-badge.x4 {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  animation: multiplier-fire 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes multiplier-pulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.1); }
+}
+
+@keyframes multiplier-fire {
+  0% { transform: scale(1); box-shadow: 0 0 5px rgba(231, 76, 60, 0.5); }
+  100% { transform: scale(1.15); box-shadow: 0 0 15px rgba(231, 76, 60, 0.8); }
+}
+
+/* TASK 67: High score notification */
+.high-score-notification {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  font-weight: 900;
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 4px 10px rgba(0, 0, 0, 0.5);
+  z-index: 80;
+  animation: high-score-entrance 1.5s ease-out forwards;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+@keyframes high-score-entrance {
+  0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+  20% { transform: translateX(-50%) scale(1.2); opacity: 1; }
+  80% { transform: translateX(-50%) scale(1); opacity: 1; }
+  100% { transform: translateX(-50%) scale(0.8); opacity: 0; }
+}
+
+/* TASK 69: Best time notification */
+.best-time-notification {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  font-weight: 700;
+  color: #3498db;
+  text-shadow: 0 0 15px rgba(52, 152, 219, 0.8), 0 2px 8px rgba(0, 0, 0, 0.5);
+  z-index: 75;
+  animation: best-time-entrance 1.5s ease-out forwards;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+@keyframes best-time-entrance {
+  0% { transform: translateX(-50%) translateY(20px); opacity: 0; }
+  20% { transform: translateX(-50%) translateY(0); opacity: 1; }
+  80% { transform: translateX(-50%) translateY(0); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+}
+
+/* TASK 70: Score pop effect */
+.stat-value.score-pop {
+  animation: score-pop-anim 0.2s ease-out;
+}
+
+@keyframes score-pop-anim {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); color: #2ecc71; }
+  100% { transform: scale(1); }
+}
+
+/* TASK 71: Rating color coding */
+.rating-display {
+  position: absolute;
+  bottom: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 28px;
+  font-weight: 900;
+  z-index: 60;
+  animation: rating-entrance 0.8s ease-out forwards;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+}
+
+.rating-perfect {
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.4);
+}
+
+.rating-great {
+  color: #2ecc71;
+  text-shadow: 0 0 15px rgba(46, 204, 113, 0.8);
+}
+
+.rating-good {
+  color: #3498db;
+  text-shadow: 0 0 15px rgba(52, 152, 219, 0.8);
+}
+
+.rating-ok {
+  color: #9b59b6;
+  text-shadow: 0 0 15px rgba(155, 89, 182, 0.8);
+}
+
+.rating-slow {
+  color: #95a5a6;
+  text-shadow: 0 0 10px rgba(149, 165, 166, 0.6);
+}
+
+@keyframes rating-entrance {
+  0% { transform: translateX(-50%) scale(1.5); opacity: 0; }
+  20% { transform: translateX(-50%) scale(1); opacity: 1; }
+  80% { transform: translateX(-50%) scale(1); opacity: 1; }
+  100% { transform: translateX(-50%) scale(0.8); opacity: 0; }
+}
+
+/* TASK 65: Streak break feedback - warning style */
+.floating-score.warning {
+  color: #f39c12;
+  font-size: 20px;
+  text-shadow: 0 0 15px rgba(243, 156, 18, 0.6);
+  animation: streak-break-anim 1.2s ease-out forwards;
+}
+
+@keyframes streak-break-anim {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  30% { transform: translateY(-10px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(-50px) scale(0.8); opacity: 0; }
+}
+
+/* ========== END STREAK & SCORING POLISH ========== */
+
+/* ========== PHASE 7: FAILURE & WARNING STATES ========== */
+
+/* TASK 73: Last life persistent warning state */
+.last-life-danger {
+  animation: last-life-pulse 1s ease-in-out infinite;
+}
+
+.last-life-danger::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow: inset 0 0 100px rgba(231, 76, 60, 0.3);
+  animation: danger-vignette 1s ease-in-out infinite;
+}
+
+@keyframes last-life-pulse {
+  0%, 100% { background: linear-gradient(180deg, #2e1a1a 0%, #3e1621 100%); }
+  50% { background: linear-gradient(180deg, #3e2020 0%, #4e1e28 100%); }
+}
+
+@keyframes danger-vignette {
+  0%, 100% { box-shadow: inset 0 0 100px rgba(231, 76, 60, 0.3); }
+  50% { box-shadow: inset 0 0 150px rgba(231, 76, 60, 0.4); }
+}
+
+/* TASK 77: Floating X on wrong tap */
+.floating-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 64px;
+  z-index: 90;
+  pointer-events: none;
+}
+
+.floating-x {
+  color: #e74c3c;
+  text-shadow: 0 0 30px rgba(231, 76, 60, 0.8);
+  animation: floating-x-anim 0.8s ease-out forwards;
+}
+
+@keyframes floating-x-anim {
+  0% { transform: translate(-50%, -50%) scale(0.5) rotate(0deg); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(1.2) rotate(10deg); opacity: 1; }
+  100% { transform: translate(-50%, -70%) scale(0.8) rotate(-5deg); opacity: 0; }
+}
+
+/* TASK 78: Floating clock on miss */
+.floating-clock {
+  color: #f39c12;
+  text-shadow: 0 0 20px rgba(243, 156, 18, 0.6);
+  animation: floating-clock-anim 0.8s ease-out forwards;
+}
+
+@keyframes floating-clock-anim {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+  30% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+  100% { transform: translate(-50%, -80%) scale(1); opacity: 0; }
+}
+
+/* TASK 75: Game over sequence - entry from danger state */
+.gameover-overlay.from-danger {
+  animation: gameover-from-danger 0.5s ease-out;
+}
+
+@keyframes gameover-from-danger {
+  0% { background: rgba(231, 76, 60, 0.8); }
+  100% { background: rgba(0, 0, 0, 0.95); }
+}
+
+.gameover-title {
+  animation: gameover-title-entrance 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes gameover-title-entrance {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* TASK 76: Animated stats reveal */
+.stats-reveal {
+  animation: stats-reveal-anim 0.5s ease-out;
+}
+
+.stats-reveal .stat-item {
+  animation: stat-item-entrance 0.4s ease-out both;
+}
+
+.stats-reveal .stat-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.stats-reveal .stat-item:nth-child(2) {
+  animation-delay: 0.25s;
+}
+
+@keyframes stats-reveal-anim {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes stat-item-entrance {
+  0% { opacity: 0; transform: translateX(-20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.stat-icon {
+  font-size: 18px;
+}
+
+/* TASK 80: Play again button bounce-in animation */
+.play-again-btn.bounce-in {
+  animation: bounce-in-anim 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes bounce-in-anim {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ========== END FAILURE & WARNING STATES ========== */
+
+/* ========== PHASE 8: NEAR-MISS & CLOSE CALL SYSTEM ========== */
+
+/* TASK 84 & 85: Near-miss callout with timing visualization */
+.near-miss-callout {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 85;
+  animation: near-miss-entrance 1.2s ease-out forwards;
+  pointer-events: none;
+}
+
+.near-miss-text {
+  font-size: 32px;
+  font-weight: 900;
+  color: #f39c12;
+  text-shadow: 0 0 20px rgba(243, 156, 18, 0.8), 0 4px 15px rgba(0, 0, 0, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.near-miss-timing {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e67e22;
+  margin-top: 5px;
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 12px;
+  border-radius: 10px;
+}
+
+@keyframes near-miss-entrance {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  15% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+  25% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -60%) scale(0.8); opacity: 0; }
+}
+
+/* TASK 88: Visual "almost" ring effect - shown when near-miss */
+.near-miss-callout::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200px;
+  height: 200px;
+  border: 4px solid rgba(243, 156, 18, 0.6);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  animation: almost-ring 0.6s ease-out forwards;
+}
+
+@keyframes almost-ring {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+/* ========== END NEAR-MISS & CLOSE CALL SYSTEM ========== */
+
+/* ========== PHASE 9: FINAL POLISH & ACCESSIBILITY ========== */
+
+/* TASK 93: Reduced motion mode - respect system preference */
+@media (prefers-reduced-motion: reduce) {
+  .color-reaction-container,
+  .color-reaction-container * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.color-reaction-container.reduced-motion .countdown-ring,
+.color-reaction-container.reduced-motion .tap-now,
+.color-reaction-container.reduced-motion .player-display.matching {
+  animation: none !important;
+}
+
+/* TASK 95: Touch feedback enhancement - ripple at touch point */
+.touch-ripple {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+  transform: translate(-50%, -50%) scale(0);
+  pointer-events: none;
+  z-index: 100;
+  animation: touch-ripple-expand 0.4s ease-out forwards;
+}
+
+@keyframes touch-ripple-expand {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+}
+
+/* TASK 96: Start game animation (3-2-1 countdown) */
+.start-countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 120px;
+  font-weight: 900;
+  color: white;
+  text-shadow: 0 0 40px rgba(255, 255, 255, 0.8), 0 10px 30px rgba(0, 0, 0, 0.5);
+  z-index: 300;
+  animation: countdown-number 1s ease-out forwards;
+}
+
+@keyframes countdown-number {
+  0% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+  20% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+}
+
+/* ========== END FINAL POLISH & ACCESSIBILITY ========== */
+
+/* ========== PHASE 10: FEVER MODE & ADVANCED COMBOS ========== */
+
+/* TASK 101-103: Fever Mode visual state */
+.fever-mode {
+  background: linear-gradient(180deg, #2e1a0a 0%, #1e1006 100%) !important;
+}
+
+/* TASK 102: Dramatic Fever Mode activation */
+.fever-activating {
+  animation: fever-activate 0.5s ease-out;
+}
+
+@keyframes fever-activate {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(2) saturate(1.5); }
+  100% { filter: brightness(1); }
+}
+
+/* TASK 103: Fever Mode fire background and embers */
+.fever-mode::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(to top, rgba(255, 107, 0, 0.4) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+  animation: fever-fire 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes fever-fire {
+  0% { opacity: 0.6; height: 180px; }
+  100% { opacity: 1; height: 220px; }
+}
+
+/* TASK 107: Fever intensity levels */
+.fever-intensity-1::before {
+  background: linear-gradient(to top, rgba(255, 107, 0, 0.3) 0%, transparent 100%);
+}
+
+.fever-intensity-2::before {
+  background: linear-gradient(to top, rgba(255, 80, 0, 0.5) 0%, transparent 100%);
+  height: 250px;
+}
+
+.fever-intensity-3::before {
+  background: linear-gradient(to top, rgba(255, 50, 0, 0.6) 0%, transparent 100%);
+  height: 300px;
+  animation: fever-fire-intense 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes fever-fire-intense {
+  0% { opacity: 0.7; height: 280px; }
+  100% { opacity: 1; height: 320px; }
+}
+
+/* Fever mode glow on circles */
+.fever-mode .color-display {
+  box-shadow: 0 0 30px rgba(255, 107, 0, 0.5), 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.fever-intensity-2 .color-display {
+  box-shadow: 0 0 40px rgba(255, 80, 0, 0.6), 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.fever-intensity-3 .color-display {
+  box-shadow: 0 0 50px rgba(255, 50, 0, 0.8), 0 0 80px rgba(255, 50, 0, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: fever-circle-pulse 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes fever-circle-pulse {
+  0% { box-shadow: 0 0 50px rgba(255, 50, 0, 0.8), 0 0 80px rgba(255, 50, 0, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3); }
+  100% { box-shadow: 0 0 60px rgba(255, 50, 0, 1), 0 0 100px rgba(255, 50, 0, 0.5), 0 8px 32px rgba(0, 0, 0, 0.3); }
+}
+
+/* TASK 104: Fever Mode multiplier display */
+.fever-multiplier {
+  position: absolute;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 50;
+  animation: fever-multiplier-entrance 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fever-icon {
+  font-size: 24px;
+  animation: fever-icon-bounce 0.5s ease-in-out infinite alternate;
+}
+
+.fever-text {
+  font-size: 28px;
+  font-weight: 900;
+  color: #ff6b00;
+  text-shadow: 0 0 20px rgba(255, 107, 0, 0.8), 0 4px 10px rgba(0, 0, 0, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.fever-intensity-2 .fever-text {
+  color: #ff4500;
+  font-size: 32px;
+}
+
+.fever-intensity-3 .fever-text {
+  color: #ff2200;
+  font-size: 36px;
+  animation: fever-text-pulse 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes fever-multiplier-entrance {
+  0% { transform: translateX(-50%) scale(0); opacity: 0; }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+@keyframes fever-icon-bounce {
+  0% { transform: scale(1) translateY(0); }
+  100% { transform: scale(1.2) translateY(-3px); }
+}
+
+@keyframes fever-text-pulse {
+  0% { text-shadow: 0 0 20px rgba(255, 34, 0, 0.8), 0 4px 10px rgba(0, 0, 0, 0.5); }
+  100% { text-shadow: 0 0 40px rgba(255, 34, 0, 1), 0 0 60px rgba(255, 34, 0, 0.5), 0 4px 10px rgba(0, 0, 0, 0.5); }
+}
+
+/* ========== END FEVER MODE & ADVANCED COMBOS ========== */
+
+/* ========== PHASE 11: CAMERA & ADVANCED VISUAL EFFECTS ========== */
+
+/* TASK 108: Camera zoom pulse on tap */
+.camera-zoom {
+  animation: camera-zoom-pulse 0.15s ease-out;
+}
+
+@keyframes camera-zoom-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+/* TASK 110: Hit-stop on correct tap (frame freeze) */
+.hit-stop {
+  animation-play-state: paused !important;
+}
+
+.hit-stop * {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
+/* TASK 111: Enhanced visual feedback for match - signature effect */
+.player-display.matching::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  transform: translate(-50%, -50%) scale(1);
+  animation: match-ring-expand 1s ease-out infinite;
+}
+
+@keyframes match-ring-expand {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+/* ========== END CAMERA & ADVANCED VISUAL EFFECTS ========== */
+
+/* ========== PHASE 12: VIRAL & SHARE SYSTEM ========== */
+
+/* TASK 113: Share button UI */
+.share-btn {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 20px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation-delay: 0.3s;
+}
+
+.share-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.share-btn:active {
+  transform: scale(0.98);
+}
+
+/* Share copied notification */
+.share-copied {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(46, 204, 113, 0.9);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 14px;
+  z-index: 300;
+  animation: share-copied-anim 2s ease-out forwards;
+}
+
+@keyframes share-copied-anim {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  20% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -60%) scale(0.8); opacity: 0; }
+}
+
+/* ========== END VIRAL & SHARE SYSTEM ========== */
+
+/* Desktop: even larger circles */
 @media (min-width: 768px) {
   .color-display {
-    width: 150px;
-    height: 150px;
+    width: 180px;
+    height: 180px;
   }
 
   .color-emoji {
-    font-size: 60px;
+    font-size: 72px;
   }
 
   .stats-panel {

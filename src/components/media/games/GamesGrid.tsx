@@ -49,14 +49,14 @@ export function GamesGrid({
   return (
     <div className="py-2">
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
             <GameCardSkeleton key={i} />
           ))}
         </div>
       ) : (
         <motion.div
-          className="grid grid-cols-2 sm:grid-cols-3 gap-5 sm:gap-6"
+          className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6"
           variants={prefersReducedMotion ? undefined : gameGridVariants}
           initial="initial"
           animate="animate"

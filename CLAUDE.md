@@ -78,6 +78,32 @@ BigPulp AI uses Claude API. 12 canvas-based mini-games with global leaderboards.
 | `/status` | System health check |
 | `/analyze [id]` | Quick NFT lookup |
 | `/sync-docs` | Update README + PROJECT_DOC |
+| `/juice` | Add game juice (particles, shake, audio) |
+| `/new-game` | Create new game from template |
+| `/juicer` | Juice research pipeline (add→playbook→games) |
+| `/performance [GameName]` | Optimize game for mobile 60 FPS |
+
+## Game Juice Libraries
+Reusable code for game feel effects. Import from:
+```typescript
+import { spawnBurstParticles, createScreenShake, playTone } from '@/lib/juice';
+import { clamp, randomInRange, lerpColor } from '@/lib/utils';
+import { roundRect, createParallaxSystem } from '@/lib/canvas';
+```
+
+| Resource | Location |
+|----------|----------|
+| Juice libraries | `src/lib/juice/`, `src/lib/utils/`, `src/lib/canvas/` |
+| Master playbook | `docs/game-juice-playbook.md` |
+| Flappy guide | `docs/FLAPPY-ORANGE-JUICE-IMPLEMENTATION.md` |
+| Testing checklist | `docs/testing/juice-testing-checklist.md` |
+| Research patterns | `docs/research/retention-patterns.md`, `viral-patterns.md` |
+| Game template | `templates/canvas-game-starter/` |
+| Implementation tracker | `docs/juice-implementation-tracker.md` |
+| Juicer workflow | `.skills/juicer/SKILL.md` |
+| Performance optimizer | `skills/performance/SKILL.md` |
+| Performance patterns | `skills/performance/references/patterns.md` |
+| Full audit prompt | `docs/MOBILE-PERFORMANCE-AUDIT-PROMPT.md` |
 
 ## Knowledge Management (Flywheel v2.0)
 

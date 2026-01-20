@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAudio } from '@/contexts/AudioContext';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameSounds } from '@/hooks/useGameSounds';
@@ -58,6 +58,12 @@ const CAMEL_JUMP_VELOCITY = -14; // Jump off screen after bounce
 type CamelPattern = 'straight' | 'arc-left' | 'arc-right' | 'diagonal-left' | 'diagonal-right';
 const CAMEL_PATTERNS: CamelPattern[] = ['straight', 'arc-left', 'arc-right', 'diagonal-left', 'diagonal-right'];
 
+interface TrailPoint {
+  x: number;
+  y: number;
+  alpha: number;
+}
+
 interface GameObject {
   id: number;
   x: number;
@@ -68,6 +74,10 @@ interface GameObject {
   wasHit: boolean; // True if player has hit this orange at least once (actively juggling)
   bounceCount?: number; // For camels: track how many times they've bounced
   pattern?: CamelPattern; // Movement pattern for camels
+  // Visual juice properties
+  squashX: number; // Horizontal scale (1 = normal)
+  squashY: number; // Vertical scale (1 = normal)
+  trail: TrailPoint[]; // Motion trail for oranges
 }
 
 interface LocalLeaderboardEntry {
@@ -134,6 +144,25 @@ const OrangeJuggle: React.FC = () => {
   const [combo, setCombo] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);
   const [orangutanBounce, setOrangutanBounce] = useState(false); // Visual bounce effect
+  const [armSwing, setArmSwing] = useState<'left' | 'right' | null>(null); // JUICE: Track arm swing direction
+  const [impactFlashes, setImpactFlashes] = useState<Array<{ id: number; x: number; y: number }>>([]);
+  const impactFlashIdRef = useRef(0);
+  const [particles, setParticles] = useState<Array<{
+    id: number;
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    color: string;
+    size: number;
+    alpha: number;
+  }>>([]);
+  const particleIdRef = useRef(0);
+  const [screenShake, setScreenShake] = useState({ x: 0, y: 0 });
+  const freezeFrameUntilRef = useRef(0); // JUICE: Freeze frame until this timestamp
+  // JUICE: Panic indicators for multiple falling oranges
+  const [panicLevel, setPanicLevel] = useState(0); // 0-4 based on falling orange count
+  const [landingIndicators, setLandingIndicators] = useState<Array<{ id: number; x: number }>>([]);
   const [lostByCamel, setLostByCamel] = useState(false); // Track if lost by hitting camel
   const [sadImage, setSadImage] = useState(''); // Random sad image for camel loss
 
@@ -221,6 +250,99 @@ const OrangeJuggle: React.FC = () => {
     setTimeout(() => setOrangutanBounce(false), 100);
   }, []);
 
+  // JUICE: Trigger arm swing animation based on hit position
+  const triggerArmSwing = useCallback((hitX: number, paddleCenterX: number) => {
+    const isLeftArm = hitX < paddleCenterX;
+    setArmSwing(isLeftArm ? 'left' : 'right');
+    // Play arm whoosh sound
+    playArmSwing(isLeftArm);
+    setTimeout(() => setArmSwing(null), 200);
+  }, [playArmSwing]);
+
+  // JUICE: Create impact flash at collision point
+  const createImpactFlash = useCallback((x: number, y: number) => {
+    const flashId = impactFlashIdRef.current++;
+    setImpactFlashes(prev => [...prev, { id: flashId, x, y }]);
+    // Remove flash after animation completes
+    setTimeout(() => {
+      setImpactFlashes(prev => prev.filter(f => f.id !== flashId));
+    }, 300);
+  }, []);
+
+  // JUICE: Create particle burst at impact point
+  const createParticleBurst = useCallback((x: number, y: number, currentCombo: number, isGolden: boolean) => {
+    const count = isGolden ? 16 : 12;
+    const colors = isGolden
+      ? ['#ffd700', '#fff4b0', '#ffaa00', '#ffffff']
+      : currentCombo >= 10
+        ? ['#ff00ff', '#ff66ff', '#ffffff', '#ffaa00']
+        : currentCombo >= 5
+          ? ['#ffd700', '#ffaa00', '#ff8c00', '#ffffff']
+          : ['#ff8c00', '#ffaa00', '#ff6b00', '#ffffff'];
+
+    const newParticles = Array.from({ length: count }, (_, i) => {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+      const speed = 3 + Math.random() * 5;
+      return {
+        id: particleIdRef.current++,
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2, // Bias upward
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: 3 + Math.random() * 4,
+        alpha: 1,
+      };
+    });
+
+    setParticles(prev => [...prev, ...newParticles]);
+  }, []);
+
+  // JUICE: Update particles each frame
+  useEffect(() => {
+    if (particles.length === 0 || gameState !== 'playing') return;
+
+    const updateInterval = setInterval(() => {
+      setParticles(prev => {
+        return prev
+          .map(p => ({
+            ...p,
+            x: p.x + p.vx,
+            y: p.y + p.vy,
+            vy: p.vy + 0.15, // Gravity
+            alpha: p.alpha - 0.03,
+          }))
+          .filter(p => p.alpha > 0);
+      });
+    }, 16);
+
+    return () => clearInterval(updateInterval);
+  }, [particles.length, gameState]);
+
+  // JUICE: Trigger freeze frame for impactful moments
+  const triggerFreezeFrame = useCallback((duration: number) => {
+    freezeFrameUntilRef.current = performance.now() + duration;
+  }, []);
+
+  // JUICE: Trigger screen shake with intensity and duration
+  const triggerScreenShake = useCallback((intensity: number, duration: number = 150) => {
+    const startTime = performance.now();
+    const shakeInterval = setInterval(() => {
+      const elapsed = performance.now() - startTime;
+      if (elapsed > duration) {
+        clearInterval(shakeInterval);
+        setScreenShake({ x: 0, y: 0 });
+        return;
+      }
+      const progress = elapsed / duration;
+      const currentIntensity = intensity * (1 - progress); // Decay
+      setScreenShake({
+        x: (Math.random() - 0.5) * 2 * currentIntensity,
+        y: (Math.random() - 0.5) * 2 * currentIntensity,
+      });
+    }, 16);
+  }, []);
+
   // Get current level config
   const getLevelConfig = useCallback(() => {
     return LEVEL_CONFIG[level as keyof typeof LEVEL_CONFIG] || LEVEL_CONFIG[1];
@@ -294,6 +416,10 @@ const OrangeJuggle: React.FC = () => {
       wasHit: false,
       bounceCount: isCamel ? 0 : undefined,
       pattern: isCamel ? pattern : undefined,
+      // Visual juice - start at normal scale
+      squashX: 1,
+      squashY: 1,
+      trail: [], // Motion trail for fast-moving oranges
     };
 
     // Update both ref and state
@@ -505,6 +631,12 @@ const OrangeJuggle: React.FC = () => {
         return;
       }
 
+      // JUICE: Freeze frame - skip physics updates but keep rendering
+      if (performance.now() < freezeFrameUntilRef.current) {
+        animationRef.current = requestAnimationFrame(gameLoop);
+        return;
+      }
+
       const width = gameAreaRef.current?.offsetWidth || 300;
       const height = gameAreaRef.current?.offsetHeight || 500;
       // Get gravity based on current level
@@ -514,13 +646,15 @@ const OrangeJuggle: React.FC = () => {
       let hitOrange = false;
       let hitGolden = false;
       let hitCamel = false;
+      let hitPositionX = 0; // JUICE: Track where the hit occurred for arm swing
+      let hitPositionY = 0; // JUICE: Track Y position for impact flash
       let collectedPowerup: 'banana' | 'rum' | null = null;
       const objectsToRemove: number[] = []; // IDs of objects to remove (power-ups and dropped oranges)
       const droppedOrangeIds: number[] = []; // Track which oranges were dropped this frame
 
       // Process objects directly using ref (avoids async state issues)
       const newObjects = objectsRef.current.map(obj => {
-        let { x, y, vx, vy, type, id, wasHit, bounceCount, pattern } = obj;
+        let { x, y, vx, vy, type, id, wasHit, bounceCount, pattern, squashX, squashY, trail } = obj;
         // Get size based on object type
         const size = type === 'camel' ? CAMEL_SIZE
           : (type === 'banana' || type === 'rum') ? POWERUP_SIZE
@@ -594,13 +728,39 @@ const OrangeJuggle: React.FC = () => {
 
             wasHit = true; // Mark as actively juggled
 
-            // Track what was hit
+            // JUICE: Trigger squash on impact (compress vertically, expand horizontally)
+            squashX = 1.4;
+            squashY = 0.6;
+
+            // Track what was hit and where (for arm swing and impact flash)
+            hitPositionX = x + size / 2; // Center of the hit orange
+            hitPositionY = y + size / 2;
             if (type === 'golden') {
               hitGolden = true;
             } else {
               hitOrange = true;
             }
           }
+        }
+
+        // JUICE: Squash recovery - smoothly return to normal scale
+        const squashRecovery = 0.15;
+        squashX += (1 - squashX) * squashRecovery;
+        squashY += (1 - squashY) * squashRecovery;
+
+        // JUICE: Update trail for oranges (only when moving fast)
+        const isOrangeOrGolden = type === 'orange' || type === 'golden';
+        if (isOrangeOrGolden) {
+          const speed = Math.sqrt(vx * vx + vy * vy);
+          // Add new trail point when moving fast
+          if (speed > 4) {
+            trail = [...trail, { x: x + size / 2, y: y + size / 2, alpha: 0.7 }];
+          }
+          // Update existing trail points (fade out)
+          trail = trail
+            .map(point => ({ ...point, alpha: point.alpha - 0.08 }))
+            .filter(point => point.alpha > 0)
+            .slice(-8); // Keep max 8 trail points
         }
 
         // Bottom collision - only if didn't hit paddle
@@ -646,7 +806,7 @@ const OrangeJuggle: React.FC = () => {
           objectsToRemove.push(id);
         }
 
-        return { id, x, y, vx, vy, type, wasHit, bounceCount, pattern };
+        return { id, x, y, vx, vy, type, wasHit, bounceCount, pattern, squashX, squashY, trail };
       });
 
       // Filter out removed objects (collected power-ups and dropped oranges)
@@ -657,6 +817,33 @@ const OrangeJuggle: React.FC = () => {
       // Update both ref and state
       objectsRef.current = filteredObjects;
       setObjects(filteredObjects);
+
+      // JUICE: Calculate panic indicators for multiple falling oranges
+      const fallingOranges = filteredObjects.filter(obj =>
+        (obj.type === 'orange' || obj.type === 'golden') && obj.vy > 3 // Falling fast
+      );
+      const newPanicLevel = Math.min(fallingOranges.length - 1, 4);
+      if (newPanicLevel !== panicLevel && newPanicLevel >= 0) {
+        setPanicLevel(Math.max(0, newPanicLevel));
+      } else if (newPanicLevel < 0 && panicLevel > 0) {
+        setPanicLevel(0);
+      }
+
+      // Calculate landing indicators for falling oranges
+      if (fallingOranges.length > 1) {
+        const dangerZoneY = height - 80; // Near bottom
+        const indicators = fallingOranges.map(orange => {
+          // Predict landing position
+          const timeToBottom = Math.max(0, (dangerZoneY - orange.y) / orange.vy);
+          const predictedX = Math.max(0, Math.min(width, orange.x + orange.vx * timeToBottom));
+          return { id: orange.id, x: predictedX };
+        });
+        setLandingIndicators(indicators);
+      } else {
+        if (landingIndicators.length > 0) {
+          setLandingIndicators([]);
+        }
+      }
 
       // Check if combo should be reset (when a juggled orange hits the ground)
       if (droppedOrangeIds.length > 0) {
@@ -772,6 +959,24 @@ const OrangeJuggle: React.FC = () => {
         // Play combo escalation sound - uses streak for continuous escalation!
         playOrangeJuggleCombo(streakRef.current);
         triggerOrangutanBounce();
+        // JUICE: Trigger arm swing based on hit position
+        const paddleCenterX = paddleRef.current.x + PADDLE_SIZE / 2;
+        triggerArmSwing(hitPositionX, paddleCenterX);
+        // JUICE: Create impact flash at collision point
+        createImpactFlash(hitPositionX, hitPositionY);
+        // JUICE: Create particle burst
+        createParticleBurst(hitPositionX, hitPositionY, comboRef.current, hitGolden);
+        // JUICE: Screen shake - intensity based on combo and golden
+        const shakeIntensity = hitGolden ? 6 : (comboRef.current >= 10 ? 8 : comboRef.current >= 5 ? 5 : 3);
+        triggerScreenShake(shakeIntensity);
+        // JUICE: Freeze frame for big hits
+        if (hitGolden) {
+          triggerFreezeFrame(50); // Golden orange
+        } else if (comboRef.current >= 10) {
+          triggerFreezeFrame(60); // Max combo
+        } else if (comboRef.current >= 5) {
+          triggerFreezeFrame(40); // High combo
+        }
         // Additional haptic feedback on combo escalation
         if (comboRef.current >= 3) {
           hapticCombo(comboRef.current); // Escalating combo haptic
@@ -1037,29 +1242,26 @@ const OrangeJuggle: React.FC = () => {
 
   return (
     <div className={`juggle-container ${gameState === 'playing' ? 'playing-mode' : ''}`}>
-      {/* PLAYING STATE: Game Layout with Stats Panel on LEFT */}
+      {/* PLAYING STATE: Game fills the container */}
       {gameState === 'playing' && (
         <div className="game-layout">
-          {/* Stats Panel - LEFT side (FIXED 4 items, never changes) */}
-          <div className="stats-panel">
-            <div className="stat-item level-stat">
-              <span className="stat-label">Level</span>
-              <span className="stat-value">{level}</span>
+          {/* Stats Overlay - OUTSIDE lightbox, fixed at top aligned with lightbox edge */}
+          <div className="oj-stats-overlay">
+            <div className="oj-stat level-stat">
+              <span className="oj-stat-label">LVL</span>
+              <span className="oj-stat-value">{level}</span>
             </div>
-            <div className={`stat-item score-stat ${isReversed ? 'multiplied' : ''}`}>
-              <span className="stat-label">Score</span>
-              <span className="stat-value">{score}</span>
-              {/* Badges are absolute positioned so they don't shift layout */}
-              {isReversed && <span className="multiplier-badge">2X</span>}
-              {combo > 1 && <span className="combo-badge">x{combo}</span>}
+            <div className={`oj-stat score-stat ${isReversed ? 'multiplied' : ''}`}>
+              <span className="oj-stat-label">Score</span>
+              <span className="oj-stat-value">{score.toLocaleString()}</span>
             </div>
-            <div className={`stat-item time-stat ${timeLeft <= 10 ? 'time-warning' : ''}`}>
-              <span className="stat-label">Time</span>
-              <span className="stat-value">{timeLeft}s</span>
+            <div className={`oj-stat time-stat ${timeLeft <= 10 ? 'urgency-critical' : timeLeft <= 20 ? 'urgency-warning' : ''}`}>
+              <span className="oj-stat-label">Time</span>
+              <span className="oj-stat-value">{timeLeft}s</span>
             </div>
-            <div className="stat-item goal-stat">
-              <span className="stat-label">Goal</span>
-              <span className="stat-value">{config.targetScore.toLocaleString()}</span>
+            <div className="oj-stat goal-stat">
+              <span className="oj-stat-label">Goal</span>
+              <span className="oj-stat-value">{config.targetScore.toLocaleString()}</span>
             </div>
           </div>
 
@@ -1067,7 +1269,21 @@ const OrangeJuggle: React.FC = () => {
           <div
             ref={gameAreaRef}
             className="lightbox-wrapper"
+            style={{
+              // JUICE: Screen shake transform
+              transform: screenShake.x !== 0 || screenShake.y !== 0
+                ? `translate(${screenShake.x}px, ${screenShake.y}px)`
+                : undefined,
+            }}
           >
+            {/* Floating Multiplier Display (on game field) */}
+            {(combo > 1 || isReversed) && (
+              <div className="oj-multiplier-display">
+                {combo > 1 && <span className={`oj-combo-text combo-level-${Math.min(combo, 10)}`}>x{combo}</span>}
+                {isReversed && <span className="oj-rum-multiplier">2X</span>}
+              </div>
+            )}
+
             {/* Music toggle button */}
             <button
               className="music-toggle-btn"
@@ -1088,29 +1304,97 @@ const OrangeJuggle: React.FC = () => {
                 const objSize = obj.type === 'camel' ? CAMEL_SIZE
                   : (obj.type === 'banana' || obj.type === 'rum') ? POWERUP_SIZE
                   : ORANGE_SIZE;
+
+                // JUICE: Calculate velocity stretch for oranges
+                const isOrangeType = obj.type === 'orange' || obj.type === 'golden';
+                const speed = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy);
+                const velocityStretch = isOrangeType ? 1 + Math.min(speed / 20, 0.3) : 1; // Max 30% stretch
+                const angle = isOrangeType && speed > 3 ? Math.atan2(obj.vy, obj.vx) * (180 / Math.PI) : 0;
+
+                // Combine squash and velocity stretch
+                const scaleX = (obj.squashX || 1) * velocityStretch;
+                const scaleY = (obj.squashY || 1) / velocityStretch;
+
+                // JUICE: Get combo-based trail color
+                const getTrailColor = () => {
+                  if (combo >= 10) return '#ff00ff'; // Magenta
+                  if (combo >= 8) return '#ff4500';  // OrangeRed
+                  if (combo >= 5) return '#ffd700';  // Gold
+                  if (combo >= 3) return '#ffaa00';  // Orange
+                  return '#ff8c00'; // Default orange
+                };
+
                 return (
-                  <div
-                    key={obj.id}
-                    className={`game-object ${obj.type}`}
-                    style={{
-                      left: obj.x,
-                      top: obj.y,
-                      width: objSize,
-                      height: objSize,
-                    }}
-                  >
-                    {obj.type === 'orange' && '🍊'}
-                    {obj.type === 'golden' && '🍊'}
-                    {obj.type === 'camel' && '🐫'}
-                    {obj.type === 'banana' && '🍌'}
-                    {obj.type === 'rum' && '🥃'}
-                  </div>
+                  <React.Fragment key={obj.id}>
+                    {/* JUICE: Render trail behind orange */}
+                    {isOrangeType && obj.trail && obj.trail.map((point, idx) => (
+                      <div
+                        key={`trail-${obj.id}-${idx}`}
+                        className="orange-trail"
+                        style={{
+                          left: point.x,
+                          top: point.y,
+                          opacity: point.alpha,
+                          backgroundColor: getTrailColor(),
+                          width: 16 + idx * 2,
+                          height: 16 + idx * 2,
+                        }}
+                      />
+                    ))}
+                    <div
+                      className={`game-object ${obj.type}`}
+                      style={{
+                        left: obj.x,
+                        top: obj.y,
+                        width: objSize,
+                        height: objSize,
+                        // JUICE: Apply squash and velocity stretch transforms
+                        transform: isOrangeType
+                          ? `scale(${scaleX.toFixed(3)}, ${scaleY.toFixed(3)}) rotate(${angle.toFixed(1)}deg)`
+                          : undefined,
+                      }}
+                    >
+                      {obj.type === 'orange' && '🍊'}
+                      {obj.type === 'golden' && '🍊'}
+                      {obj.type === 'camel' && '🐫'}
+                      {obj.type === 'banana' && '🍌'}
+                      {obj.type === 'rum' && '🥃'}
+                    </div>
+                  </React.Fragment>
                 );
               })}
 
+            {/* JUICE: Impact Flashes */}
+            {impactFlashes.map(flash => (
+              <div
+                key={flash.id}
+                className="impact-flash"
+                style={{
+                  left: flash.x,
+                  top: flash.y,
+                }}
+              />
+            ))}
+
+            {/* JUICE: Particles */}
+            {particles.map(particle => (
+              <div
+                key={particle.id}
+                className="particle"
+                style={{
+                  left: particle.x,
+                  top: particle.y,
+                  width: particle.size,
+                  height: particle.size,
+                  backgroundColor: particle.color,
+                  opacity: particle.alpha,
+                }}
+              />
+            ))}
+
             {/* Paddle (Orangutan) */}
             <div
-              className={`paddle ${orangutanBounce ? 'bounce' : ''}`}
+              className={`paddle ${orangutanBounce ? 'bounce' : ''} ${armSwing ? `swing-${armSwing}` : ''} ${combo >= 10 ? 'combo-glow-4' : combo >= 7 ? 'combo-glow-3' : combo >= 5 ? 'combo-glow-2' : combo >= 3 ? 'combo-glow-1' : ''}`}
               style={{
                 left: paddleX,
                 top: paddleY,
@@ -1123,6 +1407,23 @@ const OrangeJuggle: React.FC = () => {
 
             {/* Danger zone indicator */}
             <div className="danger-zone" />
+
+            {/* JUICE: Panic indicators for multiple falling oranges */}
+            {panicLevel > 0 && (
+              <div
+                className={`panic-vignette panic-level-${panicLevel}`}
+                style={{ opacity: 0.3 + panicLevel * 0.15 }}
+              />
+            )}
+
+            {/* JUICE: Landing zone indicators */}
+            {landingIndicators.map(indicator => (
+              <div
+                key={indicator.id}
+                className={`landing-indicator panic-level-${panicLevel}`}
+                style={{ left: indicator.x }}
+              />
+            ))}
           </div>
         </div>
       )}

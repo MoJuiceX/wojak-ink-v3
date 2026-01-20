@@ -235,11 +235,12 @@ export function Header({ transparent = false }: HeaderProps) {
                 breadcrumb={headerBreadcrumb}
               />
             )}
-            {/* Right side: Currency display + Gallery controls when character selected */}
-            <div className="ml-auto flex items-center gap-2">
-              <CurrencyDisplay size="small" />
-              {headerBreadcrumb && <MobileGalleryControls />}
-            </div>
+            {/* Right side: Gallery controls when character selected (currency hidden on mobile) */}
+            {headerBreadcrumb && (
+              <div className="ml-auto flex items-center gap-2">
+                <MobileGalleryControls />
+              </div>
+            )}
           </>
         )}
 

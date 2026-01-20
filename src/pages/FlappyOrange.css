@@ -8,56 +8,84 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+  justify-content: flex-start;
+  /* Gradient: header color at top, sky in middle, ground at bottom */
+  background: linear-gradient(to bottom,
+    rgb(10, 10, 10) 0px,
+    rgb(10, 10, 10) 56px,
+    #87CEEB 57px,
+    #87CEEB 85%,
+    #2d5016 95%,
+    #1a1a1a 100%);
   position: relative;
   overflow: hidden;
   touch-action: none;
   user-select: none;
+  -webkit-overflow-scrolling: touch;
+  /* Top padding clears the button row */
+  padding-top: 24px;
+  /* Note: removed 'contain' as it breaks position:fixed for buttons */
+}
+
+.flappy-container.desktop {
+  /* Desktop: fill the modal container */
+  width: 100%;
+  height: 100%;
+  padding-top: 0;
+  justify-content: center;
 }
 
 .flappy-container.mobile {
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* Use flex: 1 to fill available space in parent container */
+  flex: 1;
+  /* Fallback heights for browsers that don't support dvh */
+  height: 100%;
+  min-height: 400px;
+  max-height: calc(100vh - 56px - 60px);
+  max-height: calc(100dvh - 56px - 60px);
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 /* ============================================
    CONTROL BUTTONS
    ============================================ */
 
+/* Back/Sound buttons - in header row with ? and X buttons */
 .fo-back-btn,
 .fo-sound-btn {
-  position: absolute;
-  width: 44px;
-  height: 44px;
+  position: fixed;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  /* Match header style - subtle background */
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 50%;
-  color: white;
-  font-size: 22px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 20px;
   cursor: pointer;
-  z-index: 50;
+  z-index: 600; /* Above game-over overlay (500) */
   transition: all 0.2s ease;
+  /* Position inside header (10px from top for vertical centering in 56px header) */
+  top: 10px;
 }
 
 .fo-back-btn {
-  top: 12px;
   left: 12px;
 }
 
 .fo-sound-btn {
-  top: 12px;
-  left: 64px;
-  font-size: 20px;
+  left: 60px;
+  font-size: 18px;
 }
 
 .fo-back-btn:hover,
 .fo-sound-btn:hover {
-  background: rgba(255, 107, 0, 0.3);
-  border-color: rgba(255, 107, 0, 0.5);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 .fo-back-btn:active,
@@ -65,32 +93,12 @@
   transform: scale(0.95);
 }
 
-/* Mobile button adjustments */
-@media (max-width: 480px) {
-  .fo-back-btn,
-  .fo-sound-btn {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-  }
-
-  .fo-back-btn {
-    top: 8px;
-    left: 8px;
-  }
-
-  .fo-sound-btn {
-    top: 8px;
-    left: 56px;
-    font-size: 18px;
-  }
-}
-
 /* ============================================
    GAME CANVAS
    ============================================ */
 
 .fo-canvas {
+  display: block;
   border-radius: 12px;
   box-shadow:
     0 0 40px rgba(255, 107, 0, 0.2),
@@ -101,6 +109,11 @@
 .mobile .fo-canvas {
   border-radius: 0;
   box-shadow: none;
+  /* Force GPU acceleration on iOS Safari */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: contents;
+  image-rendering: -webkit-optimize-contrast;
 }
 
 /* ============================================
@@ -548,5 +561,202 @@
   .fo-leaderboard-entry {
     padding: 10px 12px;
     font-size: 0.9rem;
+  }
+}
+
+/* ============================================
+   SHARE SYSTEM
+   ============================================ */
+
+.fo-share-btn {
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #FF6B00, #FF8533);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fo-share-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+}
+
+/* Challenge Banner */
+.fo-challenge-banner {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(100, 50, 150, 0.95), rgba(80, 30, 120, 0.95));
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  z-index: 100;
+  animation: fo-challenge-pulse 2s ease-in-out infinite;
+  box-shadow: 0 4px 15px rgba(100, 50, 150, 0.5);
+}
+
+.fo-challenge-banner.fo-challenge-beaten {
+  background: linear-gradient(135deg, rgba(50, 150, 100, 0.95), rgba(30, 120, 80, 0.95));
+  box-shadow: 0 4px 15px rgba(50, 150, 100, 0.5);
+}
+
+@keyframes fo-challenge-pulse {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.02); }
+}
+
+/* Toast Notification */
+.fo-toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  z-index: 1100;
+  animation: fo-toast-appear 0.3s ease-out;
+}
+
+.fo-toast-success {
+  background: linear-gradient(135deg, #10B981, #059669);
+}
+
+.fo-toast-error {
+  background: linear-gradient(135deg, #EF4444, #DC2626);
+}
+
+@keyframes fo-toast-appear {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Share Modal */
+.fo-share-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  animation: fo-fade-in 0.2s ease;
+}
+
+.fo-share-modal {
+  width: 90%;
+  max-width: 400px;
+  background: rgba(20, 20, 30, 0.98);
+  border: 1px solid rgba(255, 107, 0, 0.4);
+  border-radius: 20px;
+  padding: 24px;
+  position: relative;
+  animation: fo-scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fo-share-modal h3 {
+  margin: 0 0 16px 0;
+  font-size: 1.25rem;
+  color: #FF6B00;
+  text-align: center;
+}
+
+.fo-share-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.25rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.fo-share-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.fo-share-preview {
+  width: 100%;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.fo-share-modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fo-share-modal-btn {
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fo-share-modal-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.fo-share-modal-btn-primary {
+  background: linear-gradient(135deg, #FF6B00, #FF8533);
+  border: none;
+}
+
+.fo-share-modal-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+}
+
+@media (max-width: 480px) {
+  .fo-challenge-banner {
+    top: 55px;
+    font-size: 0.8rem;
+    padding: 6px 16px;
+  }
+
+  .fo-toast {
+    bottom: 80px;
+    font-size: 0.85rem;
+    padding: 10px 20px;
+  }
+
+  .fo-share-modal {
+    padding: 20px;
+  }
+
+  .fo-share-modal h3 {
+    font-size: 1.1rem;
   }
 }

@@ -22,15 +22,11 @@
 }
 
 /* ============================================
-   MOBILE LAYOUT - Fixed at bottom
+   MOBILE LAYOUT - Inline below games (full width)
    ============================================ */
 .voting-panel.mobile {
-  position: fixed;
-  bottom: 90px;
-  right: 12px;
-  z-index: 1000;
-  width: auto;
-  min-width: 180px;
+  position: static;
+  width: 100%;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -308,4 +304,11 @@
     padding: 5px 10px;
     font-size: 12px;
   }
+}
+
+/* ============================================
+   HIDE DURING GAME FULLSCREEN MODE
+   ============================================ */
+body.game-fullscreen-mode .voting-panel {
+  display: none !important;
 }

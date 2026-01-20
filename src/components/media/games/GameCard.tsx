@@ -58,6 +58,9 @@ export const GameCard = memo(function GameCard({
 
   // Handle click - either flick emoji or open game
   const handleClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    // Don't allow clicks on disabled games
+    if (game.disabled) return;
+
     if (flickModeActive && onFlick) {
       // Flick mode: send emoji to click position
       const rect = e.currentTarget.getBoundingClientRect();
@@ -66,26 +69,35 @@ export const GameCard = memo(function GameCard({
       // Normal mode: open game
       onClick();
     }
-  }, [flickModeActive, onFlick, onClick, game.id]);
+  }, [flickModeActive, onFlick, onClick, game.id, game.disabled]);
+
+  // Disabled game styling
+  const isDisabled = game.disabled;
+  const disabledStyle = isDisabled ? {
+    filter: 'grayscale(100%)',
+    opacity: 0.5,
+    cursor: 'not-allowed',
+  } : {};
 
   return (
     <motion.button
-      className="relative flex flex-col items-center p-4 rounded-xl text-center cursor-pointer"
-      style={cardStyle}
+      className="relative flex flex-col items-center p-5 sm:p-4 rounded-xl text-center"
+      style={{ ...cardStyle, ...disabledStyle, cursor: isDisabled ? 'not-allowed' : 'pointer' }}
       data-vote-target={game.id}
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={prefersReducedMotion ? undefined : { scale: effects.hoverScale }}
-      whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
+      animate={{ opacity: isDisabled ? 0.5 : 1, y: 0 }}
+      whileHover={prefersReducedMotion || isDisabled ? undefined : { scale: effects.hoverScale }}
+      whileTap={prefersReducedMotion || isDisabled ? undefined : { scale: 0.98 }}
       transition={{ duration: 0.2 }}
       onClick={handleClick}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={() => !isDisabled && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      disabled={isDisabled}
     >
       {/* Rank badge for top 3 */}
       {effects.badge && game.status === 'available' && (
         <div
-          className="absolute -top-2 -left-2 text-xl pointer-events-none"
+          className="absolute -top-2 -left-2 text-2xl sm:text-xl pointer-events-none"
           style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))', zIndex: 10 }}
           title={`Ranked ${effects.badge.label}`}
         >
@@ -94,10 +106,10 @@ export const GameCard = memo(function GameCard({
       )}
 
       {/* Emoji icon */}
-      <div className="text-5xl mb-3 pointer-events-none">{game.emoji}</div>
+      <div className="text-6xl sm:text-5xl mb-4 sm:mb-3 pointer-events-none">{game.emoji}</div>
 
       {/* Name */}
-      <h3 className="text-base font-semibold pointer-events-none" style={{ color: 'var(--color-text-primary)' }}>
+      <h3 className="text-lg sm:text-base font-semibold pointer-events-none" style={{ color: 'var(--color-text-primary)' }}>
         {game.name}
       </h3>
 
@@ -117,6 +129,16 @@ export const GameCard = memo(function GameCard({
           style={{ background: 'var(--color-warning)', color: 'black' }}
         >
           Maintenance
+        </div>
+      )}
+
+      {/* Disabled badge */}
+      {isDisabled && (
+        <div
+          className="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-medium pointer-events-none"
+          style={{ background: 'rgba(100, 100, 100, 0.8)', color: 'white' }}
+        >
+          Coming Soon
         </div>
       )}
     </motion.button>

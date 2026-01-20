@@ -27,6 +27,12 @@ const VALID_GAME_IDS = [
   'color-reaction',
   'merge-2048',
   'orange-wordle',
+  'block-puzzle',
+  'flappy-orange',
+  'citrus-drop',
+  'orange-snake',
+  'brick-breaker',
+  'wojak-whack',
 ];
 
 // CORS headers

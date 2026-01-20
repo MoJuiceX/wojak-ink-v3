@@ -8,6 +8,7 @@ import { useGameEffects, GameEffects } from '@/components/media';
 import { useTimeUrgency, getUrgencyClass } from '@/hooks/useTimeUrgency';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { getAllNfts, isReady as isPreloaderReady, initGalleryPreloader } from '@/services/galleryPreloader';
 import './MemoryMatch.css';
 
 interface NFTMetadata {
@@ -54,14 +55,60 @@ interface Card {
   isMatched: boolean;
 }
 
-interface LocalLeaderboardEntry {
-  name: string;
-  score: number;
-  date: string;
-}
-
 // Sad images for game over screen
 const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/Games/games_media/sad_runner_${i + 1}.png`);
+
+// Dynamic grid calculation - adapts to screen orientation and size
+interface GridConfig {
+  cols: number;
+  rows: number;
+  cardSize: number;
+}
+
+function calculateOptimalGrid(
+  cardCount: number,
+  containerWidth: number,
+  containerHeight: number,
+  gap: number = 8,
+  minCardSize: number = 60,
+  maxCardSize: number = 140
+): GridConfig {
+  const isLandscape = containerWidth > containerHeight;
+
+  let bestConfig: GridConfig = { cols: 4, rows: 3, cardSize: minCardSize };
+  let bestCardSize = 0;
+
+  // Try all possible grid configurations
+  for (let cols = 2; cols <= 10; cols++) {
+    const rows = Math.ceil(cardCount / cols);
+
+    // Skip if grid has too many empty cells (more than 1 row worth)
+    if (cols * rows - cardCount >= cols) continue;
+
+    // Calculate card size for this configuration
+    const cardWidth = Math.floor((containerWidth - (cols - 1) * gap) / cols);
+    const cardHeight = Math.floor((containerHeight - (rows - 1) * gap) / rows);
+    const cardSize = Math.min(cardWidth, cardHeight, maxCardSize);
+
+    // Skip if cards would be too small
+    if (cardSize < minCardSize) continue;
+
+    // Prefer this config if:
+    // 1. Cards are larger, OR
+    // 2. Cards are same size but orientation preference is better
+    const orientationMatch = isLandscape ? (cols >= rows) : (rows >= cols);
+    const currentOrientationMatch = isLandscape
+      ? (bestConfig.cols >= bestConfig.rows)
+      : (bestConfig.rows >= bestConfig.cols);
+
+    if (cardSize > bestCardSize || (cardSize === bestCardSize && orientationMatch && !currentOrientationMatch)) {
+      bestConfig = { cols, rows, cardSize };
+      bestCardSize = cardSize;
+    }
+  }
+
+  return bestConfig;
+}
 
 // Enhancement 23: Theme-specific callouts based on NFT Base attribute
 const THEME_CALLOUTS: Record<string, string[]> = {
@@ -132,7 +179,6 @@ const MemoryMatch: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(40);
   const [isChecking, setIsChecking] = useState(false);
   const [metadata, setMetadata] = useState<NFTMetadata[]>([]);
-  const [playerName, setPlayerName] = useState('');
   const [sadImage, setSadImage] = useState('');
 
   // Progressive rounds
@@ -148,13 +194,9 @@ const MemoryMatch: React.FC = () => {
   const [showNearWinShimmer, setShowNearWinShimmer] = useState(false);
   const [timelineCelebrating, setTimelineCelebrating] = useState(false);
 
-  // Enhancement 27: Share image state
-  const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
-  const [isGeneratingShare, setIsGeneratingShare] = useState(false);
-
   // Dev mode - pauses timer and game logic for layout testing
   const [devMode, setDevMode] = useState(false);
-  const [showDevPanel, setShowDevPanel] = useState(true); // Dev panel for testing levels
+  const [showDevPanel, setShowDevPanel] = useState(false); // Dev panel for testing levels (hidden by default)
 
   // Jump to a specific round for layout testing
   const jumpToRound = async (targetRound: number) => {
@@ -166,7 +208,6 @@ const MemoryMatch: React.FC = () => {
     setCards(newCards);
     setFlippedCards([]);
     flippedCardsRef.current = [];
-    queuedCardRef.current = null; // Clear any queued clicks
     setMoves(0);
     setMatches(0);
     setTimeLeft(config.time);
@@ -175,10 +216,6 @@ const MemoryMatch: React.FC = () => {
     setGameState('playing');
   };
 
-  const [localLeaderboard, setLocalLeaderboard] = useState<LocalLeaderboardEntry[]>(() => {
-    const saved = localStorage.getItem('memoryMatchLeaderboard');
-    return saved ? JSON.parse(saved) : [];
-  });
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('memoryMatchHighScore') || '0', 10);
@@ -192,6 +229,9 @@ const MemoryMatch: React.FC = () => {
 
   // Track total time for current round (for urgency system)
   const [roundTotalTime, setRoundTotalTime] = useState(40);
+
+  // Window size for responsive grid calculation
+  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
 
   // Time urgency system - plays escalating warning sounds
   const { urgencyLevel } = useTimeUrgency({
@@ -224,18 +264,43 @@ const MemoryMatch: React.FC = () => {
   const flippedCardsRef = useRef<number[]>([]);
   // Debounce rapid clicks - track last click time
   const lastClickTimeRef = useRef<number>(0);
-  const CLICK_DEBOUNCE_MS = 30; // Minimum ms between clicks (reduced for snappier feel)
-  // Queue for buffered input - stores card ID clicked while checking
-  const queuedCardRef = useRef<number | null>(null);
+  const CLICK_DEBOUNCE_MS = 200; // Minimum ms between flips - prevents rushing through cards
   // Ref to track current cards state (avoids stale closures in timeouts)
   const cardsRef = useRef<Card[]>([]);
 
-  // Load metadata on mount
+  // Load metadata on mount - use preloader cache if available (instant load)
   useEffect(() => {
-    fetch('/assets/nft-data/metadata.json')
-      .then(res => res.json())
-      .then(data => setMetadata(data))
-      .catch(err => console.error('Failed to load metadata:', err));
+    const loadMetadata = async () => {
+      // Check if preloader already has the data (loaded during app startup)
+      if (isPreloaderReady()) {
+        const cachedNfts = getAllNfts();
+        if (cachedNfts.length > 0) {
+          console.log('[MemoryMatch] Using cached metadata from preloader');
+          setMetadata(cachedNfts);
+          return;
+        }
+      }
+
+      // Preloader not ready - initialize it (also caches for future)
+      try {
+        await initGalleryPreloader();
+        const nfts = getAllNfts();
+        if (nfts.length > 0) {
+          console.log('[MemoryMatch] Loaded metadata via preloader init');
+          setMetadata(nfts);
+        } else {
+          // Fallback to direct fetch if preloader failed
+          console.log('[MemoryMatch] Preloader empty, fetching directly');
+          const res = await fetch('/assets/nft-data/metadata.json');
+          const data = await res.json();
+          setMetadata(data);
+        }
+      } catch (err) {
+        console.error('Failed to load metadata:', err);
+      }
+    };
+
+    loadMetadata();
   }, []);
 
   const shuffleCards = useCallback((pairsCount: number, baseFilter?: string, excludeNftIds: number[] = []) => {
@@ -381,7 +446,6 @@ const MemoryMatch: React.FC = () => {
     setCards(newCards);
     setFlippedCards([]);
     flippedCardsRef.current = []; // Reset ref too
-    queuedCardRef.current = null; // Clear any queued clicks
     lastClickTimeRef.current = 0; // Reset debounce timer
     setMoves(0);
     setMatches(0);
@@ -415,7 +479,6 @@ const MemoryMatch: React.FC = () => {
 
   const goToMenu = () => {
     setGameState('idle');
-    setPlayerName('');
     setRound(1);
     setTotalScore(0);
   };
@@ -438,26 +501,6 @@ const MemoryMatch: React.FC = () => {
     const roundScore = calculateRoundScore();
     setTotalScore(prev => prev + roundScore);
     setGameState('roundComplete');
-  };
-
-  // Save score to local leaderboard (for guests)
-  const saveScoreLocal = () => {
-    if (!playerName.trim()) return;
-
-    const newEntry: LocalLeaderboardEntry = {
-      name: playerName.trim(),
-      score: totalScore,
-      date: new Date().toISOString().split('T')[0],
-    };
-
-    const updatedLeaderboard = [...localLeaderboard, newEntry]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-
-    setLocalLeaderboard(updatedLeaderboard);
-    localStorage.setItem('memoryMatchLeaderboard', JSON.stringify(updatedLeaderboard));
-    setPlayerName('');
-    goToMenu();
   };
 
   // Auto-submit score to global leaderboard (for signed-in users)
@@ -485,19 +528,12 @@ const MemoryMatch: React.FC = () => {
     }
   }, [isSignedIn, scoreSubmitted, submitScore, highScore]);
 
-  const skipSaveScore = () => {
-    setPlayerName('');
-    goToMenu();
-  };
-
-  // Merge global and local leaderboard for display
-  const displayLeaderboard = globalLeaderboard.length > 0
-    ? globalLeaderboard.map(entry => ({
-        name: entry.displayName,
-        score: entry.score,
-        date: entry.date,
-      }))
-    : localLeaderboard;
+  // Map global leaderboard for display
+  const displayLeaderboard = globalLeaderboard.map(entry => ({
+    name: entry.displayName,
+    score: entry.score,
+    date: entry.date,
+  }));
 
   // Retry start when metadata loads (only for initial load, not dev mode)
   useEffect(() => {
@@ -552,6 +588,17 @@ const MemoryMatch: React.FC = () => {
   const flipCard = (cardId: number) => {
     const currentFlipped = flippedCardsRef.current;
 
+    // Safety check: prevent flipping if already in flipped array or already 2 cards flipped
+    if (currentFlipped.includes(cardId) || currentFlipped.length >= 2) {
+      return currentFlipped;
+    }
+
+    // Safety check: prevent flipping if card is already flipped in state
+    const card = cardsRef.current.find(c => c.id === cardId);
+    if (!card || card.isFlipped || card.isMatched) {
+      return currentFlipped;
+    }
+
     // Play flip sound + haptic
     playCardFlip();
     hapticButton();
@@ -567,43 +614,18 @@ const MemoryMatch: React.FC = () => {
     setFlippedCards(newFlipped);
 
     // Enhancement 11: Squash animation when flip lands (after flip transition)
-    setTimeout(() => addCardAnimation(cardId, 'flip-landed', 150), 350);
+    setTimeout(() => addCardAnimation(cardId, 'flip-landed', 120), 250);
 
     return newFlipped;
-  };
-
-  // Process queued card after comparison finishes
-  // Uses cardsRef to avoid stale closure issues when called from setTimeout
-  const processQueuedCard = () => {
-    const queuedId = queuedCardRef.current;
-    if (queuedId === null) return;
-
-    queuedCardRef.current = null; // Clear queue
-
-    // Use ref to get CURRENT card state (not stale closure)
-    const currentCards = cardsRef.current;
-    const card = currentCards.find(c => c.id === queuedId);
-    if (!card || card.isMatched || card.isFlipped) return;
-
-    // Flip the queued card
-    flipCard(queuedId);
   };
 
   const handleCardClick = (cardId: number) => {
     if (gameState !== 'playing') return;
 
-    // If checking, queue this click for later instead of ignoring
-    if (isChecking) {
-      // Use ref for current state to avoid stale closure
-      const currentCards = cardsRef.current;
-      const card = currentCards.find(c => c.id === cardId);
-      if (card && !card.isMatched && !card.isFlipped) {
-        queuedCardRef.current = cardId;
-      }
-      return;
-    }
+    // Block clicks while checking - no queueing to prevent rushing
+    if (isChecking) return;
 
-    // Debounce rapid clicks to prevent race conditions
+    // Debounce rapid clicks - enforces pacing between flips
     const now = Date.now();
     if (now - lastClickTimeRef.current < CLICK_DEBOUNCE_MS) return;
     lastClickTimeRef.current = now;
@@ -615,12 +637,14 @@ const MemoryMatch: React.FC = () => {
     if (currentFlipped.includes(cardId)) return;
     if (currentFlipped.length >= 2) return;
 
-    // Check card state from current cards array
-    const card = cards.find(c => c.id === cardId);
+    // Check card state from cardsRef (not state) to avoid stale closure issues
+    const currentCards = cardsRef.current;
+    const card = currentCards.find(c => c.id === cardId);
     if (!card || card.isMatched) return;
 
     // Additional safety: if card shows as flipped but not in our tracking, skip it
-    if (card.isFlipped && !currentFlipped.includes(cardId)) return;
+    // Also skip if already flipped (even if in our tracking - prevents double-flip race condition)
+    if (card.isFlipped) return;
 
     // Flip the card
     const newFlipped = flipCard(cardId);
@@ -632,10 +656,10 @@ const MemoryMatch: React.FC = () => {
 
       const [firstId, secondId] = newFlipped;
 
-      // Find cards using functional approach to ensure we have latest state
-      // We need to compare nftIds, which don't change, so we can use current cards
-      const firstCard = cards.find(c => c.id === firstId);
-      const secondCard = cards.find(c => c.id === secondId);
+      // Find cards using cardsRef to ensure we have latest state (avoids stale closure)
+      const currentCardsForMatch = cardsRef.current;
+      const firstCard = currentCardsForMatch.find(c => c.id === firstId);
+      const secondCard = currentCardsForMatch.find(c => c.id === secondId);
 
       // Safety check: both cards must exist and have different IDs (not same card clicked twice)
       if (!firstCard || !secondCard || firstId === secondId) {
@@ -651,9 +675,7 @@ const MemoryMatch: React.FC = () => {
           flippedCardsRef.current = [];
           setFlippedCards([]);
           setIsChecking(false);
-          // Process any queued card click
-          setTimeout(() => processQueuedCard(), 50);
-        }, 500);
+        }, 300);
         return;
       }
 
@@ -678,9 +700,9 @@ const MemoryMatch: React.FC = () => {
             // Enhancement 17: Freeze frame for impact
             triggerFreezeFrame(60);
 
-            // Enhancement 12: Match pop animation with glow
-            addCardAnimation(firstId, 'match-pop', 400);
-            addCardAnimation(secondId, 'match-pop', 400);
+            // Enhancement 12: Match pop animation with glow - faster
+            addCardAnimation(firstId, 'match-pop', 280);
+            addCardAnimation(secondId, 'match-pop', 280);
 
             // Enhancement 15: Timeline celebration pulse
             triggerTimelineCelebration();
@@ -779,42 +801,35 @@ const MemoryMatch: React.FC = () => {
             flippedCardsRef.current = [];
             setFlippedCards([]);
             setIsChecking(false);
-            // Process any queued card click
-            setTimeout(() => processQueuedCard(), 50);
           }
-        }, 500); // Reduced from 800ms for snappier matches
+        }, 280); // Reduced from 500ms for instant-feeling matches
       } else {
         // No match - play mismatch sound/haptic immediately, then flip back
         playMismatch();
         hapticMismatch(); // Double-pulse error pattern
 
-        // Enhancement 14: Wobble animation before flip back
-        addCardAnimation(firstId, 'mismatch-wobble', 300);
-        addCardAnimation(secondId, 'mismatch-wobble', 300);
+        // Enhancement 14: Wobble animation before flip back (faster for snappy feel)
+        addCardAnimation(firstId, 'mismatch-wobble', 200);
+        addCardAnimation(secondId, 'mismatch-wobble', 200);
 
+        // Reset streak on mismatch immediately
+        setStreak(0);
+        resetCombo();
+
+        // Cards flip back after animation (600ms)
         setTimeout(() => {
-          try {
-            setCards(prev =>
-              prev.map(c =>
-                c.id === firstId || c.id === secondId
-                  ? { ...c, isFlipped: false }
-                  : c
-              )
-            );
-            // Reset streak on mismatch
-            setStreak(0);
-            resetCombo();
-          } catch (e) {
-            console.error('Error in mismatch handler:', e);
-          } finally {
-            // ALWAYS reset state to allow more clicks
-            flippedCardsRef.current = [];
-            setFlippedCards([]);
-            setIsChecking(false);
-            // Process any queued card click
-            setTimeout(() => processQueuedCard(), 50);
-          }
-        }, 1200);
+          setCards(prev =>
+            prev.map(c =>
+              c.id === firstId || c.id === secondId
+                ? { ...c, isFlipped: false }
+                : c
+            )
+          );
+          // Unlock input after cards flip back - prevents rushing
+          flippedCardsRef.current = [];
+          setFlippedCards([]);
+          setIsChecking(false);
+        }, 600);
       }
     }
   };
@@ -910,119 +925,26 @@ const MemoryMatch: React.FC = () => {
     }
   }, [round, gameState]);
 
-  // Enhancement 27: Generate shareable image
-  const generateShareImage = useCallback(async () => {
-    setIsGeneratingShare(true);
+  // Handle window resize and orientation changes for responsive grid
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
 
-    try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d')!;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+      }, 150); // debounce
+    };
 
-      // Canvas size (Instagram-friendly 1:1)
-      canvas.width = 1080;
-      canvas.height = 1080;
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
 
-      // Background gradient
-      const gradient = ctx.createLinearGradient(0, 0, 1080, 1080);
-      gradient.addColorStop(0, '#1a1a2e');
-      gradient.addColorStop(1, '#16213e');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, 1080, 1080);
-
-      // Decorative confetti dots
-      const colors = ['#8b5cf6', '#fbbf24', '#22c55e', '#ef4444', '#00CED1'];
-      for (let i = 0; i < 50; i++) {
-        ctx.fillStyle = colors[i % colors.length];
-        ctx.globalAlpha = 0.3 + Math.random() * 0.4;
-        ctx.beginPath();
-        ctx.arc(
-          Math.random() * 1080,
-          Math.random() * 1080,
-          3 + Math.random() * 8,
-          0,
-          Math.PI * 2
-        );
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-
-      // Title
-      ctx.fillStyle = '#8b5cf6';
-      ctx.font = 'bold 64px Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('MEMORY MATCH', 540, 120);
-
-      // Subtitle
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '32px Arial, sans-serif';
-      ctx.fillText('Wojak.ink', 540, 170);
-
-      // Score
-      ctx.fillStyle = '#fbbf24';
-      ctx.font = 'bold 140px Arial, sans-serif';
-      ctx.fillText(totalScore.toLocaleString(), 540, 380);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '36px Arial, sans-serif';
-      ctx.fillText('POINTS', 540, 430);
-
-      // Round reached
-      ctx.fillStyle = '#22c55e';
-      ctx.font = 'bold 56px Arial, sans-serif';
-      ctx.fillText(`Round ${round}`, 540, 540);
-
-      // Pairs matched this round (compute config inline)
-      const config = getRoundConfig(round);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-      ctx.font = '28px Arial, sans-serif';
-      ctx.fillText(`${matches}/${config.pairs} pairs matched`, 540, 600);
-
-      // Revenge message
-      const revenge = getRevengeMessage(matches, config.pairs, round);
-      ctx.fillStyle = '#fbbf24';
-      ctx.font = 'italic 24px Arial, sans-serif';
-      // Word wrap for long messages
-      const maxWidth = 800;
-      const words = revenge.split(' ');
-      let line = '';
-      let y = 700;
-      for (const word of words) {
-        const testLine = line + word + ' ';
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && line !== '') {
-          ctx.fillText(line, 540, y);
-          line = word + ' ';
-          y += 32;
-        } else {
-          line = testLine;
-        }
-      }
-      ctx.fillText(line, 540, y);
-
-      // Decorative brain emojis
-      ctx.font = '80px Arial';
-      ctx.fillText('🧠', 150, 900);
-      ctx.fillText('🧠', 930, 900);
-
-      // Footer
-      ctx.fillStyle = '#888888';
-      ctx.font = '24px Arial, sans-serif';
-      ctx.fillText('Play at wojak.ink', 540, 1020);
-
-      // High score badge if applicable
-      if (totalScore > highScore && totalScore > 0) {
-        ctx.fillStyle = '#ffd700';
-        ctx.font = 'bold 28px Arial, sans-serif';
-        ctx.fillText('⭐ NEW PERSONAL BEST! ⭐', 540, 780);
-      }
-
-      setShareImageUrl(canvas.toDataURL('image/png'));
-    } catch (error) {
-      console.error('Failed to generate share image:', error);
-    } finally {
-      setIsGeneratingShare(false);
-    }
-  }, [totalScore, round, matches, highScore]);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   const currentConfig = getRoundConfig(round);
   const requiredPairs = currentConfig.pairs;
@@ -1180,25 +1102,10 @@ const MemoryMatch: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Guest name input */}
-                  {!isSignedIn && totalScore > 0 && (
-                    <div className="mm-guest-form">
-                      <input
-                        type="text"
-                        className="mm-name-input"
-                        placeholder="Enter your name"
-                        value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value)}
-                        maxLength={15}
-                        onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
-                      />
-                    </div>
-                  )}
-
                   {/* Buttons: Play Again + Leaderboard */}
                   <div className="mm-game-over-buttons">
-                    <button onClick={!isSignedIn && playerName.trim() ? saveScoreLocal : startGame} className="mm-play-btn">
-                      {!isSignedIn && playerName.trim() ? 'Save & Play' : 'Play Again'}
+                    <button onClick={startGame} className="mm-play-btn">
+                      Play Again
                     </button>
                     <button
                       onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
@@ -1206,34 +1113,6 @@ const MemoryMatch: React.FC = () => {
                     >
                       Leaderboard
                     </button>
-                  </div>
-
-                  {/* Enhancement 27: Share Image Generator */}
-                  <div className="mm-share-section">
-                    {!shareImageUrl ? (
-                      <button
-                        onClick={generateShareImage}
-                        disabled={isGeneratingShare}
-                        className="mm-share-btn"
-                      >
-                        {isGeneratingShare ? 'Creating...' : '📸 Create Share Image'}
-                      </button>
-                    ) : (
-                      <div className="mm-share-image-container">
-                        <img
-                          src={shareImageUrl}
-                          alt="Share your score"
-                          className="mm-share-image"
-                        />
-                        <p className="mm-share-hint">Long press or right-click to save</p>
-                        <button
-                          onClick={() => setShareImageUrl(null)}
-                          className="mm-share-close-btn"
-                        >
-                          Close
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1275,47 +1154,46 @@ const MemoryMatch: React.FC = () => {
 
           {gameState === 'playing' && (() => {
             const totalCards = cards.length;
-            // Grid dimensions - optimized for horizontal layouts
-            const gridMap: Record<number, { cols: number; rows: number }> = {
-              12: { cols: 4, rows: 3 },  // 6 pairs
-              16: { cols: 4, rows: 4 },  // 8 pairs
-              18: { cols: 6, rows: 3 },  // 9 pairs
-              20: { cols: 5, rows: 4 },  // 10 pairs
-              24: { cols: 6, rows: 4 },  // 12 pairs
-              30: { cols: 6, rows: 5 },  // 15 pairs
-              36: { cols: 6, rows: 6 },  // 18 pairs
-              42: { cols: 7, rows: 6 },  // 21 pairs
-              48: { cols: 8, rows: 6 },  // 24 pairs
-              54: { cols: 9, rows: 6 },  // 27 pairs - MAX
-            };
-            const grid = gridMap[totalCards] || { cols: Math.ceil(totalCards / 6), rows: 6 };
-            const { cols, rows } = grid;
 
-            // === LAYOUT CALCULATION ===
-            // Cards centered within the lightbox container (full space - stats are outside)
+            // === DYNAMIC GRID CALCULATION ===
+            // Adapts to screen orientation: more columns in landscape, more rows in portrait
+            // Uses windowSize state for responsive updates on resize/orientation change
+
             // Lightbox size: min(95vw, 1200px) x min(85vh, 800px) - matches CSS
-            const lightboxWidth = Math.min(window.innerWidth * 0.95, 1200);
-            const lightboxHeight = Math.min(window.innerHeight * 0.85, 800);
+            const lightboxWidth = Math.min(windowSize.width * 0.95, 1200);
+            const lightboxHeight = Math.min(windowSize.height * 0.85, 800);
             const edgePadding = 25; // Padding from lightbox edges
+            const headerFooterSpace = 80; // Space for stats overlay and timeline
 
-            // Available space for cards (full lightbox - stats are OUTSIDE)
+            // Available space for cards
             const availableWidth = lightboxWidth - edgePadding * 2;
-            const availableHeight = lightboxHeight - edgePadding * 2;
+            const availableHeight = lightboxHeight - edgePadding * 2 - headerFooterSpace;
 
-            // First pass: calculate card size without gaps to estimate
-            const roughCardWidth = availableWidth / cols;
-            const roughCardHeight = availableHeight / rows;
-            const roughCardSize = Math.min(roughCardWidth, roughCardHeight);
+            // Base gap (will be refined based on card size)
+            const baseGap = 8;
 
-            // Gap scales proportionally with card size (8% of card size)
-            const gap = Math.max(6, Math.min(Math.floor(roughCardSize * 0.08), 14));
+            // Calculate optimal grid using dynamic algorithm
+            const gridConfig = calculateOptimalGrid(
+              totalCards,
+              availableWidth,
+              availableHeight,
+              baseGap,
+              60, // minCardSize - touch-friendly minimum
+              140 // maxCardSize
+            );
 
-            // Second pass: calculate actual card size accounting for gaps
+            const { cols, rows, cardSize: calculatedCardSize } = gridConfig;
+
+            // Refine gap based on calculated card size (8% of card size, clamped)
+            const gap = Math.max(6, Math.min(Math.floor(calculatedCardSize * 0.08), 14));
+
+            // Recalculate card size with refined gap
             const cardSizeByWidth = Math.floor((availableWidth - (cols - 1) * gap) / cols);
             const cardSizeByHeight = Math.floor((availableHeight - (rows - 1) * gap) / rows);
-
-            // Use smaller dimension to maintain square aspect, with min/max constraints
             const optimalCardSize = Math.max(40, Math.min(cardSizeByWidth, cardSizeByHeight, 140));
+
+            // Check if we need scrolling (cards too small even at minimum)
+            const needsScroll = optimalCardSize < 50 && totalCards > 36;
 
             // Actual grid dimensions
             const gridWidth = cols * optimalCardSize + (cols - 1) * gap;
@@ -1357,15 +1235,17 @@ const MemoryMatch: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Card Grid - centered in lightbox, full space available */}
+                {/* Card Grid - centered in lightbox, adapts to orientation */}
                 <div
                   className="mm-cards-grid"
                   style={{
-                    width: `${gridWidth}px`,
-                    height: `${gridHeight}px`,
+                    width: needsScroll ? `${availableWidth}px` : `${gridWidth}px`,
+                    height: needsScroll ? `${availableHeight}px` : `${gridHeight}px`,
                     gridTemplateColumns: `repeat(${cols}, ${optimalCardSize}px)`,
                     gridTemplateRows: `repeat(${rows}, ${optimalCardSize}px)`,
                     gap: `${gap}px`,
+                    overflowY: needsScroll ? 'auto' : 'hidden',
+                    overflowX: 'hidden',
                   } as React.CSSProperties}
                 >
                   {cards.map(card => (

@@ -367,25 +367,27 @@ export default function GamesHub() {
       >
         <div style={{ paddingBottom: '96px', paddingTop: '16px' }}>
           {gamesGridWithVoting}
+
+          {/* Voting UI - Mobile: Inline below games */}
+          <div style={{ marginTop: '24px' }}>
+            <FlickModeToggle
+              ref={toggleRef}
+              activeMode={activeMode}
+              onModeChange={setActiveMode}
+              donutBalance={donutBalance}
+              poopBalance={poopBalance}
+              onShowHeatmap={handleShowHeatmap}
+              isHeatmapActive={heatmapState.isActive}
+              isHeatmapLoading={isVotingLoading}
+              isDesktop={false}
+              isSignedIn={isSignedIn}
+              onSignInClick={handleSignInClick}
+            />
+          </div>
         </div>
       </div>
 
       <GameModal game={selectedGame} isOpen={gameModalOpen} onClose={handleGameModalClose} />
-
-      {/* Voting UI - Mobile: Fixed position */}
-      <FlickModeToggle
-        ref={toggleRef}
-        activeMode={activeMode}
-        onModeChange={setActiveMode}
-        donutBalance={donutBalance}
-        poopBalance={poopBalance}
-        onShowHeatmap={handleShowHeatmap}
-        isHeatmapActive={heatmapState.isActive}
-        isHeatmapLoading={isVotingLoading}
-        isDesktop={false}
-        isSignedIn={isSignedIn}
-        onSignInClick={handleSignInClick}
-      />
 
       {flickState.flyingEmoji && (
         <FlyingEmoji

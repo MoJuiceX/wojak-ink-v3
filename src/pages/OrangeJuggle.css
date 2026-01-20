@@ -47,28 +47,191 @@
   justify-content: center;
   width: 100%;
   height: 100%;
-  padding: 20px;
+  /* Add top padding to make room for the stats bar above the lightbox */
+  padding: 50px 12px 12px 12px;
   gap: 0;
   z-index: 1;
 }
 
-/* Stats Panel - LEFT side (FIXED size, 4 items only) */
-.juggle-container .stats-panel {
+/* Stats Overlay - OUTSIDE lightbox, fixed at top aligned with lightbox edge */
+.juggle-container .oj-stats-overlay {
+  position: fixed;
+  top: 10px;
+  /* Align with left edge of lightbox: (100vw - min(95vw, 800px)) / 2 */
+  left: max(2.5vw, calc((100vw - 800px) / 2));
+  z-index: 1000;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.juggle-container .oj-stat {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 12px;
-  padding: 24px 20px;
-  background: linear-gradient(135deg, rgba(20, 20, 35, 0.95) 0%, rgba(30, 30, 50, 0.9) 100%);
-  border: 2px solid rgba(255, 107, 0, 0.4);
-  border-right: none;
-  border-radius: 20px 0 0 20px;
-  backdrop-filter: blur(20px);
-  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4), inset 0 0 30px rgba(255, 107, 0, 0.05);
-  width: 140px;
-  min-width: 140px;
-  max-width: 140px;
-  height: 650px;
+  align-items: center;
+  padding: 4px 10px;
+  min-width: 50px;
+  border-radius: 6px;
+}
+
+.juggle-container .oj-stat-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.juggle-container .oj-stat-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+
+/* Stat color variants */
+.juggle-container .oj-stat.level-stat {
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+.juggle-container .oj-stat.level-stat .oj-stat-label { color: rgba(255, 215, 0, 0.9); }
+.juggle-container .oj-stat.level-stat .oj-stat-value { color: #ffd700; }
+
+.juggle-container .oj-stat.score-stat {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+.juggle-container .oj-stat.score-stat .oj-stat-label { color: rgba(34, 197, 94, 0.9); }
+.juggle-container .oj-stat.score-stat .oj-stat-value { color: #22c55e; }
+
+.juggle-container .oj-stat.score-stat.multiplied {
+  background: rgba(255, 51, 102, 0.2);
+  border: 1px solid rgba(255, 51, 102, 0.4);
+  animation: oj-multiplied-pulse 0.8s ease-in-out infinite alternate;
+}
+.juggle-container .oj-stat.score-stat.multiplied .oj-stat-value { color: #ff3366; }
+
+@keyframes oj-multiplied-pulse {
+  from { box-shadow: 0 0 5px rgba(255, 51, 102, 0.3); }
+  to { box-shadow: 0 0 12px rgba(255, 51, 102, 0.5); }
+}
+
+.juggle-container .oj-stat.time-stat {
+  background: rgba(255, 140, 0, 0.15);
+  border: 1px solid rgba(255, 140, 0, 0.3);
+}
+.juggle-container .oj-stat.time-stat .oj-stat-label { color: rgba(255, 140, 0, 0.9); }
+.juggle-container .oj-stat.time-stat .oj-stat-value { color: #ff8c00; }
+
+/* Time urgency states */
+.juggle-container .oj-stat.urgency-warning .oj-stat-value { color: #fbbf24; }
+.juggle-container .oj-stat.urgency-critical {
+  animation: oj-time-pulse 0.5s ease-in-out infinite;
+}
+.juggle-container .oj-stat.urgency-critical .oj-stat-value { color: #ef4444; }
+
+@keyframes oj-time-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.juggle-container .oj-stat.goal-stat {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+.juggle-container .oj-stat.goal-stat .oj-stat-label { color: rgba(168, 85, 247, 0.9); }
+.juggle-container .oj-stat.goal-stat .oj-stat-value { color: #a855f7; }
+
+/* Floating Multiplier Display - inside lightbox, top-left area */
+.juggle-container .oj-multiplier-display {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 99;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.juggle-container .oj-combo-text {
+  font-size: 28px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow:
+    0 0 15px rgba(255, 200, 0, 0.8),
+    0 0 30px rgba(255, 140, 0, 0.6),
+    0 3px 6px rgba(0, 0, 0, 0.5);
+  animation: oj-combo-pulse 0.6s ease-in-out infinite alternate;
+}
+
+/* Combo level color escalation */
+.juggle-container .oj-combo-text.combo-level-2,
+.juggle-container .oj-combo-text.combo-level-3 {
+  color: #ffd700;
+  text-shadow: 0 0 15px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.5);
+}
+.juggle-container .oj-combo-text.combo-level-4,
+.juggle-container .oj-combo-text.combo-level-5 {
+  color: #ff8c00;
+  text-shadow: 0 0 15px rgba(255, 140, 0, 0.8), 0 0 30px rgba(255, 140, 0, 0.5);
+  font-size: 32px;
+}
+.juggle-container .oj-combo-text.combo-level-6,
+.juggle-container .oj-combo-text.combo-level-7 {
+  color: #ff4500;
+  text-shadow: 0 0 20px rgba(255, 69, 0, 0.9), 0 0 40px rgba(255, 69, 0, 0.6);
+  font-size: 36px;
+}
+.juggle-container .oj-combo-text.combo-level-8,
+.juggle-container .oj-combo-text.combo-level-9 {
+  color: #ff1493;
+  text-shadow: 0 0 25px rgba(255, 20, 147, 1), 0 0 50px rgba(255, 20, 147, 0.7);
+  font-size: 40px;
+}
+.juggle-container .oj-combo-text.combo-level-10 {
+  color: #ff00ff;
+  text-shadow: 0 0 30px rgba(255, 0, 255, 1), 0 0 60px rgba(255, 0, 255, 0.8), 0 0 80px rgba(255, 215, 0, 0.5);
+  font-size: 44px;
+  animation: oj-combo-max 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes oj-combo-pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
+@keyframes oj-combo-max {
+  from { transform: scale(1) rotate(-2deg); }
+  to { transform: scale(1.1) rotate(2deg); }
+}
+
+.juggle-container .oj-rum-multiplier {
+  font-size: 22px;
+  font-weight: 900;
+  color: #ff3366;
+  text-shadow:
+    0 0 15px rgba(255, 51, 102, 0.9),
+    0 0 30px rgba(255, 51, 102, 0.6);
+  animation: oj-rum-glow 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes oj-rum-glow {
+  from { opacity: 0.9; }
+  to { opacity: 1; text-shadow: 0 0 20px rgba(255, 51, 102, 1), 0 0 40px rgba(255, 51, 102, 0.8); }
+}
+
+/* OLD Stats Panel - kept for reference but hidden */
+.juggle-container .stats-panel {
+  display: none;
   min-height: 650px;
   max-height: 650px;
   flex-shrink: 0;
@@ -239,27 +402,26 @@
 /* Lightbox Wrapper = Game Area (game elements render directly inside) */
 .juggle-container .lightbox-wrapper {
   position: relative;
-  width: 600px;
-  min-width: 600px;
-  max-width: 600px;
-  height: 650px;
-  min-height: 650px;
-  max-height: 650px;
+  width: min(95vw, 800px);
+  max-width: 800px;
+  height: min(85vh, 700px);
+  max-height: 700px;
   flex-shrink: 0;
   flex-grow: 0;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.4) 100%);
+  background: transparent;
   border: 2px solid rgba(255, 140, 0, 0.5);
-  border-left: none;
-  border-radius: 0 20px 20px 0;
-  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.3), inset 0 0 60px rgba(255, 107, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   overflow: hidden;
+  /* Ensure content is clipped to this container */
+  isolation: isolate;
 }
 
-/* Power-up overlay - floats in corner, doesn't affect stats panel */
+/* Power-up overlay - floats in top-right corner */
 .juggle-container .powerup-overlay {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 50px;
+  right: 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -429,10 +591,16 @@
   position: relative;
   width: 100%;
   height: 100%;
-  overflow: visible;
+  overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  /* Fill the lightbox with the orange grove background */
+  background-image: url('/assets/wojak-layers/BACKGROUND/Scene/BACKGROUND_Orange Grove.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: inherit;
 }
 
 .juggle-area.playing {
@@ -446,8 +614,10 @@
   align-items: center;
   justify-content: center;
   font-size: 32px;
-  transition: transform 0.1s ease;
   pointer-events: none;
+  /* JUICE: Remove transition for immediate squash/stretch response */
+  transform-origin: center center;
+  will-change: transform;
 }
 
 .game-object.orange {
@@ -609,6 +779,164 @@
   50% { background-position: -180px 0; }
 }
 
+/* JUICE: Arm swing animations triggered on hit */
+.paddle.swing-left .juggle-sprite {
+  animation: swing-left-arm 0.2s ease-out forwards, orangutan-glow 2s ease-in-out infinite alternate;
+}
+
+.paddle.swing-right .juggle-sprite {
+  animation: swing-right-arm 0.2s ease-out forwards, orangutan-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes swing-left-arm {
+  0% { background-position: 0 0; transform: translate(-50%, -50%) rotate(0deg); }
+  30% { background-position: 0 0; transform: translate(-50%, -50%) rotate(-15deg); }
+  100% { background-position: 0 0; transform: translate(-50%, -50%) rotate(0deg); }
+}
+
+@keyframes swing-right-arm {
+  0% { background-position: -180px 0; transform: translate(-50%, -50%) rotate(0deg); }
+  30% { background-position: -180px 0; transform: translate(-50%, -50%) rotate(15deg); }
+  100% { background-position: -180px 0; transform: translate(-50%, -50%) rotate(0deg); }
+}
+
+/* JUICE: Combo Glow Effect - Orangutan glows brighter with combo */
+.paddle.combo-glow-1 .juggle-sprite {
+  animation: juggle-arms 0.5s step-end infinite, combo-glow-pulse-1 0.8s ease-in-out infinite alternate;
+}
+
+.paddle.combo-glow-2 .juggle-sprite {
+  animation: juggle-arms 0.5s step-end infinite, combo-glow-pulse-2 0.6s ease-in-out infinite alternate;
+}
+
+.paddle.combo-glow-3 .juggle-sprite {
+  animation: juggle-arms 0.5s step-end infinite, combo-glow-pulse-3 0.5s ease-in-out infinite alternate;
+}
+
+.paddle.combo-glow-4 .juggle-sprite {
+  animation: juggle-arms 0.5s step-end infinite, combo-glow-pulse-4 0.4s ease-in-out infinite alternate;
+}
+
+/* Combo level 1 (3-4): Green glow - getting started */
+@keyframes combo-glow-pulse-1 {
+  from {
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))
+            drop-shadow(0 0 15px rgba(100, 255, 100, 0.4));
+  }
+  to {
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))
+            drop-shadow(0 0 25px rgba(100, 255, 100, 0.6));
+  }
+}
+
+/* Combo level 2 (5-6): Orange glow - heating up */
+@keyframes combo-glow-pulse-2 {
+  from {
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))
+            drop-shadow(0 0 20px rgba(255, 165, 0, 0.5));
+  }
+  to {
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))
+            drop-shadow(0 0 35px rgba(255, 165, 0, 0.7));
+  }
+}
+
+/* Combo level 3 (7-9): Red-orange glow - on fire */
+@keyframes combo-glow-pulse-3 {
+  from {
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))
+            drop-shadow(0 0 25px rgba(255, 100, 50, 0.6))
+            drop-shadow(0 0 10px rgba(255, 50, 0, 0.4));
+  }
+  to {
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))
+            drop-shadow(0 0 40px rgba(255, 100, 50, 0.8))
+            drop-shadow(0 0 20px rgba(255, 50, 0, 0.6));
+  }
+}
+
+/* Combo level 4 (10): Gold MAX glow - legendary */
+@keyframes combo-glow-pulse-4 {
+  from {
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))
+            drop-shadow(0 0 30px rgba(255, 215, 0, 0.7))
+            drop-shadow(0 0 15px rgba(255, 255, 100, 0.5))
+            drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
+  }
+  to {
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))
+            drop-shadow(0 0 50px rgba(255, 215, 0, 0.9))
+            drop-shadow(0 0 30px rgba(255, 255, 100, 0.7))
+            drop-shadow(0 0 10px rgba(255, 255, 255, 1));
+  }
+}
+
+/* Preserve combo glow during arm swings */
+.paddle.combo-glow-1.swing-left .juggle-sprite,
+.paddle.combo-glow-1.swing-right .juggle-sprite {
+  animation: swing-left-arm 0.2s ease-out forwards, combo-glow-pulse-1 0.8s ease-in-out infinite alternate;
+}
+
+.paddle.combo-glow-2.swing-left .juggle-sprite,
+.paddle.combo-glow-2.swing-right .juggle-sprite {
+  animation: swing-left-arm 0.2s ease-out forwards, combo-glow-pulse-2 0.6s ease-in-out infinite alternate;
+}
+
+.paddle.combo-glow-3.swing-left .juggle-sprite,
+.paddle.combo-glow-3.swing-right .juggle-sprite {
+  animation: swing-left-arm 0.2s ease-out forwards, combo-glow-pulse-3 0.5s ease-in-out infinite alternate;
+}
+
+.paddle.combo-glow-4.swing-left .juggle-sprite,
+.paddle.combo-glow-4.swing-right .juggle-sprite {
+  animation: swing-left-arm 0.2s ease-out forwards, combo-glow-pulse-4 0.4s ease-in-out infinite alternate;
+}
+
+/* JUICE: Particle Effect */
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* JUICE: Orange Trail Effect */
+.orange-trail {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+  filter: blur(2px);
+}
+
+/* JUICE: Impact Flash Effect */
+.impact-flash {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(255, 200, 100, 0.8) 40%, transparent 70%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: impact-flash-expand 0.3s ease-out forwards;
+  z-index: 15;
+}
+
+@keyframes impact-flash-expand {
+  0% {
+    width: 10px;
+    height: 10px;
+    opacity: 1;
+  }
+  100% {
+    width: 60px;
+    height: 60px;
+    opacity: 0;
+  }
+}
+
 /* Danger Zone */
 .danger-zone {
   position: absolute;
@@ -618,6 +946,91 @@
   height: 60px;
   background: linear-gradient(to top, rgba(255, 0, 0, 0.2) 0%, transparent 100%);
   pointer-events: none;
+}
+
+/* JUICE: Panic vignette overlay for multiple falling oranges */
+.panic-vignette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 25;
+  border-radius: inherit;
+}
+
+.panic-vignette.panic-level-1 {
+  box-shadow: inset 0 0 40px rgba(255, 200, 100, 0.3);
+  animation: panic-pulse 1s ease-in-out infinite;
+}
+
+.panic-vignette.panic-level-2 {
+  box-shadow: inset 0 0 60px rgba(255, 150, 50, 0.4);
+  animation: panic-pulse 0.7s ease-in-out infinite;
+}
+
+.panic-vignette.panic-level-3 {
+  box-shadow: inset 0 0 80px rgba(255, 100, 50, 0.5);
+  animation: panic-pulse 0.5s ease-in-out infinite;
+}
+
+.panic-vignette.panic-level-4 {
+  box-shadow: inset 0 0 100px rgba(255, 50, 50, 0.6);
+  animation: panic-pulse 0.35s ease-in-out infinite;
+}
+
+@keyframes panic-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* JUICE: Landing zone indicators - dots showing where oranges will land */
+.landing-indicator {
+  position: absolute;
+  bottom: 65px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 24;
+  animation: landing-indicator-pulse 0.6s ease-in-out infinite;
+}
+
+.landing-indicator.panic-level-1 {
+  background: rgba(255, 200, 100, 0.7);
+  box-shadow: 0 0 10px rgba(255, 200, 100, 0.5);
+}
+
+.landing-indicator.panic-level-2 {
+  background: rgba(255, 150, 50, 0.8);
+  box-shadow: 0 0 15px rgba(255, 150, 50, 0.6);
+}
+
+.landing-indicator.panic-level-3 {
+  background: rgba(255, 100, 50, 0.9);
+  box-shadow: 0 0 20px rgba(255, 100, 50, 0.7);
+}
+
+.landing-indicator.panic-level-4 {
+  background: rgba(255, 50, 50, 1);
+  box-shadow: 0 0 25px rgba(255, 50, 50, 0.8);
+}
+
+@keyframes landing-indicator-pulse {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.3);
+    opacity: 0.7;
+  }
 }
 
 /* Game Menu */
@@ -1307,6 +1720,60 @@
     border-radius: 0;
   }
 
+  /* Stats overlay - mobile adjustments */
+  .juggle-container .oj-stats-overlay {
+    left: 8px;
+    top: 8px;
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
+  .juggle-container .oj-stat {
+    padding: 3px 6px;
+    min-width: 40px;
+  }
+
+  .juggle-container .oj-stat-label {
+    font-size: 7px;
+  }
+
+  .juggle-container .oj-stat-value {
+    font-size: 13px;
+  }
+
+  /* Multiplier display - mobile (inside lightbox) */
+  .juggle-container .oj-multiplier-display {
+    top: 8px;
+    left: 8px;
+  }
+
+  .juggle-container .oj-combo-text {
+    font-size: 22px;
+  }
+
+  .juggle-container .oj-combo-text.combo-level-4,
+  .juggle-container .oj-combo-text.combo-level-5 {
+    font-size: 26px;
+  }
+
+  .juggle-container .oj-combo-text.combo-level-6,
+  .juggle-container .oj-combo-text.combo-level-7 {
+    font-size: 30px;
+  }
+
+  .juggle-container .oj-combo-text.combo-level-8,
+  .juggle-container .oj-combo-text.combo-level-9 {
+    font-size: 34px;
+  }
+
+  .juggle-container .oj-combo-text.combo-level-10 {
+    font-size: 38px;
+  }
+
+  .juggle-container .oj-rum-multiplier {
+    font-size: 18px;
+  }
+
   /* Hide desktop stats panel on mobile */
   .juggle-container .stats-panel {
     display: none !important;
@@ -1314,27 +1781,27 @@
 
   /* Game layout fills screen on mobile */
   .juggle-container .game-layout {
-    padding: 0;
+    padding: 40px 0 0 0;
     flex-direction: column;
   }
 
-  /* Lightbox fills available space on mobile */
+  /* Lightbox fills available space on mobile (minus stats bar) */
   .juggle-container .lightbox-wrapper {
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
-    height: 100% !important;
-    min-height: 100% !important;
-    max-height: 100% !important;
+    height: calc(100% - 40px) !important;
+    min-height: unset !important;
+    max-height: unset !important;
     border-radius: 0;
     border: none;
-    border-left: none;
   }
 
-  /* Power-up overlay stays visible on mobile */
+  /* Power-up overlay - top right on mobile */
   .juggle-container .powerup-overlay {
     top: 8px;
-    left: 8px;
+    right: 50px;
+    left: auto;
     padding: 6px 10px;
   }
 

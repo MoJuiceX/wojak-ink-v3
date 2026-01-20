@@ -139,7 +139,7 @@ type GameStatus = 'idle' | 'playing' | 'paused' | 'levelComplete' | 'gameover';
 // =============================================================================
 
 const DESKTOP_WIDTH = 650;
-const DESKTOP_HEIGHT = 500;
+const DESKTOP_HEIGHT = 750; // Much taller playing field
 const INITIAL_BALL_SPEED = 5;
 const PADDLE_HEIGHT = 15;
 const PADDLE_BASE_WIDTH = 100;
@@ -823,7 +823,7 @@ export default function BrickBreaker() {
     scoreRef.current += lifeBonus;
     setScore(scoreRef.current);
 
-    addScorePopup(`+${lifeBonus} LIFE BONUS`, gameWidth / 2, gameHeight / 2);
+    addScorePopup(`+${lifeBonus} LIFE BONUS`, gameWidth / 2, gameHeight * 0.35);
 
     // Clear active powerups on level complete
     activePowerupsRef.current = [];
@@ -1277,13 +1277,40 @@ export default function BrickBreaker() {
       }
     });
 
-    // Draw combo meter (Enhancement #43)
+    // Draw combo meter (Enhancement #43) - SMART POSITIONING based on brick locations
     const combo = comboCountRef.current;
     if (combo >= 2) {
-      const comboX = gameWidth - 90;
-      const comboY = 50;
       const comboWidth = 80;
       const comboHeight = 15;
+
+      // Find brick bounds to determine safe zone for combo meter
+      const remainingBricks = bricksRef.current.filter(b => b.hits > 0 && b.type !== 'unbreakable');
+      let lowestBrickY = 0;
+      let highestBrickY = gameHeight;
+
+      remainingBricks.forEach(brick => {
+        const brickBottom = brick.y + brick.height;
+        if (brickBottom > lowestBrickY) lowestBrickY = brickBottom;
+        if (brick.y < highestBrickY) highestBrickY = brick.y;
+      });
+
+      // Smart Y positioning:
+      // - If bricks extend into lower half (lowestBrickY > gameHeight * 0.4), combo at TOP
+      // - If bricks only at top (lowestBrickY <= gameHeight * 0.4), combo BELOW bricks
+      // - Paddle safe zone: never below gameHeight - 120
+      let comboY: number;
+      const paddleSafeZone = gameHeight - 120;
+
+      if (remainingBricks.length === 0 || lowestBrickY > gameHeight * 0.4) {
+        // Bricks extend into middle/lower area OR no bricks - put combo at TOP
+        comboY = 15;
+      } else {
+        // Bricks only at top - put combo BELOW the lowest brick
+        comboY = Math.min(lowestBrickY + 20, paddleSafeZone - 40);
+      }
+
+      // X position: centered, away from edges
+      const comboX = gameWidth / 2 - comboWidth / 2;
 
       // Calculate time remaining in combo (500ms timeout)
       const comboElapsed = currentTime - comboTimerStartRef.current;
@@ -1315,7 +1342,7 @@ export default function BrickBreaker() {
       ctx.restore();
     }
 
-    // Draw combo break effect (Enhancement #45)
+    // Draw combo break effect (Enhancement #45) - positioned in upper third, away from paddle safe zone
     if (comboBreakEffectRef.current) {
       const breakEffect = comboBreakEffectRef.current;
       ctx.save();
@@ -1324,7 +1351,7 @@ export default function BrickBreaker() {
       ctx.font = 'bold 24px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`COMBO LOST x${breakEffect.combo}`, gameWidth / 2, gameHeight / 2 - 50);
+      ctx.fillText(`COMBO LOST x${breakEffect.combo}`, gameWidth / 2, gameHeight * 0.25);
       ctx.restore();
     }
 
@@ -1660,6 +1687,7 @@ export default function BrickBreaker() {
         setGameWidth(width);
         setGameHeight(height);
       } else {
+        // Force desktop dimensions - always use current constants
         setGameWidth(DESKTOP_WIDTH);
         setGameHeight(DESKTOP_HEIGHT);
       }
@@ -1669,6 +1697,14 @@ export default function BrickBreaker() {
     window.addEventListener('resize', updateDimensions);
     return () => window.removeEventListener('resize', updateDimensions);
   }, [isMobile]);
+
+  // Force dimension sync when not playing (handles HMR constant changes)
+  useEffect(() => {
+    if (status === 'idle' && !isMobile) {
+      setGameWidth(DESKTOP_WIDTH);
+      setGameHeight(DESKTOP_HEIGHT);
+    }
+  }, [status, isMobile]);
 
   // Start game loop when playing
   useEffect(() => {

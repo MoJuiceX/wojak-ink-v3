@@ -19,8 +19,11 @@
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+}
+
+/* Hide the GameEffects combo - we use our own combo system */
+.merge2048-container .effect-combo {
+  display: none !important;
 }
 
 /* Header */
@@ -264,35 +267,7 @@
   z-index: 20;
 }
 
-/* Score popup animation */
-@keyframes score-popup {
-  0% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: translateY(-20px) scale(1.2);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-40px) scale(0.8);
-  }
-}
-
-.score-popup {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 32px;
-  font-weight: bold;
-  color: #ff6b00;
-  text-shadow: 0 2px 10px rgba(255, 107, 0, 0.5);
-  pointer-events: none;
-  z-index: 50;
-  animation: score-popup 600ms ease-out forwards;
-}
+/* Score popup animation - moved to Phase 4 section (TASK 65) */
 
 /* Screen shake for big merges */
 @keyframes screen-shake {
@@ -404,16 +379,974 @@
 
 /* Instructions */
 .merge2048-instructions {
-  margin-top: 16px;
+  margin-top: auto; /* Push to bottom */
+  padding-top: 16px;
+  padding-bottom: 8px;
   text-align: center;
   max-width: 400px;
 }
 
 .merge2048-instructions p {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
   margin: 0;
 }
+
+/* ========== PHASE 5: DANGER STATE SYSTEM ========== */
+
+/* TASK 68: Visual danger indicators */
+.merge2048-grid-wrapper.danger-warning {
+  box-shadow: inset 0 0 20px rgba(255, 165, 0, 0.3);
+  animation: warningPulse 1.5s ease-in-out infinite;
+}
+
+.merge2048-grid-wrapper.danger-critical {
+  box-shadow: inset 0 0 30px rgba(255, 100, 0, 0.4);
+  animation: criticalPulse 1s ease-in-out infinite;
+}
+
+.merge2048-grid-wrapper.danger-imminent {
+  box-shadow: inset 0 0 40px rgba(255, 50, 0, 0.5);
+  animation: imminentPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes warningPulse {
+  0%, 100% { box-shadow: inset 0 0 20px rgba(255, 165, 0, 0.3); }
+  50% { box-shadow: inset 0 0 30px rgba(255, 165, 0, 0.5); }
+}
+
+@keyframes criticalPulse {
+  0%, 100% { box-shadow: inset 0 0 30px rgba(255, 100, 0, 0.4); }
+  50% { box-shadow: inset 0 0 45px rgba(255, 100, 0, 0.6); }
+}
+
+@keyframes imminentPulse {
+  0%, 100% { box-shadow: inset 0 0 40px rgba(255, 50, 0, 0.5); }
+  50% { box-shadow: inset 0 0 60px rgba(255, 50, 0, 0.7); }
+}
+
+/* TASK 69: Vignette effect for danger */
+.merge2048-grid-wrapper.danger-critical::after,
+.merge2048-grid-wrapper.danger-imminent::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 12px;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    rgba(255, 50, 0, 0.15) 100%
+  );
+  z-index: 5;
+}
+
+/* TASK 71: Empty cell highlight in danger state */
+.grid-cell.cell-highlighted {
+  background: rgba(255, 215, 0, 0.3);
+  animation: cellGlow 1s ease-in-out infinite;
+}
+
+@keyframes cellGlow {
+  0%, 100% { background: rgba(255, 215, 0, 0.2); }
+  50% { background: rgba(255, 215, 0, 0.4); }
+}
+
+/* ========== END DANGER STATE SYSTEM ========== */
+
+/* ========== PHASE 6: FEVER MODE ========== */
+
+/* TASK 85: Fever mode visual CSS */
+.merge2048-grid-wrapper.fever-active {
+  box-shadow:
+    0 0 30px rgba(255, 107, 0, 0.6),
+    0 0 60px rgba(255, 50, 0, 0.4),
+    inset 0 0 20px rgba(255, 107, 0, 0.3);
+  animation: feverPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes feverPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 30px rgba(255, 107, 0, 0.6),
+      0 0 60px rgba(255, 50, 0, 0.4),
+      inset 0 0 20px rgba(255, 107, 0, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 40px rgba(255, 107, 0, 0.8),
+      0 0 80px rgba(255, 50, 0, 0.6),
+      inset 0 0 30px rgba(255, 107, 0, 0.5);
+  }
+}
+
+/* TASK 86: Fever tiles border effect */
+.merge2048-grid-wrapper.fever-active .tile {
+  box-shadow: 0 0 10px rgba(255, 107, 0, 0.8);
+  border: 2px solid rgba(255, 200, 100, 0.6);
+}
+
+/* TASK 87-88: Fever meter UI component */
+.fever-meter-container {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  right: 0;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 200;
+}
+
+.fever-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 107, 0, 0.9);
+  padding: 6px 16px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(255, 107, 0, 0.5);
+  animation: feverMeterPulse 0.4s ease-in-out infinite;
+}
+
+@keyframes feverMeterPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.fever-meter-icon {
+  font-size: 18px;
+  animation: feverIconBounce 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes feverIconBounce {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-2px); }
+}
+
+.fever-meter-text {
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.fever-meter-multiplier {
+  font-size: 16px;
+  font-weight: bold;
+  color: #FFD700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+/* Fever meter enter/exit animations */
+.fever-meter-enter {
+  animation: feverMeterEnter 0.3s ease-out forwards;
+}
+
+@keyframes feverMeterEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Consecutive merge indicator (building toward fever) */
+.merge-streak-indicator {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+  z-index: 150;
+}
+
+.streak-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+}
+
+.streak-dot.active {
+  background: linear-gradient(135deg, #ff6b00, #ff8533);
+  box-shadow: 0 0 8px rgba(255, 107, 0, 0.8);
+  animation: streakDotPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes streakDotPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+/* ========== END FEVER MODE ========== */
+
+/* ========== PHASE 3: TILE PERSONALITY SYSTEM ========== */
+
+/* TASK 33: Tile face styles */
+.tile-face {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.35em;
+  opacity: 0.95;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tile-eyes {
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.tile-mouth {
+  margin-top: -0.15em;
+}
+
+.tile-extras {
+  position: absolute;
+  top: -1.2em;
+  right: -1em;
+  font-size: 0.8em;
+}
+
+/* Expression animations */
+.tile-face-excited .tile-eyes {
+  animation: eyesBounce 0.5s ease-in-out infinite;
+}
+
+.tile-face-worried .tile-eyes {
+  animation: eyesShake 0.3s ease-in-out infinite;
+}
+
+.tile-face-worried .tile-mouth {
+  transform: scaleY(-1);
+}
+
+.tile-face-sleepy {
+  opacity: 0.6;
+}
+
+.tile-face-shocked .tile-eyes {
+  animation: eyesPulse 0.6s ease-in-out infinite;
+}
+
+@keyframes eyesBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes eyesShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1px); }
+  75% { transform: translateX(1px); }
+}
+
+@keyframes eyesPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Adjust tile-value position to make room for face */
+.tile .tile-value {
+  position: relative;
+  top: 15%;
+  z-index: 2;
+}
+
+/* TASK 38: Hello animation for new tiles */
+.tile-new .tile-face {
+  animation: faceHello 0.4s ease-out;
+}
+
+@keyframes faceHello {
+  0% { transform: translate(-50%, -50%) scale(0); }
+  60% { transform: translate(-50%, -50%) scale(1.2); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+/* TASK 39: Celebration animation for merges */
+.tile-merged .tile-face {
+  animation: faceCelebrate 0.3s ease-out;
+}
+
+@keyframes faceCelebrate {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  30% { transform: translate(-50%, -50%) scale(1.3) rotate(-5deg); }
+  60% { transform: translate(-50%, -50%) scale(1.3) rotate(5deg); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+/* TASK 43: Gallery button */
+.gallery-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  color: white;
+}
+
+.gallery-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* TASK 45: Face toggle button */
+.face-toggle-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 14px;
+  font-size: 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+
+.face-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.face-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+/* TASK 42: Character Gallery Modal */
+.gallery-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.gallery-modal {
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 16px;
+  max-width: 90vw;
+  max-height: 80vh;
+  width: 400px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.gallery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gallery-header h2 {
+  margin: 0;
+  color: #ff6b00;
+  font-size: 22px;
+}
+
+.gallery-count {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.gallery-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.15s ease;
+}
+
+.gallery-close:hover {
+  color: white;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.gallery-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gallery-card.unlocked:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 107, 0, 0.2);
+}
+
+.gallery-card.locked {
+  opacity: 0.5;
+}
+
+.gallery-tile-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  padding: 8px;
+  font-weight: bold;
+  position: relative;
+}
+
+.gallery-face-eyes {
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.gallery-face-mouth {
+  font-size: 12px;
+  margin-top: -2px;
+}
+
+.gallery-tile-value {
+  font-size: 18px;
+  margin-top: 4px;
+}
+
+.gallery-locked-icon {
+  font-size: 24px;
+}
+
+.gallery-info {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gallery-name {
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+}
+
+.gallery-bio {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.3;
+}
+
+/* ========== END TILE PERSONALITY SYSTEM ========== */
+
+/* ========== PHASE 4: VISUAL JUICE EFFECTS ========== */
+
+/* TASK 48: Freeze frame CSS */
+.merge2048-grid-wrapper.freeze-frame .tiles-container {
+  animation-play-state: paused;
+}
+
+.merge2048-grid-wrapper.freeze-frame .tile {
+  transition: none;
+}
+
+/* TASK 54: Squash/stretch animations for movement */
+.tile-moving-left,
+.tile-moving-right {
+  transform: scaleX(1.1) scaleY(0.92);
+}
+
+.tile-moving-up,
+.tile-moving-down {
+  transform: scaleY(1.1) scaleX(0.92);
+}
+
+/* TASK 54: Enhanced merge animation with squash */
+@keyframes squashMerge {
+  0% { transform: scale(0.8, 1.2); }
+  40% { transform: scale(1.25, 0.85); }
+  70% { transform: scale(0.95, 1.05); }
+  100% { transform: scale(1, 1); }
+}
+
+.tile-merged {
+  animation: squashMerge 200ms ease-out;
+  z-index: 20;
+}
+
+/* TASK 57: Tile slide trails */
+.tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  opacity: 0;
+  transform: scale(1);
+  transition: opacity 100ms, transform 100ms;
+  border-radius: inherit;
+  z-index: -1;
+}
+
+.tile-moving-left::before {
+  opacity: 0.2;
+  transform: translateX(15%) scaleX(1.2);
+}
+
+.tile-moving-right::before {
+  opacity: 0.2;
+  transform: translateX(-15%) scaleX(1.2);
+}
+
+.tile-moving-up::before {
+  opacity: 0.2;
+  transform: translateY(15%) scaleY(1.2);
+}
+
+.tile-moving-down::before {
+  opacity: 0.2;
+  transform: translateY(-15%) scaleY(1.2);
+}
+
+/* TASK 60: Smooth camera zoom transition */
+.merge2048-grid-wrapper {
+  transition: transform 150ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* TASK 64: Impact flash CSS */
+.impact-flash {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%);
+  transform: translate(-50%, -50%);
+  animation: flashExpand 200ms ease-out forwards;
+  pointer-events: none;
+  z-index: 60;
+}
+
+@keyframes flashExpand {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+}
+
+/* TASK 65: Enhanced score popup animation */
+.score-popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  font-weight: bold;
+  color: #ff6b00;
+  text-shadow: 0 2px 10px rgba(255, 107, 0, 0.5);
+  pointer-events: none;
+  z-index: 50;
+  animation: scoreFloat 800ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+@keyframes scoreFloat {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, -70%) scale(1.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -150%) scale(1);
+    opacity: 0;
+  }
+}
+
+/* ========== END VISUAL JUICE EFFECTS ========== */
+
+/* ========== PHASE 10: VIRAL SHARE SYSTEM ========== */
+
+/* TASK 131: Challenge target display */
+.challenge-box {
+  background: linear-gradient(135deg, #ff6b00, #ff8533);
+  animation: challengePulse 2s ease-in-out infinite;
+}
+
+.challenge-box.challenge-won {
+  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+  animation: none;
+}
+
+@keyframes challengePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 107, 0, 0); }
+}
+
+/* Challenge text in overlay */
+.challenge-won {
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+.challenge-lost {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Overlay buttons container */
+.overlay-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.overlay-btn.share-btn {
+  background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+}
+
+.overlay-btn.share-btn:hover {
+  box-shadow: 0 4px 20px rgba(76, 175, 80, 0.4);
+}
+
+/* TASK 127: Share Modal */
+.share-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  animation: fadeIn 0.2s ease;
+}
+
+.share-modal {
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 16px;
+  max-width: 90vw;
+  width: 360px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.share-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.share-header h2 {
+  margin: 0;
+  color: #ff6b00;
+  font-size: 20px;
+}
+
+.share-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.15s ease;
+}
+
+.share-close:hover {
+  color: white;
+}
+
+.share-preview-image {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.share-buttons {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.share-action-btn {
+  flex: 1;
+  padding: 12px 8px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+  color: white;
+  font-weight: bold;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.share-action-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+}
+
+.share-action-btn:active {
+  transform: scale(0.98);
+}
+
+.share-text-section {
+  width: 100%;
+}
+
+.share-text-btn {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.share-text-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ========== END VIRAL SHARE SYSTEM ========== */
+
+/* ========== PHASE 7: NEXT TILE PREVIEW ========== */
+
+/* TASK 97: Next tile preview CSS */
+.next-tile-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.preview-label {
+  font-size: 10px;
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.preview-tiles {
+  display: flex;
+  gap: 4px;
+}
+
+.preview-tile {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  position: relative;
+  animation: previewPop 200ms ease-out;
+}
+
+.preview-face {
+  font-size: 8px;
+  line-height: 1;
+}
+
+.preview-value {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.preview-tile-1 {
+  opacity: 0.5;
+  transform: scale(0.85);
+}
+
+/* TASK 100: Preview animation on queue change */
+@keyframes previewPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* TASK 99: Preview toggle button */
+.preview-toggle-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 14px;
+  font-size: 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+
+.preview-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ========== END NEXT TILE PREVIEW ========== */
+
+/* ========== PHASE 8: COMBO VISUALIZATION ========== */
+
+/* TASK 106: Combo display CSS */
+.combo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 120px; /* Fixed height to prevent layout shift */
+  margin-top: 24px; /* More space from the game field */
+  margin-bottom: 0;
+  pointer-events: none;
+}
+
+.combo-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: bold;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.6);
+  animation: comboAppear 300ms ease-out;
+}
+
+.combo-count {
+  font-size: 80px;
+  line-height: 1;
+  color: #ffd700;
+}
+
+.combo-label {
+  font-size: 22px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: #ff8c00;
+}
+
+@keyframes comboAppear {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Scale up with combo */
+.combo-3 .combo-count { font-size: 88px; }
+.combo-5 .combo-count { font-size: 96px; }
+.combo-7 .combo-count { font-size: 104px; }
+.combo-10 .combo-count { font-size: 112px; }
+.combo-10 { animation: comboAppear 300ms ease-out, comboPulse 0.5s infinite; }
+
+@keyframes comboPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* TASK 108: Combo timeout bar CSS */
+.combo-timeout-bar {
+  width: 150px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.combo-timeout-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff8c00, #ffd700);
+  transition: width 50ms linear;
+}
+
+/* ========== END COMBO VISUALIZATION ========== */
+
+/* ========== PHASE 9: EXTRA FEATURES ========== */
+
+/* TASK 115: Undo button CSS */
+.undo-btn {
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 200ms;
+  line-height: 1;
+}
+
+.undo-btn:hover:not(.disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.undo-btn.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* TASK 117: Animated score */
+.animated-score {
+  transition: transform 50ms ease;
+}
+
+/* ========== END EXTRA FEATURES ========== */
+
+/* ========== PHASE 11: DYNAMIC MUSIC SYSTEM ========== */
+
+/* TASK 144: Music toggle button */
+.music-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 14px;
+  font-size: 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+
+.music-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.music-btn.active {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+  border-color: #ff6b00;
+  animation: musicPulse 1s ease-in-out infinite;
+}
+
+@keyframes musicPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 107, 0, 0); }
+}
+
+/* ========== END DYNAMIC MUSIC SYSTEM ========== */
 
 /* Responsive adjustments */
 @media (max-width: 420px) {

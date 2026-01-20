@@ -1854,8 +1854,8 @@ const createCardHoverSound = () => {
 };
 
 /**
- * Card Flip: Soft "tik" - like gentle tap on glass
- * 20-30ms, subtle, not intrusive
+ * Card Flip: Smooth, gentle whoosh - like a soft page turn
+ * Warm, pleasant tone with gentle attack/decay
  * With random pitch variation to prevent audio fatigue
  */
 const createCardFlipSound = () => {
@@ -1863,27 +1863,66 @@ const createCardFlipSound = () => {
     const ctx = getAudioContext();
     if (!ctx) return;
 
-    // Random pitch variation (±10%)
-    const pitchVariation = 0.9 + Math.random() * 0.2;
-    const baseFreq = 1500 * pitchVariation;
-    const endFreq = 800 * pitchVariation;
+    const now = ctx.currentTime;
 
-    // Soft click
+    // Random pitch variation (±8%)
+    const pitchVariation = 0.92 + Math.random() * 0.16;
+
+    // Warm, low-mid tone for pleasant flip feel
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    osc.connect(gain);
+    // Add subtle filter for warmth
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1200, now);
+    filter.Q.setValueAtTime(0.7, now);
+
+    osc.connect(filter);
+    filter.connect(gain);
     gain.connect(ctx.destination);
 
-    osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(endFreq, ctx.currentTime + 0.025);
+    // Warm rising tone (like lifting a card)
+    const baseFreq = 280 * pitchVariation;
+    const peakFreq = 420 * pitchVariation;
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.linearRampToValueAtTime(peakFreq, now + 0.04);
+    osc.frequency.linearRampToValueAtTime(baseFreq * 0.9, now + 0.08);
     osc.type = 'sine';
 
-    gain.gain.setValueAtTime(0.06 * volumeMultiplier, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001 * volumeMultiplier, ctx.currentTime + 0.03);
+    // Soft attack, smooth decay (no harsh transient)
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.08 * volumeMultiplier, now + 0.015); // Soft attack
+    gain.gain.linearRampToValueAtTime(0.06 * volumeMultiplier, now + 0.04);  // Sustain
+    gain.gain.exponentialRampToValueAtTime(0.001 * volumeMultiplier, now + 0.09); // Smooth decay
 
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.03);
+    osc.start(now);
+    osc.stop(now + 0.09);
+
+    // Add subtle breath/air texture for paper feel
+    const noise = ctx.createBufferSource();
+    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.06, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseData.length; i++) {
+      noiseData[i] = (Math.random() * 2 - 1) * 0.3;
+    }
+    noise.buffer = noiseBuffer;
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(800, now);
+    noiseFilter.Q.setValueAtTime(1.5, now);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0, now);
+    noiseGain.gain.linearRampToValueAtTime(0.015 * volumeMultiplier, now + 0.02);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001 * volumeMultiplier, now + 0.06);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    noise.start(now);
   } catch (e) {
     // Silently fail - don't break game flow
   }
@@ -2980,7 +3019,6 @@ export function useGameSounds() {
 
   const playCardFlip = useCallback(() => {
     if (!isSoundEffectsEnabled) return;
-    SoundManager.play('button-click');
     createCardFlipSound();
   }, [isSoundEffectsEnabled]);
 

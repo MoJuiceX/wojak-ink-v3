@@ -57,7 +57,24 @@ export type HapticPattern =
   | 'oj-camel-warning'    // Camel is about to spawn
   | 'oj-camel-impact'     // Hit by camel - game over
   | 'oj-near-miss'        // Barely caught the orange
-  | 'oj-level-complete';  // Level completed
+  | 'oj-level-complete'   // Level completed
+  // Color Reaction specific
+  | 'cr-tap'              // Ultra-light tap confirmation
+  | 'cr-perfect'          // PERFECT reaction (<300ms) - celebratory burst
+  | 'cr-great'            // GREAT reaction (<500ms) - strong success
+  | 'cr-good'             // GOOD reaction (<700ms) - medium success
+  | 'cr-ok'               // OK reaction (<1000ms) - light success
+  | 'cr-wrong'            // Wrong tap - gentle error
+  | 'cr-miss'             // Match window expired - single pulse
+  | 'cr-countdown-tick'   // Ultra-light tick in final 500ms
+  | 'cr-countdown-warning' // Double tap at 750ms
+  | 'cr-countdown-critical' // Rapid triple at 300ms
+  | 'cr-lose-life'        // Medium-heavy life loss
+  | 'cr-last-life'        // Urgent last life warning
+  | 'cr-streak-5'         // 5x streak milestone
+  | 'cr-streak-10'        // 10x streak milestone
+  | 'cr-streak-15'        // 15x streak milestone
+  | 'cr-streak-20';       // 20x streak milestone - maximum
 
 export interface HapticDefinition {
   name: HapticPattern;
@@ -120,6 +137,24 @@ export const HAPTIC_PATTERNS: Record<HapticPattern, number | number[]> = {
   'oj-camel-impact': 80,                        // Heavy game over pulse - big hit
   'oj-near-miss': 5,                            // Ultra-light warning tap
   'oj-level-complete': [25, 50, 20, 50, 15, 50, 10], // Extended celebration burst
+
+  // Color Reaction specific - reaction-time based feedback
+  'cr-tap': 8,                                  // Ultra-light confirmation on every tap
+  'cr-perfect': [15, 20, 12, 20, 10, 20, 8],    // Celebratory burst for <300ms reaction
+  'cr-great': [15, 25, 12, 25, 10],             // Strong success for <500ms
+  'cr-good': [15, 30, 12],                      // Medium success for <700ms
+  'cr-ok': [15, 40, 10],                        // Light success for <1000ms
+  'cr-wrong': [8, 80, 8],                       // Brief double tap - not punishing
+  'cr-miss': 30,                                // Single medium pulse - window expired
+  'cr-countdown-tick': 5,                       // Ultra-light tick in final 500ms
+  'cr-countdown-warning': [10, 50, 10],         // Double tap warning at 750ms
+  'cr-countdown-critical': [8, 30, 8, 30, 8],   // Rapid triple at 300ms - urgent!
+  'cr-lose-life': 40,                           // Medium-heavy life loss pulse
+  'cr-last-life': [15, 100, 15],                // Urgent double pulse warning
+  'cr-streak-5': [12, 20, 10, 20, 8, 20, 6],    // Building celebration
+  'cr-streak-10': [15, 15, 12, 15, 10, 15, 8, 15, 6], // Bigger celebration
+  'cr-streak-15': [18, 12, 15, 12, 12, 12, 10, 12, 8, 12, 6], // Even bigger
+  'cr-streak-20': [20, 10, 18, 10, 15, 10, 12, 10, 10, 10, 8, 10, 6], // Maximum!
 };
 
 /**

@@ -121,8 +121,10 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
               {/* Help button - only during gameplay */}
               {gameStarted && (
                 <motion.button
-                  className="p-2 rounded-full"
+                  className="rounded-full flex items-center justify-center"
                   style={{
+                    width: 36,
+                    height: 36,
                     background: 'rgba(0, 0, 0, 0.5)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                     color: 'rgba(255, 255, 255, 0.7)',
@@ -140,8 +142,10 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
 
               {/* Close button */}
               <motion.button
-                className="p-2 rounded-full"
+                className="rounded-full flex items-center justify-center"
                 style={{
+                  width: 36,
+                  height: 36,
                   background: 'rgba(0, 0, 0, 0.5)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                   color: 'rgba(255, 255, 255, 0.7)',

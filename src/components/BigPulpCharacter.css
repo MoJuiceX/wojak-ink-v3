@@ -10,7 +10,8 @@
   background-position: center;
   border-radius: 16px;
   overflow: visible;
-  height: 100%;
+  /* Dynamic height based on viewport - scales with window size */
+  height: clamp(200px, 35vh, 400px);
 }
 
 /* Speech Bubble */
@@ -91,14 +92,15 @@
   z-index: 10;
 }
 
-/* Character Container */
+/* Character Container - dynamic sizing */
 .bigpulp-character {
   position: relative;
-  width: 675px;
-  height: 539px;
+  /* Dynamic width based on container, with aspect ratio for height */
+  width: clamp(200px, 80%, 500px);
+  aspect-ratio: 675 / 539;
   margin-bottom: 0px;
-  margin-right: -30px;
-  transform: translate(130px, 10px);
+  margin-right: -20px;
+  transform: translate(min(80px, 15%), 10px);
 }
 
 /* Character Layers Container */
@@ -142,27 +144,26 @@
 /* Responsive - Mobile devices */
 @media (max-width: 768px) {
   .bigpulp-character-container {
-    height: 280px;
-    padding: 80px 16px 10px 16px;
+    height: clamp(180px, 30vh, 280px);
+    padding: 70px 16px 10px 16px;
     overflow: hidden;
   }
 
   .speech-bubble {
-    max-width: 220px;
+    max-width: 200px;
     width: auto;
-    padding: 12px 14px;
-    left: 16px;
-    top: 80px;
+    padding: 10px 12px;
+    left: 12px;
+    top: 70px;
   }
 
   .speech-content {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .bigpulp-character {
-    width: 280px;
-    height: 224px;
-    transform: translate(20px, 10px);
+    width: clamp(180px, 70%, 280px);
+    transform: translate(10px, 10px);
     margin-right: 0;
   }
 }
@@ -170,16 +171,23 @@
 /* Extra small devices */
 @media (max-width: 380px) {
   .bigpulp-character-container {
-    height: 240px;
+    height: clamp(160px, 28vh, 220px);
+    padding: 60px 12px 8px 12px;
   }
 
   .speech-bubble {
-    max-width: 180px;
+    max-width: 160px;
+    top: 60px;
+    left: 10px;
+    padding: 8px 10px;
+  }
+
+  .speech-content {
+    font-size: 11px;
   }
 
   .bigpulp-character {
-    width: 220px;
-    height: 176px;
-    transform: translate(10px, 10px);
+    width: clamp(150px, 65%, 200px);
+    transform: translate(5px, 10px);
   }
 }

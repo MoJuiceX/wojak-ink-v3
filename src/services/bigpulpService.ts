@@ -765,19 +765,44 @@ class BigPulpService implements IBigPulpService {
   }
 
   async getMarketStats(): Promise<MarketStats> {
+    // Fallback storage keys
+    const FALLBACK_VOLUME_KEY = 'wojak_alltime_volume_fallback';
+    const FALLBACK_TRADES_KEY = 'wojak_alltime_trades_fallback';
+
+    // Get fallback values from localStorage
+    const getFallbacks = () => ({
+      totalVolume: parseFloat(localStorage.getItem(FALLBACK_VOLUME_KEY) || '0'),
+      tradeCount: parseInt(localStorage.getItem(FALLBACK_TRADES_KEY) || '0', 10),
+    });
+
+    // Save successful values as fallbacks
+    const saveFallbacks = (volume: number, trades: number) => {
+      if (volume > 0) localStorage.setItem(FALLBACK_VOLUME_KEY, String(volume));
+      if (trades > 0) localStorage.setItem(FALLBACK_TRADES_KEY, String(trades));
+    };
+
     // Fetch real listings and collection stats in parallel
+    const fallbacks = getFallbacks();
     const [listingsResult, collectionStats] = await Promise.all([
       marketService.fetchAllListings(),
-      fetchCollectionStats().catch(() => ({
-        floorPrice: 0,
-        totalItems: COLLECTION_SIZE,
-        totalVolume: 0,
-        tradeCount: 0,
-        name: 'Wojak Farmers Plot',
-        description: '',
-        thumbnailUri: '',
-      })),
+      fetchCollectionStats().catch((error) => {
+        console.warn('[BigPulp] Collection stats fetch failed, using fallbacks:', error.message);
+        return {
+          floorPrice: 0,
+          totalItems: COLLECTION_SIZE,
+          totalVolume: fallbacks.totalVolume, // Use fallback
+          tradeCount: fallbacks.tradeCount,   // Use fallback
+          name: 'Wojak Farmers Plot',
+          description: '',
+          thumbnailUri: '',
+        };
+      }),
     ]);
+
+    // Save successful values as fallbacks for future use
+    if (collectionStats.totalVolume > 0 || collectionStats.tradeCount > 0) {
+      saveFallbacks(collectionStats.totalVolume, collectionStats.tradeCount);
+    }
     const listings = listingsResult.listings;
 
     // Get floor price (lowest listing)

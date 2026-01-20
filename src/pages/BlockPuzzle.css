@@ -612,6 +612,7 @@
   pointer-events: auto;
   padding: 20px;
   animation: bp-game-over-appear 0.5s ease-out;
+  backdrop-filter: blur(8px);
 }
 
 @keyframes bp-game-over-appear {
@@ -1176,6 +1177,329 @@
 }
 
 /* ============================================
+   PHASE 3: EXPLOSIVE LINE CLEARS
+   ============================================ */
+
+/* TASK 48: Freeze frame effect */
+.bp-game-grid.freeze-frame {
+  animation: none !important;
+}
+
+.bp-game-grid.freeze-frame .bp-grid-cell {
+  animation-play-state: paused !important;
+}
+
+/* TASK 31: Shockwave effect */
+.bp-shockwave {
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 200, 0, 0.8);
+  background: radial-gradient(circle, rgba(255, 200, 0, 0.3) 0%, transparent 70%);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+}
+
+/* TASK 35: Particle layer for line clear bursts */
+.bp-particle-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 60;
+}
+
+.bp-clear-particle {
+  position: absolute;
+  border-radius: 2px;
+  box-shadow: 0 0 4px currentColor;
+}
+
+/* TASK 40: Screen flash on big clears */
+.bp-screen-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  animation: bp-flash-fade 150ms ease-out forwards;
+}
+
+@keyframes bp-flash-fade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* TASK 37: Enhanced clearing animation with white flash */
+.bp-grid-cell.clearing {
+  animation: bp-cell-clear-explosive 0.5s ease-out forwards;
+}
+
+@keyframes bp-cell-clear-explosive {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    filter: brightness(1);
+  }
+  15% {
+    transform: scale(1.15);
+    background: white !important;
+    filter: brightness(2.5);
+    box-shadow: 0 0 20px #fff, 0 0 40px #ff6b00;
+  }
+  30% {
+    transform: scale(1.3);
+    filter: brightness(1.5);
+  }
+  50% {
+    transform: scale(1.4) rotate(10deg);
+  }
+  100% {
+    transform: scale(0) rotate(180deg);
+    opacity: 0;
+    filter: brightness(0);
+  }
+}
+
+/* Enhanced screen shake with rotation */
+.bp-game-grid.screen-shake-heavy {
+  animation: bp-shake-explosive 0.45s ease-out;
+}
+
+@keyframes bp-shake-explosive {
+  0%, 100% { transform: translateX(0) translateY(0) rotate(0deg); }
+  10% { transform: translateX(-10px) translateY(4px) rotate(-1.5deg); }
+  20% { transform: translateX(10px) translateY(-4px) rotate(1.5deg); }
+  30% { transform: translateX(-8px) translateY(3px) rotate(-1deg); }
+  40% { transform: translateX(8px) translateY(-3px) rotate(1deg); }
+  50% { transform: translateX(-6px) translateY(2px) rotate(-0.7deg); }
+  60% { transform: translateX(6px) translateY(-2px) rotate(0.7deg); }
+  70% { transform: translateX(-4px) translateY(1px) rotate(-0.4deg); }
+  80% { transform: translateX(4px) translateY(-1px) rotate(0.4deg); }
+  90% { transform: translateX(-2px) translateY(1px) rotate(-0.2deg); }
+}
+
+/* ============================================
+   PHASE 4: DRAG & DROP JUICE
+   ============================================ */
+
+/* TASK 47: Trail particle layer and particles */
+.bp-trail-particle-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  overflow: visible;
+}
+
+.bp-trail-particle {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  filter: blur(2px);
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* TASK 50: Enhanced ghost preview glow for valid placement */
+.bp-grid-cell.preview {
+  background: rgba(255, 107, 0, 0.5) !important;
+  box-shadow:
+    inset 0 0 10px rgba(255, 200, 0, 0.5),
+    0 0 15px rgba(255, 107, 0, 0.4);
+  animation: bp-preview-pulse 0.8s ease-in-out infinite;
+  border: 2px solid rgba(255, 200, 0, 0.6);
+}
+
+@keyframes bp-preview-pulse {
+  0%, 100% {
+    box-shadow: inset 0 0 10px rgba(255, 200, 0, 0.5), 0 0 15px rgba(255, 107, 0, 0.4);
+  }
+  50% {
+    box-shadow: inset 0 0 15px rgba(255, 200, 0, 0.7), 0 0 25px rgba(255, 107, 0, 0.6);
+  }
+}
+
+/* TASK 51: Enhanced invalid preview effect */
+.bp-grid-cell.preview-invalid {
+  background: rgba(255, 50, 50, 0.3) !important;
+  border: 2px dashed rgba(255, 50, 50, 0.8);
+  animation: bp-invalid-shake 0.3s ease-in-out infinite;
+}
+
+@keyframes bp-invalid-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+/* TASK 53: Snap indicator visual - enhanced preview when snapped */
+.bp-drag-preview.snapped .bp-piece-preview.floating {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 15px rgba(255, 200, 0, 0.8));
+}
+
+/* TASK 54: Dragged piece glow effect */
+.bp-piece-preview.floating {
+  filter: drop-shadow(0 0 10px rgba(255, 200, 0, 0.5));
+  animation: bp-float-glow 1s ease-in-out infinite;
+}
+
+@keyframes bp-float-glow {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 200, 0, 0.5)); }
+  50% { filter: drop-shadow(0 0 20px rgba(255, 200, 0, 0.8)); }
+}
+
+/* ============================================
+   PHASE 5: SNAP & PLACEMENT FEEDBACK
+   ============================================ */
+
+/* TASK 58: Placement bounce animation */
+.bp-grid-cell.just-placed {
+  animation: bp-placement-bounce 300ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes bp-placement-bounce {
+  0% { transform: scale(0.7); opacity: 0.5; }
+  40% { transform: scale(1.15); opacity: 1; }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* TASK 61: Scale pulse on lock */
+.bp-grid-cell.just-placed {
+  animation: bp-placement-bounce 300ms cubic-bezier(0.68, -0.55, 0.265, 1.55),
+             bp-scale-pulse 150ms ease-out;
+}
+
+@keyframes bp-scale-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* TASK 62: Glow pulse on placement */
+.bp-grid-cell.just-placed {
+  animation: bp-placement-bounce 300ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow: 0 0 15px rgba(255, 200, 0, 0.6);
+}
+
+/* TASK 67-68: Visual confirmation flash */
+.bp-grid-cell.just-placed::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.4);
+  animation: bp-placement-flash 200ms ease-out forwards;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+@keyframes bp-placement-flash {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ============================================
+   PHASE 6: DANGER STATE SYSTEM
+   ============================================ */
+
+/* TASK 71: Grid wobble animation by danger level */
+.bp-game-grid.bp-danger-warning {
+  animation: bp-grid-wobble 2.5s ease-in-out infinite;
+}
+
+.bp-game-grid.bp-danger-critical {
+  animation: bp-grid-wobble 1.5s ease-in-out infinite;
+}
+
+.bp-game-grid.bp-danger-imminent {
+  animation: bp-grid-wobble 0.8s ease-in-out infinite;
+}
+
+@keyframes bp-grid-wobble {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(0.4deg); }
+  75% { transform: rotate(-0.4deg); }
+}
+
+/* TASK 72: Danger vignette overlay */
+.bp-danger-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  transition: box-shadow 0.5s ease;
+}
+
+.bp-vignette-warning {
+  box-shadow: inset 0 0 80px rgba(255, 150, 0, 0.15);
+}
+
+.bp-vignette-critical {
+  box-shadow: inset 0 0 100px rgba(255, 80, 0, 0.25);
+  animation: bp-vignette-pulse-critical 1.2s ease-in-out infinite;
+}
+
+.bp-vignette-imminent {
+  box-shadow: inset 0 0 120px rgba(255, 30, 0, 0.35);
+  animation: bp-vignette-pulse-imminent 0.6s ease-in-out infinite;
+}
+
+@keyframes bp-vignette-pulse-critical {
+  0%, 100% { box-shadow: inset 0 0 100px rgba(255, 80, 0, 0.25); }
+  50% { box-shadow: inset 0 0 120px rgba(255, 80, 0, 0.4); }
+}
+
+@keyframes bp-vignette-pulse-imminent {
+  0%, 100% { box-shadow: inset 0 0 120px rgba(255, 30, 0, 0.35); }
+  50% { box-shadow: inset 0 0 150px rgba(255, 30, 0, 0.5); }
+}
+
+/* TASK 74: Valid placement cell highlight */
+.bp-grid-cell.valid-placement {
+  background: rgba(100, 255, 100, 0.12) !important;
+  animation: bp-valid-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes bp-valid-pulse {
+  0%, 100% { background: rgba(100, 255, 100, 0.08) !important; }
+  50% { background: rgba(100, 255, 100, 0.2) !important; }
+}
+
+/* TASK 80: Moves warning UI */
+.bp-moves-warning {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 120, 0, 0.95);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 14px;
+  z-index: 100;
+  animation: bp-warning-bounce 0.4s ease-out;
+  box-shadow: 0 4px 15px rgba(255, 100, 0, 0.4);
+}
+
+.bp-moves-warning.critical {
+  background: rgba(255, 40, 40, 0.95);
+  animation: bp-warning-pulse 0.5s ease-in-out infinite;
+  box-shadow: 0 4px 20px rgba(255, 40, 40, 0.5);
+}
+
+@keyframes bp-warning-bounce {
+  0% { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+  50% { transform: translateX(-50%) translateY(5px); }
+  100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+@keyframes bp-warning-pulse {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.08); }
+}
+
+/* ============================================
    BLOCK COLORS (CSS Variables for consistency)
    ============================================ */
 
@@ -1184,4 +1508,773 @@
   --block-color-2: linear-gradient(135deg, #ffad5c, #ff8c1a);
   --block-color-3: linear-gradient(135deg, #ffc266, #ffad33);
   --block-color-4: linear-gradient(135deg, #ff944d, #ff7519);
+}
+
+/* ============================================
+   PHASE 7: STREAK FIRE MODE
+   ============================================ */
+
+/* TASK 88: Fire visual on pieces during streak */
+.bp-piece-slot.bp-streak-fire {
+  animation: bp-piece-fire-glow 0.5s ease-in-out infinite alternate;
+}
+
+.bp-piece-slot.bp-streak-fire::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  background: radial-gradient(ellipse at center bottom, rgba(255, 100, 0, 0.4), transparent 70%);
+  border-radius: 8px;
+  animation: bp-fire-flicker 0.15s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes bp-piece-fire-glow {
+  0% { filter: drop-shadow(0 0 8px rgba(255, 100, 0, 0.6)); }
+  100% { filter: drop-shadow(0 0 15px rgba(255, 200, 0, 0.8)); }
+}
+
+@keyframes bp-fire-flicker {
+  0%, 100% { opacity: 0.7; transform: scaleY(1); }
+  50% { opacity: 1; transform: scaleY(1.1); }
+}
+
+/* TASK 89: Fire border on grid during streak */
+.bp-game-grid.bp-streak-fire {
+  box-shadow:
+    inset 0 0 20px rgba(255, 100, 0, 0.3),
+    0 0 30px rgba(255, 80, 0, 0.5),
+    0 0 60px rgba(255, 50, 0, 0.3);
+  animation: bp-grid-fire-pulse 0.6s ease-in-out infinite alternate;
+}
+
+.bp-game-grid.bp-streak-fire::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 3px solid rgba(255, 100, 0, 0.6);
+  border-radius: 10px;
+  animation: bp-fire-border 0.3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes bp-grid-fire-pulse {
+  0% {
+    box-shadow:
+      inset 0 0 20px rgba(255, 100, 0, 0.3),
+      0 0 30px rgba(255, 80, 0, 0.5),
+      0 0 60px rgba(255, 50, 0, 0.3);
+  }
+  100% {
+    box-shadow:
+      inset 0 0 30px rgba(255, 120, 0, 0.4),
+      0 0 40px rgba(255, 100, 0, 0.6),
+      0 0 80px rgba(255, 70, 0, 0.4);
+  }
+}
+
+@keyframes bp-fire-border {
+  0%, 100% { border-color: rgba(255, 100, 0, 0.6); }
+  50% { border-color: rgba(255, 180, 0, 0.8); }
+}
+
+/* TASK 91: Streak meter UI */
+.bp-streak-meter {
+  position: absolute;
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(280px, 80vw);
+  background: rgba(30, 30, 30, 0.9);
+  border-radius: 12px;
+  padding: 8px 16px;
+  z-index: 95;
+  border: 2px solid rgba(255, 100, 0, 0.5);
+  animation: bp-streak-meter-appear 0.3s ease-out;
+}
+
+.bp-streak-meter.active {
+  background: rgba(60, 20, 0, 0.95);
+  border-color: rgba(255, 150, 0, 0.8);
+  animation: bp-streak-meter-fire 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes bp-streak-meter-appear {
+  0% { transform: translateX(-50%) translateY(-10px) scale(0.9); opacity: 0; }
+  100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes bp-streak-meter-fire {
+  0% { box-shadow: 0 0 15px rgba(255, 100, 0, 0.5); }
+  100% { box-shadow: 0 0 25px rgba(255, 150, 0, 0.7); }
+}
+
+.bp-streak-label {
+  font-size: 13px;
+  font-weight: bold;
+  color: #ff8c1a;
+  text-align: center;
+  margin-bottom: 6px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.bp-streak-meter.active .bp-streak-label {
+  color: #ffcc00;
+  animation: bp-fire-text-pulse 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes bp-fire-text-pulse {
+  0% { text-shadow: 0 0 8px rgba(255, 150, 0, 0.8); }
+  100% { text-shadow: 0 0 15px rgba(255, 200, 0, 1); }
+}
+
+.bp-streak-bar {
+  height: 8px;
+  background: rgba(80, 80, 80, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bp-streak-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b00, #ffcc00);
+  border-radius: 4px;
+  transition: width 0.3s ease-out;
+  box-shadow: 0 0 10px rgba(255, 150, 0, 0.6);
+}
+
+.bp-streak-meter.active .bp-streak-fill {
+  background: linear-gradient(90deg, #ff4400, #ff6b00, #ffcc00);
+  animation: bp-streak-fill-pulse 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes bp-streak-fill-pulse {
+  0% { box-shadow: 0 0 10px rgba(255, 100, 0, 0.6); }
+  100% { box-shadow: 0 0 20px rgba(255, 180, 0, 0.9); }
+}
+
+.bp-streak-bonus {
+  font-size: 11px;
+  font-weight: bold;
+  color: #ffcc00;
+  text-align: center;
+  margin-top: 5px;
+  animation: bp-bonus-bounce 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes bp-bonus-bounce {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.1); }
+}
+
+/* ============================================
+   PHASE 8: PERFECT CLEAR CELEBRATION
+   ============================================ */
+
+/* TASK 100: Perfect clear flash overlay */
+.bp-perfect-clear-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(255, 215, 0, 0.3), rgba(255, 100, 0, 0.2), transparent 70%);
+  z-index: 200;
+  animation: bp-perfect-flash 2.5s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes bp-perfect-flash {
+  0% {
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.8), rgba(255, 215, 0, 0.5), transparent 60%);
+    opacity: 1;
+  }
+  15% {
+    background: radial-gradient(ellipse at center, rgba(255, 215, 0, 0.4), rgba(255, 150, 0, 0.3), transparent 70%);
+  }
+  100% {
+    background: radial-gradient(ellipse at center, rgba(255, 215, 0, 0), rgba(255, 100, 0, 0), transparent 70%);
+    opacity: 0;
+  }
+}
+
+.bp-perfect-clear-text {
+  font-size: clamp(28px, 8vw, 48px);
+  font-weight: 900;
+  color: #fff;
+  text-shadow:
+    0 0 20px #ffcc00,
+    0 0 40px #ff8800,
+    0 0 60px #ff6600,
+    0 2px 10px rgba(0, 0, 0, 0.5);
+  animation: bp-perfect-text-pop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  letter-spacing: 4px;
+}
+
+@keyframes bp-perfect-text-pop {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.bp-perfect-clear-bonus {
+  font-size: clamp(18px, 5vw, 28px);
+  font-weight: bold;
+  color: #ffcc00;
+  margin-top: 12px;
+  text-shadow:
+    0 0 15px #ff8800,
+    0 2px 8px rgba(0, 0, 0, 0.5);
+  animation: bp-bonus-pop 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.3s both;
+}
+
+@keyframes bp-bonus-pop {
+  0% {
+    transform: scale(0) translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* TASK 102: Perfect clear stat styling */
+.bp-stat.bp-stat-perfect .bp-stat-value {
+  color: #ffcc00;
+  text-shadow: 0 0 10px rgba(255, 200, 0, 0.5);
+}
+
+.bp-stat.bp-stat-perfect .bp-stat-label {
+  color: #ffaa00;
+}
+
+/* ============================================
+   PHASE 9: COMBO VISUALIZATION
+   ============================================ */
+
+/* TASK 104: Combo timeout bar */
+.bp-combo-timeout-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.bp-combo-timeout-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b00, #ffcc00);
+  border-radius: 2px;
+  transition: width 0.05s linear;
+  box-shadow: 0 0 8px rgba(255, 150, 0, 0.6);
+}
+
+/* TASK 106: Enhanced combo display */
+.bp-combo-display {
+  position: absolute;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 30, 30, 0.95);
+  padding: 10px 20px;
+  border-radius: 12px;
+  text-align: center;
+  z-index: 150;
+  border: 2px solid rgba(255, 107, 0, 0.6);
+  min-width: 100px;
+}
+
+.bp-combo-display.combo-2 { border-color: rgba(255, 140, 0, 0.7); }
+.bp-combo-display.combo-3 { border-color: rgba(255, 180, 0, 0.8); }
+.bp-combo-display.combo-4 { border-color: rgba(255, 200, 0, 0.9); }
+.bp-combo-display.combo-5 { border-color: rgba(255, 220, 0, 1); box-shadow: 0 0 20px rgba(255, 200, 0, 0.5); }
+
+/* TASK 109: Shake animation on combo increment */
+.bp-combo-display.shake {
+  animation: bp-combo-shake 0.3s ease-out;
+}
+
+@keyframes bp-combo-shake {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  25% { transform: translateX(-50%) scale(1.15) rotate(-3deg); }
+  50% { transform: translateX(-50%) scale(1.2); }
+  75% { transform: translateX(-50%) scale(1.15) rotate(3deg); }
+}
+
+.bp-combo-multiplier {
+  font-size: 28px;
+  font-weight: 900;
+  color: #ff8c1a;
+  text-shadow: 0 2px 8px rgba(255, 107, 0, 0.5);
+}
+
+.bp-combo-display.combo-3 .bp-combo-multiplier,
+.bp-combo-display.combo-4 .bp-combo-multiplier,
+.bp-combo-display.combo-5 .bp-combo-multiplier {
+  color: #ffcc00;
+  text-shadow: 0 0 15px rgba(255, 200, 0, 0.7);
+}
+
+.bp-combo-text {
+  font-size: 11px;
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 2px;
+  margin-top: 2px;
+}
+
+/* TASK 105: Combo bonus indicator */
+.bp-combo-bonus {
+  font-size: 10px;
+  font-weight: bold;
+  color: #ffaa00;
+  margin-top: 4px;
+  opacity: 0.9;
+}
+
+/* TASK 107: Floating score multiplier */
+.bp-floating-multiplier {
+  display: block;
+  font-size: 12px;
+  font-weight: bold;
+  color: #ffcc00;
+  margin-top: 2px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* TASK 112: Lost combo notification */
+.bp-lost-combo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(80, 30, 30, 0.95);
+  padding: 12px 24px;
+  border-radius: 12px;
+  text-align: center;
+  z-index: 160;
+  border: 2px solid rgba(255, 80, 80, 0.6);
+  animation: bp-lost-combo-appear 1.5s ease-out forwards;
+}
+
+@keyframes bp-lost-combo-appear {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 1;
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -70%);
+    opacity: 0;
+  }
+}
+
+.bp-lost-combo-value {
+  font-size: 24px;
+  font-weight: 900;
+  color: #ff6666;
+  text-shadow: 0 2px 8px rgba(255, 100, 100, 0.5);
+}
+
+.bp-lost-combo-text {
+  display: block;
+  font-size: 12px;
+  font-weight: bold;
+  color: rgba(255, 200, 200, 0.8);
+  margin-top: 4px;
+}
+
+/* ============================================
+   PHASE 10: VIRAL SHARE SYSTEM
+   ============================================ */
+
+/* TASK 124: Share button in game over */
+.bp-share-btn {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  background: linear-gradient(135deg, #ff6b00, #ff8c1a);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bp-share-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+}
+
+.bp-share-btn:active {
+  transform: scale(0.98);
+}
+
+/* TASK 118: Challenge banner */
+.bp-challenge-banner {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(100, 50, 150, 0.95), rgba(80, 30, 120, 0.95));
+  padding: 8px 20px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 100;
+  border: 2px solid rgba(180, 100, 255, 0.5);
+  animation: bp-challenge-appear 0.5s ease-out;
+}
+
+.bp-challenge-banner.beaten {
+  background: linear-gradient(135deg, rgba(50, 150, 80, 0.95), rgba(30, 120, 60, 0.95));
+  border-color: rgba(100, 255, 150, 0.5);
+}
+
+@keyframes bp-challenge-appear {
+  0% { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+  100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+.bp-challenge-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.bp-challenge-target {
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffcc00;
+}
+
+.bp-challenge-progress {
+  font-size: 12px;
+  font-weight: bold;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* TASK 123: Share modal */
+.bp-share-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: bp-modal-fade-in 0.3s ease-out;
+  backdrop-filter: blur(8px);
+}
+
+@keyframes bp-modal-fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.bp-share-modal {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 90vw;
+  width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  border: 2px solid rgba(255, 107, 0, 0.4);
+  animation: bp-modal-scale-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes bp-modal-scale-in {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.bp-share-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.bp-share-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.bp-share-title {
+  text-align: center;
+  color: #ff8c1a;
+  font-size: 22px;
+  margin: 0 0 20px 0;
+}
+
+.bp-share-preview {
+  margin-bottom: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 107, 0, 0.3);
+}
+
+.bp-share-preview img {
+  width: 100%;
+  display: block;
+}
+
+.bp-share-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.bp-share-action-btn {
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bp-share-action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.bp-share-action-btn.primary {
+  background: linear-gradient(135deg, #ff6b00, #ff8c1a);
+  border-color: transparent;
+  grid-column: span 2;
+}
+
+.bp-share-action-btn.primary:hover {
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+}
+
+.bp-share-challenge-info {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+}
+
+.bp-share-challenge-info p {
+  margin: 0;
+}
+
+/* TASK 128: Toast notification */
+.bp-toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  z-index: 1100;
+  animation: bp-toast-appear 0.3s ease-out, bp-toast-disappear 0.3s ease-in 2.2s forwards;
+}
+
+.bp-toast.success {
+  background: linear-gradient(135deg, rgba(50, 180, 80, 0.95), rgba(30, 150, 60, 0.95));
+  color: white;
+  border: 1px solid rgba(100, 255, 150, 0.3);
+}
+
+.bp-toast.error {
+  background: linear-gradient(135deg, rgba(200, 60, 60, 0.95), rgba(150, 40, 40, 0.95));
+  color: white;
+  border: 1px solid rgba(255, 100, 100, 0.3);
+}
+
+@keyframes bp-toast-appear {
+  0% { transform: translateX(-50%) translateY(20px); opacity: 0; }
+  100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+@keyframes bp-toast-disappear {
+  0% { transform: translateX(-50%) translateY(0); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-10px); opacity: 0; }
+}
+
+/* ============================================
+   POLISH & IMPROVEMENTS
+   ============================================ */
+
+/* Best combo stat styling */
+.bp-stat.bp-stat-combo .bp-stat-value {
+  color: #ff8c1a;
+  text-shadow: 0 0 8px rgba(255, 140, 0, 0.4);
+}
+
+.bp-stat.bp-stat-combo .bp-stat-label {
+  color: #cc7015;
+}
+
+/* Play time display */
+.bp-game-over-time {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 8px;
+  font-family: monospace;
+}
+
+/* Animated new personal best */
+.bp-new-record {
+  animation: bp-new-record-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes bp-new-record-pulse {
+  0% {
+    transform: scale(1);
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  }
+  100% {
+    transform: scale(1.05);
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 180, 0, 0.4);
+  }
+}
+
+/* Fix toast positioning for mobile - above piece tray */
+@media (max-width: 600px) {
+  .bp-toast {
+    bottom: 180px;
+  }
+}
+
+/* Streak meter polish - add glow when near activation */
+.bp-streak-meter:not(.active) .bp-streak-fill {
+  animation: bp-streak-building 1s ease-in-out infinite;
+}
+
+@keyframes bp-streak-building {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+}
+
+/* Danger state - make valid cells more visible */
+.bp-game-grid.bp-danger-critical .bp-grid-cell.valid-placement,
+.bp-game-grid.bp-danger-imminent .bp-grid-cell.valid-placement {
+  background: rgba(100, 255, 100, 0.25) !important;
+  box-shadow: inset 0 0 8px rgba(100, 255, 100, 0.3);
+}
+
+/* Share button hover glow */
+.bp-share-btn:hover {
+  box-shadow: 0 0 20px rgba(255, 107, 0, 0.5);
+}
+
+/* Game over stats container - wrap on small screens */
+.bp-game-over-stats {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Challenge beaten celebration */
+.bp-challenge-banner.beaten {
+  animation: bp-challenge-beaten 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes bp-challenge-beaten {
+  0% { transform: translateX(-50%) scale(0.5); }
+  50% { transform: translateX(-50%) scale(1.2); }
+  100% { transform: translateX(-50%) scale(1); }
+}
+
+/* Combo display entrance animation */
+.bp-combo-display {
+  animation: bp-combo-appear 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes bp-combo-appear {
+  0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+/* Floating piece subtle shadow */
+.bp-floating-piece {
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+}
+
+/* Score panel streak glow */
+.bp-score-panel.streak-active {
+  border-color: rgba(255, 100, 0, 0.6);
+  box-shadow: 0 0 20px rgba(255, 100, 0, 0.3);
+}
+
+.bp-score-panel.streak-active .bp-score-value {
+  color: #ffcc00;
+  text-shadow: 0 0 10px rgba(255, 200, 0, 0.5);
+}
+
+/* Score pulse on change - use CSS counter animation */
+.bp-score-main .bp-score-value {
+  transition: transform 0.15s ease-out, color 0.3s ease;
+}
+
+/* Piece tray slight glow when pieces available */
+.bp-piece-rack {
+  transition: box-shadow 0.3s ease;
+}
+
+.bp-piece-slot:not(.disabled):not(.dragging) {
+  cursor: grab;
+}
+
+.bp-piece-slot:not(.disabled):not(.dragging):hover {
+  transform: scale(1.05);
+}
+
+/* Grid cell hover effect when dragging */
+.bp-game-grid.active .bp-grid-cell:not(.filled) {
+  transition: background-color 0.1s ease;
+}
+
+/* Improve preview visibility */
+.bp-grid-cell.preview {
+  box-shadow: inset 0 0 10px rgba(255, 150, 0, 0.4);
+}
+
+/* Better disabled piece visual */
+.bp-piece-slot.disabled {
+  filter: grayscale(0.8) brightness(0.5);
+  transform: scale(0.9);
 }

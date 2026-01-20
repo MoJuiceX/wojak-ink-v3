@@ -1,26 +1,75 @@
-.stack-content {
-  --background: transparent;
+/* Main container - fills available space below header */
+.stack-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
   overflow: hidden;
+  background: #1a1a2e; /* Dark background to cover underlying content */
+  /* Ensure it doesn't extend beyond parent bounds */
+  max-height: 100%;
 }
 
-/* Parallax Background - tall image that scrolls up as player climbs higher */
+/* Mobile: Fill parent */
+@media (max-width: 768px) {
+  .stack-container {
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* Cover viewport below header, including safe areas on iOS */
+  .stack-container::before {
+    content: '';
+    position: fixed;
+    top: 56px; /* Start below header */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #1a1a2e;
+    z-index: -1;
+  }
+
+  /* Mobile: Ensure ground is visible - use contain to show full image height */
+  .stack-content .parallax-background {
+    background-size: contain;
+    background-position: center bottom; /* Anchor to bottom to show green ground */
+    background-repeat: no-repeat;
+    background-color: #87CEEB; /* Sky blue to fill any gaps at top */
+    bottom: 0;
+    top: -500px;
+    height: calc(100% + 500px);
+  }
+}
+
+.stack-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  /* Clip all content to prevent overflow */
+  contain: layout paint;
+}
+
+
+/* Parallax Background - stays fixed, no parallax effect to avoid header issues */
 .stack-content .parallax-background {
   position: absolute;
+  /* Extend beyond container to allow parallax movement */
+  top: -400px;
   left: 0;
   right: 0;
-  /* Start at bottom of viewport, extend upward */
-  bottom: 0;
-  /* Height is taller than viewport to allow scrolling - 180vh gives room to reveal clouds */
-  height: 180vh;
+  bottom: -100px;
+  height: calc(100% + 500px);
   background-image: url('/assets/Games/backgrounds/BACKGROUND_Orange Grove_brick.png');
   background-size: cover;
-  background-position: bottom center;
+  background-position: center 100%; /* Start at very bottom showing ground */
   background-repeat: no-repeat;
   z-index: -2;
-  /* Smooth transition for parallax effect */
-  transition: transform 0.3s ease-out;
   /* Prevent any interaction */
   pointer-events: none;
+  /* Smooth parallax with GPU acceleration */
+  will-change: transform;
+  transition: transform 0.5s ease-out;
 }
 
 /* Dark overlay for game visibility */
@@ -232,6 +281,9 @@
   background: linear-gradient(180deg, #ff9500 0%, #ff6b00 100%);
   box-shadow: 0 4px 15px rgba(255, 140, 0, 0.5);
   animation: pulse-glow 0.5s ease-in-out infinite alternate;
+  /* GPU acceleration for smooth animation */
+  will-change: transform;
+  transform: translateZ(0); /* Force GPU layer */
 }
 
 .stack-block.stacked {
@@ -282,10 +334,10 @@
 .combo-number {
   font-size: 72px;
   font-weight: 900;
-  color: #fff;
+  color: #ff8c00;
   text-shadow:
-    0 0 20px rgba(168, 85, 247, 0.8),
-    0 0 40px rgba(168, 85, 247, 0.6),
+    0 0 20px rgba(255, 140, 0, 0.9),
+    0 0 40px rgba(255, 100, 0, 0.6),
     0 4px 8px rgba(0, 0, 0, 0.5);
   line-height: 1;
   animation: combo-pulse 0.6s ease-in-out infinite alternate;
@@ -318,8 +370,8 @@
 }
 
 @keyframes combo-entrance {
-  0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); opacity: 0; }
-  100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  0% { transform: translateX(-50%) scale(0) rotate(-10deg); opacity: 0; }
+  100% { transform: translateX(-50%) scale(1) rotate(0deg); opacity: 1; }
 }
 
 @keyframes combo-pulse {
@@ -332,15 +384,15 @@
   50% { transform: translateY(-8px) rotate(5deg); }
 }
 
-/* Combo level escalation - colors get more intense */
-.combo-level-2 .combo-number { color: #a78bfa; text-shadow: 0 0 20px rgba(167, 139, 250, 0.6), 0 4px 8px rgba(0,0,0,0.4); }
-.combo-level-3 .combo-number { color: #c084fc; text-shadow: 0 0 25px rgba(192, 132, 252, 0.7), 0 4px 8px rgba(0,0,0,0.4); }
-.combo-level-4 .combo-number { color: #e879f9; text-shadow: 0 0 30px rgba(232, 121, 249, 0.8), 0 4px 8px rgba(0,0,0,0.4); }
-.combo-level-5 .combo-number { color: #f472b6; text-shadow: 0 0 35px rgba(244, 114, 182, 0.9), 0 0 60px rgba(244, 114, 182, 0.5), 0 4px 8px rgba(0,0,0,0.4); font-size: 80px; }
-.combo-level-6 .combo-number { color: #fb7185; text-shadow: 0 0 40px rgba(251, 113, 133, 1), 0 0 70px rgba(251, 113, 133, 0.6), 0 4px 8px rgba(0,0,0,0.4); font-size: 84px; }
-.combo-level-7 .combo-number { color: #f97316; text-shadow: 0 0 45px rgba(249, 115, 22, 1), 0 0 80px rgba(249, 115, 22, 0.7), 0 4px 8px rgba(0,0,0,0.4); font-size: 88px; }
-.combo-level-8 .combo-number { color: #fbbf24; text-shadow: 0 0 50px rgba(251, 191, 36, 1), 0 0 90px rgba(251, 191, 36, 0.8), 0 4px 8px rgba(0,0,0,0.4); font-size: 92px; animation: mega-pulse 0.4s ease-in-out infinite alternate; }
-.combo-level-9 .combo-number { color: #fcd34d; text-shadow: 0 0 55px rgba(252, 211, 77, 1), 0 0 100px rgba(252, 211, 77, 0.9), 0 4px 8px rgba(0,0,0,0.4); font-size: 96px; animation: mega-pulse 0.35s ease-in-out infinite alternate; }
+/* Combo level escalation - WARM colors (orange → gold → white hot) */
+.combo-level-2 .combo-number { color: #ff9500; text-shadow: 0 0 20px rgba(255, 149, 0, 0.7), 0 4px 8px rgba(0,0,0,0.4); }
+.combo-level-3 .combo-number { color: #ffa500; text-shadow: 0 0 25px rgba(255, 165, 0, 0.8), 0 4px 8px rgba(0,0,0,0.4); }
+.combo-level-4 .combo-number { color: #ffb700; text-shadow: 0 0 30px rgba(255, 183, 0, 0.85), 0 4px 8px rgba(0,0,0,0.4); }
+.combo-level-5 .combo-number { color: #ffc800; text-shadow: 0 0 35px rgba(255, 200, 0, 0.9), 0 0 60px rgba(255, 200, 0, 0.5), 0 4px 8px rgba(0,0,0,0.4); font-size: 80px; }
+.combo-level-6 .combo-number { color: #ffd500; text-shadow: 0 0 40px rgba(255, 213, 0, 1), 0 0 70px rgba(255, 213, 0, 0.6), 0 4px 8px rgba(0,0,0,0.4); font-size: 84px; }
+.combo-level-7 .combo-number { color: #ffe135; text-shadow: 0 0 45px rgba(255, 225, 53, 1), 0 0 80px rgba(255, 225, 53, 0.7), 0 4px 8px rgba(0,0,0,0.4); font-size: 88px; }
+.combo-level-8 .combo-number { color: #ffec5c; text-shadow: 0 0 50px rgba(255, 236, 92, 1), 0 0 90px rgba(255, 236, 92, 0.8), 0 4px 8px rgba(0,0,0,0.4); font-size: 92px; animation: mega-pulse 0.4s ease-in-out infinite alternate; }
+.combo-level-9 .combo-number { color: #fff480; text-shadow: 0 0 55px rgba(255, 244, 128, 1), 0 0 100px rgba(255, 244, 128, 0.9), 0 4px 8px rgba(0,0,0,0.4); font-size: 96px; animation: mega-pulse 0.35s ease-in-out infinite alternate; }
 .combo-level-10 .combo-number {
   color: #fff;
   text-shadow: 0 0 60px #ffd700, 0 0 120px #ffd700, 0 0 180px rgba(255, 215, 0, 0.8), 0 4px 8px rgba(0,0,0,0.4);
@@ -387,10 +439,10 @@
 }
 
 @keyframes flash-in-out {
-  0% { transform: translateX(-50%) scale(0.5) translateY(-20px); opacity: 0; }
-  15% { transform: translateX(-50%) scale(1.2) translateY(0); opacity: 1; }
-  30% { transform: translateX(-50%) scale(1) translateY(0); opacity: 1; }
-  100% { transform: translateX(-50%) scale(0.8) translateY(-30px); opacity: 0; }
+  0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+  15% { transform: translateX(-50%) scale(1.2); opacity: 1; }
+  30% { transform: translateX(-50%) scale(1); opacity: 1; }
+  100% { transform: translateX(-50%) scale(0.8); opacity: 0; }
 }
 
 /* Combo Streak Meter - vertical bar on right side */
@@ -470,6 +522,44 @@
   inset: 0;
   pointer-events: none;
   z-index: 100;
+}
+
+/* ============================================
+   PORTALLED EFFECTS CONTAINER
+   Rendered outside lightbox via createPortal
+   ============================================ */
+.os-effects-portal {
+  pointer-events: none;
+  z-index: 10000;
+}
+
+/* Portalled effects - NO position transition to prevent glitchy jumps */
+/* Effects already have their own entrance animations (combo-entrance, flash-in-out, etc.) */
+.os-effects-portal .combo-celebration,
+.os-effects-portal .bonus-flash,
+.os-effects-portal .score-popup,
+.os-effects-portal .milestone-celebration,
+.os-effects-portal .epic-callout,
+.os-effects-portal .floating-emoji {
+  /* No transition - instant positioning, animations handle the visual flair */
+}
+
+/* Override default positioning for portalled effects */
+/* Reset top/transform so inline styles can control position */
+.os-effects-portal .combo-celebration,
+.os-effects-portal .milestone-celebration {
+  top: auto;
+  left: auto;
+  transform: none;
+}
+
+.os-effects-portal .bonus-flash,
+.os-effects-portal .score-popup,
+.os-effects-portal .epic-callout,
+.os-effects-portal .floating-emoji {
+  top: auto;
+  left: auto;
+  transform: none;
 }
 
 /* Screen shake effect */
@@ -586,8 +676,8 @@
 }
 
 @keyframes milestone-entrance {
-  0% { transform: translate(-50%, -50%) scale(0) rotate(-20deg); opacity: 0; }
-  100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  0% { transform: translateX(-50%) scale(0) rotate(-20deg); opacity: 0; }
+  100% { transform: translateX(-50%) scale(1) rotate(0deg); opacity: 1; }
 }
 
 @keyframes milestone-pulse {
@@ -2181,6 +2271,14 @@
   filter: blur(4px);
 }
 
+/* MOBILE: Disable expensive blur motion trail for performance */
+@media (max-width: 768px) {
+  .stack-block.moving::before,
+  .stack-block.moving::after {
+    display: none;
+  }
+}
+
 /* Enhanced Ground Impact - Crack effect */
 .stack-ground.impact {
   animation: ground-impact 0.3s ease-out;
@@ -2424,75 +2522,140 @@
   100% { filter: blur(0px); }
 }
 
-/* Power-up notification - center of game area */
+/* ============================================
+   POWER-UPS / ITEMS - Cool colors (cyan/blue/purple)
+   Always at BOTTOM of screen, never overlaps combos
+   ============================================ */
+
+/* Power-up notification - slides up from bottom */
 .power-up-notification {
   position: absolute;
-  top: 30%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 28px;
+  transform: translateX(-50%);
+  font-size: 24px;
   font-weight: 800;
   color: #fff;
-  text-shadow: 0 0 20px rgba(0, 191, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8);
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 50, 100, 0.8) 100%);
-  padding: 12px 24px;
-  border-radius: 50px;
-  border: 2px solid rgba(0, 191, 255, 0.6);
+  text-shadow: 0 0 20px rgba(0, 200, 255, 0.9), 0 2px 4px rgba(0, 0, 0, 0.8);
+  background: linear-gradient(135deg, rgba(0, 40, 80, 0.95) 0%, rgba(0, 80, 120, 0.95) 100%);
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: 2px solid rgba(0, 200, 255, 0.7);
   pointer-events: none;
   z-index: 300;
-  animation: powerup-popup 2s ease-out forwards;
+  animation: item-slide-up 2s ease-out forwards;
   white-space: nowrap;
+  box-shadow:
+    0 0 30px rgba(0, 200, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-@keyframes powerup-popup {
-  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-  15% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-  30% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-  80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(0.8) translateY(-30px); opacity: 0; }
+@keyframes item-slide-up {
+  0% { transform: translateX(-50%) translateY(30px) scale(0.8); opacity: 0; }
+  15% { transform: translateX(-50%) translateY(0) scale(1.05); opacity: 1; }
+  25% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+  80% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-20px) scale(0.9); opacity: 0; }
 }
 
-/* Active power-ups indicator - top right corner */
+/* Active power-ups indicator - horizontal bar at bottom center */
 .active-powerups {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  gap: 8px;
+  flex-direction: row;
+  justify-content: center;
+  gap: 12px;
   z-index: 150;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 30px;
+  backdrop-filter: blur(8px);
+}
+
+/* Hide the container when empty */
+.active-powerups:empty {
+  display: none;
 }
 
 .powerup-badge {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  font-size: 20px;
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.7);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  animation: badge-pulse 1s ease-in-out infinite alternate;
+  background: linear-gradient(135deg, rgba(0, 40, 60, 0.9) 0%, rgba(0, 60, 90, 0.9) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  animation: badge-appear 0.3s ease-out;
+}
+
+@keyframes badge-appear {
+  0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
 .powerup-badge.slowmo {
-  border-color: rgba(0, 191, 255, 0.8);
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.5);
+  border-color: rgba(0, 200, 255, 0.9);
+  box-shadow: 0 0 20px rgba(0, 200, 255, 0.6), inset 0 0 15px rgba(0, 200, 255, 0.2);
 }
 
 .powerup-badge.shield {
-  border-color: rgba(34, 197, 94, 0.8);
-  box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+  border-color: rgba(34, 220, 120, 0.9);
+  box-shadow: 0 0 20px rgba(34, 220, 120, 0.6), inset 0 0 15px rgba(34, 220, 120, 0.2);
 }
 
 .powerup-badge.magnet {
-  border-color: rgba(168, 85, 247, 0.8);
-  box-shadow: 0 0 15px rgba(168, 85, 247, 0.5);
+  border-color: rgba(180, 100, 255, 0.9);
+  box-shadow: 0 0 20px rgba(180, 100, 255, 0.6), inset 0 0 15px rgba(180, 100, 255, 0.2);
 }
 
-@keyframes badge-pulse {
-  0% { transform: scale(1); }
-  100% { transform: scale(1.1); }
+/* Duration ring for timed power-ups (Slow-Mo) */
+.powerup-badge .duration-ring {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 52px;
+  height: 52px;
+  pointer-events: none;
+}
+
+.powerup-badge .duration-ring circle {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+.powerup-badge .duration-ring .ring-bg {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+
+.powerup-badge .duration-ring .ring-progress {
+  stroke: rgba(0, 200, 255, 1);
+  stroke-dasharray: 150;
+  stroke-dashoffset: 0;
+  animation: ring-countdown 5s linear forwards;
+  filter: drop-shadow(0 0 4px rgba(0, 200, 255, 0.8));
+}
+
+@keyframes ring-countdown {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 150; }
+}
+
+/* Pulse animation for badges without duration */
+.powerup-badge.shield,
+.powerup-badge.magnet {
+  animation: badge-appear 0.3s ease-out, badge-glow 1.5s ease-in-out infinite alternate 0.3s;
+}
+
+@keyframes badge-glow {
+  0% { transform: scale(1); filter: brightness(1); }
+  100% { transform: scale(1.05); filter: brightness(1.2); }
 }
 
 /* Power-up on block indicator */
@@ -2511,18 +2674,17 @@
 /* Altitude indicator - top left corner */
 .altitude-indicator {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  bottom: 100px; /* Above ground, bottom-left */
+  left: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 14px;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(30, 60, 100, 0.8) 100%);
-  border-radius: 12px;
-  border: 2px solid rgba(100, 180, 255, 0.5);
-  box-shadow: 0 0 20px rgba(100, 180, 255, 0.3);
-  z-index: 100;
-  animation: altitude-pulse 1.5s ease-in-out infinite alternate;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  border: none;
+  z-index: 50;
+  font-size: 0.75rem;
 }
 
 .altitude-value {
@@ -2685,7 +2847,7 @@
 /* Mobile HUD - horizontal stats at top during gameplay */
 .mobile-hud {
   position: absolute;
-  top: 8px;
+  top: 8px; /* Near top of game area */
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -2758,13 +2920,13 @@
     height: 40px;
   }
 
-  /* Effects - scale down for mobile */
+  /* Effects - scale for mobile visibility */
   .combo-number {
-    font-size: 48px;
+    font-size: 80px;
   }
 
   .combo-label {
-    font-size: 12px;
+    font-size: 16px;
   }
 
   .epic-callout {
@@ -2802,9 +2964,9 @@
     width: 6px;
   }
 
-  /* Touch optimization */
+  /* Touch optimization - use 'none' for game area to prevent all browser touch behaviors */
   .lightbox-wrapper {
-    touch-action: manipulation;
+    touch-action: none;
     -webkit-touch-callout: none;
     user-select: none;
   }
@@ -2883,4 +3045,64 @@
     height: 120px;
     width: 5px;
   }
+}
+
+
+/* Danger zone feedback animations */
+@keyframes danger-pulse {
+  0% { opacity: 0.3; }
+  100% { opacity: 0.6; }
+}
+
+/* ============================================
+   MUTE BUTTON - Top Right (under close button)
+   Matches GameModal header button styling exactly
+   ============================================ */
+
+.os-sound-btn {
+  position: fixed;
+  /* Exact same size as GameModal buttons */
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px;
+  min-height: 36px;
+  max-width: 36px;
+  max-height: 36px;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Match GameModal button styling exactly - dark background */
+  background: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 60; /* Same as GameModal buttons (z-[60]) */
+  transition: background 0.2s ease, color 0.2s ease;
+  /* Position: centered under close button, below it with same gap as ? to X */
+  top: calc(1rem + 36px + 16px); /* 1rem (header top) + 36px (button height) + 16px (gap) */
+  right: calc(1rem + 4px); /* Nudged left to center under close button */
+  pointer-events: auto !important;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+.os-sound-btn:hover {
+  background: rgba(0, 0, 0, 0.6) !important;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.os-sound-btn:active {
+  background: rgba(0, 0, 0, 0.7) !important;
+  transform: scale(0.95);
+}
+
+.os-sound-btn:focus {
+  outline: none;
+  background: rgba(0, 0, 0, 0.5) !important;
 }

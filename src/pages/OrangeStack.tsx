@@ -1,11 +1,8 @@
 // @ts-nocheck
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  IonContent,
-  IonPage,
-  IonButton,
-} from '@ionic/react';
+import { useNavigate } from 'react-router-dom';
+import { IonButton } from '@ionic/react';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
@@ -31,24 +28,23 @@ interface LocalLeaderboardEntry {
 
 const BLOCK_HEIGHT_DESKTOP = 45; // Desktop block height
 const BLOCK_HEIGHT_MOBILE = 40; // Mobile block height - must match CSS!
-const INITIAL_WIDTH = 220; // Wider blocks for easier start
-const GAME_WIDTH = 650; // Fixed game area width (matches lightbox-wrapper)
+const INITIAL_WIDTH = 220; // Wider blocks for easier start (desktop default)
 
 // Sad images for game over screen (1-19)
 const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/Games/games_media/sad_runner_${i + 1}.png`);
 
-// Level configurations - 10 levels with gradual difficulty
+// Level configurations - 10 levels with gradual difficulty (HARDER: ~50% faster speeds)
 const LEVEL_CONFIG: Record<number, { startSpeed: number; speedIncrease: number; blocksToComplete: number; minBlockWidth: number; theme: string }> = {
-  1:  { startSpeed: 1.2, speedIncrease: 0.03, blocksToComplete: 6,  minBlockWidth: 50, theme: 'sunrise' },
-  2:  { startSpeed: 1.5, speedIncrease: 0.04, blocksToComplete: 7,  minBlockWidth: 45, theme: 'morning' },
-  3:  { startSpeed: 1.8, speedIncrease: 0.05, blocksToComplete: 8,  minBlockWidth: 40, theme: 'day' },
-  4:  { startSpeed: 2.2, speedIncrease: 0.06, blocksToComplete: 9,  minBlockWidth: 35, theme: 'afternoon' },
-  5:  { startSpeed: 2.6, speedIncrease: 0.07, blocksToComplete: 10, minBlockWidth: 30, theme: 'sunset' },
-  6:  { startSpeed: 3.0, speedIncrease: 0.08, blocksToComplete: 11, minBlockWidth: 26, theme: 'dusk' },
-  7:  { startSpeed: 3.4, speedIncrease: 0.09, blocksToComplete: 12, minBlockWidth: 22, theme: 'evening' },
-  8:  { startSpeed: 3.8, speedIncrease: 0.10, blocksToComplete: 13, minBlockWidth: 18, theme: 'night' },
-  9:  { startSpeed: 4.2, speedIncrease: 0.11, blocksToComplete: 14, minBlockWidth: 15, theme: 'storm' },
-  10: { startSpeed: 4.5, speedIncrease: 0.12, blocksToComplete: 15, minBlockWidth: 12, theme: 'inferno' },
+  1:  { startSpeed: 2.0, speedIncrease: 0.05, blocksToComplete: 6,  minBlockWidth: 50, theme: 'sunrise' },
+  2:  { startSpeed: 2.4, speedIncrease: 0.06, blocksToComplete: 7,  minBlockWidth: 45, theme: 'morning' },
+  3:  { startSpeed: 2.8, speedIncrease: 0.07, blocksToComplete: 8,  minBlockWidth: 40, theme: 'day' },
+  4:  { startSpeed: 3.2, speedIncrease: 0.08, blocksToComplete: 9,  minBlockWidth: 35, theme: 'afternoon' },
+  5:  { startSpeed: 3.6, speedIncrease: 0.09, blocksToComplete: 10, minBlockWidth: 30, theme: 'sunset' },
+  6:  { startSpeed: 4.0, speedIncrease: 0.10, blocksToComplete: 11, minBlockWidth: 26, theme: 'dusk' },
+  7:  { startSpeed: 4.4, speedIncrease: 0.11, blocksToComplete: 12, minBlockWidth: 22, theme: 'evening' },
+  8:  { startSpeed: 4.8, speedIncrease: 0.12, blocksToComplete: 13, minBlockWidth: 18, theme: 'night' },
+  9:  { startSpeed: 5.2, speedIncrease: 0.13, blocksToComplete: 14, minBlockWidth: 15, theme: 'storm' },
+  10: { startSpeed: 5.5, speedIncrease: 0.14, blocksToComplete: 15, minBlockWidth: 12, theme: 'inferno' },
 };
 
 const MAX_LEVEL = 10;
@@ -83,6 +79,7 @@ const SCORING = {
 };
 
 const OrangeStack: React.FC = () => {
+  const navigate = useNavigate();
   const { playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver, playGameStart, playLevelUp, playWarning } = useGameSounds();
   const { hapticScore, hapticCombo, hapticHighScore, hapticGameOver, hapticLevelUp, hapticCollision, hapticWarning } = useGameHaptics();
   const isMobile = useIsMobile();
@@ -99,17 +96,52 @@ const OrangeStack: React.FC = () => {
   // Background music controls - use local audio element for reliable mobile playback
   const { isBackgroundMusicPlaying: globalMusicPlaying, pauseBackgroundMusic: globalPause } = useAudio();
 
+  // Music playlist - quieter songs that don't overpower sound effects
+  const MUSIC_PLAYLIST = [
+    { src: '/audio/music/brick-by-brick/yoshis-island-final.mp3', name: "Yoshi's Island" },
+    { src: '/audio/music/brick-by-brick/wandering-the-plains-final.mp3', name: 'Wandering the Plains' },
+    { src: '/audio/music/brick-by-brick/valley-of-bowser-final.mp3', name: 'Valley of Bowser' },
+    { src: '/audio/music/brick-by-brick/forest-of-illusion-final.mp3', name: 'Forest of Illusion' },
+  ];
+
   // Local audio element for game music (more reliable on mobile)
   const localAudioRef = useRef<HTMLAudioElement | null>(null);
-  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(true); // Sound on by default
+  const isMusicPlayingRef = useRef(false); // Ref to avoid stale closure in ended handler
   const lastMusicToggleRef = useRef<number>(0); // Debounce music toggle
+  const playlistIndexRef = useRef(Math.floor(Math.random() * MUSIC_PLAYLIST.length)); // Start with random track
 
-  // Initialize local audio on mount
+  // Keep ref in sync with state
   useEffect(() => {
-    localAudioRef.current = new Audio('/assets/music/wojakmusic1.mp3');
-    localAudioRef.current.loop = true;
-    localAudioRef.current.volume = 0.5;
+    isMusicPlayingRef.current = isMusicPlaying;
+  }, [isMusicPlaying]);
 
+  // Play a specific track from the playlist
+  const playTrack = useCallback((index: number) => {
+    // Stop current music
+    if (localAudioRef.current) {
+      localAudioRef.current.pause();
+      localAudioRef.current = null;
+    }
+
+    const track = MUSIC_PLAYLIST[index];
+    const audio = new Audio(track.src);
+    audio.volume = 1.0; // Tracks are already normalized quiet
+
+    // When song ends, play next track (use ref to get current state)
+    audio.addEventListener('ended', () => {
+      playlistIndexRef.current = (playlistIndexRef.current + 1) % MUSIC_PLAYLIST.length;
+      if (isMusicPlayingRef.current) {
+        playTrack(playlistIndexRef.current);
+      }
+    }, { once: true });
+
+    localAudioRef.current = audio;
+    audio.play().catch(() => {}); // Silently handle autoplay restrictions
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
       if (localAudioRef.current) {
         localAudioRef.current.pause();
@@ -119,30 +151,59 @@ const OrangeStack: React.FC = () => {
   }, []);
 
   const toggleGameMusic = () => {
-    if (!localAudioRef.current) return;
-
     // Debounce: ignore toggles within 200ms (prevents double-fire from touch + click)
     const now = Date.now();
     if (now - lastMusicToggleRef.current < 200) return;
     lastMusicToggleRef.current = now;
 
     if (isMusicPlaying) {
-      localAudioRef.current.pause();
+      if (localAudioRef.current) {
+        localAudioRef.current.pause();
+      }
       setIsMusicPlaying(false);
     } else {
-      localAudioRef.current.play()
-        .then(() => setIsMusicPlaying(true))
-        .catch(() => {}); // Silently handle autoplay restrictions
+      setIsMusicPlaying(true);
+      playTrack(playlistIndexRef.current);
     }
   };
 
-  // Responsive game dimensions - full width on mobile for immersive experience
-  const GAME_WIDTH_RESPONSIVE = isMobile ? window.innerWidth : 650;
-  const CONTAINER_HEIGHT_RESPONSIVE = isMobile ? window.innerHeight - 105 : 500; // Full height minus header/tab bar
+  // Responsive game dimensions - adapts to viewport size
+  const [viewportSize, setViewportSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+
+  // Update viewport size on resize
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Calculate responsive dimensions based on available space
   const STATS_WIDTH = isMobile ? 0 : 140; // No stats panel on mobile
+  const HEADER_HEIGHT = 56; // Top header
+  const PADDING = 40; // Some padding around the game
+
+  // Available space calculation
+  const availableWidth = viewportSize.width - PADDING;
+  const availableHeight = viewportSize.height - HEADER_HEIGHT - PADDING;
+
+  // Desktop: fit game + stats within available space, with max limits
+  const MAX_GAME_WIDTH = 650;
+  const MAX_GAME_HEIGHT = 600;
+
+  const GAME_WIDTH_RESPONSIVE = isMobile
+    ? viewportSize.width
+    : Math.min(MAX_GAME_WIDTH, availableWidth - STATS_WIDTH - 20);
+
+  // Container height: subtract header (56px) + bottom nav (60px) + safe area (~34px) + buttons (50px) + buffer (20px)
+  const CONTAINER_HEIGHT_RESPONSIVE = isMobile
+    ? viewportSize.height - 220
+    : Math.min(MAX_GAME_HEIGHT, availableHeight);
+
   // Use responsive block height - MUST match CSS values exactly!
   const BLOCK_HEIGHT = isMobile ? BLOCK_HEIGHT_MOBILE : BLOCK_HEIGHT_DESKTOP;
-  const INITIAL_WIDTH_RESPONSIVE = isMobile ? Math.floor(window.innerWidth * 0.5) : 220; // 50% of screen width on mobile
+  const INITIAL_WIDTH_RESPONSIVE = isMobile ? Math.floor(viewportSize.width * 0.5) : Math.min(220, GAME_WIDTH_RESPONSIVE * 0.35);
 
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'levelComplete' | 'gameover'>('idle');
 
@@ -205,18 +266,96 @@ const OrangeStack: React.FC = () => {
   const [powerUpNotification, setPowerUpNotification] = useState<string | null>(null);
   const slowMoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Danger zone feedback - when block width is critically small
+  const dangerZoneThreshold = INITIAL_WIDTH_RESPONSIVE * 0.3; // 30% of initial width
+  const isDangerZone = currentBlock && currentBlock.width < dangerZoneThreshold;
+  const dangerZoneIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Danger zone haptic/audio feedback
+  useEffect(() => {
+    if (isDangerZone && gameState === 'playing' && !dangerZoneIntervalRef.current) {
+      // Start pulsing warning feedback
+      dangerZoneIntervalRef.current = setInterval(() => {
+        hapticWarning();
+        playWarning();
+      }, 800);
+    } else if ((!isDangerZone || gameState !== 'playing') && dangerZoneIntervalRef.current) {
+      clearInterval(dangerZoneIntervalRef.current);
+      dangerZoneIntervalRef.current = null;
+    }
+
+    return () => {
+      if (dangerZoneIntervalRef.current) {
+        clearInterval(dangerZoneIntervalRef.current);
+        dangerZoneIntervalRef.current = null;
+      }
+    };
+  }, [isDangerZone, gameState, hapticWarning, playWarning]);
+
   const gameAreaRef = useRef<HTMLDivElement>(null);
+  const [gameAreaRect, setGameAreaRect] = useState<DOMRect | null>(null);
+
+  // Track game area position for portalled effects
+  // Only update on resize/scroll, NOT during gameplay (prevents glitchy repositioning)
+  useEffect(() => {
+    const updateRect = () => {
+      if (gameAreaRef.current) {
+        setGameAreaRect(gameAreaRef.current.getBoundingClientRect());
+      }
+    };
+    // Set initial position
+    updateRect();
+    // Only update on window resize, not constantly
+    window.addEventListener('resize', updateRect);
+    return () => {
+      window.removeEventListener('resize', updateRect);
+    };
+  }, [gameState]);
+
   const blockSpawnTimeRef = useRef<number>(0);
   const animationRef = useRef<number | undefined>(undefined);
   const blockIdRef = useRef(0);
   const currentBlockRef = useRef<Block | null>(null);
   const blocksRef = useRef<Block[]>([]);
+  const movingBlockRef = useRef<HTMLDivElement>(null); // Direct DOM ref for GPU-accelerated animation
   const lastTapTimeRef = useRef<number>(0); // Debounce to prevent double-tap on mobile
+  const isDropping = useRef(false); // Prevent multiple drops while one is processing
+
+  // Performance: Game loop state in refs (avoid re-renders during animation)
+  const directionRef = useRef(1);
+  const speedRef = useRef(1.5);
+  const bounceCountRef = useRef(0);
+  const isSlowMoRef = useRef(false);
+
+  // Fixed timestep game loop refs
+  const lastFrameTimeRef = useRef(0);
+  const accumulatorRef = useRef(0);
+  const FIXED_DT = 1000 / 60; // 60 FPS physics
+  const MAX_FRAME_TIME = 250; // Prevent spiral of death
+
+  // Freeze frame support (for perfect drops)
+  const freezeUntilRef = useRef(0);
+
+  // Page visibility tracking
+  const [isPaused, setIsPaused] = useState(false);
 
   // Keep blocksRef in sync with blocks state
   useEffect(() => {
     blocksRef.current = blocks;
   }, [blocks]);
+
+  // Sync refs with state (for values that need both React state and animation access)
+  useEffect(() => {
+    directionRef.current = direction;
+  }, [direction]);
+
+  useEffect(() => {
+    speedRef.current = speed;
+  }, [speed]);
+
+  useEffect(() => {
+    isSlowMoRef.current = isSlowMo;
+  }, [isSlowMo]);
 
   // Auto-start game on mount (unified intro from GameModal)
   useEffect(() => {
@@ -226,10 +365,47 @@ const OrangeStack: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Page Visibility API - pause game when tab is backgrounded
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        // Pause the game
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+          animationRef.current = undefined;
+        }
+        if (localAudioRef.current) {
+          localAudioRef.current.pause();
+        }
+        if (gameState === 'playing') {
+          setIsPaused(true);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [gameState]);
+
+  // Resume handler
+  const resumeGame = useCallback(() => {
+    setIsPaused(false);
+    lastFrameTimeRef.current = performance.now();
+    accumulatorRef.current = 0;
+    if (isMusicPlaying && localAudioRef.current) {
+      localAudioRef.current.play().catch(() => {});
+    }
+  }, [isMusicPlaying]);
+
   const startGame = () => {
     // Play game start sound + haptic
     playGameStart();
     hapticScore(); // Light tap on game start
+
+    // Start background music if enabled
+    if (isMusicPlayingRef.current && !localAudioRef.current) {
+      playTrack(playlistIndexRef.current);
+    }
 
     // Use responsive game width for mobile
     // Center the base block exactly in the middle
@@ -256,6 +432,15 @@ const OrangeStack: React.FC = () => {
     setScoreSubmitted(false);
     setIsNewPersonalBest(false);
 
+    // Reset animation refs for fixed timestep loop
+    directionRef.current = 1;
+    speedRef.current = config.startSpeed;
+    bounceCountRef.current = 0;
+    isSlowMoRef.current = false;
+    freezeUntilRef.current = 0;
+    lastFrameTimeRef.current = 0;
+    accumulatorRef.current = 0;
+
     // Reset power-up state
     setActivePowerUp(null);
     setPendingPowerUp(null);
@@ -264,6 +449,11 @@ const OrangeStack: React.FC = () => {
     setHasMagnet(false);
     setPowerUpNotification(null);
     if (slowMoTimeoutRef.current) clearTimeout(slowMoTimeoutRef.current);
+
+    // Reset pause state and drop lock
+    setIsPaused(false);
+    lastTapTimeRef.current = 0;
+    isDropping.current = false;
 
     spawnNewBlock(baseBlock.width, baseBlock.x);
     setGameState('playing');
@@ -382,6 +572,7 @@ const OrangeStack: React.FC = () => {
     setDirection(1);
     blockSpawnTimeRef.current = Date.now();
     setBounceCount(0); // Reset bounce count for new block
+    bounceCountRef.current = 0; // Also reset ref for animation loop
 
     // Randomly spawn power-up on the new block (15% chance, more common at higher levels)
     const powerUpChance = SCORING.powerUpChance + (level * 0.02); // Increases slightly per level
@@ -460,15 +651,15 @@ const OrangeStack: React.FC = () => {
     // Calculate alignment accuracy
     const trimmedAmount = block.width - overlapWidth;
     const isPerfect = trimmedAmount === 0;
-    const isNearPerfect = trimmedAmount > 0 && trimmedAmount <= 5;
+    const isNearPerfect = trimmedAmount > 0 && trimmedAmount <= 3; // Reduced from 5px to 3px for harder gameplay
     const isGoodDrop = overlapWidth >= block.width * 0.9; // 90%+ accuracy
 
     // Calculate time bonus (faster = more points)
     const dropTime = Date.now() - blockSpawnTimeRef.current;
     const timeBonus = Math.max(0, Math.floor(SCORING.speedBonusMax * (1 - dropTime / SCORING.speedBonusTime)));
 
-    // Calculate bounce penalty
-    const bouncePenalty = bounceCount * SCORING.bounceMultiplier;
+    // Calculate bounce penalty (use ref for accurate count during animation)
+    const bouncePenalty = bounceCountRef.current * SCORING.bounceMultiplier;
 
     // Update combo
     const newCombo = isGoodDrop ? combo + 1 : 0;
@@ -478,14 +669,25 @@ const OrangeStack: React.FC = () => {
     let dropPoints = SCORING.basePoints;
     let bonusText = '';
 
+    // Freeze frame on perfect/near-perfect drops (adds impact feel) - skip on mobile for smooth performance
+    if (!isMobile) {
+      if (isPerfect) {
+        freezeUntilRef.current = performance.now() + 60; // 60ms freeze for perfect
+      } else if (isNearPerfect) {
+        freezeUntilRef.current = performance.now() + 40; // 40ms freeze for near-perfect
+      }
+    }
+
     if (isPerfect) {
       dropPoints += SCORING.perfectBonus;
       bonusText = 'PERFECT! ';
       playPerfectBonus();
       hapticHighScore(); // Strong haptic for perfect
-      // Trigger screen shake on perfect
-      setShowScreenShake(true);
-      setTimeout(() => setShowScreenShake(false), 300);
+      // Trigger screen shake on perfect (desktop only)
+      if (!isMobile) {
+        setShowScreenShake(true);
+        setTimeout(() => setShowScreenShake(false), 300);
+      }
     } else if (isNearPerfect) {
       dropPoints += SCORING.nearPerfectBonus;
       bonusText = 'Great! ';
@@ -496,42 +698,50 @@ const OrangeStack: React.FC = () => {
       hapticScore(); // Light haptic for normal drops
     }
 
-    // ====== EXTREME VISUAL EFFECTS ======
+    // ====== VISUAL EFFECTS (heavily reduced on mobile for performance) ======
 
     // Calculate impact position for effects (center of new block)
     const impactX = overlapLeft + overlapWidth / 2;
-    setImpactPosition({ x: impactX, y: currentBlocks.length * BLOCK_HEIGHT + 50 });
 
-    // Shockwave on every drop (intensity based on accuracy)
-    setShowShockwave(true);
-    setTimeout(() => setShowShockwave(false), 600);
+    // On mobile: skip most visual effects to prevent lag
+    if (isMobile) {
+      // Only update impact position, skip all other effects
+      setImpactPosition({ x: impactX, y: currentBlocks.length * BLOCK_HEIGHT + 50 });
+    } else {
+      // Desktop: full visual effects
+      setImpactPosition({ x: impactX, y: currentBlocks.length * BLOCK_HEIGHT + 50 });
 
-    // Impact sparks
-    setShowImpactSparks(true);
-    setTimeout(() => setShowImpactSparks(false), 500);
+      // Block squish animation
+      setBlockSquish(true);
+      setTimeout(() => setBlockSquish(false), 150);
 
-    // Block squish animation
-    setBlockSquish(true);
-    setTimeout(() => setBlockSquish(false), 150);
+      // Shockwave on every drop (intensity based on accuracy)
+      setShowShockwave(true);
+      setTimeout(() => setShowShockwave(false), 600);
 
-    // Vignette pulse on good drops
-    if (isPerfect || isNearPerfect) {
-      setShowVignette(true);
-      setTimeout(() => setShowVignette(false), 400);
-    }
+      // Impact sparks
+      setShowImpactSparks(true);
+      setTimeout(() => setShowImpactSparks(false), 500);
 
-    // Floating emoji (random chance, higher on good drops)
-    const emojiChance = isPerfect ? 0.8 : isNearPerfect ? 0.5 : 0.2;
-    if (Math.random() < emojiChance) {
-      const emojis = isPerfect
-        ? ['🔥', '⚡', '💎', '🌟', '✨', '💥', '🚀', '👑']
-        : ['😎', '👍', '💪', '🎯', '✓', '👏'];
-      const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-      const emojiId = floatingEmojiIdRef.current++;
-      setFloatingEmojis(prev => [...prev, { id: emojiId, emoji: randomEmoji, x: impactX }]);
-      setTimeout(() => {
-        setFloatingEmojis(prev => prev.filter(e => e.id !== emojiId));
-      }, 1500);
+      // Vignette pulse on good drops
+      if (isPerfect || isNearPerfect) {
+        setShowVignette(true);
+        setTimeout(() => setShowVignette(false), 400);
+      }
+
+      // Floating emoji (desktop only)
+      const emojiChance = isPerfect ? 0.8 : isNearPerfect ? 0.5 : 0.2;
+      if (Math.random() < emojiChance) {
+        const emojis = isPerfect
+          ? ['🔥', '⚡', '💎', '🌟', '✨', '💥', '🚀', '👑']
+          : ['😎', '👍', '💪', '🎯', '✓', '👏'];
+        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+        const emojiId = floatingEmojiIdRef.current++;
+        setFloatingEmojis(prev => [...prev, { id: emojiId, emoji: randomEmoji, x: impactX }]);
+        setTimeout(() => {
+          setFloatingEmojis(prev => prev.filter(e => e.id !== emojiId));
+        }, 1500);
+      }
     }
 
     dropPoints += timeBonus;
@@ -544,31 +754,35 @@ const OrangeStack: React.FC = () => {
       playCombo(newCombo);
       hapticCombo(newCombo); // Escalating haptic for combos
 
-      // Lightning effect at high combos
-      if (newCombo >= 7) {
+      // Lightning effect at high combos (desktop only)
+      if (!isMobile && newCombo >= 7) {
         setShowLightning(true);
         setTimeout(() => setShowLightning(false), 400);
       }
     }
 
-    // Check for milestone combos (5x, 10x, 15x, 20x)
+    // Check for milestone combos (5x, 10x, 15x, 20x) - reduced effects on mobile
     if (newCombo === 5 || newCombo === 10 || newCombo === 15 || newCombo === 20) {
+      // Milestone text (keep on mobile, lightweight)
       setShowMilestone(newCombo);
       setTimeout(() => setShowMilestone(null), 2000);
 
-      // Confetti explosion on milestones
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 3000);
+      // Skip confetti and callout on mobile for performance
+      if (!isMobile) {
+        // Confetti explosion on milestones
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 3000);
 
-      // Epic callout text
-      const callouts: Record<number, string> = {
-        5: 'UNSTOPPABLE!',
-        10: 'LEGENDARY!',
-        15: 'GODLIKE!',
-        20: 'IMPOSSIBLE!'
-      };
-      setEpicCallout(callouts[newCombo] || null);
-      setTimeout(() => setEpicCallout(null), 1500);
+        // Epic callout text
+        const callouts: Record<number, string> = {
+          5: 'UNSTOPPABLE!',
+          10: 'LEGENDARY!',
+          15: 'GODLIKE!',
+          20: 'IMPOSSIBLE!'
+        };
+        setEpicCallout(callouts[newCombo] || null);
+        setTimeout(() => setEpicCallout(null), 1500);
+      }
     }
 
     // ====== POWER-UP ACTIVATION ======
@@ -674,43 +888,72 @@ const OrangeStack: React.FC = () => {
     }
   }, [gameState, isSignedIn, score, level, scoreSubmitted, submitScoreGlobal]);
 
-  // Animation loop
+  // Animation loop - Fixed timestep for consistent physics across devices
   useEffect(() => {
-    if (gameState !== 'playing' || !currentBlock || showExitDialog) return;
+    if (gameState !== 'playing' || !currentBlock || showExitDialog || isPaused) return;
 
     // Use responsive game width for consistent block bouncing
     const areaWidth = GAME_WIDTH_RESPONSIVE;
 
-    const animate = () => {
-      // Pause animation when exit dialog is shown
-      if (showExitDialogRef.current) return;
+    // Initialize timing on first frame
+    lastFrameTimeRef.current = performance.now();
+    accumulatorRef.current = 0;
 
-      setCurrentBlock(prev => {
-        if (!prev) return prev;
+    const updatePhysics = () => {
+      const block = currentBlockRef.current;
+      if (!block) return;
 
-        // Apply slow-mo effect (50% speed)
-        const effectiveSpeed = isSlowMo ? speed * 0.5 : speed;
-        let newX = prev.x + effectiveSpeed * direction;
-        let newDirection = direction;
+      // Apply slow-mo effect (50% speed)
+      const effectiveSpeed = isSlowMoRef.current ? speedRef.current * 0.5 : speedRef.current;
+      let newX = block.x + effectiveSpeed * directionRef.current;
 
-        // Bounce off walls - increment bounce count
-        if (newX + prev.width > areaWidth) {
-          newX = areaWidth - prev.width;
-          newDirection = -1;
-          setDirection(-1);
-          setBounceCount(b => b + 1);
-        } else if (newX < 0) {
-          newX = 0;
-          newDirection = 1;
-          setDirection(1);
-          setBounceCount(b => b + 1);
-        }
+      // Bounce off walls - use refs to avoid setState during animation
+      if (newX + block.width > areaWidth) {
+        newX = areaWidth - block.width;
+        directionRef.current = -1;
+        bounceCountRef.current += 1;
+      } else if (newX < 0) {
+        newX = 0;
+        directionRef.current = 1;
+        bounceCountRef.current += 1;
+      }
 
-        const updated = { ...prev, x: newX };
-        // Keep ref in sync for accurate collision detection
-        currentBlockRef.current = updated;
-        return updated;
-      });
+      // Update ref directly (no setState = no re-render)
+      currentBlockRef.current = { ...block, x: newX };
+    };
+
+    const animate = (currentTime: number) => {
+      // Pause animation when exit dialog is shown or game is paused
+      if (showExitDialogRef.current || isPaused) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      // Freeze frame support (for perfect drops)
+      if (currentTime < freezeUntilRef.current) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      // Calculate frame time with cap to prevent spiral of death
+      let frameTime = currentTime - lastFrameTimeRef.current;
+      if (frameTime > MAX_FRAME_TIME) frameTime = MAX_FRAME_TIME;
+      lastFrameTimeRef.current = currentTime;
+
+      // Accumulate time for fixed timestep
+      accumulatorRef.current += frameTime;
+
+      // Run physics at fixed timestep (60 FPS)
+      while (accumulatorRef.current >= FIXED_DT) {
+        updatePhysics();
+        accumulatorRef.current -= FIXED_DT;
+      }
+
+      // Update DOM directly via ref for GPU-accelerated transform (no React re-render)
+      // Only update transform - width is set by React when block spawns
+      if (currentBlockRef.current && movingBlockRef.current) {
+        movingBlockRef.current.style.transform = `translateX(${currentBlockRef.current.x}px)`;
+      }
 
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -722,19 +965,29 @@ const OrangeStack: React.FC = () => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [gameState, currentBlock, speed, direction, isSlowMo, showExitDialog]);
+  }, [gameState, currentBlock?.id, showExitDialog, isPaused, GAME_WIDTH_RESPONSIVE]);
 
   // Handle tap/click with debounce to prevent double-firing on mobile
   const handleTap = () => {
     if (gameState !== 'playing') return;
+    if (isPaused) return;
 
-    // Debounce: ignore taps within 100ms of last tap
-    // This prevents both touchstart AND click from firing
+    // Prevent multiple drops while one is processing
+    if (isDropping.current) return;
+
+    // Debounce: ignore taps within 300ms of last tap
     const now = Date.now();
-    if (now - lastTapTimeRef.current < 100) return;
+    if (now - lastTapTimeRef.current < 300) return;
     lastTapTimeRef.current = now;
 
+    // Lock drops while processing
+    isDropping.current = true;
     dropBlock();
+
+    // Unlock after a short delay (allows new block to spawn)
+    setTimeout(() => {
+      isDropping.current = false;
+    }, 200);
   };
 
   // Camera system for tall stacks - responsive for mobile
@@ -764,24 +1017,45 @@ const OrangeStack: React.FC = () => {
     GROUND_HEIGHT + blocks.length * BLOCK_HEIGHT + MOVING_BLOCK_MARGIN - cameraOffset,
     CONTAINER_HEIGHT - BLOCK_HEIGHT - 20
   );
-  // Moving block edges as percentage from TOP of screen
+  // ============================================================================
+  // CRITICAL FOCUS AREA (CFA) - Safe Zone Calculation
+  // The player needs to see: (1) the moving block, (2) the top of the stack
+  // Effects must NEVER cover this area
+  // ============================================================================
+
+  // Calculate the top of the STACKED blocks (the landing zone) - in pixels from BOTTOM
+  const stackTopFromBottom = GROUND_HEIGHT + blocks.length * BLOCK_HEIGHT - cameraOffset;
+  // Convert to percentage from TOP of screen
+  const stackTopPercent = ((CONTAINER_HEIGHT - stackTopFromBottom) / CONTAINER_HEIGHT) * 100;
+
+  // Moving block position (above the stack) - in percentage from TOP
   const movingBlockTopPercent = ((CONTAINER_HEIGHT - movingBlockBottomPx - BLOCK_HEIGHT) / CONTAINER_HEIGHT) * 100;
-  const movingBlockBottomPercent = ((CONTAINER_HEIGHT - movingBlockBottomPx) / CONTAINER_HEIGHT) * 100;
 
-  // Transition point: when stack reaches ~8 blocks, switch from above to below
-  const stackIsHigh = blocks.length >= 8;
+  // CRITICAL FOCUS AREA: From just above moving block to just below top of stack
+  // Add GENEROUS margins for visual clarity - effects should be FAR from the action
+  const CFA_TOP_MARGIN = 25; // % margin above moving block (increased)
+  const CFA_BOTTOM_MARGIN = 15; // % margin below the landing zone (increased)
 
-  const getEffectY = () => {
-    if (stackIsHigh) {
-      // Late game: effects just BELOW the moving block (with small gap)
-      // movingBlockBottomPercent is where the bottom of moving block is (from top)
-      return Math.min(movingBlockBottomPercent + 3, 65); // 3% below moving block, max 65%
-    } else {
-      // Early game: effects just ABOVE the moving block (with small gap)
-      // movingBlockTopPercent is where the top of moving block is (from top)
-      return Math.max(movingBlockTopPercent - 12, 15); // 12% above moving block, min 15%
-    }
-  };
+  const cfaTop = Math.max(movingBlockTopPercent - CFA_TOP_MARGIN, 0);
+  const cfaBottom = Math.min(stackTopPercent + CFA_BOTTOM_MARGIN, 100);
+
+  // Determine if there's more room ABOVE or BELOW the CFA
+  const spaceAbove = cfaTop; // Space above CFA (from top of screen)
+  const spaceBelow = 100 - cfaBottom; // Space below CFA (to bottom of screen)
+
+  // ============================================================================
+  // EFFECT POSITIONING - Dynamic zones that move as tower grows
+  // ============================================================================
+  // COMBOS: Start at 35% on mobile, move higher (lower %) as tower grows
+  // This ensures combo never covers the dropping block
+  const baseComboY = isMobile ? 35 : 8;
+  const towerHeight = blocks.length;
+  // Move combo up by 1.5% per block stacked (max 20% reduction to stay visible)
+  const comboReduction = Math.min(towerHeight * 1.5, 20);
+  const comboEffectY = Math.max(baseComboY - comboReduction, isMobile ? 15 : 5);
+
+  // POWER-UPS/ITEMS: ALWAYS at 80% from top (bottom area) - never overlaps with combos
+  const powerUpEffectY = 80;
 
   // Show last 12 blocks for rendering (anything below camera offset will be off-screen)
   const visibleBlocks = blocks.slice(-12);
@@ -790,9 +1064,9 @@ const OrangeStack: React.FC = () => {
   // Parallax background offset - creates "climbing higher" effect from block 1
   // Each block contributes to the background offset for immediate visual feedback
   // Plus additional movement from camera scrolling at higher stacks
-  const PARALLAX_BLOCK_RATE = 25; // Pixels of background shift per block stacked (aggressive for early game feel)
-  const PARALLAX_CAMERA_RATE = 0.6; // Additional shift based on camera movement
-  const MAX_BACKGROUND_OFFSET = 800; // Max pixels to shift background
+  const PARALLAX_BLOCK_RATE = 15; // Pixels of background shift per block stacked
+  const PARALLAX_CAMERA_RATE = 0.4; // Additional shift based on camera movement
+  const MAX_BACKGROUND_OFFSET = 350; // Max pixels to shift (must stay within CSS top: -400px)
   const blocksStacked = blocks.length;
   const backgroundOffset = Math.min(
     (blocksStacked * PARALLAX_BLOCK_RATE) + (cameraOffset * PARALLAX_CAMERA_RATE),
@@ -800,53 +1074,38 @@ const OrangeStack: React.FC = () => {
   );
 
   return (
-    <IonPage>
-      <IonContent fullscreen className="stack-content" scrollY={false}>
-        {/* Parallax Background - tall image that scrolls down as player climbs (creates illusion of going up) */}
+    <div className="stack-container">
+      {/* Mute button - top right, under the close button */}
+      {gameState === 'playing' && (
+        <button
+          className="os-sound-btn"
+          style={{ pointerEvents: 'auto', zIndex: 10000 }}
+          onClick={(e) => { e.stopPropagation(); toggleGameMusic(); }}
+          onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); toggleGameMusic(); }}
+          aria-label={isMusicPlaying ? 'Mute' : 'Unmute'}
+        >
+          {isMusicPlaying ? '🔊' : '🔇'}
+        </button>
+      )}
+      <div className="stack-content">
+        {/* Background - parallax effect as tower grows (positive = scenery moves down as we climb) */}
         <div
           className="parallax-background"
-          style={{
-            transform: `translateY(${backgroundOffset}px)`,
-          }}
+          style={{ transform: `translateY(${backgroundOffset}px)` }}
         />
 
         {/* PLAYING STATE: Full-screen click capture + Game Layout */}
         {gameState === 'playing' && (
           <>
-            {/* Click capture layer - starts BELOW the top button area so buttons remain clickable */}
-            {createPortal(
-              <div
-                style={{
-                  position: 'fixed',
-                  top: isMobile ? 140 : 90, // Start below buttons (close, help, mute)
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  zIndex: 9999,
-                  cursor: 'pointer',
-                  touchAction: 'none', // Prevents default touch behavior (scrolling, zooming)
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleTap();
-                }}
-                onTouchEnd={(e) => {
-                  e.stopPropagation();
-                  handleTap();
-                }}
-              />,
-              document.body
-            )}
-
             {/* Game Layout - visual content centered in modal */}
             <div
               className="game-layout"
               style={{
                 position: 'absolute',
-                top: isMobile ? 56 : 0, // Account for header on mobile
+                top: 0, // Container already has padding-top on mobile
                 left: 0,
                 right: 0,
-                bottom: isMobile ? 50 : 0, // Account for tab bar on mobile
+                bottom: isMobile ? 94 : 0, // Stay above bottom nav (60px) + safe area (34px)
                 width: '100%',
                 height: isMobile ? 'auto' : '100%',
                 overflow: 'hidden',
@@ -896,7 +1155,7 @@ const OrangeStack: React.FC = () => {
                 </div>
               )}
 
-              {/* Lightbox = Game Area - full screen on mobile */}
+              {/* Lightbox = Game Area - full screen on mobile, handles taps */}
               <div
                 ref={gameAreaRef}
                 className={`lightbox-wrapper ${isMobile ? 'mobile-fullscreen' : ''}`}
@@ -907,6 +1166,40 @@ const OrangeStack: React.FC = () => {
                   flexShrink: 0,
                   flexGrow: isMobile ? 1 : 0,
                   boxSizing: 'border-box',
+                  pointerEvents: 'auto', // Enable clicks on game area
+                  cursor: 'pointer',
+                  touchAction: 'none',
+                }}
+                onTouchStart={(e) => {
+                  // Ignore touches in the mute button zone (top-right corner)
+                  // Button is at top: ~60px (1rem + 36px + 8px), right: 1rem, size: 36x36
+                  const touch = e.touches[0];
+                  const viewportWidth = window.innerWidth;
+                  if (touch && touch.clientX > viewportWidth - 60 && touch.clientY < 110) {
+                    return; // Let the button handle it
+                  }
+                  e.preventDefault();
+                  if (isPaused) {
+                    resumeGame();
+                  } else {
+                    handleTap();
+                  }
+                }}
+                onClick={(e) => {
+                  // Ignore clicks in the mute button zone (top-right corner)
+                  const viewportWidth = window.innerWidth;
+                  if (e.clientX > viewportWidth - 60 && e.clientY < 110) {
+                    return; // Let the button handle it
+                  }
+                  e.preventDefault();
+                  // Only handle click on desktop
+                  if (!('ontouchstart' in window)) {
+                    if (isPaused) {
+                      resumeGame();
+                    } else {
+                      handleTap();
+                    }
+                  }
                 }}
               >
               {/* Mobile HUD - minimal stats overlay at top */}
@@ -925,42 +1218,15 @@ const OrangeStack: React.FC = () => {
                   </div>
                 </div>
               )}
-              {/* Music toggle button - portalled to body, positioned directly under close button */}
-              {createPortal(
-                <button
-                  className="music-toggle-btn game-control-btn"
-                  style={{
-                    pointerEvents: 'auto',
-                    zIndex: 10001,
-                    position: 'fixed',
-                    // Close button is typically at top: 8-12px, right: 12px, size ~44px
-                    // Mute button should be directly below with same gap (~8px)
-                    top: isMobile ? 100 : 60, // 8px gap below close button (44px + 8px + 8px)
-                    right: 15, // Centered under close button
-                    width: 40,
-                    height: 40,
-                    touchAction: 'manipulation', // Allow taps, prevent zoom/scroll
-                  }}
-                  onTouchEnd={(e) => {
-                    e.stopPropagation();
-                    toggleGameMusic();
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleGameMusic();
-                  }}
-                >
-                  {isMusicPlaying ? '🔊' : '🔇'}
-                </button>,
-                document.body
-              )}
 
               {/* Moving block - positioned just above the current stack */}
+              {/* Uses transform for GPU-accelerated horizontal animation (no layout thrash) */}
               {currentBlock && (
                 <div
+                  ref={movingBlockRef}
                   className={`stack-block moving ${isSlowMo ? 'slow-mo-active' : ''}`}
                   style={{
-                    left: currentBlock.x,
+                    transform: `translateX(${currentBlock.x}px)`,
                     width: currentBlock.width,
                     // Position above the stack, accounting for camera offset
                     // The moving block should be one BLOCK_HEIGHT above the top stacked block
@@ -976,19 +1242,31 @@ const OrangeStack: React.FC = () => {
                 </div>
               )}
 
-              {/* Power-up notification - dynamically positioned */}
+              {/* Power-up notification - always at bottom (85%) */}
               {powerUpNotification && (
-                <div className="power-up-notification" style={{ top: `${getEffectY()}%` }}>
+                <div className="power-up-notification" style={{ top: `${powerUpEffectY}%` }}>
                   {powerUpNotification}
                 </div>
               )}
 
-              {/* Active power-ups indicator - dynamically positioned */}
-              <div className="active-powerups" style={{ top: `${getEffectY()}%` }}>
-                {isSlowMo && <span className="powerup-badge slowmo">⏱️</span>}
-                {hasShield && <span className="powerup-badge shield">🛡️</span>}
-                {hasMagnet && <span className="powerup-badge magnet">🧲</span>}
-              </div>
+              {/* Active power-ups indicator - always at bottom (85%) */}
+              {/* Active power-ups - horizontal bar at bottom, with duration rings */}
+              {(isSlowMo || hasShield || hasMagnet) && (
+                <div className="active-powerups" style={{ top: `${powerUpEffectY}%` }}>
+                  {isSlowMo && (
+                    <span className="powerup-badge slowmo">
+                      ⏱️
+                      {/* Duration ring - SVG countdown */}
+                      <svg className="duration-ring" viewBox="0 0 52 52">
+                        <circle className="ring-bg" cx="26" cy="26" r="24" />
+                        <circle className="ring-progress" cx="26" cy="26" r="24" />
+                      </svg>
+                    </span>
+                  )}
+                  {hasShield && <span className="powerup-badge shield">🛡️</span>}
+                  {hasMagnet && <span className="powerup-badge magnet">🧲</span>}
+                </div>
+              )}
 
               {/* Stacked blocks - adjusted for camera offset */}
               {visibleBlocks.map((block, index) => {
@@ -1086,77 +1364,139 @@ const OrangeStack: React.FC = () => {
                 />
               )}
 
-              {/* Screen Shake Container - always has effect-container class for proper positioning */}
+              {/* Screen Shake Container - for contained effects only */}
               <div className={`effect-container ${showScreenShake ? 'screen-shake' : ''}`}>
-                {/* Epic Combo Celebration - dynamically positioned based on stack height */}
-                {combo >= 2 && (
-                  <div
-                    className={`combo-celebration combo-level-${Math.min(combo, 10)}`}
-                    style={{
-                      top: `${getEffectY()}%`, // Stays in safe zone above moving block
-                    }}
-                  >
-                    <div className="combo-number">{combo}x</div>
-                    <div className="combo-label">COMBO</div>
-                    {combo >= 5 && <div className="combo-fire">🔥</div>}
-                    {combo >= 8 && <div className="combo-stars">✨</div>}
-                  </div>
-                )}
+                {/* Effects that stay inside lightbox (shockwave, sparks, vignette) rendered below */}
               </div>
 
-              {/* Perfect/Great Flash with Particles - dynamically positioned */}
-              {lastDropBonus && (
+              {/* ====== PORTALLED EFFECTS - Rendered outside lightbox to avoid clipping ====== */}
+              {gameAreaRect && createPortal(
                 <div
-                  className={`bonus-flash ${lastDropBonus.includes('PERFECT') ? 'perfect' : 'great'}`}
+                  className="os-effects-portal"
                   style={{
-                    top: `${getEffectY()}%`, // Stays in safe zone above moving block
+                    position: 'fixed',
+                    left: gameAreaRect.left,
+                    top: gameAreaRect.top,
+                    width: gameAreaRect.width,
+                    height: gameAreaRect.height,
+                    pointerEvents: 'none',
+                    zIndex: 10000,
+                    overflow: 'visible', // Key: allows effects to extend outside
                   }}
                 >
-                  {lastDropBonus.includes('PERFECT') ? '⚡ PERFECT ⚡' : lastDropBonus.includes('Great') ? '✓ GREAT' : lastDropBonus}
-                  {lastDropBonus.includes('PERFECT') && (
-                    <div className="perfect-particles">
-                      <span>✨</span><span>⭐</span><span>✨</span><span>💫</span><span>✨</span>
+                  {/* Epic Combo Celebration - top (8%) or bottom (75%) based on stack height */}
+                  {combo >= 2 && (
+                    <div
+                      className={`combo-celebration combo-level-${Math.min(combo, 10)}`}
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        top: `${comboEffectY}%`,
+                      }}
+                    >
+                      <div className="combo-number">{combo}x</div>
+                      <div className="combo-label">COMBO</div>
+                      {combo >= 5 && <div className="combo-fire">🔥</div>}
+                      {combo >= 8 && <div className="combo-stars">✨</div>}
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* Flying Score Popup - dynamically positioned */}
-              {lastPoints > 0 && lastDropBonus && (
-                <div
-                  className="score-popup"
-                  key={Date.now()}
-                  style={{
-                    top: `${getEffectY()}%`, // Stays in safe zone above moving block
-                  }}
-                >
-                  +{lastPoints}
-                </div>
-              )}
+                  {/* Perfect/Great Flash with Particles - follows combo position */}
+                  {lastDropBonus && (
+                    <div
+                      className={`bonus-flash ${lastDropBonus.includes('PERFECT') ? 'perfect' : 'great'}`}
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        top: `${comboEffectY}%`,
+                      }}
+                    >
+                      {lastDropBonus.includes('PERFECT') ? '⚡ PERFECT ⚡' : lastDropBonus.includes('Great') ? '✓ GREAT' : lastDropBonus}
+                      {lastDropBonus.includes('PERFECT') && (
+                        <div className="perfect-particles">
+                          <span>✨</span><span>⭐</span><span>✨</span><span>💫</span><span>✨</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-              {/* Milestone Celebration (5x, 10x, 15x, 20x) - dynamically positioned */}
-              {showMilestone && (
-                <div
-                  className={`milestone-celebration milestone-${showMilestone}`}
-                  style={{
-                    top: `${getEffectY()}%`, // Stays in safe zone above moving block
-                  }}
-                >
-                  <div className="milestone-number">{showMilestone}x</div>
-                  <div className="milestone-text">
-                    {showMilestone === 5 && '🔥 ON FIRE! 🔥'}
-                    {showMilestone === 10 && '👑 LEGENDARY! 👑'}
-                    {showMilestone === 15 && '⚡ GODLIKE! ⚡'}
-                    {showMilestone === 20 && '🌟 IMPOSSIBLE! 🌟'}
-                  </div>
-                  <div className="milestone-particles">
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <span key={i} className="particle" style={{ '--i': i } as React.CSSProperties}>
-                        {showMilestone >= 20 ? '🌟' : showMilestone >= 15 ? '⚡' : showMilestone >= 10 ? '👑' : '🔥'}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                  {/* Flying Score Popup - follows combo position */}
+                  {lastPoints > 0 && lastDropBonus && (
+                    <div
+                      className="score-popup"
+                      key={Date.now()}
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        top: `${comboEffectY}%`,
+                      }}
+                    >
+                      +{lastPoints}
+                    </div>
+                  )}
+
+                  {/* Milestone Celebration (5x, 10x, 15x, 20x) - follows combo position */}
+                  {showMilestone && (
+                    <div
+                      className={`milestone-celebration milestone-${showMilestone}`}
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        top: `${comboEffectY}%`,
+                      }}
+                    >
+                      <div className="milestone-number">{showMilestone}x</div>
+                      <div className="milestone-text">
+                        {showMilestone === 5 && '🔥 ON FIRE! 🔥'}
+                        {showMilestone === 10 && '👑 LEGENDARY! 👑'}
+                        {showMilestone === 15 && '⚡ GODLIKE! ⚡'}
+                        {showMilestone === 20 && '🌟 IMPOSSIBLE! 🌟'}
+                      </div>
+                      <div className="milestone-particles">
+                        {Array.from({ length: 12 }).map((_, i) => (
+                          <span key={i} className="particle" style={{ '--i': i } as React.CSSProperties}>
+                            {showMilestone >= 20 ? '🌟' : showMilestone >= 15 ? '⚡' : showMilestone >= 10 ? '👑' : '🔥'}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Epic callout text - follows combo position */}
+                  {epicCallout && (
+                    <div
+                      className="epic-callout"
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        top: `${comboEffectY}%`,
+                      }}
+                    >
+                      {epicCallout}
+                    </div>
+                  )}
+
+                  {/* Floating emojis - follow combo position */}
+                  {floatingEmojis.map(({ id, emoji, x }) => (
+                    <div
+                      key={id}
+                      className="floating-emoji"
+                      style={{
+                        position: 'absolute',
+                        left: x,
+                        top: `${comboEffectY}%`,
+                      }}
+                    >
+                      {emoji}
+                    </div>
+                  ))}
+                </div>,
+                document.body
               )}
 
               {/* Combo Streak Meter - Side indicator */}
@@ -1201,23 +1541,45 @@ const OrangeStack: React.FC = () => {
               {/* Vignette pulse effect */}
               {showVignette && <div className="vignette-pulse" />}
 
-              {/* Floating emojis */}
-              {floatingEmojis.map(({ id, emoji, x }) => (
-                <div
-                  key={id}
-                  className="floating-emoji"
-                  style={{ left: x }}
-                >
-                  {emoji}
-                </div>
-              ))}
-
-              {/* Epic callout text - dynamically positioned */}
-              {epicCallout && (
-                <div className="epic-callout" style={{ top: `${getEffectY()}%` }}>
-                  {epicCallout}
-                </div>
+              {/* Danger zone feedback - block width critically small */}
+              {isDangerZone && (
+                <>
+                  {/* Pulsing red vignette */}
+                  <div
+                    className="danger-vignette"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'radial-gradient(ellipse at center, transparent 50%, rgba(255,0,0,0.25) 100%)',
+                      animation: 'danger-pulse 0.5s ease-in-out infinite alternate',
+                      pointerEvents: 'none',
+                      zIndex: 50,
+                    }}
+                  />
+                  {/* Warning indicator */}
+                  <div
+                    className="danger-indicator"
+                    style={{
+                      position: 'absolute',
+                      top: '15%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      background: 'rgba(255, 0, 0, 0.9)',
+                      color: '#fff',
+                      padding: '6px 16px',
+                      borderRadius: '20px',
+                      fontWeight: 'bold',
+                      fontSize: '0.85rem',
+                      animation: 'danger-pulse 0.5s ease-in-out infinite alternate',
+                      zIndex: 51,
+                    }}
+                  >
+                    ⚠️ CAREFUL!
+                  </div>
+                </>
               )}
+
+              {/* NOTE: Floating emojis and epic callout are now rendered via portal above */}
 
               {/* Confetti explosion */}
               {showConfetti && (
@@ -1266,6 +1628,41 @@ const OrangeStack: React.FC = () => {
 
               {/* Tap hint */}
               <div className="tap-hint">Tap to drop!</div>
+
+              {/* Pause overlay - shown when tab was backgrounded */}
+              {isPaused && (
+                <div
+                  className="pause-overlay"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resumeGame();
+                  }}
+                  onTouchEnd={(e) => {
+                    e.stopPropagation();
+                    resumeGame();
+                  }}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'rgba(0, 0, 0, 0.85)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    cursor: 'pointer',
+                    pointerEvents: 'auto',
+                  }}
+                >
+                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏸️</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#fff', marginBottom: '0.5rem' }}>
+                    PAUSED
+                  </div>
+                  <div style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.7)' }}>
+                    Tap to resume
+                  </div>
+                </div>
+              )}
             </div>
             </div>{/* Close centered container */}
           </div>
@@ -1429,8 +1826,8 @@ const OrangeStack: React.FC = () => {
           variant="warning"
           icon="🎮"
         />
-      </IonContent>
-    </IonPage>
+      </div>
+    </div>
   );
 };
 
