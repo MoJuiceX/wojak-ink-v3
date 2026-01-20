@@ -456,9 +456,6 @@ const MemoryMatch: React.FC = () => {
     setStreak(0);
     setLastMatchTime(null);
     resetAllEffects();
-    if (isNewGame) {
-      setPlayerName('');
-    }
     setGameState('playing');
 
     // Preload next round in background
