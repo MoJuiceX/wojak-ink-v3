@@ -28,6 +28,7 @@ import {
 } from '@/components/gallery';
 import { NFTGridItem } from '@/components/gallery/NFTGridItem';
 import type { CharacterType } from '@/types/nft';
+import { PageSEO } from '@/components/seo';
 
 const ITEMS_PER_PAGE = 100;
 
@@ -341,6 +342,11 @@ function GalleryContent() {
 
   return (
     <PageTransition>
+      <PageSEO
+        title="NFT Gallery - Browse 4,200 Wojak Farmers Plot NFTs"
+        description="Explore the complete Wojak Farmers Plot NFT collection on Chia blockchain. Filter by 14 character types including Wojak, Soyjak, Waifu, Chad, and more. View rarity scores and sales history."
+        path="/gallery"
+      />
       {/* SEO H1 - visually hidden but accessible */}
       <h1 className="sr-only">Wojak Farmers Plot NFT Gallery - Browse 4,200 Unique NFTs</h1>
 

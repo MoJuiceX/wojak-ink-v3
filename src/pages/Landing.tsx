@@ -18,6 +18,7 @@ import { CommunityPreview } from '@/components/landing/CommunityPreview';
 import { ScrollNav } from '@/components/landing/ScrollNav';
 import { FinalCTA } from '@/components/landing/FinalCTA';
 import { SectionFloatingNFTs } from '@/components/landing/SectionFloatingNFTs';
+import { PageSEO } from '@/components/seo';
 import './Landing.css';
 
 const SECTIONS = [
@@ -62,6 +63,11 @@ export const Landing = () => {
 
   return (
     <div className="landing-page" ref={containerRef}>
+      <PageSEO
+        title="Wojak.ink - NFT Games & Community on Chia Blockchain"
+        description="Explore 4,200 Wojak Farmers Plot NFTs, play 15 free arcade games, get AI-powered insights from BigPulp, and create custom avatars. The ultimate NFT gaming community on Chia."
+        path="/"
+      />
       {/* Side Navigation Dots */}
       <ScrollNav
         sections={SECTIONS}

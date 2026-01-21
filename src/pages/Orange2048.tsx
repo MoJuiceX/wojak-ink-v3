@@ -296,6 +296,13 @@ const Orange2048: React.FC = () => {
 
   return (
     <IonPage>
+      <GameSEO
+        gameName="Merge 2048"
+        gameSlug="merge-2048"
+        description="Slide and merge tiles to reach 2048! Strategic puzzle gameplay with satisfying combinations and endless replayability."
+        genre="Puzzle"
+        difficulty="Medium"
+      />
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">

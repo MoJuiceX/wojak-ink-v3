@@ -949,6 +949,13 @@ const MemoryMatch: React.FC = () => {
 
   return (
     <div className={`memory-container ${gameState === 'playing' ? 'playing-mode' : ''} ${gameState === 'playing' ? getUrgencyClass(urgencyLevel) : ''}`}>
+      <GameSEO
+        gameName="Memory Match"
+        gameSlug="memory"
+        description="Test your memory with this classic card-matching game! Find all the pairs before time runs out across multiple challenging rounds."
+        genre="Puzzle"
+        difficulty="Easy"
+      />
       {/* Dev Panel - Top Left, small buttons for testing levels */}
       {showDevPanel && (
         <div className="mm-dev-panel">

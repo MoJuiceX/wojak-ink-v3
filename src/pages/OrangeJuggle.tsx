@@ -1243,6 +1243,13 @@ const OrangeJuggle: React.FC = () => {
 
   return (
     <div className={`juggle-container ${gameState === 'playing' ? 'playing-mode' : ''}`}>
+      <GameSEO
+        gameName="Orange Juggle"
+        gameSlug="juggle"
+        description="Keep the oranges in the air! Tap to bounce them and don't let any fall. Increasingly challenging levels test your reflexes."
+        genre="Arcade"
+        difficulty="Hard"
+      />
       {/* PLAYING STATE: Game fills the container */}
       {gameState === 'playing' && (
         <div className="game-layout">

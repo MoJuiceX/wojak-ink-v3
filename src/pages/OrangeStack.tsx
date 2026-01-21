@@ -1076,6 +1076,13 @@ const OrangeStack: React.FC = () => {
 
   return (
     <div className="stack-container">
+      <GameSEO
+        gameName="Orange Stack"
+        gameSlug="stack"
+        description="Stack falling blocks as high as you can! Test your timing and precision in this addictive tower-building arcade game."
+        genre="Puzzle"
+        difficulty="Hard"
+      />
       {/* Mute button - top right, under the close button */}
       {gameState === 'playing' && (
         <button

@@ -483,6 +483,13 @@ const WojakRunner: React.FC = () => {
 
   return (
     <div className={`runner-container ${gameState === 'playing' ? 'playing-mode' : ''}`}>
+      <GameSEO
+        gameName="Wojak Runner"
+        gameSlug="runner"
+        description="Run, dodge, and collect coins in this endless runner! Swipe to change lanes and avoid obstacles as the speed increases."
+        genre="Arcade"
+        difficulty="Hard"
+      />
       {/* PLAYING STATE: Game Layout with Stats Panel on LEFT */}
       {gameState === 'playing' && (
         <div className="game-layout">

@@ -22,6 +22,7 @@ import {
 import { MyWojaksModal } from '@/components/bigpulp/MyWojaksModal';
 import { ALL_BADGES_FILTER } from '@/components/bigpulp/HeatMap';
 import { useSageWallet } from '@/sage-wallet';
+import { PageSEO } from '@/components/seo';
 
 // Wojak Farmers Plot collection ID on MintGarden
 const WOJAK_COLLECTION_ID = 'col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah';
@@ -391,6 +392,11 @@ function BigPulpContent() {
 
   return (
     <PageTransition>
+      <PageSEO
+        title="BigPulp AI - NFT Intelligence & Market Analysis"
+        description="Get AI-powered insights on Wojak Farmers Plot NFTs. Analyze trait rarity, view sales history, explore market heatmaps, and discover valuable combos. Your NFT intelligence companion on Chia blockchain."
+        path="/bigpulp"
+      />
       <div style={{ padding: contentPadding }}>
         {/* SEO H1 - visually hidden but accessible */}
         <h1 className="sr-only">BigPulp AI - Wojak Farmers NFT Intelligence & Analysis</h1>

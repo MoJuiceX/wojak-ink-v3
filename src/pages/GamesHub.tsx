@@ -29,6 +29,7 @@ import {
 import { useFlickVoting } from '@/hooks/useFlickVoting';
 import { SoundManager } from '@/systems/audio';
 import '@/styles/voting.css';
+import { PageSEO } from '@/components/seo';
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -273,10 +274,33 @@ export default function GamesHub() {
     />
   );
 
+  const gameSEO = (
+    <PageSEO
+      title="Free Arcade Games - 15 Browser Games with Leaderboards"
+      description="Play 15 free arcade games including Flappy Orange, Snake, 2048, Memory Match, and more. Compete on global leaderboards, earn rewards, and challenge friends. No download required!"
+      path="/games"
+      structuredData={{
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: 'Wojak.ink Arcade Games',
+        description: 'Collection of 15 free browser-based arcade games',
+        numberOfItems: 15,
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Flappy Orange', url: 'https://wojak.ink/games/flappy' },
+          { '@type': 'ListItem', position: 2, name: 'Memory Match', url: 'https://wojak.ink/games/memory' },
+          { '@type': 'ListItem', position: 3, name: 'Orange Snake', url: 'https://wojak.ink/games/snake' },
+          { '@type': 'ListItem', position: 4, name: 'Block Puzzle', url: 'https://wojak.ink/games/block-puzzle' },
+          { '@type': 'ListItem', position: 5, name: 'Brick Breaker', url: 'https://wojak.ink/games/brick-breaker' },
+        ],
+      }}
+    />
+  );
+
   // Desktop: 3-column layout that fits viewport
   if (isDesktop) {
     return (
       <PageTransition>
+        {gameSEO}
         <div
           ref={containerRef}
           className={activeMode ? 'flick-mode-active' : ''}
@@ -360,6 +384,7 @@ export default function GamesHub() {
   // Mobile: Scrollable single column
   return (
     <PageTransition>
+      {gameSEO}
       <div
         ref={containerRef}
         className={activeMode ? 'flick-mode-active' : ''}

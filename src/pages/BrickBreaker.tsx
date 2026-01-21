@@ -14,6 +14,7 @@ import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LEVELS, generateRandomLevel } from './brickLevels';
+import { GameSEO } from '@/components/seo';
 import './BrickBreaker.css';
 
 // =============================================================================
@@ -1781,6 +1782,13 @@ export default function BrickBreaker() {
       ref={containerRef}
       className={`brick-breaker-container ${isMobile ? 'mobile' : ''}`}
     >
+      <GameSEO
+        gameName="Brick Breaker"
+        gameSlug="brick-breaker"
+        description="Smash bricks with your paddle and ball! Collect powerups, clear levels, and chase high scores in this classic breakout-style arcade game."
+        genre="Arcade"
+        difficulty="Medium"
+      />
       {/* Control buttons */}
       <button
         className="bb-back-btn"

@@ -16,6 +16,7 @@ import {
   WalletAddressCard,
 } from '@/components/treasury';
 import { WALLET_ADDRESS, SPACESCAN_WALLET_URL } from '@/services/constants';
+import { PageSEO } from '@/components/seo';
 import './Treasury.css';
 
 function TreasuryContent() {
@@ -42,6 +43,11 @@ function TreasuryContent() {
 
   return (
     <PageTransition>
+      <PageSEO
+        title="Community Treasury - Wojak Farmers Portfolio"
+        description="Explore the Wojak Farmers community treasury. View XCH holdings, CAT tokens, and NFT collections in an interactive bubble visualization. Track portfolio value in real-time."
+        path="/treasury"
+      />
       <div className="treasury-page" style={{ padding: Math.min(contentPadding, 16) }}>
         {/*
           3-COLUMN RESPONSIVE LAYOUT

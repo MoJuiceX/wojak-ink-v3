@@ -14,6 +14,7 @@ import { useGameEffects } from '@/components/media';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { GameSEO } from '@/components/seo';
 import './WojakWhack.css';
 
 // =============================================================================
@@ -493,6 +494,13 @@ export default function WojakWhack() {
 
   return (
     <div className={`wojak-whack-container ${isMobile ? 'mobile' : ''}`}>
+      <GameSEO
+        gameName="Wojak Whack"
+        gameSlug="whack"
+        description="Whack the Wojaks as they pop up! Quick reflexes earn big points, but watch out for the bad ones. Classic whack-a-mole action!"
+        genre="Arcade"
+        difficulty="Easy"
+      />
       {/* Control buttons */}
       <button
         className="ww-back-btn"

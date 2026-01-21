@@ -942,6 +942,13 @@ const OrangeSnake: React.FC = () => {
       ref={containerRef}
       className={`orange-snake-container ${isMobile ? 'mobile' : 'desktop'}`}
     >
+      <GameSEO
+        gameName="Orange Snake"
+        gameSlug="snake"
+        description="Guide your snake to eat oranges and grow longer! Avoid walls and your own tail in this classic arcade game with a citrus twist."
+        genre="Arcade"
+        difficulty="Easy"
+      />
       {/* Sound Button */}
       <button
         className="osn-sound-btn"

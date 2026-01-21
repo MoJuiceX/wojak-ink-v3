@@ -18,12 +18,18 @@ import {
   ExportPanel,
   StickyMiniPreview,
 } from '@/components/generator';
+import { PageSEO } from '@/components/seo';
 
 function GeneratorContent() {
   const { isDesktop } = useLayout();
 
   return (
     <PageTransition>
+      <PageSEO
+        title="Wojak Avatar Generator - Create Custom NFT Characters"
+        description="Design your own Wojak avatar with our 6-layer customization system. Choose from hundreds of traits including heads, eyes, mouths, clothing, and backgrounds. Save favorites and export high-quality images."
+        path="/generator"
+      />
       <div className="generator-page">
         <div className="generator-content">
           {/* Left: Preview Section with Category Tabs */}

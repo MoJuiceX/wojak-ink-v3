@@ -15,6 +15,7 @@ import { useGameEffects } from '@/components/media';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { GameSEO } from '@/components/seo';
 import './CitrusDrop.css';
 
 const { Engine, World, Bodies, Body, Events } = Matter;
@@ -793,6 +794,13 @@ const CitrusDrop: React.FC = () => {
       ref={containerRef}
       className={`citrus-drop-container ${isMobile ? 'mobile' : ''}`}
     >
+      <GameSEO
+        gameName="Citrus Drop"
+        gameSlug="citrus-drop"
+        description="Drop and merge citrus fruits in this Suika-style puzzle game! Combine matching fruits to create bigger ones and score points."
+        genre="Puzzle"
+        difficulty="Easy"
+      />
       {/* Control Buttons */}
       <button className="cd-back-btn" onClick={handleBack} aria-label="Back to games">
         ←

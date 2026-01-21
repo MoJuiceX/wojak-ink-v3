@@ -917,6 +917,13 @@ const ColorReaction: React.FC = () => {
 
   return (
     <IonPage>
+      <GameSEO
+        gameName="Color Reaction"
+        gameSlug="color-reaction"
+        description="Test your reflexes! Tap when the colors match in this fast-paced reaction game. Build combos and chase high scores."
+        genre="Arcade"
+        difficulty="Easy"
+      />
       <IonContent fullscreen scrollY={false}>
         <div
           className={`color-reaction-container ${isMobile ? 'mobile' : 'desktop'} ${screenShake && !prefersReducedMotion ? 'shaking' : ''} ${gameState.isMatchWindow ? `container-urgency-${urgencyLevel}` : ''} ${perfectFlash && !prefersReducedMotion ? 'perfect-flash' : ''} ${backgroundPulse && !prefersReducedMotion ? 'background-pulse' : ''} ${streakFire && !prefersReducedMotion ? 'streak-fire' : ''} ${lastLifeWarning ? 'last-life-danger' : ''} ${prefersReducedMotion ? 'reduced-motion' : ''} ${feverMode ? `fever-mode fever-intensity-${feverIntensity}` : ''} ${feverActivating ? 'fever-activating' : ''} ${cameraZoom && !prefersReducedMotion ? 'camera-zoom' : ''} ${hitStop ? 'hit-stop' : ''}`}

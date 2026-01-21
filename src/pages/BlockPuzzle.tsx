@@ -2258,6 +2258,13 @@ const BlockPuzzle: React.FC = () => {
       ref={containerRef}
       className={`block-puzzle-container ${isMobile ? 'mobile' : 'desktop'}`}
     >
+      <GameSEO
+        gameName="Block Puzzle"
+        gameSlug="block-puzzle"
+        description="Drag and drop blocks to fill rows and columns! Strategic puzzle gameplay with combos, streaks, and satisfying line clears."
+        genre="Puzzle"
+        difficulty="Medium"
+      />
       {/* Control Buttons */}
       <button
         className="bp-back-btn"

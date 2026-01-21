@@ -543,6 +543,13 @@ const OrangePong: React.FC = () => {
 
   return (
     <div ref={containerRef} className="pong-container">
+      <GameSEO
+        gameName="Orange Pong"
+        gameSlug="pong"
+        description="Classic pong gameplay with a citrus twist! Control your paddle, bounce the ball, and rack up points in this retro-style arcade game."
+        genre="Arcade"
+        difficulty="Medium"
+      />
       {/* Animated background elements - only show on menu and game over */}
       {gameState !== 'playing' && (
         <div className="pong-bg-elements">

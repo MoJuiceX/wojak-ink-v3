@@ -96,6 +96,13 @@ const KnifeGame: React.FC = () => {
 
   return (
     <IonPage>
+      <GameSEO
+        gameName="Knife Game"
+        gameSlug="knife"
+        description="The classic knife game - test your nerve! Stab between your fingers as fast as you can without cutting yourself."
+        genre="Arcade"
+        difficulty="Hard"
+      />
       <IonContent fullscreen className="knife-content" scrollY={false}>
         <div className="knife-area">
           <div className="game-menu-split">
