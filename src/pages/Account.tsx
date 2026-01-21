@@ -22,12 +22,15 @@ import {
   Bell,
   Flame,
   Trophy,
+  Pencil,
 } from 'lucide-react';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useLayout } from '@/hooks/useLayout';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useSageWallet } from '@/sage-wallet';
 import { MessagesModal } from '@/components/settings/MessagesModal';
+import { Avatar } from '@/components/Avatar/Avatar';
+import { AvatarPickerModal } from '@/components/AvatarPicker/AvatarPickerModal';
 
 // Check if Clerk is configured
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -174,6 +177,7 @@ export default function Account() {
     isLoading: _isLoading,
     updateProfile,
     unreadMessages,
+    effectiveDisplayName,
   } = useUserProfile();
 
   // Use the new Sage Wallet hook
@@ -187,6 +191,7 @@ export default function Account() {
   } = useSageWallet();
 
   const [showMessagesModal, setShowMessagesModal] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [nftCount, setNftCount] = useState<number | null>(null);
   const [isLoadingNfts, setIsLoadingNfts] = useState(false);
 
@@ -370,51 +375,59 @@ export default function Account() {
               {/* Always show content - don't block on profile loading */}
               {(
                 <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
-                  {/* User Info Header with Animated Avatar */}
+                  {/* User Info Header with Clickable Avatar */}
                   <div className="p-6 flex items-center gap-4">
-                    {/* Avatar with animated ring */}
-                    <div className="relative" style={{ width: 72, height: 72 }}>
-                      {/* Spinning gold ring */}
-                      <motion.div
-                        className="absolute inset-0 rounded-full"
-                        style={{
-                          border: '2px solid transparent',
-                          borderTopColor: '#FFD700',
-                          borderRightColor: 'rgba(255, 215, 0, 0.3)',
-                        }}
-                        animate={prefersReducedMotion ? {} : { rotate: 360 }}
-                        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                      />
-                      {/* Avatar image */}
-                      {clerkUser?.imageUrl ? (
-                        <img
-                          src={clerkUser.imageUrl}
-                          alt="Profile"
-                          className="w-full h-full rounded-full"
-                          style={{
-                            border: '3px solid #F97316',
-                            boxShadow: '0 0 20px rgba(249, 115, 22, 0.4), inset 0 0 20px rgba(249, 115, 22, 0.1)',
-                          }}
+                    {/* Clickable Avatar with edit overlay */}
+                    <div className="flex flex-col items-center gap-1">
+                      <button
+                        onClick={() => setShowAvatarPicker(true)}
+                        className="relative group cursor-pointer"
+                        style={{ width: 72, height: 72 }}
+                        aria-label="Change avatar"
+                      >
+                        {/* Spinning gold ring for NFT holders */}
+                        {profile?.avatar?.type === 'nft' && (
+                          <motion.div
+                            className="absolute inset-0 rounded-full"
+                            style={{
+                              border: '2px solid transparent',
+                              borderTopColor: '#FFD700',
+                              borderRightColor: 'rgba(255, 215, 0, 0.3)',
+                            }}
+                            animate={prefersReducedMotion ? {} : { rotate: 360 }}
+                            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                          />
+                        )}
+                        {/* Avatar */}
+                        <Avatar
+                          avatar={profile?.avatar}
+                          size="xlarge"
+                          isNftHolder={profile?.avatar?.type === 'nft'}
                         />
-                      ) : (
+                        {/* Edit overlay - always visible on mobile, hover on desktop */}
                         <div
-                          className="w-full h-full rounded-full flex items-center justify-center"
+                          className="absolute inset-0 rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                           style={{
-                            background: 'linear-gradient(135deg, #F97316, #EA580C)',
-                            border: '3px solid #F97316',
-                            boxShadow: '0 0 20px rgba(249, 115, 22, 0.4)',
+                            background: 'rgba(0, 0, 0, 0.5)',
                           }}
                         >
-                          <User size={32} style={{ color: '#fff' }} />
+                          <Pencil size={20} style={{ color: '#fff' }} />
                         </div>
-                      )}
+                      </button>
+                      {/* Hint text */}
+                      <span
+                        className="text-[10px] font-medium"
+                        style={{ color: 'var(--color-text-tertiary)' }}
+                      >
+                        Tap to change
+                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p
                         className="text-lg font-bold truncate"
                         style={{ color: 'var(--color-text-primary)' }}
                       >
-                        {profile?.displayName || clerkUser?.firstName || 'User'}
+                        {effectiveDisplayName}
                       </p>
                       <p
                         className="text-sm truncate"
@@ -713,6 +726,10 @@ export default function Account() {
       <MessagesModal
         isOpen={showMessagesModal}
         onClose={() => setShowMessagesModal(false)}
+      />
+      <AvatarPickerModal
+        isOpen={showAvatarPicker}
+        onClose={() => setShowAvatarPicker(false)}
       />
     </PageTransition>
   );
