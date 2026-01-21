@@ -30,10 +30,10 @@ const CACHE_FRESH_DURATION = 15 * 60 * 1000;
 // API timeout (15 seconds)
 const API_TIMEOUT = 15000;
 
-// API base URLs (use proxy in dev, direct in prod)
+// API base URLs (use proxy in dev and prod to avoid CORS)
 const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-const SPACESCAN_API = isDev ? '/spacescan-api' : 'https://api.spacescan.io';
-const COINGECKO_API = isDev ? '/coingecko-api' : 'https://api.coingecko.com';
+const SPACESCAN_API = isDev ? '/spacescan-api' : '/api/spacescan';
+const COINGECKO_API = isDev ? '/coingecko-api' : '/api/coingecko';
 
 // ============================================
 // TYPES

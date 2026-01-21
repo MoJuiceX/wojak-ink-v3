@@ -14,7 +14,7 @@ import { treasuryService } from './treasuryService';
 // Dev: Vite proxy, Prod: Cloudflare Pages Function
 const isDev = import.meta.env.DEV;
 const SPACESCAN_API = isDev ? '/spacescan-api' : '/api/spacescan';
-const COINGECKO_API = isDev ? '/coingecko-api' : 'https://api.coingecko.com';
+const COINGECKO_API = isDev ? '/coingecko-api' : '/api/coingecko';
 
 // Types
 export interface TokenBalance {

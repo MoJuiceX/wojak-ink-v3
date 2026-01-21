@@ -44,7 +44,7 @@ export const CommunityPreview: React.FC = () => {
           const isDev = import.meta.env.DEV;
           const priceUrl = isDev
             ? '/coingecko-api/api/v3/simple/price?ids=chia&vs_currencies=usd'
-            : 'https://api.coingecko.com/api/v3/simple/price?ids=chia&vs_currencies=usd';
+            : '/api/coingecko/api/v3/simple/price?ids=chia&vs_currencies=usd';
           const priceRes = await fetch(priceUrl);
           if (priceRes.ok) {
             const priceData = await priceRes.json();
