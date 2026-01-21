@@ -1,12 +1,40 @@
 /**
- * Public Profile API
+ * Unified Profile API (SPEC 15)
  *
- * GET /api/profile/:userId - Fetch public profile data
+ * GET /api/profile/:userId - Fetch comprehensive profile data for unified profile page
+ *
+ * Returns:
+ * - User basics (name, bio, title, socials)
+ * - Avatar and customization settings
+ * - Overview stats (level, items, achievements, streak, rank)
+ * - Detailed stats for Stats tab
+ * - Collection items for Collection tab
+ * - Achievements and progress for Achievements tab
+ * - Featured items, activities, game scores for Overview tab
  */
 
 interface Env {
   DB: D1Database;
 }
+
+// Game ID to name mapping
+const GAME_NAMES: Record<string, string> = {
+  'flappy-orange': 'Flappy Orange',
+  'orange-stack': 'Orange Stack',
+  'memory-match': 'Memory Match',
+  'orange-pong': 'Orange Pong',
+  'wojak-runner': 'Wojak Runner',
+  'orange-juggle': 'Orange Juggle',
+  'knife-game': 'Knife Game',
+  'block-puzzle': 'Block Puzzle',
+  'citrus-drop': 'Citrus Drop',
+  'orange-snake': 'Orange Snake',
+  'brick-breaker': 'Brick Breaker',
+  'wojak-whack': 'Wojak Whack',
+  'color-reaction': 'Color Reaction',
+  'merge-2048': 'Merge 2048',
+  'orange-wordle': 'Orange Wordle',
+};
 
 // CORS headers
 const corsHeaders = {
@@ -28,21 +56,25 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    // Fetch profile
+    // Fetch basic profile
     const profile = await env.DB.prepare(`
       SELECT
-        user_id,
-        display_name,
-        x_handle,
-        wallet_address,
-        avatar_type,
-        avatar_value,
-        avatar_source,
-        avatar_nft_id,
-        owned_nft_ids,
-        updated_at
-      FROM profiles
-      WHERE user_id = ?
+        p.user_id,
+        p.display_name,
+        p.x_handle,
+        p.wallet_address,
+        p.avatar_type,
+        p.avatar_value,
+        p.avatar_source,
+        p.avatar_nft_id,
+        p.owned_nft_ids,
+        p.current_streak,
+        p.longest_streak,
+        p.updated_at,
+        u.created_at
+      FROM profiles p
+      LEFT JOIN users u ON p.user_id = u.id
+      WHERE p.user_id = ?
     `).bind(userId).first<{
       user_id: string;
       display_name: string | null;
@@ -53,7 +85,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       avatar_source: string | null;
       avatar_nft_id: string | null;
       owned_nft_ids: string | null;
+      current_streak: number | null;
+      longest_streak: number | null;
       updated_at: string;
+      created_at: string | null;
     }>();
 
     if (!profile) {
@@ -63,103 +98,414 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       });
     }
 
-    // Fetch currency (optional)
-    let currency: { oranges: number; gems: number } | null = null;
+    // Fetch currency
+    let oranges = 0;
+    let gems = 0;
+    let lifetimeOranges = 0;
+    let totalSpent = 0;
     try {
-      currency = await env.DB.prepare(`
-        SELECT oranges, gems FROM user_currency WHERE user_id = ?
-      `).bind(userId).first<{ oranges: number; gems: number }>();
+      const currency = await env.DB.prepare(`
+        SELECT oranges, gems, lifetime_earned, lifetime_spent
+        FROM user_currency WHERE user_id = ?
+      `).bind(userId).first<{
+        oranges: number;
+        gems: number;
+        lifetime_earned: number | null;
+        lifetime_spent: number | null;
+      }>();
+      if (currency) {
+        oranges = currency.oranges;
+        gems = currency.gems;
+        lifetimeOranges = currency.lifetime_earned || oranges;
+        totalSpent = currency.lifetime_spent || 0;
+      }
     } catch {
-      // user_currency table may not exist
+      // Table may not exist
     }
 
-    // Fetch game scores (optional)
-    let gameScores: any[] = [];
+    // Fetch drawer customization settings
+    let customization: Record<string, any> | null = null;
+    try {
+      customization = await env.DB.prepare(`
+        SELECT
+          font_color as username_color,
+          font_style as username_style,
+          page_background as banner_style,
+          avatar_glow,
+          avatar_size
+        FROM drawer_customization WHERE user_id = ?
+      `).bind(userId).first();
+    } catch {
+      // Table may not exist
+    }
+
+    // Fetch equipped frame
+    let frame: { id: string; css_class: string } | null = null;
+    try {
+      const frameResult = await env.DB.prepare(`
+        SELECT ui.item_id, sc.css_class
+        FROM user_inventory ui
+        JOIN shop_catalog sc ON ui.item_id = sc.id
+        WHERE ui.user_id = ? AND ui.equipped = 1 AND sc.category = 'frame'
+        LIMIT 1
+      `).bind(userId).first<{ item_id: string; css_class: string | null }>();
+      if (frameResult) {
+        frame = { id: frameResult.item_id, css_class: frameResult.css_class || '' };
+      }
+    } catch {
+      // Tables may not exist
+    }
+
+    // Fetch emoji ring (equipped emojis)
+    let emojiRing: Record<string, string> = {};
+    try {
+      const emojis = await env.DB.prepare(`
+        SELECT ui.item_id, sc.icon
+        FROM user_inventory ui
+        JOIN shop_catalog sc ON ui.item_id = sc.id
+        WHERE ui.user_id = ? AND ui.equipped = 1 AND sc.category = 'emoji_badge'
+        LIMIT 4
+      `).bind(userId).all<{ item_id: string; icon: string }>();
+      if (emojis.results) {
+        emojis.results.forEach((e, i) => {
+          emojiRing[`slot${i + 1}`] = e.icon || '';
+        });
+      }
+    } catch {
+      // Tables may not exist
+    }
+
+    // Fetch equipped title
+    let title: string | null = null;
+    try {
+      const titleResult = await env.DB.prepare(`
+        SELECT sc.name
+        FROM user_inventory ui
+        JOIN shop_catalog sc ON ui.item_id = sc.id
+        WHERE ui.user_id = ? AND ui.equipped = 1 AND sc.category = 'title'
+        LIMIT 1
+      `).bind(userId).first<{ name: string }>();
+      if (titleResult) {
+        title = titleResult.name;
+      }
+    } catch {
+      // Tables may not exist
+    }
+
+    // Fetch BigPulp configuration
+    let bigpulp: { hat: string | null; mood: string; accessory: string | null } | null = null;
+    try {
+      const bpHat = await env.DB.prepare(`
+        SELECT sc.css_value
+        FROM user_inventory ui
+        JOIN shop_catalog sc ON ui.item_id = sc.id
+        WHERE ui.user_id = ? AND ui.equipped = 1 AND sc.category = 'bigpulp_hat'
+        LIMIT 1
+      `).bind(userId).first<{ css_value: string }>();
+
+      const bpMood = await env.DB.prepare(`
+        SELECT sc.css_value
+        FROM user_inventory ui
+        JOIN shop_catalog sc ON ui.item_id = sc.id
+        WHERE ui.user_id = ? AND ui.equipped = 1 AND sc.category = 'bigpulp_mood'
+        LIMIT 1
+      `).bind(userId).first<{ css_value: string }>();
+
+      const bpAccessory = await env.DB.prepare(`
+        SELECT sc.css_value
+        FROM user_inventory ui
+        JOIN shop_catalog sc ON ui.item_id = sc.id
+        WHERE ui.user_id = ? AND ui.equipped = 1 AND sc.category = 'bigpulp_accessory'
+        LIMIT 1
+      `).bind(userId).first<{ css_value: string }>();
+
+      if (bpMood || bpHat || bpAccessory) {
+        bigpulp = {
+          hat: bpHat?.css_value || null,
+          mood: bpMood?.css_value || 'happy',
+          accessory: bpAccessory?.css_value || null,
+        };
+      }
+    } catch {
+      // Tables may not exist
+    }
+
+    // Fetch collection items (owned shop items)
+    let collectionItems: Array<{
+      id: string;
+      name: string;
+      category: string;
+      rarity: string;
+      icon: string | null;
+      css_class: string | null;
+    }> = [];
+    try {
+      const items = await env.DB.prepare(`
+        SELECT sc.id, sc.name, sc.category, sc.rarity, sc.icon, sc.css_class
+        FROM user_inventory ui
+        JOIN shop_catalog sc ON ui.item_id = sc.id
+        WHERE ui.user_id = ?
+        ORDER BY sc.rarity DESC, sc.category, sc.name
+      `).bind(userId).all();
+      collectionItems = (items.results || []).map((i: any) => ({
+        id: i.id,
+        name: i.name,
+        category: i.category,
+        rarity: i.rarity || 'common',
+        icon: i.icon,
+        css_class: i.css_class,
+      }));
+    } catch {
+      // Tables may not exist
+    }
+
+    // Fetch game scores with ranks
+    let gameScores: Array<{
+      gameId: string;
+      gameName: string;
+      score: number;
+      rank: number | null;
+    }> = [];
+    let totalScore = 0;
+    let gamesPlayed = 0;
+    let bestRank: number | null = null;
+    let highestRankGame: string | null = null;
+    let firstPlaceCount = 0;
     try {
       const scores = await env.DB.prepare(`
         SELECT
-          ls.game_id,
-          MAX(ls.score) as high_score,
-          MAX(ls.created_at) as last_played
-        FROM leaderboard_scores ls
-        WHERE ls.user_id = ?
-        GROUP BY ls.game_id
+          game_id,
+          MAX(score) as high_score,
+          COUNT(*) as play_count
+        FROM leaderboard_scores
+        WHERE user_id = ?
+        GROUP BY game_id
       `).bind(userId).all();
 
-      // Calculate ranks for each game
-      gameScores = await Promise.all(
-        (scores.results || []).map(async (s: any) => {
-          try {
-            const rankResult = await env.DB.prepare(`
-              SELECT COUNT(*) + 1 as rank
-              FROM (
-                SELECT user_id, MAX(score) as max_score
-                FROM leaderboard_scores
-                WHERE game_id = ?
-                GROUP BY user_id
-              ) ranked
-              WHERE max_score > ?
-            `).bind(s.game_id, s.high_score).first<{ rank: number }>();
+      for (const s of (scores.results || []) as any[]) {
+        totalScore += s.high_score || 0;
+        gamesPlayed += s.play_count || 0;
 
-            return {
-              gameId: s.game_id,
-              highScore: s.high_score,
-              rank: rankResult?.rank || null,
-              lastPlayed: s.last_played,
-            };
-          } catch {
-            return {
-              gameId: s.game_id,
-              highScore: s.high_score,
-              rank: null,
-              lastPlayed: s.last_played,
-            };
+        // Get rank
+        let rank: number | null = null;
+        try {
+          const rankResult = await env.DB.prepare(`
+            SELECT COUNT(*) + 1 as rank
+            FROM (
+              SELECT user_id, MAX(score) as max_score
+              FROM leaderboard_scores
+              WHERE game_id = ?
+              GROUP BY user_id
+            ) ranked
+            WHERE max_score > ?
+          `).bind(s.game_id, s.high_score).first<{ rank: number }>();
+          rank = rankResult?.rank || null;
+
+          if (rank === 1) firstPlaceCount++;
+          if (rank && (!bestRank || rank < bestRank)) {
+            bestRank = rank;
+            highestRankGame = s.game_id;
           }
-        })
-      );
+        } catch {
+          // Ignore rank calculation errors
+        }
+
+        gameScores.push({
+          gameId: s.game_id,
+          gameName: GAME_NAMES[s.game_id] || s.game_id,
+          score: s.high_score,
+          rank,
+        });
+      }
+
+      // Sort by score descending
+      gameScores.sort((a, b) => b.score - a.score);
     } catch {
-      // leaderboard_scores table may not exist
+      // Tables may not exist
     }
 
-    // Fetch owned items (optional)
-    let ownedItems: any[] = [];
+    // Fetch achievements and progress
+    let achievements: Array<{
+      id: string;
+      name: string;
+      description: string;
+      icon: string;
+      category: string;
+      rarity: string;
+      reward: { oranges: number; gems: number };
+      isSecret: boolean;
+    }> = [];
+    let achievementProgress: Record<string, {
+      achievementId: string;
+      progress: number;
+      target: number;
+      completed: boolean;
+      completedAt: string | null;
+      claimed: boolean;
+    }> = {};
+    let achievementsCompleted = 0;
+    let achievementsTotal = 0;
     try {
-      const items = await env.DB.prepare(`
-        SELECT item_id, purchased_at FROM user_inventory WHERE user_id = ?
+      // Fetch all achievements
+      const achievementDefs = await env.DB.prepare(`
+        SELECT id, name, description, icon, category, rarity, reward_oranges, reward_gems, target, is_secret
+        FROM achievements
+        WHERE is_active = 1
+        ORDER BY sort_order, rarity DESC
+      `).all();
+
+      achievements = (achievementDefs.results || []).map((a: any) => ({
+        id: a.id,
+        name: a.name,
+        description: a.description,
+        icon: a.icon || '🏆',
+        category: a.category || 'milestone',
+        rarity: a.rarity || 'common',
+        reward: { oranges: a.reward_oranges || 0, gems: a.reward_gems || 0 },
+        isSecret: a.is_secret === 1,
+      }));
+      achievementsTotal = achievements.length;
+
+      // Fetch user's progress
+      const progress = await env.DB.prepare(`
+        SELECT achievement_id, progress, completed, completed_at, claimed
+        FROM user_achievements
+        WHERE user_id = ?
       `).bind(userId).all();
-      ownedItems = (items.results || []).map((i: any) => ({ id: i.item_id }));
+
+      for (const p of (progress.results || []) as any[]) {
+        const achDef = achievements.find(a => a.id === p.achievement_id);
+        achievementProgress[p.achievement_id] = {
+          achievementId: p.achievement_id,
+          progress: p.progress || 0,
+          target: achDef ? (achievementDefs.results?.find((a: any) => a.id === p.achievement_id) as any)?.target || 1 : 1,
+          completed: p.completed === 1,
+          completedAt: p.completed_at,
+          claimed: p.claimed === 1,
+        };
+        if (p.completed === 1) achievementsCompleted++;
+      }
     } catch {
-      // user_inventory table may not exist
+      // Tables may not exist
     }
 
-    // Safely parse owned_nft_ids
+    // Fetch friends count
+    let friendsCount = 0;
+    try {
+      const friendsResult = await env.DB.prepare(`
+        SELECT COUNT(*) as count FROM friends WHERE user_id = ? AND status = 'accepted'
+      `).bind(userId).first<{ count: number }>();
+      friendsCount = friendsResult?.count || 0;
+    } catch {
+      // Table may not exist
+    }
+
+    // Calculate level from lifetime oranges (simple formula)
+    const level = Math.floor(Math.sqrt(lifetimeOranges / 100)) + 1;
+
+    // Parse owned NFT IDs
     let ownedNftIds: string[] = [];
     if (profile.owned_nft_ids) {
       try {
         ownedNftIds = JSON.parse(profile.owned_nft_ids);
-      } catch (e) {
-        console.warn('[Profile API] Failed to parse owned_nft_ids:', e);
+      } catch {
+        // Invalid JSON, ignore
       }
     }
 
-    return new Response(JSON.stringify({
+    // Build the comprehensive response
+    const response = {
+      // User basics
       userId: profile.user_id,
       displayName: profile.display_name || 'Player',
+      bio: null as string | null, // TODO: Add bio field to profiles table
+      title,
+      xHandle: profile.x_handle,
+      discord: null as string | null, // TODO: Add discord field
+      location: null as string | null, // TODO: Add location field
+      createdAt: profile.created_at || profile.updated_at,
+
+      // Avatar & customization
       avatar: {
         type: profile.avatar_type || 'emoji',
         value: profile.avatar_value || '🎮',
-        source: profile.avatar_source || 'default',
         nftId: profile.avatar_nft_id,
       },
-      xHandle: profile.x_handle,
-      walletAddress: profile.wallet_address,
-      updatedAt: profile.updated_at,
-      oranges: currency?.oranges || 0,
-      gems: currency?.gems || 0,
-      ownedNftIds,
+      frame,
+      emojiRing: Object.keys(emojiRing).length > 0 ? emojiRing : undefined,
+      customization: customization ? {
+        banner_style: customization.banner_style,
+        username_color: customization.username_color,
+        username_style: customization.username_style,
+        avatar_glow: customization.avatar_glow,
+        avatar_size: customization.avatar_size,
+      } : undefined,
+
+      // BigPulp
+      bigpulp,
+
+      // Stats
+      level,
+      oranges,
+      gems,
+
+      // Overview stats
+      overviewStats: {
+        level,
+        itemsOwned: collectionItems.length,
+        achievementsCompleted,
+        achievementsTotal,
+        currentStreak: profile.current_streak || 0,
+        bestRank,
+      },
+
+      // Detailed stats for Stats tab
+      detailedStats: {
+        memberSince: profile.created_at || profile.updated_at,
+        currentStreak: profile.current_streak || 0,
+        longestStreak: profile.longest_streak || 0,
+        profileViews: undefined, // TODO: Add visitor tracking
+        level,
+        lifetimeOranges,
+        totalSpent,
+        currentBalance: oranges,
+        itemsOwned: collectionItems.length,
+        gems,
+        gamesPlayed,
+        totalScore,
+        bestGame: highestRankGame ? GAME_NAMES[highestRankGame] : undefined,
+        highestRank: bestRank || undefined,
+        firstPlaceCount,
+        friendsCount,
+        guildName: undefined, // TODO: Add guild support
+        giftsSent: 0, // TODO: Add gift tracking
+        giftsReceived: 0,
+        challengesWon: 0, // TODO: Add challenge tracking
+      },
+
+      // Featured items (user can pin items)
+      featured: [] as Array<{ id: string; type: string; name: string; icon: string }>,
+
+      // Recent activity (TODO: Implement activity tracking)
+      activities: [] as Array<{ id: string; type: string; text: string; icon: string; timestamp: string }>,
+
+      // Game scores
       gameScores,
-      ownedItems,
-    }), {
+
+      // Collection items
+      collectionItems,
+
+      // Achievements
+      achievements,
+      achievementProgress,
+
+      // Legacy fields for backwards compatibility
+      walletAddress: profile.wallet_address,
+      ownedNftIds,
+      ownedItems: collectionItems.map(i => ({ id: i.id })),
+    };
+
+    return new Response(JSON.stringify(response), {
       headers: corsHeaders,
     });
   } catch (error) {

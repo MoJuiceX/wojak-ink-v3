@@ -49,6 +49,25 @@ export default function OnboardingModal({ onSkip, onComplete }: OnboardingModalP
   const isWalletConnected = walletStatus === 'connected' && !!walletAddress;
   const isWalletConnecting = walletStatus === 'connecting';
 
+  // Pre-fill display name and X handle from Clerk user data
+  useEffect(() => {
+    if (!user) return;
+
+    // Pre-fill display name from username or firstName
+    const prefillName = user.username || user.firstName || '';
+    if (prefillName && !displayName) {
+      setDisplayName(prefillName);
+    }
+
+    // Pre-fill X handle from connected X/Twitter account
+    const xAccount = user.externalAccounts?.find(
+      account => account.provider === 'x' || account.provider === 'twitter'
+    );
+    if (xAccount?.username && !xHandle) {
+      setXHandle(xAccount.username);
+    }
+  }, [user]); // Only run when user changes, not on every displayName/xHandle change
+
   // Fetch NFTs when wallet connects
   useEffect(() => {
     const fetchNfts = async () => {
