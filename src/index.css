@@ -1156,3 +1156,33 @@ p a,
     max-height: 50vh;
   }
 }
+
+/* ============================================
+   WALLETCONNECT MODAL Z-INDEX OVERRIDE
+   ============================================
+
+   Ensure WalletConnect modal appears above our Avatar Picker modal.
+   The modal uses custom web components and shadow DOM.
+*/
+
+wcm-modal,
+w3m-modal,
+wui-flex[data-testid="w3m-modal"],
+[class*="w3m-modal"],
+[class*="wcm-modal"] {
+  z-index: 100000 !important;
+  position: fixed !important;
+}
+
+/* Target the modal overlay/backdrop */
+wcm-modal::part(overlay),
+w3m-modal::part(overlay) {
+  z-index: 100000 !important;
+}
+
+/* Ensure the modal container itself has highest z-index */
+body > wcm-modal,
+body > w3m-modal {
+  z-index: 100000 !important;
+}
+

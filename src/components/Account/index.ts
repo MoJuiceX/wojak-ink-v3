@@ -1,0 +1,12 @@
+/**
+ * Account Components Index
+ *
+ * Export all account dashboard components.
+ */
+
+export { ProfileHeader } from './ProfileHeader';
+export { CurrencyStats } from './CurrencyStats';
+export { GameScoresGrid } from './GameScoresGrid';
+export { NftGallery } from './NftGallery';
+export { InventorySection } from './InventorySection';
+export { RecentActivity } from './RecentActivity';

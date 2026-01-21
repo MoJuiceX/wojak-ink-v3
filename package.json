@@ -26,6 +26,7 @@
     "@walletconnect/utils": "^2.23.3",
     "bech32": "^2.0.0",
     "canvas-confetti": "^1.9.4",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.25.0",
     "howler": "^2.2.4",
     "ionicons": "^8.0.13",

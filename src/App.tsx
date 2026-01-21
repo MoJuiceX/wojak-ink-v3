@@ -21,6 +21,7 @@ import { PageSkeleton } from '@/components/layout/PageSkeleton';
 import { ToastContainer } from '@/components/ui/Toast';
 import { ProfileGuard } from '@/components/auth/ProfileGuard';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
+import { FriendsProvider } from '@/contexts/FriendsContext';
 import { PreloadProvider } from '@/components/preload/PreloadProvider';
 import { SageWalletProvider } from '@/sage-wallet';
 import { SalesProvider } from '@/providers/SalesProvider';
@@ -42,8 +43,10 @@ const Landing = lazy(() => import('./pages/Landing'));
 
 // Auth
 const Account = lazy(() => import('./pages/Account'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 // Social
+const Friends = lazy(() => import('./pages/Friends'));
 const Guild = lazy(() => import('./pages/Guild'));
 const Shop = lazy(() => import('./pages/Shop'));
 const Leaderboard = lazy(() => import('./pages/Leaderboard'));
@@ -223,6 +226,22 @@ function AppContent() {
                     element={
                       <Suspense fallback={<PageSkeleton type="settings" />}>
                         <Account />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="profile/:userId"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="settings" />}>
+                        <Profile />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="friends"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="settings" />}>
+                        <Friends />
                       </Suspense>
                     }
                   />
@@ -423,9 +442,11 @@ function App() {
                 }}
               >
                 <UserProfileProvider>
-                  <OfflineIndicator />
-                  <AppContent />
-                  <InstallBanner position="bottom" />
+                  <FriendsProvider>
+                    <OfflineIndicator />
+                    <AppContent />
+                    <InstallBanner position="bottom" />
+                  </FriendsProvider>
                 </UserProfileProvider>
               </SageWalletProvider>
             </BrowserRouter>

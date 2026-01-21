@@ -90,11 +90,14 @@ export function SageWalletProvider({ children, config: userConfig }: SageWalletP
         logger: 'error',
       });
 
-      // Initialize Modal
+      // Initialize Modal with high z-index to appear above Avatar Picker
       modalRef.current = new WalletConnectModal({
         projectId: config.projectId,
         themeMode: 'dark',
         enableExplorer: false,
+        themeVariables: {
+          '--wcm-z-index': '100000',
+        },
       });
 
       // Set up event listeners

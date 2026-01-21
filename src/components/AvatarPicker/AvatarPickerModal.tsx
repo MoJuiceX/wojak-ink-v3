@@ -108,12 +108,26 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
     }
   };
 
-  // Update selected emoji when profile changes
+  // Sync state with profile when it changes or modal opens
   useEffect(() => {
-    if (profile?.avatar?.type === 'emoji') {
-      setSelectedEmoji(profile.avatar.value);
+    if (profile?.avatar) {
+      // Update tab to match current avatar type
+      setActiveTab(profile.avatar.type === 'nft' ? 'nft' : 'emoji');
+
+      if (profile.avatar.type === 'emoji') {
+        setSelectedEmoji(profile.avatar.value);
+        setSelectedNft(null);
+      } else if (profile.avatar.type === 'nft') {
+        // Create NFT object from profile avatar data
+        setSelectedNft({
+          id: profile.avatar.nftId || '',
+          launcherId: profile.avatar.nftLauncherId || '',
+          imageUrl: profile.avatar.value,
+          name: `Wojak #${profile.avatar.nftId || ''}`,
+        });
+      }
     }
-  }, [profile?.avatar]);
+  }, [profile?.avatar, isOpen]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {

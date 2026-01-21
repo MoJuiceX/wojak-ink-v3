@@ -98,6 +98,9 @@ export function useSageWalletStandalone(
         projectId: config.projectId,
         themeMode: 'dark',
         enableExplorer: false,
+        themeVariables: {
+          '--wcm-z-index': '100000',
+        },
       });
       
       // Event listeners

@@ -53,10 +53,11 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true, // Allow network access
       proxy: {
-        // Local API routes (Cloudflare Pages functions)
+        // API routes - proxy to production for dev testing with real database
         '/api': {
-          target: 'http://localhost:8788',
+          target: 'https://wojak.ink',
           changeOrigin: true,
+          secure: true,
         },
         '/spacescan-api': {
           target: 'https://api.spacescan.io',

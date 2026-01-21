@@ -1,0 +1,77 @@
+/**
+ * FriendsList Component
+ *
+ * Displays current friends with options to view profile or remove.
+ */
+
+import { Link } from 'react-router-dom';
+import { UserMinus, ExternalLink } from 'lucide-react';
+import { useFriends } from '@/contexts/FriendsContext';
+import { Avatar } from '@/components/Avatar/Avatar';
+import './Friends.css';
+
+export function FriendsList() {
+  const { friends, friendProfiles, removeFriend, isLoading, profilesLoaded } = useFriends();
+
+  // Show loading only while actively loading
+  if (isLoading && !profilesLoaded) {
+    return (
+      <div className="friends-loading">
+        Loading friends...
+      </div>
+    );
+  }
+
+  // No friends added yet
+  if (friends.length === 0) {
+    return (
+      <div className="friends-empty">
+        <span className="empty-icon">👥</span>
+        <p>No friends yet</p>
+        <p className="empty-hint">Add friends to compare scores on leaderboards!</p>
+      </div>
+    );
+  }
+
+  // Friends exist but profiles failed to load - show friend count with error message
+  if (profilesLoaded && friendProfiles.length === 0 && friends.length > 0) {
+    return (
+      <div className="friends-empty">
+        <span className="empty-icon">⚠️</span>
+        <p>Unable to load friend profiles</p>
+        <p className="empty-hint">You have {friends.length} friend{friends.length > 1 ? 's' : ''} but their profiles couldn't be loaded.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="friends-list">
+      {friendProfiles.map((friend) => (
+        <div key={friend.id} className="friend-card">
+          <Link to={`/profile/${friend.id}`} className="friend-info">
+            <Avatar avatar={friend.avatar as any} size="medium" showBadge={false} />
+            <span className="friend-name">{friend.displayName}</span>
+          </Link>
+
+          <div className="friend-actions">
+            <Link
+              to={`/profile/${friend.id}`}
+              className="action-button view-profile"
+              title="View profile"
+            >
+              <ExternalLink size={16} />
+            </Link>
+
+            <button
+              className="action-button remove-friend"
+              onClick={() => removeFriend(friend.id)}
+              title="Remove friend"
+            >
+              <UserMinus size={16} />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

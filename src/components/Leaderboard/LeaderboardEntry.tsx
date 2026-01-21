@@ -17,6 +17,7 @@ interface LeaderboardEntryProps {
   podiumPosition?: 1 | 2 | 3;
   isHighlighted?: boolean;
   index?: number;
+  isFriend?: boolean;
 }
 
 export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
@@ -25,6 +26,7 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
   podiumPosition,
   isHighlighted = false,
   index = 0,
+  isFriend = false,
 }) => {
   const prefersReducedMotion = useReducedMotion();
 
@@ -85,7 +87,7 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
 
   return (
     <motion.div
-      className={`leaderboard-row ${rankClass} ${entry.isCurrentUser ? 'is-current-user' : ''} ${isHighlighted ? 'highlighted' : ''}`}
+      className={`leaderboard-row ${rankClass} ${entry.isCurrentUser ? 'is-current-user' : ''} ${isHighlighted ? 'highlighted' : ''} ${isFriend ? 'is-friend' : ''}`}
       initial={prefersReducedMotion ? {} : { opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.05, duration: 0.3 }}
@@ -106,7 +108,10 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
       />
 
       <div className="row-info">
-        <span className="row-username">{entry.displayName}</span>
+        <span className="row-username">
+          {entry.displayName}
+          {isFriend && <span className="friend-indicator">👤</span>}
+        </span>
         <span className="row-time">{getTimeAgo(entry.createdAt)}</span>
       </div>
 

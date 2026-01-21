@@ -17,6 +17,7 @@ import {
   Settings,
   Trophy,
   Users,
+  UserPlus,
   ShoppingBag,
   Gamepad2,
   Menu,
@@ -111,6 +112,13 @@ export const SECONDARY_NAV_ITEMS: NavItem[] = [
     label: 'Leaderboard',
     shortLabel: 'Ranks',
     icon: Trophy,
+  },
+  {
+    id: 'friends',
+    path: '/friends',
+    label: 'Friends',
+    shortLabel: 'Friends',
+    icon: UserPlus,
   },
   {
     id: 'shop',

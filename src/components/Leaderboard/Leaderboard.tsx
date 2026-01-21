@@ -6,11 +6,12 @@
  * sliding time filters, and dramatic empty state.
  */
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ChevronDown, Trophy, Gamepad2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLeaderboard } from '../../contexts/LeaderboardContext';
+import { useFriends } from '../../contexts/FriendsContext';
 import { LeaderboardEntry } from './LeaderboardEntry';
 import { NFTGatePrompt } from './NFTGatePrompt';
 import type { GameId } from '../../types/leaderboard';
@@ -54,10 +55,23 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   const prefersReducedMotion = useReducedMotion();
   const { user } = useAuth();
   const { leaderboard, fetchLeaderboard, canUserCompete } = useLeaderboard();
+  const { friends, isFriend } = useFriends();
   const [selectedGame, setSelectedGame] = useState<GameId>(initialGameId);
   const [timeframe, setTimeframe] = useState<TimeframeType>('all-time');
+  const [filter, setFilter] = useState<'all' | 'friends'>('all');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Filter entries based on selected tab
+  const filteredEntries = useMemo(() => {
+    if (!leaderboard.entries) return [];
+
+    if (filter === 'friends') {
+      return leaderboard.entries.filter(entry => isFriend(entry.userId));
+    }
+
+    return leaderboard.entries;
+  }, [leaderboard.entries, filter, isFriend]);
 
   useEffect(() => {
     fetchLeaderboard({
@@ -213,6 +227,31 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
         </div>
       </motion.div>
 
+      {/* Friends Filter Tabs */}
+      <motion.div
+        className="leaderboard-filters"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.35 }}
+      >
+        <button
+          className={`filter-tab ${filter === 'all' ? 'active' : ''}`}
+          onClick={() => setFilter('all')}
+        >
+          All Players
+        </button>
+
+        <button
+          className={`filter-tab ${filter === 'friends' ? 'active' : ''}`}
+          onClick={() => setFilter('friends')}
+        >
+          Friends
+          {friends.length > 0 && (
+            <span className="filter-badge">{friends.length}</span>
+          )}
+        </button>
+      </motion.div>
+
       {/* NFT Gate Prompt (for non-holders) */}
       {user && !isNftHolder && <NFTGatePrompt />}
 
@@ -271,7 +310,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               transition={{ duration: 0.2 }}
             >
           {/* Top 3 Podium */}
-          {leaderboard.entries.length >= 3 && (
+          {filteredEntries.length >= 3 && (
             <motion.div
               className="podium"
               initial={{ opacity: 0 }}
@@ -285,10 +324,11 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 transition={{ delay: 0.3 }}
               >
                 <LeaderboardEntry
-                  entry={leaderboard.entries[1]}
+                  entry={filteredEntries[1]}
                   isPodium
                   podiumPosition={2}
                   index={1}
+                  isFriend={isFriend(filteredEntries[1].userId)}
                 />
               </motion.div>
               <motion.div
@@ -298,10 +338,11 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 transition={{ delay: 0.2 }}
               >
                 <LeaderboardEntry
-                  entry={leaderboard.entries[0]}
+                  entry={filteredEntries[0]}
                   isPodium
                   podiumPosition={1}
                   index={0}
+                  isFriend={isFriend(filteredEntries[0].userId)}
                 />
               </motion.div>
               <motion.div
@@ -311,36 +352,39 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 transition={{ delay: 0.4 }}
               >
                 <LeaderboardEntry
-                  entry={leaderboard.entries[2]}
+                  entry={filteredEntries[2]}
                   isPodium
                   podiumPosition={3}
                   index={2}
+                  isFriend={isFriend(filteredEntries[2].userId)}
                 />
               </motion.div>
             </motion.div>
           )}
 
           {/* Handle less than 3 entries */}
-          {leaderboard.entries.length > 0 && leaderboard.entries.length < 3 && (
+          {filteredEntries.length > 0 && filteredEntries.length < 3 && (
             <div className="leaderboard-list top-entries">
-              {leaderboard.entries.map((entry, index) => (
+              {filteredEntries.map((entry, index) => (
                 <LeaderboardEntry
                   key={`${entry.userId}-${entry.rank}`}
                   entry={entry}
                   index={index}
+                  isFriend={isFriend(entry.userId)}
                 />
               ))}
             </div>
           )}
 
           {/* Rest of the list */}
-          {leaderboard.entries.length > 3 && (
+          {filteredEntries.length > 3 && (
             <div className="leaderboard-list">
-              {leaderboard.entries.slice(3).map((entry, index) => (
+              {filteredEntries.slice(3).map((entry, index) => (
                 <LeaderboardEntry
                   key={`${entry.userId}-${entry.rank}`}
                   entry={entry}
                   index={index + 3}
+                  isFriend={isFriend(entry.userId)}
                 />
               ))}
             </div>
@@ -359,7 +403,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
           )}
 
           {/* Epic Empty State - fade only, no slide */}
-          {leaderboard.entries.length === 0 && (
+          {filteredEntries.length === 0 && (
             <div className="leaderboard-empty-epic">
               {/* Animated trophy */}
               <motion.div
@@ -374,7 +418,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                   ease: 'easeInOut',
                 }}
               >
-                <span className="trophy-icon">🏆</span>
+                <span className="trophy-icon">{filter === 'friends' ? '👥' : '🏆'}</span>
 
                 {/* Sparkle effects */}
                 {!prefersReducedMotion && (
@@ -413,9 +457,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 )}
               </motion.div>
 
-              <h2 className="empty-title">The Arena Awaits</h2>
+              <h2 className="empty-title">
+                {filter === 'friends' ? 'No Friends Playing Yet' : 'The Arena Awaits'}
+              </h2>
               <p className="empty-subtitle">
-                {timeframe === 'daily'
+                {filter === 'friends'
+                  ? friends.length === 0
+                    ? 'Add friends to see their scores here!'
+                    : 'None of your friends have played this game yet.'
+                  : timeframe === 'daily'
                   ? 'No scores yet today. Be the first!'
                   : timeframe === 'weekly'
                   ? 'No scores this week. Claim your glory!'
@@ -427,12 +477,12 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
-                  // Navigate to games page
-                  window.location.href = '/games';
+                  // Navigate to appropriate page
+                  window.location.href = filter === 'friends' && friends.length === 0 ? '/friends' : '/games';
                 }}
               >
                 <Gamepad2 size={18} />
-                Start Playing
+                {filter === 'friends' && friends.length === 0 ? 'Find Friends' : 'Start Playing'}
               </motion.button>
             </div>
           )}
