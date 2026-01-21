@@ -8,13 +8,15 @@
 
 Implement automatic leaderboard rewards that pay out oranges to top players on a daily, weekly, and monthly basis. Each of the 15 games has its own leaderboard with separate rewards.
 
-**Reward Structure (per game):**
+**Reward Structure (per game) - Reduced 30% for sustainability:**
 
 | Period | #1 | #2 | #3 | #4-10 | #11-50 |
 |--------|-----|-----|-----|-------|--------|
-| Daily | 25 🍊 | 15 🍊 | 5 🍊 | 10 🍊 each | 3 🍊 each |
-| Weekly | 500 🍊 | 300 🍊 | 150 🍊 | - | - |
-| Monthly | 2000 🍊 | 1000 🍊 | 500 🍊 | - | - |
+| Daily | 17 🍊 | 10 🍊 | 3 🍊 | 7 🍊 each | 2 🍊 each |
+| Weekly | 350 🍊 | 210 🍊 | 105 🍊 | - | - |
+| Monthly | 1400 🍊 | 700 🍊 | 350 🍊 | - | - |
+
+> **Note**: Future crypto conversion: 10,000 oranges = 1 HOA token (~$0.00143)
 
 **Leaderboard Reset**: Fresh start each period (daily/weekly/monthly boards reset completely)
 
@@ -97,27 +99,27 @@ export interface PeriodRewardConfig {
   resetTime: string; // Description of reset time
 }
 
-// Daily rewards: Top 3, Top 10, Top 50
+// Daily rewards: Top 3, Top 10, Top 50 (reduced 30% for sustainability)
 export const DAILY_REWARDS: RewardTier[] = [
-  { minRank: 1, maxRank: 1, reward: 25 },
-  { minRank: 2, maxRank: 2, reward: 15 },
-  { minRank: 3, maxRank: 3, reward: 5 },
-  { minRank: 4, maxRank: 10, reward: 10 },
-  { minRank: 11, maxRank: 50, reward: 3 },
+  { minRank: 1, maxRank: 1, reward: 17 },  // Was 25
+  { minRank: 2, maxRank: 2, reward: 10 },  // Was 15
+  { minRank: 3, maxRank: 3, reward: 3 },   // Was 5
+  { minRank: 4, maxRank: 10, reward: 7 },  // Was 10
+  { minRank: 11, maxRank: 50, reward: 2 }, // Was 3
 ];
 
-// Weekly rewards: Top 3 only
+// Weekly rewards: Top 3 only (reduced 30% for sustainability)
 export const WEEKLY_REWARDS: RewardTier[] = [
-  { minRank: 1, maxRank: 1, reward: 500 },
-  { minRank: 2, maxRank: 2, reward: 300 },
-  { minRank: 3, maxRank: 3, reward: 150 },
+  { minRank: 1, maxRank: 1, reward: 350 }, // Was 500
+  { minRank: 2, maxRank: 2, reward: 210 }, // Was 300
+  { minRank: 3, maxRank: 3, reward: 105 }, // Was 150
 ];
 
-// Monthly rewards: Top 3 only
+// Monthly rewards: Top 3 only (reduced 30% for sustainability)
 export const MONTHLY_REWARDS: RewardTier[] = [
-  { minRank: 1, maxRank: 1, reward: 2000 },
-  { minRank: 2, maxRank: 2, reward: 1000 },
-  { minRank: 3, maxRank: 3, reward: 500 },
+  { minRank: 1, maxRank: 1, reward: 1400 }, // Was 2000
+  { minRank: 2, maxRank: 2, reward: 700 },  // Was 1000
+  { minRank: 3, maxRank: 3, reward: 350 },  // Was 500
 ];
 
 export const PERIOD_CONFIGS: Record<PeriodType, PeriodRewardConfig> = {

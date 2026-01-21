@@ -9,12 +9,14 @@
 Implement a daily challenges system with 3 fixed challenges that reset at midnight UTC. Players earn oranges for completing individual challenges, plus a 50% bonus for completing ALL three.
 
 **Challenge Set (Fixed Daily):**
-1. **Easy (50 🍊)**: Play 5 games
-2. **Medium (75 🍊)**: Set a new personal best in any game
-3. **Hard (100 🍊)**: Play for 10 minutes total
+1. **Easy (35 🍊)**: Play 5 games
+2. **Medium (52 🍊)**: Set a new personal best in any game
+3. **Hard (70 🍊)**: Play for 10 minutes total
 
-**Completion Bonus**: Complete all 3 = +112 🍊 (50% of 225)
-**Daily Maximum**: 337 oranges from challenges
+**Completion Bonus**: Complete all 3 = +78 🍊 (50% of 157)
+**Daily Maximum**: 235 oranges from challenges
+
+> **Note**: Rewards reduced by 30% for economic sustainability. Future crypto conversion: 10,000 oranges = 1 HOA token.
 
 ---
 
@@ -78,7 +80,7 @@ export interface DailyChallengesState {
   totalEarnedToday: number;
 }
 
-// The 3 fixed daily challenges
+// The 3 fixed daily challenges (rewards reduced 30% for sustainability)
 export const DAILY_CHALLENGES: DailyChallenge[] = [
   {
     id: 'games-played-5',
@@ -87,7 +89,7 @@ export const DAILY_CHALLENGES: DailyChallenge[] = [
     description: 'Play 5 games',
     icon: '🎮',
     target: 5,
-    reward: 50,
+    reward: 35, // Reduced from 50
     difficulty: 'easy',
   },
   {
@@ -97,7 +99,7 @@ export const DAILY_CHALLENGES: DailyChallenge[] = [
     description: 'Set a new personal best',
     icon: '🏆',
     target: 1,
-    reward: 75,
+    reward: 52, // Reduced from 75
     difficulty: 'medium',
   },
   {
@@ -107,7 +109,7 @@ export const DAILY_CHALLENGES: DailyChallenge[] = [
     description: 'Play for 10 minutes',
     icon: '⏱️',
     target: 600, // seconds
-    reward: 100,
+    reward: 70, // Reduced from 100
     difficulty: 'hard',
   },
 ];

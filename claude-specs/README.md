@@ -25,6 +25,7 @@ Run these prompts in order. Each builds on the previous:
 | 6 | `06-NFT-HOLDER-BADGE-SPEC.md` | NFT holder badge | Specs 1-2 |
 | 7 | `07-DAILY-CHALLENGES-SPEC.md` | Daily challenges | Specs 1-5 |
 | 8 | `08-LEADERBOARD-REWARDS-SPEC.md` | Leaderboard reward payouts | Specs 1-2, 6 |
+| 9 | `09-ECONOMY-CONFIG-SPEC.md` | Central economy configuration | None (reference doc) |
 
 ---
 
@@ -123,12 +124,20 @@ Read the spec file at claude-specs/06-NFT-HOLDER-BADGE-SPEC.md and implement eve
 ### 08-LEADERBOARD-REWARDS-SPEC.md (NEW)
 - Automatic payouts: Daily, Weekly, Monthly
 - Per-game leaderboards (15 games × 3 periods)
-- Daily: #1=25🍊, #2=15🍊, #3=5🍊, #4-10=10🍊 each, #11-50=3🍊 each
-- Weekly: #1=500🍊, #2=300🍊, #3=150🍊
-- Monthly: #1=2000🍊, #2=1000🍊, #3=500🍊
+- **Daily**: #1=17🍊, #2=10🍊, #3=3🍊, #4-10=7🍊 each, #11-50=2🍊 each
+- **Weekly**: #1=350🍊, #2=210🍊, #3=105🍊
+- **Monthly**: #1=1400🍊, #2=700🍊, #3=350🍊
 - Fresh leaderboard reset each period
 - Cloudflare scheduled worker for payouts
 - PeriodLeaderboard component with selector
+
+### 09-ECONOMY-CONFIG-SPEC.md (NEW)
+- Central economy configuration file
+- All values reduced 30% for sustainability
+- Future crypto conversion rates: 10,000🍊 = 1 HOA, 1,000💎 = 1 $CHIA
+- Token prices: HOA ≈ $0.00143, $CHIA ≈ $0.018
+- Withdrawals disabled (future feature)
+- Economy projections and time-to-earn analysis
 
 ---
 
@@ -178,22 +187,29 @@ const DEFAULT_EMOJIS = ['🎮', '🔥', '🚀', '🎯', '🦊', '🐸', '👾', 
 
 ---
 
-## Economy Overview
+## Economy Overview (All values reduced 30% for sustainability)
+
+### Future Crypto Conversion (Disabled for now)
+
+| In-Game | Crypto | Rate | USD Value |
+|---------|--------|------|-----------|
+| 10,000 🍊 | 1 HOA | - | ~$0.00143 |
+| 1,000 💎 | 1 $CHIA | - | ~$0.018 |
 
 ### Earning Oranges
 
 | Source | Amount |
 |--------|--------|
 | Starting bonus | 100 🍊 |
-| Per game (base) | 10-20 🍊 |
-| Per game (max) | 200-600 🍊 |
-| High score bonus | 25-60 🍊 |
-| Top 10 leaderboard bonus | 50-120 🍊 |
-| Daily login (day 1-7) | 100-500 🍊 |
-| Daily challenges (all 3) | 337 🍊 max |
-| Daily leaderboard rewards | Up to ~500 🍊 (across 15 games) |
-| Weekly leaderboard (top 3) | 150-500 🍊 per game |
-| Monthly leaderboard (top 3) | 500-2000 🍊 per game |
+| Per game (base) | 7-14 🍊 |
+| Per game (max) | 140-420 🍊 |
+| High score bonus | 17-42 🍊 |
+| Top 10 leaderboard bonus | 35-84 🍊 |
+| Daily login (day 1-7) | 70-350 🍊 |
+| Daily challenges (all 3) | 235 🍊 max |
+| Daily leaderboard rewards | Up to ~350 🍊 (across 15 games) |
+| Weekly leaderboard (top 3) | 105-350 🍊 per game |
+| Monthly leaderboard (top 3) | 350-1400 🍊 per game |
 
 ### Spending Oranges
 
@@ -204,6 +220,14 @@ const DEFAULT_EMOJIS = ['🎮', '🔥', '🚀', '🎯', '🦊', '🐸', '👾', 
 | Rare shop items | 1000-1500 🍊 |
 | Epic shop items | 2000-2500 🍊 |
 | Limited badges | 3000 🍊 |
+
+### Monthly Projection (100 Active Players)
+
+| Metric | Value |
+|--------|-------|
+| Total oranges earned | ~4,710,000 🍊 |
+| Crypto equivalent | 471 HOA |
+| USD value | ~$0.67 |
 
 ---
 
