@@ -10,6 +10,7 @@
  */
 
 import {
+  Award,
   Camera,
   Briefcase,
   Lightbulb,
@@ -119,6 +120,13 @@ export const SECONDARY_NAV_ITEMS: NavItem[] = [
     label: 'Friends',
     shortLabel: 'Friends',
     icon: UserPlus,
+  },
+  {
+    id: 'achievements',
+    path: '/achievements',
+    label: 'Achievements',
+    shortLabel: 'Awards',
+    icon: Award,
   },
   {
     id: 'shop',

@@ -6,6 +6,7 @@
 
 import { useCallback, useState } from 'react';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { useAchievements } from '../contexts/AchievementsContext';
 import type { EarnResult } from '../types/currency';
 
 interface UseGameRewardsOptions {
@@ -25,6 +26,7 @@ interface GameRewardState {
 
 export const useGameRewards = ({ gameId }: UseGameRewardsOptions) => {
   const { earnFromGame, useContinue, canAfford } = useCurrency();
+  const { recordGamePlayed, recordLeaderboardRank, checkAchievements } = useAchievements();
   const [lastReward, setLastReward] = useState<GameRewardState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -49,6 +51,14 @@ export const useGameRewards = ({ gameId }: UseGameRewardsOptions) => {
             breakdown: result.breakdown,
           });
         }
+
+        // Record game for achievements
+        recordGamePlayed(gameId, score);
+        if (leaderboardRank) {
+          recordLeaderboardRank(leaderboardRank);
+        }
+        // Check if any achievements were unlocked
+        checkAchievements();
 
         return result;
       } finally {

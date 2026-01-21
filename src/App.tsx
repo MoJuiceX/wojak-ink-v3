@@ -22,6 +22,7 @@ import { ToastContainer } from '@/components/ui/Toast';
 import { ProfileGuard } from '@/components/auth/ProfileGuard';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
 import { FriendsProvider } from '@/contexts/FriendsContext';
+import { AchievementsProvider } from '@/contexts/AchievementsContext';
 import { PreloadProvider } from '@/components/preload/PreloadProvider';
 import { SageWalletProvider } from '@/sage-wallet';
 import { SalesProvider } from '@/providers/SalesProvider';
@@ -50,6 +51,7 @@ const Friends = lazy(() => import('./pages/Friends'));
 const Guild = lazy(() => import('./pages/Guild'));
 const Shop = lazy(() => import('./pages/Shop'));
 const Leaderboard = lazy(() => import('./pages/Leaderboard'));
+const Achievements = lazy(() => import('./pages/Achievements'));
 
 // Games
 const OrangeStack = lazy(() => import('./pages/OrangeStack'));
@@ -269,6 +271,14 @@ function AppContent() {
                       </Suspense>
                     }
                   />
+                  <Route
+                    path="achievements"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="settings" />}>
+                        <Achievements />
+                      </Suspense>
+                    }
+                  />
                   {/* Game Routes - all under /games/* for cleaner URLs */}
                   <Route
                     path="games/stack"
@@ -443,9 +453,11 @@ function App() {
               >
                 <UserProfileProvider>
                   <FriendsProvider>
-                    <OfflineIndicator />
-                    <AppContent />
-                    <InstallBanner position="bottom" />
+                    <AchievementsProvider>
+                      <OfflineIndicator />
+                      <AppContent />
+                      <InstallBanner position="bottom" />
+                    </AchievementsProvider>
                   </FriendsProvider>
                 </UserProfileProvider>
               </SageWalletProvider>

@@ -14,6 +14,7 @@ import { leaderboardKeys, type GameId } from '@/config/query/queryKeys';
 import { DATA_CACHE_MAP } from '@/config/query/cacheConfig';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useAchievements } from '@/contexts/AchievementsContext';
 
 // Check if Clerk is configured
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -81,6 +82,7 @@ export function useLeaderboard(gameId: GameId) {
   const queryClient = useQueryClient();
   const { authenticatedFetch, isSignedIn } = useAuthenticatedFetch();
   const { profile } = useUserProfile();
+  const { recordGamePlayed, recordLeaderboardRank, checkAchievements } = useAchievements();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get current user ID from Clerk
@@ -137,6 +139,14 @@ export function useLeaderboard(gameId: GameId) {
 
         // Invalidate leaderboard cache to show updated rankings
         queryClient.invalidateQueries({ queryKey: leaderboardKeys.game(gameId) });
+
+        // Record game for achievements
+        recordGamePlayed(gameId, score);
+        if (result.rank) {
+          recordLeaderboardRank(result.rank);
+        }
+        // Check if any achievements were unlocked
+        checkAchievements();
 
         return {
           success: true,
