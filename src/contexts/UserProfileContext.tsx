@@ -6,9 +6,10 @@
  * Uses localStorage fallback when API is unavailable (local dev).
  */
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
+import { createDefaultAvatar, type UserAvatar } from '@/types/avatar';
 
 // Check if Clerk is configured
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -25,6 +26,9 @@ export interface UserProfile {
   currentStreak: number;
   longestStreak: number;
   lastPlayedDate: string | null;
+  // Avatar fields
+  avatar: UserAvatar;
+  ownedNftIds: string[]; // List of NFT edition numbers user owns
 }
 
 export interface UserMessage {
@@ -49,6 +53,13 @@ interface UserProfileContextValue extends UserProfileState {
   // Profile methods
   refreshProfile: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<boolean>;
+
+  // Avatar methods
+  updateAvatar: (avatar: UserAvatar) => Promise<boolean>;
+  refreshOwnedNfts: () => Promise<void>;
+
+  // Computed display name (NEVER returns "Anonymous")
+  effectiveDisplayName: string;
 
   // Clerk user info
   clerkUser: {
@@ -127,7 +138,7 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
 
       if (response.ok) {
         const data = await response.json();
-        // Map API response to UserProfile, ensuring streak defaults
+        // Map API response to UserProfile, ensuring defaults
         const apiProfile = data.profile;
         const profile: UserProfile | null = apiProfile ? {
           displayName: apiProfile.displayName,
@@ -137,6 +148,9 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
           currentStreak: apiProfile.currentStreak || 0,
           longestStreak: apiProfile.longestStreak || 0,
           lastPlayedDate: apiProfile.lastPlayedDate || null,
+          // Avatar fields - create default if not set
+          avatar: apiProfile.avatar || createDefaultAvatar(),
+          ownedNftIds: apiProfile.ownedNftIds || [],
         } : null;
 
         // Save to localStorage as backup
@@ -253,6 +267,8 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
       currentStreak: 0,
       longestStreak: 0,
       lastPlayedDate: null,
+      avatar: createDefaultAvatar(),
+      ownedNftIds: [],
     };
 
     const updatedProfile: UserProfile = {
@@ -272,6 +288,28 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
     console.log('[UserProfile] Profile saved to localStorage:', updatedProfile);
     return true;
   }, [isSignedIn, authenticatedFetch, state.profile, saveProfileToStorage]);
+
+  // Update avatar
+  const updateAvatar = useCallback(async (avatar: UserAvatar): Promise<boolean> => {
+    return updateProfile({ avatar });
+  }, [updateProfile]);
+
+  // Refresh owned NFTs from wallet - stub for now, NFTPicker handles this directly
+  const refreshOwnedNfts = useCallback(async () => {
+    // NFT refresh is handled by the NFTPicker component which has access to useSageWallet
+    console.log('[UserProfile] refreshOwnedNfts called - handled by NFTPicker');
+  }, []);
+
+  // Computed effective display name (NEVER returns "Anonymous")
+  const effectiveDisplayName = useMemo(() => {
+    // Priority: custom display name > Google first name > email prefix > "Player"
+    if (state.profile?.displayName) return state.profile.displayName;
+    if (user?.firstName) return user.firstName;
+    if (user?.primaryEmailAddress?.emailAddress) {
+      return user.primaryEmailAddress.emailAddress.split('@')[0];
+    }
+    return 'Player';
+  }, [state.profile?.displayName, user?.firstName, user?.primaryEmailAddress?.emailAddress]);
 
   // Store refreshProfile in a ref to avoid dependency issues
   const refreshProfileRef = useRef(refreshProfile);
@@ -318,6 +356,9 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
     ...state,
     refreshProfile,
     updateProfile,
+    updateAvatar,
+    refreshOwnedNfts,
+    effectiveDisplayName,
     clerkUser,
     isSignedIn: isSignedIn ?? false,
   };

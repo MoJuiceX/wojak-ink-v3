@@ -331,6 +331,49 @@
   text-decoration: underline;
 }
 
+/* Sign-in Prompt */
+.sign-in-prompt {
+  text-align: center;
+  padding: 20px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.sign-in-prompt .gate-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.sign-in-prompt .prompt-text {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+
+.sign-in-button {
+  background: linear-gradient(135deg, #F97316, #EA580C);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.sign-in-button:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.3);
+}
+
+.sign-in-button:active {
+  transform: scale(0.98);
+}
+
 /* Actions */
 .game-over-actions {
   margin-top: 24px;

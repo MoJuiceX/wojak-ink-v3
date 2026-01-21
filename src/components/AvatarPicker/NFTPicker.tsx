@@ -1,76 +1,83 @@
 /**
- * NFT Picker Component
+ * NFTPicker Component
  *
- * Displays user's Wojak NFTs for avatar selection.
- * Shows locked state if wallet not connected.
+ * Displays user's owned Wojak Farmers Plot NFTs for avatar selection.
+ * Uses Sage Wallet to fetch NFTs and IPFS URLs for images.
  */
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { IonSpinner } from '@ionic/react';
-import './AvatarPicker.css';
+import { useState, useEffect } from 'react';
+import { useSageWallet } from '@/sage-wallet';
+import { getNftImageUrl } from '@/services/constants';
+import { Loader2 } from 'lucide-react';
+import './NFTPicker.css';
 
-interface NFT {
-  id: string;
-  name: string;
-  imageUrl: string;
-  collection: string;
+const WOJAK_COLLECTION_ID = 'col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah';
+const MINTGARDEN_COLLECTION_URL = 'https://mintgarden.io/collections/wojak-farmers-plot-col1kfy44w3nlkqq8z3j8z9mhc3nw9pzwvlsmhsyhc0z6a7luvzukfsufegk5';
+
+export interface NFT {
+  id: string;        // Edition number e.g., "0042"
+  name: string;      // Full name e.g., "Wojak Farmers Plot #0042"
+  imageUrl: string;  // IPFS URL
+  launcherId: string; // MintGarden encoded_id
 }
 
 interface NFTPickerProps {
-  selectedNftId: string | null;
+  selectedNftId?: string;
   onSelect: (nft: NFT) => void;
 }
 
-export const NFTPicker: React.FC<NFTPickerProps> = ({
-  selectedNftId,
-  onSelect
-}) => {
-  const { user } = useAuth();
+export function NFTPicker({ selectedNftId, onSelect }: NFTPickerProps) {
+  const { address: walletAddress, getNFTs, status } = useSageWallet();
   const [nfts, setNfts] = useState<NFT[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.walletAddress) {
-      fetchUserNFTs();
-    } else {
-      setIsLoading(false);
+    async function fetchNfts() {
+      if (!walletAddress || status !== 'connected') {
+        setNfts([]);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const mintGardenNfts = await getNFTs(WOJAK_COLLECTION_ID);
+
+        // Map to our NFT format with IPFS URLs
+        const mappedNfts: NFT[] = mintGardenNfts.map(nft => {
+          // Extract edition number from name like "Wojak Farmers Plot #0042"
+          const match = nft.name?.match(/#(\d+)/);
+          const editionNumber = match ? match[1].padStart(4, '0') : '0000';
+
+          return {
+            id: editionNumber,
+            name: nft.name || `Wojak #${editionNumber}`,
+            imageUrl: getNftImageUrl(editionNumber), // IPFS URL
+            launcherId: nft.encoded_id,
+          };
+        });
+
+        // Sort by edition number
+        mappedNfts.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+        setNfts(mappedNfts);
+      } catch (err) {
+        console.error('[NFTPicker] Failed to fetch NFTs:', err);
+        setError('Failed to load NFTs');
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [user?.walletAddress]);
 
-  const fetchUserNFTs = async () => {
-    setIsLoading(true);
-    try {
-      // For now, load from local metadata as a demo
-      // In production, this would fetch from the wallet
-      const response = await fetch('/assets/nft-data/metadata.json');
-      const allNfts = await response.json();
+    fetchNfts();
+  }, [walletAddress, status, getNFTs]);
 
-      // Simulate having some NFTs (random selection for demo)
-      const userNfts = allNfts
-        .slice(0, 12) // Take first 12 as demo
-        .map((nft: any) => ({
-          id: String(nft.edition),
-          name: nft.name || `Wojak #${nft.edition}`,
-          imageUrl: nft.image,
-          collection: 'Wojak Farmers Plot',
-        }));
-
-      setNfts(userNfts);
-    } catch (error) {
-      console.error('Failed to fetch NFTs:', error);
-      setNfts([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (!user?.walletAddress) {
+  if (status !== 'connected' || !walletAddress) {
     return (
       <div className="nft-picker-locked">
-        <div className="lock-icon">🔒</div>
-        <h3>Connect Your Wallet</h3>
-        <p>Connect your Sage Wallet to use Wojak NFTs as your avatar and compete on leaderboards!</p>
+        <span className="lock-icon">🔒</span>
+        <p>Connect your Sage Wallet to use NFT avatars</p>
       </div>
     );
   }
@@ -78,8 +85,17 @@ export const NFTPicker: React.FC<NFTPickerProps> = ({
   if (isLoading) {
     return (
       <div className="nft-picker-loading">
-        <IonSpinner name="crescent" />
-        <p>Loading your Wojak NFTs...</p>
+        <Loader2 className="spin" size={32} />
+        <p>Loading your NFTs...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="nft-picker-error">
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()}>Retry</button>
       </div>
     );
   }
@@ -87,16 +103,15 @@ export const NFTPicker: React.FC<NFTPickerProps> = ({
   if (nfts.length === 0) {
     return (
       <div className="nft-picker-empty">
-        <div className="empty-icon">😢</div>
-        <h3>No Wojak NFTs Found</h3>
-        <p>You don't have any Wojak NFTs in this wallet. Get one to unlock leaderboard competition!</p>
+        <span className="empty-icon">🖼️</span>
+        <p>No Wojak Farmers Plot NFTs found</p>
         <a
-          href="https://mintgarden.io/collections/wojak-farmers-plot-col1kfy44w3nlkqq8z3j8z9mhc3nw9pzwvlsmhsyhc0z6a7luvzukfsufegk5"
+          href={MINTGARDEN_COLLECTION_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="get-nft-button"
+          className="mint-link"
         >
-          Get Wojak NFTs
+          Get one on MintGarden
         </a>
       </div>
     );
@@ -104,29 +119,30 @@ export const NFTPicker: React.FC<NFTPickerProps> = ({
 
   return (
     <div className="nft-picker">
-      <h3 className="picker-title">
-        Choose Your Wojak NFT Avatar
-        <span className="nft-count">{nfts.length} owned</span>
-      </h3>
-      <p className="picker-subtitle">Using an NFT avatar unlocks leaderboard competition!</p>
-
+      <p className="nft-picker-hint">
+        Select an NFT as your avatar ({nfts.length} owned)
+      </p>
       <div className="nft-grid">
         {nfts.map((nft) => (
           <button
             key={nft.id}
+            type="button"
             className={`nft-option ${selectedNftId === nft.id ? 'selected' : ''}`}
             onClick={() => onSelect(nft)}
-            type="button"
             aria-label={`Select ${nft.name} as avatar`}
             aria-pressed={selectedNftId === nft.id}
           >
-            <img src={nft.imageUrl} alt={nft.name} loading="lazy" />
-            <span className="nft-name">{nft.name}</span>
+            <img
+              src={nft.imageUrl}
+              alt={nft.name}
+              loading="lazy"
+            />
+            <span className="nft-id">#{nft.id}</span>
           </button>
         ))}
       </div>
     </div>
   );
-};
+}
 
 export default NFTPicker;

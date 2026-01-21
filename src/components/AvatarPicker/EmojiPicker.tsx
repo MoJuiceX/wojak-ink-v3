@@ -1,41 +1,38 @@
 /**
- * Emoji Picker Component
+ * EmojiPicker Component
  *
- * Grid of emoji options for avatar selection.
+ * Grid of 15 curated emojis for avatar selection.
+ * Used in AvatarPickerModal.
  */
 
-import React from 'react';
-import { EMOJI_AVATARS } from '../../constants/avatars';
-import './AvatarPicker.css';
+import { DEFAULT_EMOJIS } from '@/types/avatar';
+import './EmojiPicker.css';
 
 interface EmojiPickerProps {
-  selectedEmoji: string;
+  selectedEmoji?: string;
   onSelect: (emoji: string) => void;
 }
 
-export const EmojiPicker: React.FC<EmojiPickerProps> = ({
-  selectedEmoji,
-  onSelect
-}) => {
+export function EmojiPicker({ selectedEmoji, onSelect }: EmojiPickerProps) {
   return (
     <div className="emoji-picker">
-      <h3 className="picker-title">Choose Your Emoji Avatar</h3>
+      <p className="emoji-picker-hint">Choose your avatar emoji</p>
       <div className="emoji-grid">
-        {EMOJI_AVATARS.map((emoji) => (
+        {DEFAULT_EMOJIS.map((emoji) => (
           <button
             key={emoji}
+            type="button"
             className={`emoji-option ${selectedEmoji === emoji ? 'selected' : ''}`}
             onClick={() => onSelect(emoji)}
-            type="button"
             aria-label={`Select ${emoji} as avatar`}
             aria-pressed={selectedEmoji === emoji}
           >
-            {emoji}
+            <span className="emoji-char">{emoji}</span>
           </button>
         ))}
       </div>
     </div>
   );
-};
+}
 
 export default EmojiPicker;

@@ -3,24 +3,26 @@
  *
  * Displays user avatars with support for emoji and NFT types.
  *
- * Game Theory Design:
- * - Generic emoji avatars look intentionally "meh" with upgrade indicator
- * - NFT avatars get premium glow effects to incentivize wallet connection
- * - Verified badge for NFT holders to show "part of the club" status
+ * Tiered Avatar System:
+ * - Emoji avatars: Standard styling (no visual difference between default/custom)
+ * - NFT avatars: Premium gold glow effects + verified badge
  */
 
 import React from 'react';
 import { AVATAR_SIZES, type AvatarSize } from '../../constants/avatars';
+import type { UserAvatar as UserAvatarType } from '@/types/avatar';
 import './Avatar.css';
 
 interface AvatarProps {
-  type: 'emoji' | 'nft';
-  value: string;
+  // New: accept full avatar object
+  avatar?: UserAvatarType;
+  // OR legacy props:
+  type?: 'emoji' | 'nft';
+  value?: string;
+  // Common props:
   size?: AvatarSize;
   showBorder?: boolean;
-  isNftHolder?: boolean;
-  /** Show the "upgrade" indicator on generic emoji avatars */
-  showUpgradeIndicator?: boolean;
+  isNftHolder?: boolean; // Deprecated: use avatar.type === 'nft' instead
   /** Show spinning highlight ring (for featured/top players) */
   highlighted?: boolean;
   onClick?: () => void;
@@ -28,30 +30,30 @@ interface AvatarProps {
 }
 
 export const Avatar: React.FC<AvatarProps> = ({
-  type,
-  value,
+  avatar,
+  type: legacyType,
+  value: legacyValue,
   size = 'medium',
   showBorder = true,
   isNftHolder = false,
-  showUpgradeIndicator = true,
   highlighted = false,
   onClick,
   className = '',
 }) => {
   const pixelSize = AVATAR_SIZES[size];
 
-  // Determine the avatar style class
-  const isGeneric = type === 'emoji' && !isNftHolder;
-  const isNft = type === 'nft' || isNftHolder;
+  // Normalize props - support both new avatar object and legacy props
+  const avatarType = avatar?.type || legacyType || 'emoji';
+  const avatarValue = avatar?.value || legacyValue || '🎮';
+  const isNft = avatarType === 'nft' || isNftHolder;
 
   const classes = [
     'avatar',
     `avatar-${size}`,
-    isGeneric && showUpgradeIndicator ? 'avatar-generic' : '',
+    !isNft ? 'avatar-emoji' : '',
     isNft ? 'avatar-nft' : '',
-    isNftHolder ? 'avatar-nft-holder' : '',
     highlighted ? 'avatar-highlighted' : '',
-    showBorder && !isGeneric && !isNft ? 'avatar-bordered' : '',
+    showBorder && !isNft ? 'avatar-bordered' : '',
     onClick ? 'avatar-clickable' : '',
     className,
   ].filter(Boolean).join(' ');
@@ -64,25 +66,20 @@ export const Avatar: React.FC<AvatarProps> = ({
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
     >
-      {type === 'emoji' ? (
-        <span className="avatar-emoji" style={{ fontSize: pixelSize * 0.6 }}>
-          {value}
+      {avatarType === 'emoji' ? (
+        <span className="avatar-content" style={{ fontSize: pixelSize * 0.6 }}>
+          {avatarValue}
         </span>
       ) : (
         <img
-          src={value}
+          src={avatarValue}
           alt="NFT Avatar"
           className="avatar-nft-image"
           loading="lazy"
         />
       )}
 
-      {/* Verified NFT holder badge - green checkmark */}
-      {isNftHolder && type === 'nft' && (
-        <div className="avatar-nft-badge" title="Verified Wojak NFT Holder">
-          <span>✓</span>
-        </div>
-      )}
+      {/* NFT avatars automatically get the verified badge via CSS ::after */}
     </div>
   );
 };

@@ -304,6 +304,24 @@
   --color: rgba(255, 255, 255, 0.8);
 }
 
+/* Saving Overlay */
+.saving-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  z-index: 100;
+}
+
+.saving-overlay span {
+  color: #fff;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .avatar-picker-content {

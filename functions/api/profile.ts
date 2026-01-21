@@ -12,11 +12,24 @@ interface Env {
   DB: D1Database; // D1 binding
 }
 
+interface AvatarData {
+  type: 'emoji' | 'nft';
+  value: string;
+  source: 'default' | 'user' | 'wallet';
+  nftId?: string;
+  nftLauncherId?: string;
+}
+
 interface ProfileData {
   displayName?: string;
   xHandle?: string;
   walletAddress?: string;
+  avatar?: AvatarData;
+  ownedNftIds?: string[];
 }
+
+// Valid emoji list for validation
+const VALID_EMOJIS = ['🎮', '🔥', '🚀', '🎯', '🦊', '🐸', '👾', '🤖', '🎪', '🌸', '🍕', '🎸', '⚡', '🦁', '🐙'];
 
 // CORS headers
 const corsHeaders = {
@@ -41,11 +54,11 @@ async function ensureUser(db: D1Database, userId: string): Promise<void> {
 }
 
 /**
- * Get user profile with streak info
- * Note: Falls back gracefully if streak columns don't exist yet
+ * Get user profile with streak and avatar info
+ * Note: Falls back gracefully if columns don't exist yet
  */
 async function getProfile(db: D1Database, userId: string) {
-  // Try with streak columns first
+  // Try with all columns including avatar
   try {
     const result = await db
       .prepare(`SELECT
@@ -55,6 +68,12 @@ async function getProfile(db: D1Database, userId: string) {
         current_streak,
         longest_streak,
         last_played_date,
+        avatar_type,
+        avatar_value,
+        avatar_source,
+        avatar_nft_id,
+        avatar_nft_launcher_id,
+        owned_nft_ids,
         updated_at
       FROM profiles WHERE user_id = ?`)
       .bind(userId)
@@ -65,42 +84,89 @@ async function getProfile(db: D1Database, userId: string) {
         current_streak: number | null;
         longest_streak: number | null;
         last_played_date: string | null;
+        avatar_type: string | null;
+        avatar_value: string | null;
+        avatar_source: string | null;
+        avatar_nft_id: string | null;
+        avatar_nft_launcher_id: string | null;
+        owned_nft_ids: string | null;
         updated_at: string;
       }>();
 
     return result;
   } catch (error) {
-    // Fallback: streak columns might not exist yet
-    console.log('[Profile] Falling back to query without streak columns');
-    const result = await db
-      .prepare(`SELECT
-        display_name,
-        x_handle,
-        wallet_address,
-        updated_at
-      FROM profiles WHERE user_id = ?`)
-      .bind(userId)
-      .first<{
-        display_name: string | null;
-        x_handle: string | null;
-        wallet_address: string | null;
-        updated_at: string;
-      }>();
+    // Fallback: avatar columns might not exist yet
+    console.log('[Profile] Falling back to query without avatar columns');
+    try {
+      const result = await db
+        .prepare(`SELECT
+          display_name,
+          x_handle,
+          wallet_address,
+          current_streak,
+          longest_streak,
+          last_played_date,
+          updated_at
+        FROM profiles WHERE user_id = ?`)
+        .bind(userId)
+        .first<{
+          display_name: string | null;
+          x_handle: string | null;
+          wallet_address: string | null;
+          current_streak: number | null;
+          longest_streak: number | null;
+          last_played_date: string | null;
+          updated_at: string;
+        }>();
 
-    // Return with default streak values
-    return result ? {
-      ...result,
-      current_streak: null,
-      longest_streak: null,
-      last_played_date: null,
-    } : null;
+      // Return with default avatar values
+      return result ? {
+        ...result,
+        avatar_type: null,
+        avatar_value: null,
+        avatar_source: null,
+        avatar_nft_id: null,
+        avatar_nft_launcher_id: null,
+        owned_nft_ids: null,
+      } : null;
+    } catch {
+      // Final fallback: basic columns only
+      console.log('[Profile] Falling back to basic query');
+      const result = await db
+        .prepare(`SELECT
+          display_name,
+          x_handle,
+          wallet_address,
+          updated_at
+        FROM profiles WHERE user_id = ?`)
+        .bind(userId)
+        .first<{
+          display_name: string | null;
+          x_handle: string | null;
+          wallet_address: string | null;
+          updated_at: string;
+        }>();
+
+      return result ? {
+        ...result,
+        current_streak: null,
+        longest_streak: null,
+        last_played_date: null,
+        avatar_type: null,
+        avatar_value: null,
+        avatar_source: null,
+        avatar_nft_id: null,
+        avatar_nft_launcher_id: null,
+        owned_nft_ids: null,
+      } : null;
+    }
   }
 }
 
 /**
  * Validate profile data
  */
-function validateProfileData(data: ProfileData): { valid: boolean; error?: string } {
+function validateProfileData(data: ProfileData, existingProfile?: { wallet_address: string | null }): { valid: boolean; error?: string } {
   // Validate displayName (optional, 3-20 chars)
   if (data.displayName !== undefined && data.displayName !== null && data.displayName !== '') {
     if (data.displayName.length < 3 || data.displayName.length > 20) {
@@ -133,6 +199,26 @@ function validateProfileData(data: ProfileData): { valid: boolean; error?: strin
     data.walletAddress = wallet;
   }
 
+  // Validate avatar if provided
+  if (data.avatar) {
+    const { type, value, source } = data.avatar;
+
+    if (type === 'nft') {
+      // NFT avatar requires wallet to be connected
+      const walletAddress = data.walletAddress || existingProfile?.wallet_address;
+      if (!walletAddress) {
+        return { valid: false, error: 'Wallet must be connected to use NFT avatar' };
+      }
+    }
+
+    if (type === 'emoji' && source === 'user') {
+      // Validate emoji is in allowed list
+      if (!VALID_EMOJIS.includes(value)) {
+        return { valid: false, error: 'Invalid emoji selection' };
+      }
+    }
+  }
+
   return { valid: true };
 }
 
@@ -144,26 +230,75 @@ async function upsertProfile(
   userId: string,
   data: ProfileData
 ): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO profiles (user_id, display_name, x_handle, wallet_address, updated_at)
-       VALUES (?, ?, ?, ?, datetime('now'))
-       ON CONFLICT(user_id) DO UPDATE SET
-         display_name = COALESCE(?, display_name),
-         x_handle = COALESCE(?, x_handle),
-         wallet_address = COALESCE(?, wallet_address),
-         updated_at = datetime('now')`
-    )
-    .bind(
-      userId,
-      data.displayName || null,
-      data.xHandle || null,
-      data.walletAddress || null,
-      data.displayName !== undefined ? data.displayName || null : null,
-      data.xHandle !== undefined ? data.xHandle || null : null,
-      data.walletAddress !== undefined ? data.walletAddress || null : null
-    )
-    .run();
+  // Try with avatar columns first
+  try {
+    await db
+      .prepare(
+        `INSERT INTO profiles (
+          user_id, display_name, x_handle, wallet_address,
+          avatar_type, avatar_value, avatar_source, avatar_nft_id, avatar_nft_launcher_id,
+          owned_nft_ids, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(user_id) DO UPDATE SET
+          display_name = COALESCE(?, profiles.display_name),
+          x_handle = COALESCE(?, profiles.x_handle),
+          wallet_address = COALESCE(?, profiles.wallet_address),
+          avatar_type = COALESCE(?, profiles.avatar_type),
+          avatar_value = COALESCE(?, profiles.avatar_value),
+          avatar_source = COALESCE(?, profiles.avatar_source),
+          avatar_nft_id = ?,
+          avatar_nft_launcher_id = ?,
+          owned_nft_ids = COALESCE(?, profiles.owned_nft_ids),
+          updated_at = datetime('now')`
+      )
+      .bind(
+        userId,
+        data.displayName || null,
+        data.xHandle || null,
+        data.walletAddress || null,
+        data.avatar?.type || null,
+        data.avatar?.value || null,
+        data.avatar?.source || null,
+        data.avatar?.nftId || null,
+        data.avatar?.nftLauncherId || null,
+        data.ownedNftIds ? JSON.stringify(data.ownedNftIds) : null,
+        // Update values
+        data.displayName !== undefined ? data.displayName || null : null,
+        data.xHandle !== undefined ? data.xHandle || null : null,
+        data.walletAddress !== undefined ? data.walletAddress || null : null,
+        data.avatar?.type || null,
+        data.avatar?.value || null,
+        data.avatar?.source || null,
+        data.avatar?.nftId || null,
+        data.avatar?.nftLauncherId || null,
+        data.ownedNftIds ? JSON.stringify(data.ownedNftIds) : null
+      )
+      .run();
+  } catch (error) {
+    // Fallback: avatar columns might not exist yet
+    console.log('[Profile] Falling back to basic upsert without avatar columns');
+    await db
+      .prepare(
+        `INSERT INTO profiles (user_id, display_name, x_handle, wallet_address, updated_at)
+         VALUES (?, ?, ?, ?, datetime('now'))
+         ON CONFLICT(user_id) DO UPDATE SET
+           display_name = COALESCE(?, profiles.display_name),
+           x_handle = COALESCE(?, profiles.x_handle),
+           wallet_address = COALESCE(?, profiles.wallet_address),
+           updated_at = datetime('now')`
+      )
+      .bind(
+        userId,
+        data.displayName || null,
+        data.xHandle || null,
+        data.walletAddress || null,
+        data.displayName !== undefined ? data.displayName || null : null,
+        data.xHandle !== undefined ? data.xHandle || null : null,
+        data.walletAddress !== undefined ? data.walletAddress || null : null
+      )
+      .run();
+  }
 }
 
 export const onRequest: PagesFunction<Env> = async (context) => {
@@ -221,6 +356,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                 currentStreak: profile.current_streak || 0,
                 longestStreak: profile.longest_streak || 0,
                 lastPlayedDate: profile.last_played_date,
+                avatar: {
+                  type: profile.avatar_type || 'emoji',
+                  value: profile.avatar_value || '🎮',
+                  source: profile.avatar_source || 'default',
+                  nftId: profile.avatar_nft_id,
+                  nftLauncherId: profile.avatar_nft_launcher_id,
+                },
+                ownedNftIds: profile.owned_nft_ids ? JSON.parse(profile.owned_nft_ids) : [],
                 updatedAt: profile.updated_at,
               }
             : null,
@@ -242,8 +385,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         );
       }
 
+      // Get existing profile for validation
+      const existingProfile = await getProfile(env.DB, userId);
+
       // Validate
-      const validation = validateProfileData(data);
+      const validation = validateProfileData(data, existingProfile ? { wallet_address: existingProfile.wallet_address } : undefined);
       if (!validation.valid) {
         return new Response(
           JSON.stringify({ error: validation.error }),
@@ -265,6 +411,17 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                 displayName: profile.display_name,
                 xHandle: profile.x_handle,
                 walletAddress: profile.wallet_address,
+                currentStreak: profile.current_streak || 0,
+                longestStreak: profile.longest_streak || 0,
+                lastPlayedDate: profile.last_played_date,
+                avatar: {
+                  type: profile.avatar_type || 'emoji',
+                  value: profile.avatar_value || '🎮',
+                  source: profile.avatar_source || 'default',
+                  nftId: profile.avatar_nft_id,
+                  nftLauncherId: profile.avatar_nft_launcher_id,
+                },
+                ownedNftIds: profile.owned_nft_ids ? JSON.parse(profile.owned_nft_ids) : [],
                 updatedAt: profile.updated_at,
               }
             : null,

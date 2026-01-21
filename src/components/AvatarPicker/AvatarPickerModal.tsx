@@ -4,54 +4,46 @@
  * Modal for selecting emoji or NFT avatar.
  */
 
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { IonModal, IonButton, IonSegment, IonSegmentButton, IonLabel } from '@ionic/react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSageWallet } from '@/sage-wallet';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 import { Avatar } from '../Avatar/Avatar';
 import { EmojiPicker } from './EmojiPicker';
-import { NFTPicker } from './NFTPicker';
+import { NFTPicker, type NFT } from './NFTPicker';
+import { getRandomDefaultEmoji, type UserAvatar } from '@/types/avatar';
 import './AvatarPicker.css';
-
-interface NFT {
-  id: string;
-  name: string;
-  imageUrl: string;
-  collection: string;
-}
 
 interface AvatarPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const AvatarPickerModal: React.FC<AvatarPickerModalProps> = ({
-  isOpen,
-  onClose
-}) => {
-  const { user, updateAvatar, connectWallet } = useAuth();
+export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
+  const { profile, updateAvatar } = useUserProfile();
+  const { status: walletStatus, connect: connectWallet } = useSageWallet();
+
   const [activeTab, setActiveTab] = useState<'emoji' | 'nft'>('emoji');
   const [selectedEmoji, setSelectedEmoji] = useState(
-    user?.avatar.type === 'emoji' ? user.avatar.value : '🍊'
+    profile?.avatar?.type === 'emoji' ? profile.avatar.value : getRandomDefaultEmoji()
   );
   const [selectedNft, setSelectedNft] = useState<NFT | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = async () => {
+  // Determine if wallet is connected
+  const isWalletConnected = walletStatus === 'connected';
+
+  // Handle emoji selection - auto-save
+  const handleEmojiSelect = async (emoji: string) => {
+    setSelectedEmoji(emoji);
     setIsSaving(true);
     try {
-      if (activeTab === 'emoji') {
-        await updateAvatar({
-          type: 'emoji',
-          value: selectedEmoji
-        });
-      } else if (selectedNft) {
-        await updateAvatar({
-          type: 'nft',
-          value: selectedNft.imageUrl,
-          nftId: selectedNft.id,
-          nftCollection: selectedNft.collection
-        });
-      }
+      const newAvatar: UserAvatar = {
+        type: 'emoji',
+        value: emoji,
+        source: 'user', // User-selected, not default
+      };
+      await updateAvatar(newAvatar);
       onClose();
     } catch (error) {
       console.error('Failed to save avatar:', error);
@@ -60,19 +52,47 @@ export const AvatarPickerModal: React.FC<AvatarPickerModalProps> = ({
     }
   };
 
-  const handleConnectWallet = async () => {
-    const address = await connectWallet();
-    if (address) {
-      setActiveTab('nft');
+  // Handle NFT selection - auto-save
+  const handleNftSelect = async (nft: NFT) => {
+    setSelectedNft(nft);
+    setIsSaving(true);
+    try {
+      const newAvatar: UserAvatar = {
+        type: 'nft',
+        value: nft.imageUrl, // IPFS URL
+        source: 'wallet',
+        nftId: nft.id,
+        nftLauncherId: nft.launcherId,
+      };
+      await updateAvatar(newAvatar);
+      onClose();
+    } catch (error) {
+      console.error('Failed to save avatar:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // Update selected emoji when user changes
-  React.useEffect(() => {
-    if (user?.avatar.type === 'emoji') {
-      setSelectedEmoji(user.avatar.value);
+  // Handle wallet connection
+  const handleConnectWallet = async () => {
+    try {
+      await connectWallet();
+      setActiveTab('nft');
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
     }
-  }, [user?.avatar]);
+  };
+
+  // Update selected emoji when profile changes
+  useEffect(() => {
+    if (profile?.avatar?.type === 'emoji') {
+      setSelectedEmoji(profile.avatar.value);
+    }
+  }, [profile?.avatar]);
+
+  // Determine preview avatar
+  const previewType = activeTab === 'nft' && selectedNft ? 'nft' : 'emoji';
+  const previewValue = activeTab === 'nft' && selectedNft ? selectedNft.imageUrl : selectedEmoji;
 
   return (
     <IonModal isOpen={isOpen} onDidDismiss={onClose} className="avatar-picker-modal">
@@ -87,10 +107,10 @@ export const AvatarPickerModal: React.FC<AvatarPickerModalProps> = ({
         {/* Current Avatar Preview */}
         <div className="current-avatar-preview">
           <Avatar
-            type={activeTab === 'nft' && selectedNft ? 'nft' : 'emoji'}
-            value={activeTab === 'nft' && selectedNft ? selectedNft.imageUrl : selectedEmoji}
+            type={previewType}
+            value={previewValue}
             size="xlarge"
-            isNftHolder={activeTab === 'nft' && !!selectedNft}
+            isNftHolder={previewType === 'nft'}
           />
         </div>
 
@@ -106,7 +126,7 @@ export const AvatarPickerModal: React.FC<AvatarPickerModalProps> = ({
           <IonSegmentButton value="nft">
             <IonLabel>
               NFT
-              {!user?.walletAddress && <span className="lock-badge">🔒</span>}
+              {!isWalletConnected && <span className="lock-badge">🔒</span>}
             </IonLabel>
           </IonSegmentButton>
         </IonSegment>
@@ -116,44 +136,38 @@ export const AvatarPickerModal: React.FC<AvatarPickerModalProps> = ({
           {activeTab === 'emoji' ? (
             <EmojiPicker
               selectedEmoji={selectedEmoji}
-              onSelect={setSelectedEmoji}
+              onSelect={handleEmojiSelect}
             />
           ) : (
             <>
-              {!user?.walletAddress ? (
+              {!isWalletConnected ? (
                 <div className="connect-wallet-prompt">
                   <div className="wallet-icon">👛</div>
                   <h3>Unlock NFT Avatars</h3>
-                  <p>Connect your wallet to use Wojak NFTs as your avatar and compete on the global leaderboard!</p>
+                  <p>Connect your wallet to use Wojak NFTs as your avatar with premium gold styling!</p>
                   <IonButton onClick={handleConnectWallet} className="connect-wallet-button">
                     Connect Wallet
                   </IonButton>
                 </div>
               ) : (
                 <NFTPicker
-                  selectedNftId={selectedNft?.id || null}
-                  onSelect={setSelectedNft}
+                  selectedNftId={selectedNft?.id}
+                  onSelect={handleNftSelect}
                 />
               )}
             </>
           )}
         </div>
 
-        {/* Actions */}
-        <div className="avatar-picker-actions">
-          <IonButton fill="outline" onClick={onClose}>
-            Cancel
-          </IonButton>
-          <IonButton
-            onClick={handleSave}
-            disabled={isSaving || (activeTab === 'nft' && !selectedNft)}
-          >
-            {isSaving ? 'Saving...' : 'Save Avatar'}
-          </IonButton>
-        </div>
+        {/* Loading indicator */}
+        {isSaving && (
+          <div className="saving-overlay">
+            <span>Saving...</span>
+          </div>
+        )}
       </div>
     </IonModal>
   );
-};
+}
 
 export default AvatarPickerModal;

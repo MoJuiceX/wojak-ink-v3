@@ -1,121 +1,127 @@
 /* ===== AVATAR COMPONENT ===== */
 
+/* Base avatar styles */
 .avatar {
   position: relative;
+  border-radius: 50%;
+  overflow: visible; /* Allow badge to overflow */
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  overflow: hidden;
   flex-shrink: 0;
 }
 
-/* ===== GENERIC EMOJI AVATAR - Intentionally "meh" to encourage upgrade ===== */
-.avatar-generic {
-  background: rgba(100, 100, 100, 0.3);
-  border: 2px dashed rgba(255, 255, 255, 0.2);
+/* Size variants */
+.avatar-small { width: 32px; height: 32px; }
+.avatar-medium { width: 48px; height: 48px; }
+.avatar-large { width: 80px; height: 80px; }
+.avatar-xlarge { width: 120px; height: 120px; }
+
+/* ===== EMOJI AVATAR - Standard styling ===== */
+.avatar-emoji {
+  border: 2px solid var(--color-brand-primary, #F97316);
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.1));
+  overflow: hidden;
 }
 
-/* Upgrade indicator - subtle pulsing arrow */
-.avatar-generic::after {
-  content: '↑';
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 16px;
-  height: 16px;
-  background: #F97316;
-  border-radius: 50%;
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: bold;
-  animation: upgradeIndicatorPulse 2s infinite;
-  border: 2px solid #0d0d0d;
+.avatar-emoji .avatar-content {
+  line-height: 1;
+  user-select: none;
 }
 
-@keyframes upgradeIndicatorPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-}
-
-/* Size variations for upgrade indicator */
-.avatar-small.avatar-generic::after {
-  width: 12px;
-  height: 12px;
-  font-size: 8px;
-  bottom: -1px;
-  right: -1px;
-}
-
-.avatar-large.avatar-generic::after {
-  width: 20px;
-  height: 20px;
-  font-size: 12px;
-}
-
-.avatar-xlarge.avatar-generic::after {
-  width: 24px;
-  height: 24px;
-  font-size: 14px;
-}
-
-/* ===== NFT AVATAR - Premium treatment ===== */
-.avatar-nft {
-  border: 2px solid #F97316;
-  box-shadow:
-    0 0 15px rgba(249, 115, 22, 0.4),
-    inset 0 0 10px rgba(249, 115, 22, 0.1);
-}
-
-/* NFT holder glow animation */
-.avatar-nft-holder {
-  border: 2px solid #F97316;
-  box-shadow:
-    0 0 15px rgba(249, 115, 22, 0.4),
-    0 0 25px rgba(249, 115, 22, 0.2);
-  animation: nftGlow 2s ease-in-out infinite;
-}
-
-@keyframes nftGlow {
-  0%, 100% {
-    box-shadow:
-      0 0 15px rgba(249, 115, 22, 0.4),
-      0 0 25px rgba(249, 115, 22, 0.2);
-  }
-  50% {
-    box-shadow:
-      0 0 20px rgba(249, 115, 22, 0.6),
-      0 0 35px rgba(249, 115, 22, 0.3);
-  }
-}
-
-/* Highlighted/featured avatar with spinning conic gradient */
-.avatar-highlighted::before {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, #F97316, #FFD700, #F97316);
-  animation: spinRing 3s linear infinite;
-  z-index: -1;
-}
-
-@keyframes spinRing {
-  to { transform: rotate(360deg); }
-}
-
-/* Legacy bordered style (keep for backwards compatibility) */
+/* Legacy bordered style */
 .avatar-bordered {
   border: 2px solid rgba(255, 140, 50, 0.5);
   box-shadow: 0 2px 8px rgba(255, 140, 50, 0.2);
 }
 
+/* ===== NFT AVATAR - Premium gold styling ===== */
+.avatar-nft {
+  border: 2px solid #FFD700;
+  box-shadow:
+    0 0 12px rgba(255, 215, 0, 0.4),
+    0 0 24px rgba(255, 215, 0, 0.2);
+  overflow: hidden;
+}
+
+.avatar-nft img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Verified badge for NFT avatars */
+.avatar-nft::after {
+  content: '✓';
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  background: #FFD700;
+  color: #000;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-bg-primary, #0d0d0d);
+}
+
+.avatar-small.avatar-nft::after {
+  width: 14px;
+  height: 14px;
+  font-size: 8px;
+  bottom: -1px;
+  right: -1px;
+}
+
+.avatar-medium.avatar-nft::after {
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+}
+
+.avatar-large.avatar-nft::after {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}
+
+.avatar-xlarge.avatar-nft::after {
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+}
+
+/* ===== Highlighted avatar (for featured/top players) ===== */
+.avatar-highlighted::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    #FFD700,
+    #FFA500,
+    #FFD700,
+    #FFA500,
+    #FFD700
+  );
+  animation: avatar-spin 3s linear infinite;
+  z-index: -1;
+}
+
+@keyframes avatar-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ===== Clickable state ===== */
 .avatar-clickable {
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
 .avatar-clickable:hover {
@@ -126,66 +132,22 @@
   transform: scale(0.98);
 }
 
-.avatar-emoji {
-  line-height: 1;
-  user-select: none;
-}
-
+/* ===== NFT image ===== */
 .avatar-nft-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-/* Verified NFT holder badge - green checkmark */
-.avatar-nft-badge {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 18px;
-  height: 18px;
-  background: linear-gradient(135deg, #22C55E, #16A34A);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: white;
-  font-weight: bold;
-  border: 2px solid #0d0d0d;
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
-}
-
-/* Size variations for badge */
-.avatar-small .avatar-nft-badge {
-  width: 14px;
-  height: 14px;
-  font-size: 8px;
-  bottom: -1px;
-  right: -1px;
-}
-
-.avatar-medium .avatar-nft-badge {
-  width: 18px;
-  height: 18px;
-  font-size: 10px;
-}
-
-.avatar-large .avatar-nft-badge {
-  width: 24px;
-  height: 24px;
-  font-size: 12px;
-}
-
-.avatar-xlarge .avatar-nft-badge {
-  width: 32px;
-  height: 32px;
-  font-size: 16px;
+/* ===== Avatar content (emoji text) ===== */
+.avatar-content {
+  line-height: 1;
+  user-select: none;
 }
 
 /* Dark theme compatibility */
 @media (prefers-color-scheme: dark) {
-  .avatar {
+  .avatar-emoji {
     background: linear-gradient(135deg, rgba(255, 140, 50, 0.15), rgba(255, 100, 50, 0.08));
   }
 }

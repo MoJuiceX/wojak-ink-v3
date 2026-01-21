@@ -2,7 +2,9 @@
  * Leaderboard Context
  *
  * Manages leaderboard state, score submission, and personal stats.
- * Only users with NFT avatars can appear on public leaderboards.
+ * Only Google-authenticated users can submit scores to leaderboards.
+ * Non-logged-in users can VIEW leaderboards but cannot submit scores.
+ * NFT avatars get premium visual treatment (gold glow, verified badge).
  */
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
@@ -45,9 +47,9 @@ export const LeaderboardProvider: React.FC<{ children: ReactNode }> = ({ childre
   });
   const [personalStats, setPersonalStats] = useState<Map<GameId, PersonalStats>>(new Map());
 
-  // Check if user can compete (has NFT avatar)
+  // Check if user can compete (requires Google sign-in only, NFT not required)
   const canUserCompete = useCallback((): boolean => {
-    return user?.avatar?.type === 'nft' && !!user?.walletAddress;
+    return !!user;
   }, [user]);
 
   // Get all scores from localStorage
@@ -105,16 +107,14 @@ export const LeaderboardProvider: React.FC<{ children: ReactNode }> = ({ childre
       const gameScores = allScores.filter((s: any) => s.gameId === filter.gameId);
       const filteredScores = filterByTimeframe(gameScores, filter.timeframe);
 
-      // Get best score per user (only NFT holders for leaderboard)
+      // Get best score per signed-in user
       const userBestScores = new Map<string, any>();
 
       filteredScores.forEach((score: any) => {
         const userData = allUsers[score.googleId];
         if (!userData) return;
 
-        // Only include NFT holders on leaderboard
-        if (userData.avatar?.type !== 'nft' || !userData.walletAddress) return;
-
+        // Include all signed-in users on leaderboard (NFT not required)
         const existing = userBestScores.get(score.userId);
         if (!existing || score.score > existing.score) {
           userBestScores.set(score.userId, {
@@ -193,18 +193,18 @@ export const LeaderboardProvider: React.FC<{ children: ReactNode }> = ({ childre
         lastPlayedAt: new Date(Math.max(...userScores.map((s: any) => new Date(s.achievedAt).getTime()))),
       };
 
-      // Calculate best rank if NFT holder
+      // Calculate best rank for signed-in users
       if (canUserCompete()) {
         const allUsers = getAllUsers();
         const allGameScores = allScores.filter((s: any) => s.gameId === gameId);
 
-        // Get best scores per NFT holder
+        // Get best scores per signed-in user
         const bestScores: number[] = [];
         const userBest = new Map<string, number>();
 
         allGameScores.forEach((score: any) => {
           const userData = allUsers[score.googleId];
-          if (!userData || userData.avatar?.type !== 'nft' || !userData.walletAddress) return;
+          if (!userData) return;
 
           const existing = userBest.get(score.userId);
           if (!existing || score.score > existing) {
@@ -283,11 +283,11 @@ export const LeaderboardProvider: React.FC<{ children: ReactNode }> = ({ childre
         const allUsers = getAllUsers();
         const allGameScores = allScores.filter((s: any) => s.gameId === gameId);
 
-        // Get best scores per NFT holder
+        // Get best scores per signed-in user
         const userBest = new Map<string, number>();
         allGameScores.forEach((s: any) => {
           const userData = allUsers[s.googleId];
-          if (!userData || userData.avatar?.type !== 'nft' || !userData.walletAddress) return;
+          if (!userData) return;
 
           const existing = userBest.get(s.userId);
           if (!existing || s.score > existing) {

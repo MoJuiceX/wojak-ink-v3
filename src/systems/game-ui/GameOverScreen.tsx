@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { SignInButton } from '@clerk/clerk-react';
 import { useEffects, getGameOverPreset } from '../effects';
 import { CurrencyEarnedDisplay } from './CurrencyEarnedDisplay';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 import './game-ui.css';
 
 interface GameOverScreenProps {
@@ -16,7 +18,7 @@ interface GameOverScreenProps {
     breakdown?: Record<string, number>;
   };
   leaderboardRank?: number;
-  isNftHolder?: boolean;
+  isNftHolder?: boolean; // Legacy prop - now using isSignedIn from context
   newAchievements?: Array<{ id: string; name: string; icon: string }>;
 
   // Callbacks
@@ -41,7 +43,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   isNewHighScore,
   currencyEarned,
   leaderboardRank,
-  isNftHolder = false,
+  isNftHolder: _isNftHolder = false, // Legacy prop, now using isSignedIn
   newAchievements = [],
   onPlayAgain,
   onMainMenu,
@@ -52,7 +54,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   sadImage
 }) => {
   const { triggerPreset } = useEffects();
+  const { isSignedIn } = useUserProfile();
   const [showContent, setShowContent] = useState(false);
+
+  // Use isSignedIn for leaderboard gating (NFT not required)
+  const canCompeteOnLeaderboard = isSignedIn;
 
   useEffect(() => {
     if (isVisible) {
@@ -102,22 +108,24 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           </div>
         </div>
 
-        {/* Leaderboard Rank (if applicable) */}
-        {isNftHolder && leaderboardRank && (
+        {/* Leaderboard Rank (if signed in and ranked) */}
+        {canCompeteOnLeaderboard && leaderboardRank && (
           <div className="leaderboard-rank-display">
             <span className="rank-label">Leaderboard Rank</span>
             <span className="rank-value">#{leaderboardRank}</span>
           </div>
         )}
 
-        {/* NFT Gate Message (if not holder) */}
-        {!isNftHolder && onViewLeaderboard && (
-          <div className="nft-gate-message">
-            <span className="gate-icon">🔒</span>
-            <p>Set a Wojak NFT as your avatar to compete on the leaderboard!</p>
-            <button className="gate-link" onClick={onViewLeaderboard}>
-              Learn More →
-            </button>
+        {/* Sign-in prompt (if not authenticated) */}
+        {!isSignedIn && (
+          <div className="sign-in-prompt">
+            <span className="gate-icon">🎮</span>
+            <p className="prompt-text">Sign in to save your score and compete on leaderboards!</p>
+            <SignInButton mode="modal">
+              <button className="sign-in-button">
+                <span>Sign In with Google</span>
+              </button>
+            </SignInButton>
           </div>
         )}
 
