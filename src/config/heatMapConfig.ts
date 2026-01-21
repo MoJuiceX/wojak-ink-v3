@@ -14,8 +14,8 @@ import type {
 
 export const HEATMAP_CONFIG = {
   rarityBins: 10, // 10 rows (rarity)
-  priceBins: 8, // 8 columns (price)
-  totalCells: 80, // 10 x 8
+  priceBins: 10, // 10 columns (price) - finer detail for 0-2 XCH range
+  totalCells: 100, // 10 x 10
 
   // Cell dimensions
   cellMinSize: 48, // px
@@ -45,14 +45,16 @@ export const RARITY_BINS: RarityBin[] = [
 // ============ Price Bins ============
 
 export const PRICE_BINS: PriceBin[] = [
-  { index: 0, label: '0-1', minPrice: 0, maxPrice: 1 },
-  { index: 1, label: '1-2', minPrice: 1, maxPrice: 2 },
-  { index: 2, label: '2-3', minPrice: 2, maxPrice: 3 },
-  { index: 3, label: '3-4', minPrice: 3, maxPrice: 4 },
-  { index: 4, label: '4-5', minPrice: 4, maxPrice: 5 },
-  { index: 5, label: '5-6', minPrice: 5, maxPrice: 6 },
-  { index: 6, label: '6-10', minPrice: 6, maxPrice: 10 },
-  { index: 7, label: '10+', minPrice: 10, maxPrice: Infinity },
+  { index: 0, label: '0-0.5', minPrice: 0, maxPrice: 0.5 },
+  { index: 1, label: '0.5-1', minPrice: 0.5, maxPrice: 1 },
+  { index: 2, label: '1-1.5', minPrice: 1, maxPrice: 1.5 },
+  { index: 3, label: '1.5-2', minPrice: 1.5, maxPrice: 2 },
+  { index: 4, label: '2-3', minPrice: 2, maxPrice: 3 },
+  { index: 5, label: '3-4', minPrice: 3, maxPrice: 4 },
+  { index: 6, label: '4-5', minPrice: 4, maxPrice: 5 },
+  { index: 7, label: '5-6', minPrice: 5, maxPrice: 6 },
+  { index: 8, label: '6-10', minPrice: 6, maxPrice: 10 },
+  { index: 9, label: '10+', minPrice: 10, maxPrice: Infinity },
 ];
 
 // ============ Color Palettes ============

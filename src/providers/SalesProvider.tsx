@@ -79,7 +79,7 @@ export function SalesProvider({ children }: SalesProviderProps) {
 
           // Invalidate BigPulp queries so they refetch with new sales data
           console.log('[SalesProvider] Invalidating BigPulp queries to refresh with new data...');
-          queryClient.invalidateQueries({ queryKey: ['bigPulp'] });
+          queryClient.invalidateQueries({ queryKey: ['bigpulp'] });
         } catch (error) {
           console.error('[SalesProvider] Daily sync failed:', error);
         }

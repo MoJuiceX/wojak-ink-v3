@@ -256,7 +256,7 @@ async function loadTraitStats(): Promise<AttributeStats[]> {
       const attrKey = `${attr.category}|${attr.value}`;
       const attrNewSales = newSalesMap.get(attrKey) || [];
 
-      // Merge existing sales with new sales
+      // Merge existing sales with new sales, deduplicating by nftId + price + date
       const existingSales = attr.sales.map(sale => ({
         nftId: String(sale.nftEdition),
         nftImage: getNftImageUrl(sale.nftEdition),
@@ -264,7 +264,7 @@ async function loadTraitStats(): Promise<AttributeStats[]> {
         date: new Date(sale.date),
       }));
 
-      const mergedSales = [
+      const allSales = [
         ...attrNewSales.map(s => ({
           nftId: String(s.nftId),
           nftImage: getNftImageUrl(s.nftId),
@@ -272,7 +272,20 @@ async function loadTraitStats(): Promise<AttributeStats[]> {
           date: s.date,
         })),
         ...existingSales,
-      ].sort((a, b) => b.date.getTime() - a.date.getTime());
+      ];
+
+      // Deduplicate: same NFT sold at same price within 1 day = duplicate
+      const seen = new Set<string>();
+      const mergedSales = allSales
+        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .filter(sale => {
+          // Create key: nftId + rounded price + date rounded to day
+          const dayTimestamp = Math.floor(sale.date.getTime() / (24 * 60 * 60 * 1000));
+          const key = `${sale.nftId}-${sale.price.toFixed(2)}-${dayTimestamp}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
 
       // Recalculate stats including new sales
       const allPrices = [
@@ -316,7 +329,7 @@ async function loadTraitStats(): Promise<AttributeStats[]> {
           if (attrNewSales.length > 0) {
             // This attribute now has sales from live data
             const prices = attrNewSales.map(s => s.price);
-            const mergedSales = attrNewSales
+            const salesList = attrNewSales
               .map(s => ({
                 nftId: String(s.nftId),
                 nftImage: getNftImageUrl(s.nftId),
@@ -324,6 +337,16 @@ async function loadTraitStats(): Promise<AttributeStats[]> {
                 date: s.date,
               }))
               .sort((a, b) => b.date.getTime() - a.date.getTime());
+
+            // Deduplicate: same NFT sold at same price within 1 day = duplicate
+            const seen = new Set<string>();
+            const mergedSales = salesList.filter(sale => {
+              const dayTimestamp = Math.floor(sale.date.getTime() / (24 * 60 * 60 * 1000));
+              const key = `${sale.nftId}-${sale.price.toFixed(2)}-${dayTimestamp}`;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
 
             stats.push({
               category,
@@ -656,23 +679,23 @@ async function generatePriceDistribution(): Promise<PriceDistribution> {
   const listings = listingsResult.listings;
   const total = listings.length || 1; // Avoid division by zero
 
-  // Define price bins
-  const binDefs = [
-    { range: '0-0.5 XCH', minPrice: 0, maxPrice: 0.5 },
-    { range: '0.5-1 XCH', minPrice: 0.5, maxPrice: 1 },
-    { range: '1-2 XCH', minPrice: 1, maxPrice: 2 },
-    { range: '2-5 XCH', minPrice: 2, maxPrice: 5 },
-    { range: '5-10 XCH', minPrice: 5, maxPrice: 10 },
-    { range: '10+ XCH', minPrice: 10, maxPrice: Infinity },
-  ];
+  // Use the same dynamic price bins as the heatmap
+  const allPrices = listings.map(l => l.priceXch);
+  const { boundaries, labels } = calculateDynamicPriceBins(allPrices);
 
-  // Count listings in each bin
-  const bins = binDefs.map(def => {
+  // Generate bins using the same boundaries as the heatmap
+  const bins = labels.map((label, i) => {
+    const minPrice = boundaries[i];
+    const maxPrice = boundaries[i + 1];
+
     const count = listings.filter(l =>
-      l.priceXch >= def.minPrice && l.priceXch < def.maxPrice
+      l.priceXch >= minPrice && l.priceXch < maxPrice
     ).length;
+
     return {
-      ...def,
+      range: `${label} XCH`,
+      minPrice,
+      maxPrice,
       count,
       percentage: Math.round((count / total) * 100),
     };

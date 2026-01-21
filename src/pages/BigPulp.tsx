@@ -184,7 +184,6 @@ function BottomPanel() {
     setHeatMapViewMode,
     attributes,
     topSales,
-    rarestFinds,
     isMarketLoading,
     isAskLoading,
     isAttributesLoading,
@@ -307,7 +306,6 @@ function BottomPanel() {
                 stats={marketStats}
                 topAttributes={attributes.slice(0, 10)}
                 topSales={topSales}
-                rarestFinds={rarestFinds}
                 isLoading={isAskLoading}
               />
             </motion.div>

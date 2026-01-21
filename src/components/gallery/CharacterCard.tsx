@@ -103,7 +103,7 @@ export function CharacterCard({
           <img
             src={character.previewImage}
             alt={character.name}
-            className={`w-full h-full object-cover transition-opacity duration-300 ${
+            className={`w-full h-full object-cover rounded-xl transition-opacity duration-300 ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             loading={priority ? 'eager' : 'lazy'}

@@ -333,7 +333,7 @@ export async function fetchNFTDetailsById(encodedId: string): Promise<NFTDetails
 
 // ============ Edition Number Lookup ============
 
-const MINTGARDEN_API = import.meta.env.DEV ? '/mintgarden-api' : 'https://api.mintgarden.io';
+const MINTGARDEN_API = import.meta.env.DEV ? '/mintgarden-api' : '/api/mintgarden';
 const COLLECTION_ID = 'col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah';
 
 // Cache for edition -> encoded ID mapping

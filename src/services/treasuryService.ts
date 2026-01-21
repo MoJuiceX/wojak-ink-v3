@@ -571,11 +571,16 @@ class TreasuryService implements ITreasuryService {
   }
 
   async getXchPrice(): Promise<number> {
-    // Check localStorage first
+    // Check localStorage - only use if fresh (< 1 hour old)
     const cached = loadCache();
-    if (cached && cached.xchPriceUSD > 0) {
+    const MAX_PRICE_AGE = 60 * 60 * 1000; // 1 hour
+    const isFresh = cached && (Date.now() - cached.lastUpdated) < MAX_PRICE_AGE;
+
+    if (isFresh && cached.xchPriceUSD > 0) {
       return cached.xchPriceUSD;
     }
+
+    // Cache is stale or missing - fetch fresh price
     return fetchXchPrice();
   }
 

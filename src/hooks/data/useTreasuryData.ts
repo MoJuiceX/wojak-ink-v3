@@ -50,16 +50,30 @@ export function useTreasuryWalletData() {
 }
 
 /**
- * Fetch XCH price - shows cached price immediately
+ * Fetch XCH price - shows cached price immediately if fresh enough
+ * Max cache age: 1 hour - beyond that, fetch fresh data
  */
 export function useXchPrice() {
   const cachedPrice = treasuryService.getCachedXchPrice();
+  const cachedData = treasuryService.getCachedWalletData();
+
+  // Check if cached price is fresh enough (max 1 hour old)
+  const MAX_PRICE_AGE = 60 * 60 * 1000; // 1 hour
+  const cacheAge = cachedData?.lastUpdated
+    ? Date.now() - cachedData.lastUpdated.getTime()
+    : Infinity;
+  const isCacheFresh = cacheAge < MAX_PRICE_AGE;
+
+  // Only use cached price as initial data if it's less than 1 hour old
+  const initialPrice = isCacheFresh ? cachedPrice : undefined;
 
   return useQuery({
     queryKey: treasuryKeys.xchPrice(),
     queryFn: () => treasuryService.getXchPrice(),
     ...DATA_CACHE_MAP.tokenPrices,
-    initialData: cachedPrice,
+    initialData: initialPrice,
+    // If cache is stale (>1hr), mark initialData as old to trigger refetch
+    initialDataUpdatedAt: isCacheFresh ? undefined : 0,
   });
 }
 

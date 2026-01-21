@@ -25,6 +25,12 @@ export const CACHE_CONFIG = {
     gcTime: 12 * 60 * 60 * 1000, // 12 hours in cache
   },
 
+  // Price data - needs to be relatively fresh
+  price: {
+    staleTime: 15 * 60 * 1000, // 15 minutes fresh
+    gcTime: 60 * 60 * 1000, // 1 hour in cache
+  },
+
   // Volatile - changes frequently
   volatile: {
     staleTime: 60 * 1000, // 1 minute fresh
@@ -55,7 +61,7 @@ export const DATA_CACHE_MAP = {
   // Wallet/Treasury data
   walletNFTs: CACHE_CONFIG.semiStatic,
   walletBalance: CACHE_CONFIG.treasury,  // Aggressive caching - treasury rarely changes
-  tokenPrices: CACHE_CONFIG.treasury,    // Aggressive caching - avoid rate limits
+  tokenPrices: CACHE_CONFIG.price,       // Price should stay relatively fresh (15 min)
 
   // Trait data
   traitRarity: CACHE_CONFIG.static,

@@ -57,6 +57,7 @@ export const NFTGridItem = memo(function NFTGridItem({
         rotateY: 5,
         rotateX: -5,
         z: 50,
+        zIndex: 10,
         transition: { type: 'spring' as const, stiffness: 300, damping: 20 },
       };
 
@@ -112,7 +113,7 @@ export const NFTGridItem = memo(function NFTGridItem({
         <img
           src={nft.thumbnailUrl}
           alt={nft.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover rounded-lg"
           style={{ opacity: imageLoaded ? 1 : 0 }}
           loading={eagerLoad ? 'eager' : 'lazy'}
           onLoad={handleLoad}

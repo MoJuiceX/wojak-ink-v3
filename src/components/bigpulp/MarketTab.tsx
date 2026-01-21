@@ -88,7 +88,9 @@ function PriceDistributionChart({
 }: {
   data: PriceDistribution;
 }) {
-  const maxCount = Math.max(...data.bins.map((b) => b.count));
+  // Filter out empty bins
+  const nonEmptyBins = data.bins.filter((b) => b.count > 0);
+  const maxCount = Math.max(...nonEmptyBins.map((b) => b.count), 1);
 
   return (
     <div
@@ -98,41 +100,44 @@ function PriceDistributionChart({
         border: '1px solid var(--color-border)',
       }}
     >
-      {/* Chart */}
-      <div className="flex items-end gap-2 h-48 mb-4">
-        {data.bins.map((bin, index) => {
-          const height = maxCount > 0 ? (bin.count / maxCount) * 100 : 0;
+      {/* Chart - only show non-empty bins */}
+      <div className="flex items-end gap-1 mb-4" style={{ height: '180px' }}>
+        {nonEmptyBins.map((bin, index) => {
+          const heightPx = maxCount > 0 ? (bin.count / maxCount) * 160 : 0;
 
           return (
             <div
               key={index}
-              className="flex-1 flex flex-col items-center justify-end"
+              className="flex-1 flex flex-col items-center justify-end h-full"
             >
-              {/* Bar */}
-              <motion.div
-                className="w-full rounded-t-md relative group"
-                style={{
-                  background:
-                    'linear-gradient(to top, var(--color-brand-primary), var(--color-brand-glow))',
-                  height: `${height}%`,
-                  minHeight: bin.count > 0 ? 4 : 0,
-                }}
-                initial={{ scaleY: 0 }}
-                animate={{ scaleY: 1 }}
-                transition={{ duration: 0.5, delay: index * 0.05 }}
-              >
-                {/* Tooltip on hover */}
-                <div
-                  className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+              {/* Bar container - fixed height for percentage to work */}
+              <div className="w-full flex-1 flex items-end">
+                <motion.div
+                  className="w-full rounded-t-md relative group"
                   style={{
-                    background: 'var(--color-bg-secondary)',
-                    border: '1px solid var(--color-border)',
-                    color: 'var(--color-text-primary)',
+                    background:
+                      'linear-gradient(to top, var(--color-brand-primary), var(--color-brand-glow))',
+                    height: heightPx,
+                    minHeight: bin.count > 0 ? 8 : 0,
+                    transformOrigin: 'bottom',
                   }}
+                  initial={{ scaleY: 0 }}
+                  animate={{ scaleY: 1 }}
+                  transition={{ duration: 0.5, delay: index * 0.05 }}
                 >
-                  {bin.count} ({bin.percentage}%)
-                </div>
-              </motion.div>
+                  {/* Tooltip on hover */}
+                  <div
+                    className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10"
+                    style={{
+                      background: 'var(--color-bg-secondary)',
+                      border: '1px solid var(--color-border)',
+                      color: 'var(--color-text-primary)',
+                    }}
+                  >
+                    {bin.count} ({bin.percentage}%)
+                  </div>
+                </motion.div>
+              </div>
 
               {/* Label */}
               <p
@@ -140,7 +145,7 @@ function PriceDistributionChart({
                 style={{ color: 'var(--color-text-muted)' }}
                 title={bin.range}
               >
-                {bin.range.replace(' XCH', '').replace('-', '\n')}
+                {bin.range.replace(' XCH', '')}
               </p>
             </div>
           );

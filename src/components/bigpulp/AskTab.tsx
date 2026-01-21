@@ -6,7 +6,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ChevronDown, BookOpen, Gem, Trophy, Sparkles, BarChart3, Award } from 'lucide-react';
+import { ChevronDown, BookOpen, Gem, Trophy, BarChart3, Award } from 'lucide-react';
 import { useXchPrice } from '@/hooks/data/useTreasuryData';
 import {
   loadBadgeSystem,
@@ -21,7 +21,6 @@ import type {
   MarketStats,
   AttributeStats,
   NFTSale,
-  NFTBasic,
 } from '@/types/bigpulp';
 import {
   statsCardVariants,
@@ -36,11 +35,10 @@ interface AskTabProps {
   stats: MarketStats | null;
   topAttributes: AttributeStats[];
   topSales: NFTSale[];
-  rarestFinds: NFTBasic[];
   isLoading?: boolean;
 }
 
-type SectionId = 'provenance' | 'attributes' | 'sales' | 'rarest' | 'badges';
+type SectionId = 'provenance' | 'attributes' | 'sales' | 'badges';
 
 interface SectionConfig {
   id: SectionId;
@@ -52,7 +50,6 @@ const SECTIONS: SectionConfig[] = [
   { id: 'provenance', icon: BookOpen, title: 'Learn Provenance' },
   { id: 'attributes', icon: Gem, title: 'Top 10 Valuable Attributes' },
   { id: 'sales', icon: Trophy, title: 'Top 10 Highest Sales' },
-  { id: 'rarest', icon: Sparkles, title: 'Rarest Finds' },
   { id: 'badges', icon: Award, title: 'Badge Gallery' },
 ];
 
@@ -334,7 +331,7 @@ function TopAttributesContent({ attributes }: { attributes: AttributeStats[] }) 
   );
 }
 
-function TopSalesContent({ sales }: { sales: NFTSale[] }) {
+function TopSalesContent({ sales, isLoading }: { sales: NFTSale[]; isLoading?: boolean }) {
   const formatDate = (date: Date) => {
     const diff = Date.now() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -344,11 +341,50 @@ function TopSalesContent({ sales }: { sales: NFTSale[] }) {
     return date.toLocaleDateString();
   };
 
-  if (sales.length === 0) {
+  if (isLoading || sales.length === 0) {
     return (
-      <div className="pt-4 text-center">
-        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-          No sales data available yet.
+      <div className="pt-4">
+        <div className="space-y-2">
+          {/* Skeleton loading state */}
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 p-2 rounded-lg animate-pulse"
+              style={{ background: 'var(--color-bg-tertiary)' }}
+            >
+              <div
+                className="w-6 h-6 rounded-full flex-shrink-0"
+                style={{ background: 'var(--color-glass-hover)' }}
+              />
+              <div
+                className="w-10 h-10 rounded-lg flex-shrink-0"
+                style={{ background: 'var(--color-glass-hover)' }}
+              />
+              <div className="flex-1 space-y-2">
+                <div
+                  className="h-4 w-24 rounded"
+                  style={{ background: 'var(--color-glass-hover)' }}
+                />
+                <div
+                  className="h-3 w-16 rounded"
+                  style={{ background: 'var(--color-glass-hover)' }}
+                />
+              </div>
+              <div className="text-right space-y-2">
+                <div
+                  className="h-4 w-16 rounded ml-auto"
+                  style={{ background: 'var(--color-glass-hover)' }}
+                />
+                <div
+                  className="h-3 w-12 rounded ml-auto"
+                  style={{ background: 'var(--color-glass-hover)' }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-center mt-3" style={{ color: 'var(--color-text-muted)' }}>
+          {isLoading ? 'Loading sales data...' : 'Syncing sales data...'}
         </p>
       </div>
     );
@@ -410,59 +446,6 @@ function TopSalesContent({ sales }: { sales: NFTSale[] }) {
               >
                 ${sale.priceUSD.toFixed(0)}
               </p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function RarestFindsContent({ nfts }: { nfts: NFTBasic[] }) {
-  if (nfts.length === 0) {
-    return (
-      <div className="pt-4 text-center">
-        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-          Loading rarest NFTs...
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="pt-4">
-      <div className="grid grid-cols-5 gap-2">
-        {nfts.slice(0, 10).map((nft, index) => (
-          <div
-            key={nft.id}
-            className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer"
-            style={{ background: 'var(--color-bg-tertiary)' }}
-          >
-            {/* Rank badge */}
-            <div
-              className="absolute top-1 left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold z-10"
-              style={{
-                background: index < 3 ? '#fbbf24' : 'var(--color-glass-bg)',
-                color: index < 3 ? '#1a1a1a' : 'var(--color-text-secondary)',
-              }}
-            >
-              {index + 1}
-            </div>
-            {/* NFT Image */}
-            <img
-              src={nft.imageUrl}
-              alt={nft.name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-            {/* Hover overlay */}
-            <div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-              style={{ background: 'rgba(0,0,0,0.7)' }}
-            >
-              <span className="text-xs text-white font-medium">
-                {nft.id.replace('WFP-', '#')}
-              </span>
             </div>
           </div>
         ))}
@@ -802,7 +785,6 @@ export function AskTab({
   stats,
   topAttributes,
   topSales,
-  rarestFinds,
   isLoading = false,
 }: AskTabProps) {
   const prefersReducedMotion = useReducedMotion();
@@ -971,19 +953,11 @@ export function AskTab({
           isExpanded={expandedSection === 'sales'}
           onToggle={() => handleToggle('sales')}
         >
-          <TopSalesContent sales={topSales} />
+          <TopSalesContent sales={topSales} isLoading={isLoading} />
         </ExpandableSection>
 
         <ExpandableSection
           section={SECTIONS[3]}
-          isExpanded={expandedSection === 'rarest'}
-          onToggle={() => handleToggle('rarest')}
-        >
-          <RarestFindsContent nfts={rarestFinds} />
-        </ExpandableSection>
-
-        <ExpandableSection
-          section={SECTIONS[4]}
           isExpanded={expandedSection === 'badges'}
           onToggle={() => handleToggle('badges')}
         >

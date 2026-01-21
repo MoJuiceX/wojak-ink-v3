@@ -10,8 +10,9 @@
   background-position: center;
   border-radius: 16px;
   overflow: visible;
-  /* Dynamic height based on viewport - scales with window size */
-  height: clamp(200px, 35vh, 400px);
+  /* Fill parent height on desktop, dynamic on mobile */
+  height: 100%;
+  min-height: 200px;
 }
 
 /* Speech Bubble */
@@ -117,7 +118,7 @@
   height: 100%;
   object-fit: contain;
   object-position: bottom center;
-  transform: scale(1.215);
+  transform: scale(0.97);
   transform-origin: bottom center;
 }
 
@@ -134,17 +135,18 @@
 
 @keyframes float-gentle {
   0%, 100% {
-    transform: scale(1.215) translateY(0);
+    transform: scale(0.97) translateY(0);
   }
   50% {
-    transform: scale(1.215) translateY(-4px);
+    transform: scale(0.97) translateY(-4px);
   }
 }
 
 /* Responsive - Mobile devices */
 @media (max-width: 768px) {
   .bigpulp-character-container {
-    height: clamp(180px, 30vh, 280px);
+    height: clamp(180px, 30vh, 300px);
+    min-height: unset;
     padding: 70px 16px 10px 16px;
     overflow: hidden;
   }
