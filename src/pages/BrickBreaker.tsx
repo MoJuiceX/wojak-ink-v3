@@ -14,7 +14,6 @@ import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LEVELS, generateRandomLevel } from './brickLevels';
-import { GameSEO } from '@/components/seo/GameSEO';
 import './BrickBreaker.css';
 
 // =============================================================================

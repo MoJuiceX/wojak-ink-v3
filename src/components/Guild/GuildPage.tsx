@@ -30,7 +30,7 @@ export function GuildPage() {
     myGuildMembers,
     myRole,
     isLoading,
-    myInvites,
+    myInvites: _myInvites,
     acceptInvite: _acceptInvite,
     declineInvite: _declineInvite,
     leaveGuild,
@@ -308,7 +308,8 @@ interface GuildInviteCardProps {
   invite: GuildInvite;
 }
 
-function GuildInviteCard({ invite }: GuildInviteCardProps) {
+// Future feature: Guild invites UI
+export function GuildInviteCard({ invite }: GuildInviteCardProps) {
   const { acceptInvite, declineInvite } = useGuild();
   const [isProcessing, setIsProcessing] = useState(false);
 
