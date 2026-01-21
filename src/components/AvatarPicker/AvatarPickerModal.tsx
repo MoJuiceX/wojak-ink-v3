@@ -22,8 +22,8 @@ interface AvatarPickerModalProps {
 }
 
 export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
-  const { profile, updateAvatar } = useUserProfile();
-  const { status: walletStatus, connect: connectWallet } = useSageWallet();
+  const { profile, updateAvatar, updateProfile } = useUserProfile();
+  const { status: walletStatus, address: walletAddress, connect: connectWallet } = useSageWallet();
 
   const [activeTab, setActiveTab] = useState<'emoji' | 'nft'>('emoji');
   const [selectedEmoji, setSelectedEmoji] = useState(
@@ -55,9 +55,9 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
     }
   };
 
-  // Handle NFT selection - auto-save
+  // Handle NFT selection - auto-save with wallet address
   const handleNftSelect = async (nft: NFT) => {
-    console.log('[AvatarPicker] NFT selected:', nft.id);
+    console.log('[AvatarPicker] NFT selected:', nft.id, 'wallet:', walletAddress);
     setSelectedNft(nft);
     setIsSaving(true);
     try {
@@ -68,7 +68,12 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
         nftId: nft.id,
         nftLauncherId: nft.launcherId,
       };
-      await updateAvatar(newAvatar);
+      // Save both avatar AND wallet address together
+      // This ensures the API validation passes (NFT avatars require wallet_address)
+      await updateProfile({
+        avatar: newAvatar,
+        walletAddress: walletAddress || undefined,
+      });
       onClose();
     } catch (error) {
       console.error('Failed to save avatar:', error);
@@ -160,6 +165,7 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
                 value={previewValue}
                 size="large"
                 isNftHolder={previewType === 'nft'}
+                showBadge={false}
               />
             </div>
 
