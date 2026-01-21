@@ -1,6 +1,6 @@
-# SPEC 12: Tang Gang Shop & Collectibles System (FINAL)
+# SPEC 12: Tang Gang Shop & Collectibles System (v2.0)
 
-> **For Claude CLI**: This specification defines the personalized spend economy for wojak.ink, deeply integrated with Tang Gang lore, BigPulp, and community culture.
+> **For Claude CLI**: This specification defines the personalized spend economy for wojak.ink, deeply integrated with Tang Gang lore, BigPulp, and community culture. This version incorporates full integration with existing systems and balanced economics.
 
 ---
 
@@ -23,14 +23,66 @@ This isn't just a shop—it's an extension of **Tang Gang culture**:
 | Crypto lore references | No - keep it Tang Gang focused |
 | Scarcity model | First-come-first-served waves |
 | NFT holder perks | Deferred - decide later |
-| Collections | All types (citrus, character, achievement) |
+| Badge system | **Merged** - NFT badges + emoji badges in unified ring |
 | Celebration effects | Orange rain / citrus explosion |
 | Pets | BigPulp (adult only) with hats, moods, accessories |
+| BigPulp role | **Everywhere** - Profile + Games + Drawer with dialogue |
 | Titles | All types (grove ranks, catchphrases, achievements) |
 | Legacy items | 30-day founder window + $50 XCH premium |
 | Shop rotation | No rotation - always available |
 | Premium colors | Golden Orange (amber, gold, honey) |
-| Legend items | Emoji badges honoring community builders |
+| Item ownership | **Keep all purchased items**, equip one per category |
+| Free defaults | **No** - earn everything |
+| Existing shop items | **Replace all** with SPEC 12 items |
+| Pricing | **50% reduced** from original for better accessibility |
+
+---
+
+## EMOJI RING SYSTEM (New!)
+
+Instead of simple badges next to name, users have an **emoji ring** surrounding their username.
+
+### Ring Layout (Fixed Dimensions)
+```
+           🍊  🌱  ⭐  🎯  ⚡  🚀        ← TOP ROW (6 slots)
+
+      👑                            🎩
+      🪿      [  USERNAME  ]        🏆    ← LEFT (3) + RIGHT (3)
+      🐸                            🔥
+
+           🦍  🌟  💎  💰  🤖  👽        ← BOTTOM ROW (6 slots)
+```
+
+### Ring Specifications
+- **Total Slots:** 18 (3 left + 3 right + 6 top + 6 bottom)
+- **Name Area:** Fixed width (assumes max 20 characters) for leaderboard consistency
+- **Short names** are centered within the fixed-width area
+- **User Arranges:** Drag-and-drop to position emojis in preferred slots
+- **Empty slots** are invisible (no placeholder)
+
+### Leaderboard Consistency
+All users have the same ring dimensions regardless of name length:
+```
+Rank |  Player Display
+-----|------------------------------------------
+  1  |      🍊 🌱 ⭐
+     |   👑              🎩
+     |   🪿   MoJuice    🏆
+     |   🐸              🔥
+     |      🦍 🌟 💎
+-----|------------------------------------------
+  2  |      🍪 🐸
+     |   🏆
+     |        Bob
+     |
+     |      🚀
+```
+
+### Merged Badge System
+Both **purchased emoji badges** AND **NFT trait badges** appear in the same ring:
+- NFT badges (hexagonal seedling, etc.) cost oranges like everything else
+- Owning the NFT does NOT give free badge access
+- All badges compete for the same 18 ring slots
 
 ---
 
@@ -42,16 +94,20 @@ Every item a user purchases appears in their **Achievement Drawer** - a dedicate
 - Visual grid/drawer layout with multiple rows organized by category
 - Every purchased item displays as an icon/thumbnail
 - Users can share their drawer link to show off to the community
+- BigPulp lives here and comments on your collection
 - Acts as a status flex and collection showcase
 
 ### Drawer Structure
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  🍊 MoJuice's Achievement Drawer                        │
-│  Total Items: 47  |  Total Spent: 125,000 🍊            │
+│  Total Items: 47  |  Total Spent: 62,500 🍊             │
+│                                                         │
+│  [BigPulp with Crown, looking impressed]                │
+│  💬 "Now THAT'S a collection! Winners win, baby!"       │
 ├─────────────────────────────────────────────────────────┤
-│  EMOJI BADGES                                           │
-│  [👑] [🪿] [🔥] [💎] [🍊] [🌱] [🐸]                     │
+│  EMOJI RING BADGES                                      │
+│  [👑] [🪿] [🔥] [💎] [🍊] [🌱] [🐸] [🎩] [🏆]          │
 ├─────────────────────────────────────────────────────────┤
 │  FRAMES                                                 │
 │  [Burning Citrus] [Electric Tang] [Citrus Glow]        │
@@ -60,9 +116,9 @@ Every item a user purchases appears in their **Achievement Drawer** - a dedicate
 │  ["King of the Grove"] ["Winners Win!"] ["Breadsticks"] │
 ├─────────────────────────────────────────────────────────┤
 │  NAME EFFECTS                                           │
-│  [Fire Text] [Dripping Gold]                           │
+│  [Fire Text] [Dripping Gold] [Shimmer]                 │
 ├─────────────────────────────────────────────────────────┤
-│  BIGPULP                                               │
+│  BIGPULP ITEMS                                         │
 │  [Crown Hat] [Viking Hat] [Rekt Mood] [Cigar]          │
 ├─────────────────────────────────────────────────────────┤
 │  BACKGROUNDS                                           │
@@ -80,43 +136,42 @@ Every item a user purchases appears in their **Achievement Drawer** - a dedicate
 - "Collection Value" calculation
 - Shareable link: `wojak.ink/drawer/username`
 - Achievement badges for milestones (Pioneer, Collector, Whale)
+- BigPulp commentary based on collection size/rarity
 
 ---
 
-## Part 1: EMOJI BADGES (Appear Next to Username)
+## Part 1: EMOJI RING BADGES
 
-Users can buy multiple emojis that stack next to their username.
+Users can buy emojis to place in their ring (max 18 displayed).
 
-**Display Example:** `👑🪿🔥 MoJuice` or `🐸🎩💎 OtherUser`
-
-### General Emojis
+### General Emojis (50% reduced pricing)
 | Emoji | Name | Price |
 |-------|------|-------|
-| 🍊 | Orange | 500 🍊 |
-| 🧡 | Orange Heart | 500 🍊 |
-| 🌱 | Seedling | 500 🍊 |
-| ⭐ | Star | 750 🍊 |
-| 🎯 | Target | 750 🍊 |
-| ⚡ | Lightning | 1,500 🍊 |
-| 🚀 | Rocket | 1,500 🍊 |
-| 💀 | Skull | 2,500 🍊 |
-| 👽 | Alien | 2,500 🍊 |
-| 🤖 | Robot | 2,500 🍊 |
-| 🦍 | Ape | 4,000 🍊 |
-| 🌟 | Glowing Star | 4,000 🍊 |
-| 💎 | Diamond | 5,000 🍊 |
-| 💰 | Money Bag | 7,500 🍊 |
+| 🍊 | Orange | 250 🍊 |
+| 🧡 | Orange Heart | 250 🍊 |
+| 🌱 | Seedling | 250 🍊 |
+| ⭐ | Star | 375 🍊 |
+| 🎯 | Target | 375 🍊 |
+| ⚡ | Lightning | 750 🍊 |
+| 🚀 | Rocket | 750 🍊 |
+| 💀 | Skull | 1,250 🍊 |
+| 👽 | Alien | 1,250 🍊 |
+| 🤖 | Robot | 1,250 🍊 |
+| 🦍 | Ape | 2,000 🍊 |
+| 🌟 | Glowing Star | 2,000 🍊 |
+| 💎 | Diamond | 2,500 🍊 |
+| 💰 | Money Bag | 3,750 🍊 |
 
-### Legend Tribute Emojis (Premium Status Symbols)
-| Emoji | Represents | Title Unlocked | Price |
-|-------|------------|----------------|-------|
-| 🔥 | TheStakerClass | "The Beret Stays On" | 15,000 🍊 |
-| 🍪 | OrangeGooey | "Accept Cookies" | 15,000 🍊 |
-| 🐸 | Tom Bepe | "Bepe Army" | 20,000 🍊 |
-| 🪿 | Foods | "Breadsticks" | 20,000 🍊 |
-| 🏆 | Papa Tang | "Winners Win!" | 25,000 🍊 |
-| 🎩 | DegenWaffle | "Neckbeard" | 25,000 🍊 |
-| 👑 | Bullish0x | "King of the Grove" | 40,000 🍊 |
+### Legend Tribute Emojis (50% reduced pricing)
+| Emoji | Represents | Price |
+|-------|------------|-------|
+| 🔥 | TheStakerClass | 7,500 🍊 |
+| 🍪 | OrangeGooey | 7,500 🍊 |
+| 🐸 | Tom Bepe | 10,000 🍊 |
+| 🪿 | Foods | 10,000 🍊 |
+| 🏆 | Papa Tang | 12,500 🍊 |
+| 🎩 | DegenWaffle | 12,500 🍊 |
+| 👑 | Bullish0x | 20,000 🍊 |
 
 **Note:** The community knows what each emoji represents. No explicit labels needed.
 
@@ -124,13 +179,15 @@ Users can buy multiple emojis that stack next to their username.
 
 ## Part 2: FRAMES (Borders Around Avatar)
 
-### Grove Tier - **2,500 🍊**
+Users **keep all purchased frames** in their drawer and can equip one at a time.
+
+### Grove Tier - **1,250 🍊** (was 2,500)
 | Name | Style |
 |------|-------|
 | **Seedling** | Simple solid green border |
 | **Orange** | Simple solid orange border |
 
-### Orchard Tier (8 Glow Effects) - **7,500 🍊**
+### Orchard Tier (8 Glow Effects) - **3,750 🍊** (was 7,500)
 | Name | Glow Color |
 |------|------------|
 | **Citrus Glow** | Orange |
@@ -142,7 +199,7 @@ Users can buy multiple emojis that stack next to their username.
 | **Lavender Dream** | Purple/lavender |
 | **Arctic Frost** | Ice blue/white |
 
-### Harvest Tier (4 Animated Effects) - **25,000 🍊**
+### Harvest Tier (4 Animated Effects) - **12,500 🍊** (was 25,000)
 | Name | Effect Description |
 |------|-------------------|
 | **Burning Citrus** | Animated flames licking around border, orange/red fire |
@@ -150,7 +207,7 @@ Users can buy multiple emojis that stack next to their username.
 | **Liquid Gold** | Molten gold flowing and dripping, metallic shimmer |
 | **Frozen Juice** | Ice crystals forming and breaking, frost particles |
 
-### Legendary Tier - **75,000 🍊**
+### Legendary Tier - **37,500 🍊** (was 75,000)
 | Name | Effect Description |
 |------|-------------------|
 | **Aurora Grove** | Northern lights effect - shifting colors flowing |
@@ -158,7 +215,7 @@ Users can buy multiple emojis that stack next to their username.
 | **Holographic Tang** | Iridescent holographic shimmer, color shifts |
 | **Supernova** | Explosive star burst animation |
 
-### Legend Emoji Frames (Emoji repeats around border) - **75,000 🍊**
+### Legend Emoji Frames - **37,500 🍊** (was 75,000)
 | Frame | Appearance |
 |-------|------------|
 | 👑👑👑👑 | Crowns forming border |
@@ -173,9 +230,9 @@ Users can buy multiple emojis that stack next to their username.
 
 ## Part 3: NAME EFFECTS
 
-Buying a new name effect **overrides** the old one (old one is lost).
+Users **keep all purchased name effects** and can switch between them.
 
-### Basic - **2,500 🍊**
+### Basic - **1,250 🍊** (was 2,500)
 | Name | Effect |
 |------|--------|
 | **Citrus Text** | Solid orange colored username |
@@ -184,7 +241,7 @@ Buying a new name effect **overrides** the old one (old one is lost).
 | **Pulse** | Username gently fades in/out |
 | **Gradient Flow** | Orange → gold → honey color shift |
 
-### Animated - **15,000 🍊**
+### Animated - **7,500 🍊** (was 15,000)
 | Name | Effect |
 |------|--------|
 | **Rainbow Tang** | Rainbow colors cycle through |
@@ -193,7 +250,7 @@ Buying a new name effect **overrides** the old one (old one is lost).
 | **Neon Sign** | Flickering neon glow |
 | **Matrix** | Green code rain effect on letters |
 
-### Legendary - **40,000 🍊**
+### Legendary - **20,000 🍊** (was 40,000)
 | Name | Effect |
 |------|--------|
 | **Dripping Gold** | Gold liquid drips from letters |
@@ -205,7 +262,9 @@ Buying a new name effect **overrides** the old one (old one is lost).
 
 ## Part 4: TITLES
 
-### Grove Ranks - **2,500 🍊**
+Users **keep all purchased titles** and can switch between them.
+
+### Grove Ranks - **1,250 🍊** (was 2,500)
 | Title |
 |-------|
 | "Seedling" |
@@ -214,7 +273,7 @@ Buying a new name effect **overrides** the old one (old one is lost).
 | "Citrus Lord" |
 | "Tang Emperor" |
 
-### Mood Titles - **5,000 🍊**
+### Mood Titles - **2,500 🍊** (was 5,000)
 | Title |
 |-------|
 | "Vibing" |
@@ -226,7 +285,7 @@ Buying a new name effect **overrides** the old one (old one is lost).
 | "Absolute Unit" |
 | "Touch Grass" |
 
-### Legend Catchphrase Titles - **15,000 🍊**
+### Legend Catchphrase Titles - **7,500 🍊** (was 15,000)
 | Title | Origin |
 |-------|--------|
 | "King of the Grove" | Bullish0x |
@@ -237,7 +296,7 @@ Buying a new name effect **overrides** the old one (old one is lost).
 | "Winners Win!" | Papa Tang |
 | "The Beret Stays On" | TheStakerClass |
 
-### Custom Title Slot - **50,000 🍊**
+### Custom Title Slot - **25,000 🍊** (was 50,000)
 Write your own title (with moderation)
 
 ---
@@ -246,6 +305,13 @@ Write your own title (with moderation)
 
 **BigPulp is always an adult orange with glasses.** Users customize with hats, moods, and accessories.
 
+### BigPulp Appears EVERYWHERE
+
+1. **Profile Page** - Sits on your profile with equipped customizations
+2. **During Games** - Reacts to gameplay with animations and dialogue
+3. **Achievement Drawer** - Lives in your drawer, comments on collection
+4. **Win Screens** - Celebrates (or roasts) based on performance
+
 ### BigPulp Personality
 - Witty commentator with attitude
 - Tough love - direct and blunt
@@ -253,49 +319,68 @@ Write your own title (with moderation)
 - Like a sergeant in the army
 - Always ends positive
 
-### Hats
+### BigPulp Dialogue Examples
+**On Win:**
+- "WINNERS WIN, BABY! 🍊"
+- "That's what I'm talking about!"
+- "The Grove is proud of you!"
+
+**On Loss:**
+- "Paper hands detected... Try again!"
+- "Even legends have bad days. Run it back!"
+- "The beret stays on. So do you. Again."
+
+**On Drawer Visit (based on collection):**
+- Small collection: "Nice start! Keep grinding, seedling."
+- Medium collection: "Now we're talking! The Grove recognizes you."
+- Large collection: "ABSOLUTE UNIT. This drawer is STACKED!"
+- Full legend set: "You madlad. You actually got them all. 👑"
+
+### Hats (50% reduced)
 | Hat | Price |
 |-----|-------|
-| Party Hat | 2,500 🍊 |
-| Cowboy Hat | 4,000 🍊 |
-| Chef Hat | 4,000 🍊 |
-| Viking Helmet | 7,500 🍊 |
-| Pirate Hat | 7,500 🍊 |
-| Beret | 7,500 🍊 |
-| Top Hat | 10,000 🍊 |
-| Wizard Hat | 10,000 🍊 |
-| Devil Horns | 12,500 🍊 |
-| Crown | 25,000 🍊 |
-| Halo | 25,000 🍊 |
+| Party Hat | 1,250 🍊 |
+| Cowboy Hat | 2,000 🍊 |
+| Chef Hat | 2,000 🍊 |
+| Viking Helmet | 3,750 🍊 |
+| Pirate Hat | 3,750 🍊 |
+| Beret | 3,750 🍊 |
+| Top Hat | 5,000 🍊 |
+| Wizard Hat | 5,000 🍊 |
+| Devil Horns | 6,250 🍊 |
+| Crown | 12,500 🍊 |
+| Halo | 12,500 🍊 |
 
-### Moods
+### Moods (50% reduced)
 | Mood | Expression | Animation | Price |
 |------|------------|-----------|-------|
-| **Happy** | Big smile, sparkle eyes | Bobbing | 1,500 🍊 |
-| **Chill** | Relaxed, half-closed eyes | Gentle float | 1,500 🍊 |
-| **Sleepy** | Closed eyes, Z's | Slow breathing | 2,500 🍊 |
-| **Hype** | Excited, wide eyes | Bouncing | 4,000 🍊 |
-| **Grumpy** | Angry eyebrows, frown | Slight shake | 4,000 🍊 |
-| **Sergeant** | Stern military face | Standing at attention | 7,500 🍊 |
-| **Numb** | Blank stare, no expression | Still | 10,000 🍊 |
-| **Rekt** | Bleeding eyes, devastated | Slow drip animation | 15,000 🍊 |
+| **Happy** | Big smile, sparkle eyes | Bobbing | 750 🍊 |
+| **Chill** | Relaxed, half-closed eyes | Gentle float | 750 🍊 |
+| **Sleepy** | Closed eyes, Z's | Slow breathing | 1,250 🍊 |
+| **Hype** | Excited, wide eyes | Bouncing | 2,000 🍊 |
+| **Grumpy** | Angry eyebrows, frown | Slight shake | 2,000 🍊 |
+| **Sergeant** | Stern military face | Standing at attention | 3,750 🍊 |
+| **Numb** | Blank stare, no expression | Still | 5,000 🍊 |
+| **Rekt** | Bleeding eyes, devastated | Slow drip animation | 7,500 🍊 |
 
-### Accessories
+### Accessories (50% reduced)
 | Accessory | Price |
 |-----------|-------|
-| Bowtie | 1,500 🍊 |
-| Bandana | 2,500 🍊 |
-| Earring | 2,500 🍊 |
-| Headphones | 4,000 🍊 |
-| Cigar | 5,000 🍊 |
-| Monocle | 7,500 🍊 |
-| Scar | 10,000 🍊 |
+| Bowtie | 750 🍊 |
+| Bandana | 1,250 🍊 |
+| Earring | 1,250 🍊 |
+| Headphones | 2,000 🍊 |
+| Cigar | 2,500 🍊 |
+| Monocle | 3,750 🍊 |
+| Scar | 5,000 🍊 |
 
 ---
 
 ## Part 6: PROFILE BACKGROUNDS
 
-### Solid Colors - **2,500 🍊**
+Users **keep all purchased backgrounds** and can switch between them.
+
+### Solid Colors - **1,250 🍊** (was 2,500)
 | Name | Color |
 |------|-------|
 | Midnight | Dark navy blue |
@@ -304,7 +389,7 @@ Write your own title (with moderation)
 | Forest | Dark green |
 | Ember | Dark red |
 
-### Gradients - **7,500 🍊**
+### Gradients - **3,750 🍊** (was 7,500)
 | Name | Style |
 |------|-------|
 | Orange Sunrise | Orange → yellow |
@@ -312,13 +397,13 @@ Write your own title (with moderation)
 | Deep Ocean | Navy → teal |
 | Cotton Candy | Pink → orange → yellow |
 
-### Animated - **25,000 🍊**
+### Animated - **12,500 🍊** (was 25,000)
 | Name | Animation |
 |------|-----------|
 | Citrus Rain | Orange drops falling |
 | Floating Oranges | Oranges drift across |
 
-### Premium Animated - **40,000 🍊**
+### Premium Animated - **20,000 🍊** (was 40,000)
 | Name | Animation |
 |------|-----------|
 | Orange Grove | Trees with oranges swaying |
@@ -329,12 +414,12 @@ Write your own title (with moderation)
 
 ## Part 7: WIN/CELEBRATION EFFECTS
 
-| Name | Effect | Price |
-|------|--------|-------|
-| Confetti | Orange confetti | 5,000 🍊 |
-| Orange Rain | Oranges fall across screen | 10,000 🍊 |
-| Citrus Explosion | Oranges burst from center | 15,000 🍊 |
-| Fireworks | Orange fireworks | 25,000 🍊 |
+| Name | Effect | Price (50% reduced) |
+|------|--------|---------------------|
+| Confetti | Orange confetti | 2,500 🍊 |
+| Orange Rain | Oranges fall across screen | 5,000 🍊 |
+| Citrus Explosion | Oranges burst from center | 7,500 🍊 |
+| Fireworks | Orange fireworks | 12,500 🍊 |
 
 ---
 
@@ -345,9 +430,9 @@ Write your own title (with moderation)
 | **Pioneer** | 🌱 | First 100 users to join |
 | **Builder** | 🔨 | Contributed to community growth |
 | **Grove Veteran** | ⭐ | 1 year membership |
-| **Big Spender** | 💰 | Spent 50,000+ oranges |
+| **Big Spender** | 💰 | Spent 25,000+ oranges |
 | **Collector** | 📦 | Own 20+ cosmetics |
-| **Whale** | 🐋 | Spent 250,000+ oranges |
+| **Whale** | 🐋 | Spent 125,000+ oranges |
 
 ---
 
@@ -357,7 +442,7 @@ Write your own title (with moderation)
 
 - **Founder's Grove Frame** - Animated golden-orange premium border
 - **"Grove Founder" Title** - Exclusive title forever
-- **Founder's Badge** - Animated founder emblem with purchase date
+- **Founder's Badge** - Animated founder emblem with purchase date (appears in ring)
 - **Legendary BigPulp** - All hats unlocked
 - **Founder's Name Glow** - Special golden shimmer effect
 - **Founder's Background** - Exclusive animated grove scene
@@ -383,26 +468,47 @@ CREATE TABLE IF NOT EXISTS shop_items (
   is_active BOOLEAN DEFAULT 1
 );
 
--- User inventory (Achievement Drawer)
+-- User inventory (Achievement Drawer) - KEEPS ALL PURCHASED ITEMS
 CREATE TABLE IF NOT EXISTS user_inventory (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id TEXT NOT NULL,
   item_id TEXT NOT NULL,
   acquired_at TEXT DEFAULT CURRENT_TIMESTAMP,
   acquisition_type TEXT NOT NULL, -- purchase, reward, founder
-  equipped BOOLEAN DEFAULT 0,
-  equipped_slot TEXT, -- frame, title, name_effect, background, celebration
 
   UNIQUE(user_id, item_id)
 );
 
--- User emoji badges (can have multiple)
-CREATE TABLE IF NOT EXISTS user_emoji_badges (
+-- User equipped items (one per slot)
+CREATE TABLE IF NOT EXISTS user_equipped (
+  user_id TEXT PRIMARY KEY,
+  frame_id TEXT,
+  title_id TEXT,
+  name_effect_id TEXT,
+  background_id TEXT,
+  celebration_id TEXT,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- User emoji ring (max 18 positions)
+CREATE TABLE IF NOT EXISTS user_emoji_ring (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id TEXT NOT NULL,
   emoji TEXT NOT NULL,
-  display_order INTEGER DEFAULT 0,
-  acquired_at TEXT DEFAULT CURRENT_TIMESTAMP
+  position TEXT NOT NULL, -- 'left_1', 'left_2', 'left_3', 'right_1', 'right_2', 'right_3', 'top_1'...'top_6', 'bottom_1'...'bottom_6'
+  acquired_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+  UNIQUE(user_id, position)
+);
+
+-- User owned emojis (separate from ring positions)
+CREATE TABLE IF NOT EXISTS user_owned_emojis (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  emoji TEXT NOT NULL,
+  acquired_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+  UNIQUE(user_id, emoji)
 );
 
 -- BigPulp pets (always adult, customize with items)
@@ -435,6 +541,15 @@ CREATE TABLE IF NOT EXISTS founder_purchases (
   purchased_at TEXT DEFAULT CURRENT_TIMESTAMP,
   nft_airdrop_claimed BOOLEAN DEFAULT 0
 );
+
+-- Purchase history for "Total Spent" tracking
+CREATE TABLE IF NOT EXISTS purchase_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  price_paid INTEGER NOT NULL,
+  purchased_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
 ---
@@ -443,7 +558,7 @@ CREATE TABLE IF NOT EXISTS founder_purchases (
 
 ```typescript
 // GET /api/shop/items
-// Returns all shop items with user context
+// Returns all shop items
 {
   items: ShopItem[];
   categories: string[];
@@ -457,7 +572,7 @@ CREATE TABLE IF NOT EXISTS founder_purchases (
 {
   success: boolean;
   item: InventoryItem;
-  newBalance: number; // oranges
+  newBalance: number;
 }
 
 // GET /api/drawer/:userId
@@ -467,7 +582,7 @@ CREATE TABLE IF NOT EXISTS founder_purchases (
   username: string;
   totalItems: number;
   totalSpent: number;
-  emojiBadges: string[];
+  emojiRing: EmojiRingConfig;
   frames: Item[];
   titles: Item[];
   nameEffects: Item[];
@@ -475,6 +590,39 @@ CREATE TABLE IF NOT EXISTS founder_purchases (
   celebrations: Item[];
   bigpulp: BigPulpConfig;
   achievements: Achievement[];
+  bigpulpComment: string; // Dynamic based on collection
+}
+
+// GET /api/user/:userId/ring
+// Returns emoji ring configuration
+{
+  positions: {
+    left_1?: string;
+    left_2?: string;
+    left_3?: string;
+    right_1?: string;
+    right_2?: string;
+    right_3?: string;
+    top_1?: string;
+    top_2?: string;
+    top_3?: string;
+    top_4?: string;
+    top_5?: string;
+    top_6?: string;
+    bottom_1?: string;
+    bottom_2?: string;
+    bottom_3?: string;
+    bottom_4?: string;
+    bottom_5?: string;
+    bottom_6?: string;
+  };
+  ownedEmojis: string[];
+}
+
+// POST /api/user/ring/arrange
+// User arranges emojis in ring via drag-drop
+{
+  positions: Record<string, string | null>;
 }
 
 // GET /api/bigpulp/:userId
@@ -500,75 +648,96 @@ CREATE TABLE IF NOT EXISTS founder_purchases (
 }
 
 // GET /api/user/:userId/display
-// Returns equipped items for display
+// Returns all equipped items for display (used everywhere)
 {
-  emojiBadges: string[];        // Array of emojis: ["👑", "🪿", "🔥"]
-  frame: string | null;         // CSS class
-  title: string | null;         // Title text
-  nameEffect: string | null;    // CSS class
-  background: string | null;    // CSS class
-  celebration: string | null;   // CSS class
+  emojiRing: EmojiRingConfig;
+  frame: string | null;
+  title: string | null;
+  nameEffect: string | null;
+  background: string | null;
+  celebration: string | null;
+  bigpulp: BigPulpConfig;
+}
+
+// GET /api/bigpulp/comment
+// Returns contextual BigPulp dialogue
+{
+  context: 'win' | 'loss' | 'drawer' | 'game_start';
+  collectionSize?: number;
+  score?: number;
+}
+// Response
+{
+  dialogue: string;
+  mood: string; // BigPulp's mood for this comment
 }
 ```
 
 ---
 
-## Part 12: Complete Price List
+## Part 12: Complete Price List (50% Reduced)
 
-### Emoji Badges
-| Item | Price |
-|------|-------|
-| General emojis (🍊🧡🌱⭐🎯) | 500-750 🍊 |
-| Medium emojis (⚡🚀💀👽🤖) | 1,500-2,500 🍊 |
-| Premium emojis (🦍🌟💎💰) | 4,000-7,500 🍊 |
-| Legend tributes (🔥🍪🐸🪿🏆🎩👑) | 15,000-40,000 🍊 |
+### Emoji Ring Badges
+| Tier | Items | Price |
+|------|-------|-------|
+| Basic | 🍊🧡🌱 | 250 🍊 |
+| Common | ⭐🎯 | 375 🍊 |
+| Uncommon | ⚡🚀 | 750 🍊 |
+| Rare | 💀👽🤖 | 1,250 🍊 |
+| Epic | 🦍🌟 | 2,000 🍊 |
+| Premium | 💎 | 2,500 🍊 |
+| Elite | 💰 | 3,750 🍊 |
+| Legend | 🔥🍪 | 7,500 🍊 |
+| Legend+ | 🐸🪿 | 10,000 🍊 |
+| Legend++ | 🏆🎩 | 12,500 🍊 |
+| Ultimate | 👑 | 20,000 🍊 |
 
 ### Frames
 | Tier | Price |
 |------|-------|
-| Grove (Seedling, Orange) | 2,500 🍊 |
-| Orchard (8 glow effects) | 7,500 🍊 |
-| Harvest (4 animated effects) | 25,000 🍊 |
-| Legendary (4 premium effects) | 75,000 🍊 |
-| Legend Emoji Frames | 75,000 🍊 |
+| Grove (Seedling, Orange) | 1,250 🍊 |
+| Orchard (8 glow effects) | 3,750 🍊 |
+| Harvest (4 animated effects) | 12,500 🍊 |
+| Legendary (4 premium effects) | 37,500 🍊 |
+| Legend Emoji Frames | 37,500 🍊 |
 
 ### Name Effects
 | Tier | Price |
 |------|-------|
-| Basic (5 options) | 2,500 🍊 |
-| Animated (5 options) | 15,000 🍊 |
-| Legendary (4 options) | 40,000 🍊 |
+| Basic (5 options) | 1,250 🍊 |
+| Animated (5 options) | 7,500 🍊 |
+| Legendary (4 options) | 20,000 🍊 |
 
 ### Titles
 | Tier | Price |
 |------|-------|
-| Grove Ranks | 2,500 🍊 |
-| Mood Titles | 5,000 🍊 |
-| Legend Catchphrases | 15,000 🍊 |
-| Custom Title Slot | 50,000 🍊 |
+| Grove Ranks (5 options) | 1,250 🍊 |
+| Mood Titles (8 options) | 2,500 🍊 |
+| Legend Catchphrases (7 options) | 7,500 🍊 |
+| Custom Title Slot | 25,000 🍊 |
 
 ### BigPulp
 | Category | Price Range |
 |----------|-------------|
-| Hats | 2,500-25,000 🍊 |
-| Moods | 1,500-15,000 🍊 |
-| Accessories | 1,500-10,000 🍊 |
+| Hats | 1,250-12,500 🍊 |
+| Moods | 750-7,500 🍊 |
+| Accessories | 750-5,000 🍊 |
 
 ### Backgrounds
 | Tier | Price |
 |------|-------|
-| Solid Colors | 2,500 🍊 |
-| Gradients | 7,500 🍊 |
-| Animated | 25,000 🍊 |
-| Premium Animated | 40,000 🍊 |
+| Solid Colors (5 options) | 1,250 🍊 |
+| Gradients (4 options) | 3,750 🍊 |
+| Animated (2 options) | 12,500 🍊 |
+| Premium Animated (3 options) | 20,000 🍊 |
 
 ### Win Effects
-| Tier | Price |
-|------|-------|
-| Confetti | 5,000 🍊 |
-| Orange Rain | 10,000 🍊 |
-| Citrus Explosion | 15,000 🍊 |
-| Fireworks | 25,000 🍊 |
+| Effect | Price |
+|--------|-------|
+| Confetti | 2,500 🍊 |
+| Orange Rain | 5,000 🍊 |
+| Citrus Explosion | 7,500 🍊 |
+| Fireworks | 12,500 🍊 |
 
 ### Founder's Collection
 | Item | Price |
@@ -577,51 +746,100 @@ CREATE TABLE IF NOT EXISTS founder_purchases (
 
 ---
 
+## Part 13: Economy Balance Check
+
+### Player Earnings (from SPEC 09-10)
+- **Daily (active):** ~250-300 🍊
+- **Weekly:** ~2,000 🍊
+- **Monthly:** ~8,000 🍊
+
+### Time to Earn (with 50% price reduction)
+| Item | Price | Days to Earn |
+|------|-------|--------------|
+| Basic emoji | 250 🍊 | 1 day |
+| Basic frame | 1,250 🍊 | 5 days |
+| Glow frame | 3,750 🍊 | 2 weeks |
+| Legend emoji | 10,000-20,000 🍊 | 1-2.5 months |
+| Animated frame | 12,500 🍊 | 1.5 months |
+| Legendary frame | 37,500 🍊 | 4.5 months |
+
+**This feels much more achievable** while still making legendary items aspirational.
+
+---
+
+## Part 14: Integration Notes
+
+### Replacing Existing Shop
+The existing `/src/components/Shop/Shop.tsx` with 19 demo items should be **completely replaced** with SPEC 12 items. Categories map as:
+
+| Old Category | New Category |
+|--------------|--------------|
+| avatar_frame | frame |
+| avatar_accessory | (removed - use BigPulp accessories instead) |
+| game_theme | background |
+| celebration_effect | celebration |
+| badge | emoji_badge (in ring) |
+| title | title |
+| consumable | (keep for continues/boosts - not in SPEC 12) |
+
+### Consumables
+Consumables (continue tokens, boosts) are NOT part of SPEC 12 cosmetics. They should remain as a separate system.
+
+---
+
 ## Implementation Checklist
 
-### Phase 1: Core Shop & Drawer
-- [ ] Create shop_items table with all items
-- [ ] Implement purchase API
-- [ ] Build Achievement Drawer page
-- [ ] Create shareable drawer links
-- [ ] Build shop UI with categories
+### Phase 1: Database & Backend
+- [ ] Create all new tables (shop_items, user_inventory, user_equipped, user_emoji_ring, etc.)
+- [ ] Migrate from localStorage to database
+- [ ] Seed shop_items with all SPEC 12 items
+- [ ] Implement purchase API with price validation
+- [ ] Implement equip/unequip APIs
 
-### Phase 2: Emoji Badges
-- [ ] Implement emoji badge purchase
-- [ ] Display stacked emojis next to username
-- [ ] Create emoji badge management UI
+### Phase 2: Emoji Ring System
+- [ ] Create EmojiRing component with fixed dimensions
+- [ ] Implement drag-and-drop arrangement UI
+- [ ] Display ring on leaderboards, profiles, and game screens
+- [ ] Ensure consistent width regardless of name length
 
-### Phase 3: Frames
+### Phase 3: Shop UI Overhaul
+- [ ] Replace existing shop items with SPEC 12 catalog
+- [ ] Add preview system for frames/effects
+- [ ] Show owned items in drawer section
+- [ ] Category filtering and sorting
+
+### Phase 4: Achievement Drawer
+- [ ] Create `/drawer/:userId` page
+- [ ] Grid layout for all owned items
+- [ ] Total items/spent statistics
+- [ ] BigPulp with contextual commentary
+- [ ] Shareable links
+
+### Phase 5: Frames & Name Effects
 - [ ] Create all frame CSS classes
-- [ ] Implement emoji frame rendering (repeat emojis around border)
-- [ ] Add frame preview in shop
-- [ ] Apply frames to avatars across site
-
-### Phase 4: Name Effects
 - [ ] Create all name effect CSS classes
-- [ ] Implement name effect equip/override system
-- [ ] Apply name effects to usernames across site
+- [ ] Implement emoji frame rendering (SVG circular text)
+- [ ] Apply across all username displays site-wide
 
-### Phase 5: BigPulp
-- [ ] Create BigPulp component (adult only)
-- [ ] Implement hat/mood/accessory equip
-- [ ] Build BigPulp customization UI
-- [ ] Display BigPulp on profile
+### Phase 6: BigPulp Everywhere
+- [ ] BigPulp component with all customizations
+- [ ] Profile page integration
+- [ ] Game companion integration (reactions during play)
+- [ ] Achievement drawer mascot
+- [ ] Win/loss commentary system
+- [ ] Dialogue database with context-aware selection
 
-### Phase 6: Titles & Backgrounds
-- [ ] Implement title equip system
-- [ ] Create background CSS classes
-- [ ] Apply backgrounds to profile cards
-
-### Phase 7: Win Effects
-- [ ] Create celebration animation system
-- [ ] Trigger effects on game wins
-- [ ] Allow effect preview in shop
+### Phase 7: Backgrounds & Win Effects
+- [ ] Background CSS classes
+- [ ] Apply to profile cards
+- [ ] Celebration animation system
+- [ ] Trigger on game wins
 
 ### Phase 8: Founder's Collection
-- [ ] Set up XCH payment flow
-- [ ] Create founder item unlocks
-- [ ] Track for future NFT airdrop
+- [ ] XCH payment flow
+- [ ] Founder item unlocks
+- [ ] 30-day availability window
+- [ ] NFT airdrop tracking
 
 ---
 
