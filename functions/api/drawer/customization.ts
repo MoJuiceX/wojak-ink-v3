@@ -5,9 +5,10 @@
  * POST /api/drawer/customization/purchase - Purchase a customization item
  */
 
-import { verifyClerkToken } from '../../_middleware/auth';
+import { authenticateRequest } from '../../lib/auth';
 
 interface Env {
+  CLERK_DOMAIN: string;
   DB: D1Database;
 }
 
@@ -64,24 +65,15 @@ const DEFAULT_CUSTOMIZATION: DrawerCustomization = {
 // GET - Fetch user's customization
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const authHeader = context.request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    const auth = await authenticateRequest(context.request, context.env.CLERK_DOMAIN);
+    if (!auth) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const token = authHeader.slice(7);
-    const payload = await verifyClerkToken(token);
-    if (!payload) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const userId = payload.sub;
+    const userId = auth.userId;
 
     // Get customization settings
     const customization = await context.env.DB.prepare(`
@@ -134,24 +126,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 // PUT - Update customization settings
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   try {
-    const authHeader = context.request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    const auth = await authenticateRequest(context.request, context.env.CLERK_DOMAIN);
+    if (!auth) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const token = authHeader.slice(7);
-    const payload = await verifyClerkToken(token);
-    if (!payload) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const userId = payload.sub;
+    const userId = auth.userId;
     const updates = await context.request.json() as Partial<DrawerCustomization>;
 
     // Get owned items to validate

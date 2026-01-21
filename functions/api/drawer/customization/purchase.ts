@@ -5,9 +5,10 @@
  * Purchase a customization item with oranges.
  */
 
-import { verifyClerkToken } from '../../../_middleware/auth';
+import { authenticateRequest } from '../../../lib/auth';
 
 interface Env {
+  CLERK_DOMAIN: string;
   DB: D1Database;
 }
 
@@ -18,24 +19,15 @@ interface PurchaseRequest {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const authHeader = context.request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    const auth = await authenticateRequest(context.request, context.env.CLERK_DOMAIN);
+    if (!auth) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const token = authHeader.slice(7);
-    const payload = await verifyClerkToken(token);
-    if (!payload) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const userId = payload.sub;
+    const userId = auth.userId;
     const { category, itemId } = await context.request.json() as PurchaseRequest;
 
     if (!category || !itemId) {
