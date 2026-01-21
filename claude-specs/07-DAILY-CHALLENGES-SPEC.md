@@ -6,17 +6,16 @@
 
 ## Overview
 
-Implement a daily challenges system with 3 fixed challenges that reset at midnight UTC. Players earn oranges for completing individual challenges, plus a 50% bonus for completing ALL three.
+Implement a daily challenges system with 3 fixed challenges that reset at midnight UTC. Players earn oranges for completing individual challenges. Simple, clean numbers - no bonus mechanics.
 
 **Challenge Set (Fixed Daily):**
-1. **Easy (35 🍊)**: Play 5 games
-2. **Medium (52 🍊)**: Set a new personal best in any game
+1. **Easy (30 🍊)**: Play 5 games
+2. **Medium (50 🍊)**: Set a new personal best in any game
 3. **Hard (70 🍊)**: Play for 10 minutes total
 
-**Completion Bonus**: Complete all 3 = +78 🍊 (50% of 157)
-**Daily Maximum**: 235 oranges from challenges
+**Daily Maximum**: 150 oranges from challenges (30 + 50 + 70)
 
-> **Note**: Rewards reduced by 30% for economic sustainability. Future crypto conversion: 10,000 oranges = 1 HOA token.
+> **Note**: Simple round numbers for easy understanding. Future crypto conversion: 10,000 oranges = 1 HOA token.
 
 ---
 
@@ -80,7 +79,7 @@ export interface DailyChallengesState {
   totalEarnedToday: number;
 }
 
-// The 3 fixed daily challenges (rewards reduced 30% for sustainability)
+// The 3 fixed daily challenges (simple round numbers)
 export const DAILY_CHALLENGES: DailyChallenge[] = [
   {
     id: 'games-played-5',
@@ -89,7 +88,7 @@ export const DAILY_CHALLENGES: DailyChallenge[] = [
     description: 'Play 5 games',
     icon: '🎮',
     target: 5,
-    reward: 35, // Reduced from 50
+    reward: 30,
     difficulty: 'easy',
   },
   {
@@ -99,7 +98,7 @@ export const DAILY_CHALLENGES: DailyChallenge[] = [
     description: 'Set a new personal best',
     icon: '🏆',
     target: 1,
-    reward: 52, // Reduced from 75
+    reward: 50,
     difficulty: 'medium',
   },
   {
@@ -109,24 +108,17 @@ export const DAILY_CHALLENGES: DailyChallenge[] = [
     description: 'Play for 10 minutes',
     icon: '⏱️',
     target: 600, // seconds
-    reward: 70, // Reduced from 100
+    reward: 70,
     difficulty: 'hard',
   },
 ];
 
-// Bonus for completing all challenges
-export const ALL_CHALLENGES_BONUS_PERCENT = 0.5; // 50%
-
-// Calculate total possible rewards
+// No bonus for completing all 3 - simple and clean
 export const TOTAL_CHALLENGE_REWARDS = DAILY_CHALLENGES.reduce(
   (sum, c) => sum + c.reward,
   0
-);
-export const ALL_CHALLENGES_BONUS = Math.floor(
-  TOTAL_CHALLENGE_REWARDS * ALL_CHALLENGES_BONUS_PERCENT
-);
-export const MAX_DAILY_CHALLENGE_EARNINGS =
-  TOTAL_CHALLENGE_REWARDS + ALL_CHALLENGES_BONUS;
+); // = 150
+export const MAX_DAILY_CHALLENGE_EARNINGS = TOTAL_CHALLENGE_REWARDS; // = 150
 
 // Helper to format play time
 export function formatPlayTime(seconds: number): string {
@@ -160,7 +152,7 @@ import { useAuth } from './AuthContext';
 import { useCurrency } from './CurrencyContext';
 import {
   DAILY_CHALLENGES,
-  ALL_CHALLENGES_BONUS,
+  MAX_DAILY_CHALLENGE_EARNINGS,
   formatPlayTime,
   type DailyChallengesState,
   type ChallengeProgress,
@@ -181,13 +173,11 @@ interface DailyChallengesContextType {
 
   // Rewards
   claimChallengeReward: (challengeId: string) => Promise<boolean>;
-  claimAllCompletedBonus: () => Promise<boolean>;
 
   // Info
   getChallengeProgress: (challengeId: string) => ChallengeProgress | undefined;
   getProgressDisplay: (challengeId: string) => string;
   areAllChallengesCompleted: () => boolean;
-  canClaimAllBonus: () => boolean;
   getTimeUntilReset: () => number;
 
   // Play time tracking
@@ -451,35 +441,6 @@ export const DailyChallengesProvider: React.FC<{ children: ReactNode }> = ({
     [user, state.challenges, earnCurrency]
   );
 
-  // Claim the all-completed bonus
-  const claimAllCompletedBonus = useCallback(async (): Promise<boolean> => {
-    if (!user) return false;
-    if (!areAllChallengesCompleted()) return false;
-    if (state.allCompletedBonusClaimed) return false;
-
-    // Check all individual rewards are claimed
-    const allClaimed = state.challenges.every((c) => c.claimedAt);
-    if (!allClaimed) return false;
-
-    // Award the bonus
-    earnCurrency(ALL_CHALLENGES_BONUS, 0, 'achievement', {
-      type: 'daily_challenge_bonus',
-    });
-
-    // Mark bonus as claimed
-    setState((prev) => {
-      const newState = {
-        ...prev,
-        allCompletedBonusClaimed: true,
-        totalEarnedToday: prev.totalEarnedToday + ALL_CHALLENGES_BONUS,
-      };
-      saveState(user.id, newState);
-      return newState;
-    });
-
-    return true;
-  }, [user, state, earnCurrency]);
-
   // Get progress for a specific challenge
   const getChallengeProgress = useCallback(
     (challengeId: string): ChallengeProgress | undefined => {
@@ -510,13 +471,6 @@ export const DailyChallengesProvider: React.FC<{ children: ReactNode }> = ({
     return state.challenges.every((c) => c.isCompleted);
   }, [state.challenges]);
 
-  // Check if can claim all-completed bonus
-  const canClaimAllBonus = useCallback((): boolean => {
-    if (state.allCompletedBonusClaimed) return false;
-    if (!areAllChallengesCompleted()) return false;
-    return state.challenges.every((c) => c.claimedAt);
-  }, [state, areAllChallengesCompleted]);
-
   // Get time until reset
   const getTimeUntilReset = useCallback((): number => {
     return getTimeUntilMidnightUTC();
@@ -531,11 +485,9 @@ export const DailyChallengesProvider: React.FC<{ children: ReactNode }> = ({
         recordPersonalBest,
         recordPlayTime,
         claimChallengeReward,
-        claimAllCompletedBonus,
         getChallengeProgress,
         getProgressDisplay,
         areAllChallengesCompleted,
-        canClaimAllBonus,
         getTimeUntilReset,
         startPlayTimeTracking,
         stopPlayTimeTracking,
@@ -569,11 +521,10 @@ export const useDailyChallenges = () => {
  */
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useDailyChallenges } from '../../contexts/DailyChallengesContext';
 import {
   DAILY_CHALLENGES,
-  ALL_CHALLENGES_BONUS,
   formatPlayTime,
 } from '../../types/challenges';
 import './DailyChallenges.css';
@@ -588,9 +539,7 @@ export function DailyChallengesCard({ compact = false }: DailyChallengesCardProp
     getChallengeProgress,
     getProgressDisplay,
     claimChallengeReward,
-    claimAllCompletedBonus,
     areAllChallengesCompleted,
-    canClaimAllBonus,
     getTimeUntilReset,
   } = useDailyChallenges();
 
@@ -618,14 +567,7 @@ export function DailyChallengesCard({ compact = false }: DailyChallengesCardProp
     setClaiming(null);
   };
 
-  const handleClaimBonus = async () => {
-    setClaiming('bonus');
-    await claimAllCompletedBonus();
-    setClaiming(null);
-  };
-
   const allCompleted = areAllChallengesCompleted();
-  const canClaim = canClaimAllBonus();
 
   return (
     <div className={`daily-challenges-card ${compact ? 'compact' : ''}`}>
@@ -698,33 +640,13 @@ export function DailyChallengesCard({ compact = false }: DailyChallengesCardProp
         })}
       </div>
 
-      {/* All Completed Bonus */}
-      <AnimatePresence>
-        {allCompleted && (
-          <motion.div
-            className={`all-completed-bonus ${canClaim ? 'can-claim' : 'claimed'}`}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-          >
-            <div className="bonus-info">
-              <span className="bonus-icon">🎉</span>
-              <span className="bonus-text">All Challenges Complete!</span>
-            </div>
-            {canClaim ? (
-              <button
-                className="claim-bonus-button"
-                onClick={handleClaimBonus}
-                disabled={claiming === 'bonus'}
-              >
-                {claiming === 'bonus' ? '...' : `Claim +${ALL_CHALLENGES_BONUS} 🍊`}
-              </button>
-            ) : (
-              <span className="bonus-claimed">+{ALL_CHALLENGES_BONUS} 🍊 ✓</span>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* All Completed Message (no bonus, just celebration) */}
+      {allCompleted && (
+        <div className="all-completed-message">
+          <span className="bonus-icon">🎉</span>
+          <span className="bonus-text">All Challenges Complete!</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -896,20 +818,15 @@ export default DailyChallengesCard;
   font-weight: bold;
 }
 
-/* All Completed Bonus */
-.all-completed-bonus {
+/* All Completed Message */
+.all-completed-message {
   margin-top: 16px;
   padding: 12px;
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.1));
   border: 1px solid rgba(255, 215, 0, 0.3);
   border-radius: 8px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.bonus-info {
-  display: flex;
+  justify-content: center;
   align-items: center;
   gap: 8px;
 }
@@ -921,27 +838,6 @@ export default DailyChallengesCard;
 .bonus-text {
   font-weight: 600;
   color: #FFD700;
-}
-
-.claim-bonus-button {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
-  color: #000;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: transform 0.1s ease;
-}
-
-.claim-bonus-button:hover {
-  transform: scale(1.05);
-}
-
-.bonus-claimed {
-  color: #4CAF50;
-  font-weight: 600;
 }
 
 /* Compact mode */
@@ -1039,12 +935,12 @@ const completedCount = challenges.filter(c => c.isCompleted).length;
 ## Testing Checklist
 
 - [ ] Challenges reset at midnight UTC
-- [ ] "Play 5 games" tracks correctly
-- [ ] "Set personal best" triggers on new high score
-- [ ] "Play 10 minutes" accumulates time correctly
+- [ ] "Play 5 games" (30🍊) tracks correctly
+- [ ] "Set personal best" (50🍊) triggers on new high score
+- [ ] "Play 10 minutes" (70🍊) accumulates time correctly
 - [ ] Play time only counts active gameplay
-- [ ] Individual challenge rewards can be claimed
-- [ ] All-completed bonus can only be claimed after all individual rewards
+- [ ] Individual challenge rewards can be claimed (30, 50, 70)
+- [ ] Total daily max is 150🍊 (no bonus)
 - [ ] Progress persists across page refreshes
 - [ ] Progress resets on new day
 - [ ] Countdown timer shows correct time until reset
@@ -1052,3 +948,4 @@ const completedCount = challenges.filter(c => c.isCompleted).length;
 - [ ] Progress bars animate smoothly
 - [ ] Compact mode displays correctly
 - [ ] Currency is awarded correctly via earnCurrency
+- [ ] "All Challenges Complete!" message shows when all 3 done

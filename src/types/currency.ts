@@ -2,6 +2,9 @@
  * Currency & Rewards System Types
  *
  * Dual-currency economy with Oranges (soft) and Gems (hard currency).
+ * Uses server-side state for bulletproof persistence.
+ *
+ * @see src/config/economy.ts for all economy constants
  */
 
 export interface UserCurrency {
@@ -9,6 +12,8 @@ export interface UserCurrency {
   gems: number;
   lifetimeOranges: number;
   lifetimeGems: number;
+  giftedOranges?: number;
+  gemsConvertedThisMonth?: number;
 }
 
 export interface CurrencyTransaction {
@@ -58,91 +63,35 @@ export interface DailyReward {
   bonusItem?: string;
 }
 
-export const DAILY_REWARDS: DailyReward[] = [
-  { day: 1, oranges: 100, gems: 0 },
-  { day: 2, oranges: 150, gems: 0 },
-  { day: 3, oranges: 200, gems: 0 },
-  { day: 4, oranges: 250, gems: 1 },
-  { day: 5, oranges: 300, gems: 0 },
-  { day: 6, oranges: 400, gems: 2 },
-  { day: 7, oranges: 500, gems: 5, bonusItem: 'mystery_box' },
-];
+// Re-export from economy config for backwards compatibility
+import { DAILY_LOGIN_REWARDS as ECONOMY_DAILY_REWARDS } from '../config/economy';
 
-// Game reward configurations for all games
-export const GAME_REWARDS: Record<string, GameRewardConfig> = {
-  'orange-stack': {
-    gameId: 'orange-stack',
-    baseOranges: 10,
-    scoreMultiplier: 1,
-    scoreThreshold: 100,
-    maxOrangesPerGame: 500,
-    bonusForHighScore: 50,
-    bonusForTop10: 100,
+export const DAILY_REWARDS: DailyReward[] = ECONOMY_DAILY_REWARDS.map((r) => ({
+  day: r.day,
+  oranges: r.oranges,
+  gems: r.gems,
+}));
+
+// Game reward configurations - generated from economy config tier system
+import { GAME_TIER_MAP, GAME_TIERS, GAME_MIN_SCORES } from '../config/economy';
+
+// Build GAME_REWARDS from tier-based config
+export const GAME_REWARDS: Record<string, GameRewardConfig> = Object.entries(GAME_TIER_MAP).reduce(
+  (acc, [gameId, tier]) => {
+    const tierConfig = GAME_TIERS[tier];
+    acc[gameId] = {
+      gameId,
+      baseOranges: tierConfig.baseReward,
+      scoreMultiplier: 0, // Not used in new system - rewards are fixed per tier
+      scoreThreshold: GAME_MIN_SCORES[gameId] || 1,
+      maxOrangesPerGame: tierConfig.baseReward + tierConfig.highScoreBonus + tierConfig.top10Bonus,
+      bonusForHighScore: tierConfig.highScoreBonus,
+      bonusForTop10: tierConfig.top10Bonus,
+    };
+    return acc;
   },
-  'memory-match': {
-    gameId: 'memory-match',
-    baseOranges: 15,
-    scoreMultiplier: 2,
-    scoreThreshold: 50,
-    maxOrangesPerGame: 300,
-    bonusForHighScore: 40,
-    bonusForTop10: 80,
-  },
-  'orange-pong': {
-    gameId: 'orange-pong',
-    baseOranges: 10,
-    scoreMultiplier: 1,
-    scoreThreshold: 1,
-    maxOrangesPerGame: 200,
-    bonusForHighScore: 30,
-    bonusForTop10: 60,
-  },
-  'wojak-runner': {
-    gameId: 'wojak-runner',
-    baseOranges: 10,
-    scoreMultiplier: 1,
-    scoreThreshold: 50,
-    maxOrangesPerGame: 400,
-    bonusForHighScore: 45,
-    bonusForTop10: 90,
-  },
-  'orange-juggle': {
-    gameId: 'orange-juggle',
-    baseOranges: 10,
-    scoreMultiplier: 2,
-    scoreThreshold: 10,
-    maxOrangesPerGame: 350,
-    bonusForHighScore: 35,
-    bonusForTop10: 70,
-  },
-  'knife-game': {
-    gameId: 'knife-game',
-    baseOranges: 15,
-    scoreMultiplier: 3,
-    scoreThreshold: 5,
-    maxOrangesPerGame: 400,
-    bonusForHighScore: 50,
-    bonusForTop10: 100,
-  },
-  'color-reaction': {
-    gameId: 'color-reaction',
-    baseOranges: 10,
-    scoreMultiplier: 1,
-    scoreThreshold: 100,
-    maxOrangesPerGame: 250,
-    bonusForHighScore: 25,
-    bonusForTop10: 50,
-  },
-  'orange-2048': {
-    gameId: 'orange-2048',
-    baseOranges: 20,
-    scoreMultiplier: 1,
-    scoreThreshold: 500,
-    maxOrangesPerGame: 600,
-    bonusForHighScore: 60,
-    bonusForTop10: 120,
-  },
-};
+  {} as Record<string, GameRewardConfig>
+);
 
 // Achievement system
 export interface Achievement {
@@ -247,5 +196,6 @@ export interface PurchaseResult {
   newBalance?: UserCurrency;
 }
 
-// Continue cost
-export const CONTINUE_COST = 50;
+// Continue cost - from economy config
+import { SHOP_PRICES } from '../config/economy';
+export const CONTINUE_COST = SHOP_PRICES.continueGame;

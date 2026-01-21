@@ -26,6 +26,8 @@ Run these prompts in order. Each builds on the previous:
 | 7 | `07-DAILY-CHALLENGES-SPEC.md` | Daily challenges | Specs 1-5 |
 | 8 | `08-LEADERBOARD-REWARDS-SPEC.md` | Leaderboard reward payouts | Specs 1-2, 6 |
 | 9 | `09-ECONOMY-CONFIG-SPEC.md` | Central economy configuration | None (reference doc) |
+| 10 | `10-ECONOMY-MASTERPLAN-SPEC.md` | Complete economy reference | None (reference doc) |
+| 11 | `11-SERVER-STATE-SPEC.md` | **Bulletproof server-side state** | Specs 1-10 |
 
 ---
 
@@ -131,12 +133,35 @@ Read the spec file at claude-specs/06-NFT-HOLDER-BADGE-SPEC.md and implement eve
 - Cloudflare scheduled worker for payouts
 - PeriodLeaderboard component with selector
 
-### 09-ECONOMY-CONFIG-SPEC.md (NEW)
+### 09-ECONOMY-CONFIG-SPEC.md
 - Central economy configuration file
-- All values reduced 30% for sustainability
+- Simplified values for clarity
 - Future crypto conversion rates: 10,000🍊 = 1 HOA, 1,000💎 = 1 $CHIA
 - Token prices: HOA ≈ $0.00143, $CHIA ≈ $0.018
 - Withdrawals disabled (future feature)
+
+### 10-ECONOMY-MASTERPLAN-SPEC.md
+- Complete economy reference document
+- Game tier system: Easy (5🍊), Medium (10🍊), Hard (15🍊)
+- Login streak: 15→30→45→60→75→90→105 (+3💎 on day 7)
+- Daily challenges: 30 + 50 + 70 = 150🍊 (no bonus)
+- All earning and spending rules in one place
+
+### 11-SERVER-STATE-SPEC.md (CRITICAL)
+- **Replaces localStorage with server-side state**
+- Database migration (008_server_state.sql)
+- Atomic transactions for currency operations
+- Idempotent APIs (safe to retry)
+- Complete audit trail of all transactions
+- API endpoints:
+  - `/api/currency` - Get/init balance
+  - `/api/gameplay/complete` - Earn rewards atomically
+  - `/api/daily-login/claim` - Claim daily login
+  - `/api/achievements/claim` - Claim achievement rewards
+  - `/api/challenges/claim` - Claim daily challenge
+  - `/api/currency/spend` - Shop purchases
+- Updated CurrencyContext for server-backed state
+- Anti-cheat: staged trust, score validation, session tracking
 - Economy projections and time-to-earn analysis
 
 ---
@@ -187,7 +212,7 @@ const DEFAULT_EMOJIS = ['🎮', '🔥', '🚀', '🎯', '🦊', '🐸', '👾', 
 
 ---
 
-## Economy Overview (All values reduced 30% for sustainability)
+## Economy Overview (Simplified for clarity)
 
 ### Future Crypto Conversion (Disabled for now)
 
@@ -201,15 +226,17 @@ const DEFAULT_EMOJIS = ['🎮', '🔥', '🚀', '🎯', '🦊', '🐸', '👾', 
 | Source | Amount |
 |--------|--------|
 | Starting bonus | 100 🍊 |
-| Per game (base) | 7-14 🍊 |
-| Per game (max) | 140-420 🍊 |
-| High score bonus | 17-42 🍊 |
-| Top 10 leaderboard bonus | 35-84 🍊 |
-| Daily login (day 1-7) | 70-350 🍊 |
-| Daily challenges (all 3) | 235 🍊 max |
-| Daily leaderboard rewards | Up to ~350 🍊 (across 15 games) |
-| Weekly leaderboard (top 3) | 105-350 🍊 per game |
-| Monthly leaderboard (top 3) | 350-1400 🍊 per game |
+| Tutorial completion | 250 🍊 |
+| Wallet connect (NFT) | 500 🍊 |
+| Daily login (day 1-7) | 15→30→45→60→75→90→105 (420🍊/week + 3💎) |
+| **Game Tiers:** | |
+| - Easy games | 5🍊 base, +10 high score, +20 top 10 |
+| - Medium games | 10🍊 base, +15 high score, +30 top 10 |
+| - Hard games | 15🍊 base, +20 high score, +40 top 10 |
+| Daily challenges | 30 + 50 + 70 = 150🍊 (no bonus) |
+| Daily leaderboard | #1=20, #2=15, #3=10, #4-10=5, #11-20=2, #21-50=1 |
+| Weekly leaderboard (top 3) | 350, 210, 105 🍊 per game |
+| Monthly leaderboard (top 3) | 1400, 700, 350 🍊 per game |
 
 ### Spending Oranges
 
@@ -225,9 +252,9 @@ const DEFAULT_EMOJIS = ['🎮', '🔥', '🚀', '🎯', '🦊', '🐸', '👾', 
 
 | Metric | Value |
 |--------|-------|
-| Total oranges earned | ~4,710,000 🍊 |
-| Crypto equivalent | 471 HOA |
-| USD value | ~$0.67 |
+| Total oranges earned | ~1,380,000 🍊 |
+| Crypto equivalent | 138 HOA |
+| USD value | ~$0.20 |
 
 ---
 

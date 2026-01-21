@@ -31,85 +31,136 @@ This spec defines how players earn and spend oranges (🍊) and gems (💎) in w
 | Event | Reward |
 |-------|--------|
 | Account creation | 100 🍊 |
-| Complete tutorial | +500 🍊 + 1 free cosmetic |
-| Connect wallet (NFT holders only) | +1,000 🍊 |
+| Complete tutorial | +250 🍊 + 1 free cosmetic |
+| Connect wallet (NFT holders only) | +500 🍊 |
 
-### Daily Login Streak (Reduced 60% for balance)
+### Daily Login Streak (Simple +15 progression)
 
 | Day | Oranges | Notes |
 |-----|---------|-------|
-| 1 | 30 🍊 | |
-| 2 | 45 🍊 | |
-| 3 | 55 🍊 | |
-| 4 | 70 🍊 | |
-| 5 | 85 🍊 | |
-| 6 | 100 🍊 | |
-| 7 | 140 🍊 | Streak complete! |
-| **Weekly Total** | **525 🍊** | Resets to day 1 |
+| 1 | 15 🍊 | |
+| 2 | 30 🍊 | |
+| 3 | 45 🍊 | |
+| 4 | 60 🍊 | |
+| 5 | 75 🍊 | |
+| 6 | 90 🍊 | |
+| 7 | 105 🍊 | Streak complete! +3💎 |
+| **Weekly Total** | **420 🍊 + 3💎** | Resets to day 1 |
 
 ```typescript
 // src/config/economy.ts
 
 export const DAILY_LOGIN_REWARDS = [
-  { day: 1, oranges: 30 },
-  { day: 2, oranges: 45 },
-  { day: 3, oranges: 55 },
-  { day: 4, oranges: 70 },
-  { day: 5, oranges: 85 },
-  { day: 6, oranges: 100 },
-  { day: 7, oranges: 140 },
+  { day: 1, oranges: 15 },
+  { day: 2, oranges: 30 },
+  { day: 3, oranges: 45 },
+  { day: 4, oranges: 60 },
+  { day: 5, oranges: 75 },
+  { day: 6, oranges: 90 },
+  { day: 7, oranges: 105, gems: 3 },
 ];
 ```
 
-### Gameplay Rewards (Per Game)
+### Game Tiers
 
-| Source | Amount | Notes |
-|--------|--------|-------|
-| Base completion | 7-14 🍊 | Varies by game |
-| Max per game | 35-70 🍊 | **Capped at 5x base** |
-| High score bonus | 17-42 🍊 | Beat your personal best |
-| Top 10 placement | 35-84 🍊 | Rank in top 10 of leaderboard |
+Games are categorized into 3 difficulty tiers with different rewards:
+
+| Tier | Base Reward | High Score Bonus | Top 10 Bonus | Example Games |
+|------|-------------|------------------|--------------|---------------|
+| **Easy** | 5 🍊 | +10 🍊 | +20 🍊 | Memory Match, Color Reaction, Orange Snake |
+| **Medium** | 10 🍊 | +15 🍊 | +30 🍊 | Orange Pong, Merge 2048, Block Puzzle, Brick Breaker |
+| **Hard** | 15 🍊 | +20 🍊 | +40 🍊 | Flappy Orange, Wojak Runner, Orange Stack, Knife Game |
 
 **Validation Rule**: Must reach minimum score threshold per game. Instant quits/deaths earn 0.
 
 ```typescript
-export const GAMEPLAY_REWARDS = {
-  baseMin: 7,
-  baseMax: 14,
-  maxMultiplier: 5, // Max reward = 5x base
-  highScoreBonus: { min: 17, max: 42 },
-  top10Bonus: { min: 35, max: 84 },
+export type GameTier = 'easy' | 'medium' | 'hard';
+
+export const GAME_TIERS: Record<GameTier, {
+  baseReward: number;
+  highScoreBonus: number;
+  top10Bonus: number;
+}> = {
+  easy: { baseReward: 5, highScoreBonus: 10, top10Bonus: 20 },
+  medium: { baseReward: 10, highScoreBonus: 15, top10Bonus: 30 },
+  hard: { baseReward: 15, highScoreBonus: 20, top10Bonus: 40 },
 };
 
-// Per-game minimum scores (examples)
+// Game tier assignments
+export const GAME_TIER_MAP: Record<string, GameTier> = {
+  // Easy tier (5🍊 base)
+  'memory-match': 'easy',
+  'color-reaction': 'easy',
+  'orange-snake': 'easy',
+  'citrus-drop': 'easy',
+  'wojak-whack': 'easy',
+
+  // Medium tier (10🍊 base)
+  'orange-pong': 'medium',
+  'merge-2048': 'medium',
+  'block-puzzle': 'medium',
+  'brick-breaker': 'medium',
+  'orange-wordle': 'medium',
+
+  // Hard tier (15🍊 base)
+  'flappy-orange': 'hard',
+  'wojak-runner': 'hard',
+  'orange-stack': 'hard',
+  'knife-game': 'hard',
+  'orange-juggle': 'hard',
+};
+
+// Per-game minimum scores
 export const GAME_MIN_SCORES: Record<string, number> = {
-  'orange-pong': 3,      // Must score 3 points
-  'flappy-orange': 5,    // Must pass 5 pipes
-  'orange-snake': 10,    // Must eat 10 items
-  'memory-match': 4,     // Must match 4 pairs
-  'merge-2048': 256,     // Must reach 256 tile
-  // ... define for each game
+  // Easy tier
+  'memory-match': 4,       // Must match 4 pairs
+  'color-reaction': 5,     // Must get 5 correct
+  'orange-snake': 5,       // Must eat 5 items
+  'citrus-drop': 3,        // Must catch 3 items
+  'wojak-whack': 5,        // Must whack 5 wojaks
+
+  // Medium tier
+  'orange-pong': 3,        // Must score 3 points
+  'merge-2048': 256,       // Must reach 256 tile
+  'block-puzzle': 100,     // Must score 100 points
+  'brick-breaker': 50,     // Must score 50 points
+  'orange-wordle': 1,      // Must complete 1 word
+
+  // Hard tier
+  'flappy-orange': 5,      // Must pass 5 pipes
+  'wojak-runner': 100,     // Must run 100 meters
+  'orange-stack': 5,       // Must stack 5 blocks
+  'knife-game': 10,        // Must stick 10 knives
+  'orange-juggle': 10,     // Must juggle 10 times
 };
 ```
 
-### Daily Challenges
+### Gameplay Rewards Summary
+
+| Source | Easy | Medium | Hard |
+|--------|------|--------|------|
+| Base (reach min score) | 5 🍊 | 10 🍊 | 15 🍊 |
+| High score bonus | +10 🍊 | +15 🍊 | +20 🍊 |
+| Top 10 placement | +20 🍊 | +30 🍊 | +40 🍊 |
+| **Max per game** | **35 🍊** | **55 🍊** | **75 🍊** |
+
+### Daily Challenges (No bonus - simple and clean)
 
 | Difficulty | Challenge | Reward |
 |------------|-----------|--------|
-| Easy | Play 5 games | 35 🍊 |
-| Medium | Set a new personal best | 52 🍊 |
+| Easy | Play 5 games | 30 🍊 |
+| Medium | Set a new personal best | 50 🍊 |
 | Hard | Play for 10 minutes | 70 🍊 |
-| **Bonus** | Complete all 3 | +78 🍊 (50%) |
-| **Daily Max** | | **235 🍊** |
+| **Daily Total** | | **150 🍊** |
 
 ```typescript
 export const DAILY_CHALLENGES = [
-  { id: 'games-played-5', reward: 35, difficulty: 'easy' },
-  { id: 'personal-best-1', reward: 52, difficulty: 'medium' },
+  { id: 'games-played-5', reward: 30, difficulty: 'easy' },
+  { id: 'personal-best-1', reward: 50, difficulty: 'medium' },
   { id: 'play-time-600', reward: 70, difficulty: 'hard' },
 ];
 
-export const ALL_CHALLENGES_BONUS_PERCENT = 0.5; // 50%
+// No bonus for completing all 3 - just the straightforward rewards
 ```
 
 ### Leaderboard Rewards (Per Game, ELO-Based)
@@ -143,23 +194,30 @@ export const ALL_CHALLENGES_BONUS_PERCENT = 0.5; // 50%
 
 ```typescript
 export const LEADERBOARD_REWARDS = {
-  daily: [
-    { minRank: 1, maxRank: 1, reward: 17 },
-    { minRank: 2, maxRank: 2, reward: 10 },
-    { minRank: 3, maxRank: 3, reward: 3 },
-    { minRank: 4, maxRank: 10, reward: 7 },
-    { minRank: 11, maxRank: 50, reward: 2 },
-  ],
-  weekly: [
-    { minRank: 1, maxRank: 1, reward: 350 },
-    { minRank: 2, maxRank: 2, reward: 210 },
-    { minRank: 3, maxRank: 3, reward: 105 },
-  ],
-  monthly: [
-    { minRank: 1, maxRank: 1, reward: 1400 },
-    { minRank: 2, maxRank: 2, reward: 700 },
-    { minRank: 3, maxRank: 3, reward: 350 },
-  ],
+  daily: {
+    tiers: [
+      { minRank: 1, maxRank: 1, reward: 20 },
+      { minRank: 2, maxRank: 2, reward: 15 },
+      { minRank: 3, maxRank: 3, reward: 10 },
+      { minRank: 4, maxRank: 10, reward: 5 },
+      { minRank: 11, maxRank: 20, reward: 2 },
+      { minRank: 21, maxRank: 50, reward: 1 },
+    ],
+  },
+  weekly: {
+    tiers: [
+      { minRank: 1, maxRank: 1, reward: 350 },
+      { minRank: 2, maxRank: 2, reward: 210 },
+      { minRank: 3, maxRank: 3, reward: 105 },
+    ],
+  },
+  monthly: {
+    tiers: [
+      { minRank: 1, maxRank: 1, reward: 1400 },
+      { minRank: 2, maxRank: 2, reward: 700 },
+      { minRank: 3, maxRank: 3, reward: 350 },
+    ],
+  },
 };
 ```
 
@@ -167,9 +225,9 @@ export const LEADERBOARD_REWARDS = {
 
 | Player Type | Daily | Weekly | Monthly |
 |-------------|-------|--------|---------|
-| Grinder (2+ hrs/day) | ~1,000 🍊 | ~7,000 🍊 | ~30,000 🍊 |
-| Regular (30-60 min/day) | ~500 🍊 | ~3,500 🍊 | ~15,000 🍊 |
-| Casual (10-20 min, 3x/week) | ~100 🍊 | ~300 🍊 | ~3,000 🍊 |
+| Grinder (2+ hrs/day) | ~800 🍊 | ~5,600 🍊 | ~24,000 🍊 |
+| Regular (30-60 min/day) | ~400 🍊 | ~2,800 🍊 | ~12,000 🍊 |
+| Casual (10-20 min, 3x/week) | ~80 🍊 | ~240 🍊 | ~1,000 🍊 |
 
 ---
 
@@ -361,36 +419,63 @@ export const STARTING_BALANCE = {
 };
 
 export const ONBOARDING_REWARDS = {
-  tutorial: { oranges: 500, freeCosmetic: true },
-  walletConnect: { oranges: 1000, requiresNft: true },
+  tutorial: { oranges: 250, freeCosmetic: true },
+  walletConnect: { oranges: 500, requiresNft: true },
 };
 
 // ============ LOGIN REWARDS ============
 export const DAILY_LOGIN_REWARDS = [
-  { day: 1, oranges: 30, gems: 0 },
-  { day: 2, oranges: 45, gems: 0 },
-  { day: 3, oranges: 55, gems: 0 },
-  { day: 4, oranges: 70, gems: 0 },
-  { day: 5, oranges: 85, gems: 0 },
-  { day: 6, oranges: 100, gems: 0 },
-  { day: 7, oranges: 140, gems: 3 }, // Gems on day 7
+  { day: 1, oranges: 15, gems: 0 },
+  { day: 2, oranges: 30, gems: 0 },
+  { day: 3, oranges: 45, gems: 0 },
+  { day: 4, oranges: 60, gems: 0 },
+  { day: 5, oranges: 75, gems: 0 },
+  { day: 6, oranges: 90, gems: 0 },
+  { day: 7, oranges: 105, gems: 3 }, // Gems on day 7
 ];
 
-// ============ GAMEPLAY REWARDS ============
-export const GAMEPLAY_REWARDS = {
-  baseMin: 7,
-  baseMax: 14,
-  maxMultiplier: 5, // Max = 5x base (35-70)
-  highScoreBonus: { min: 17, max: 42 },
-  top10Bonus: { min: 35, max: 84 },
+// ============ GAME TIERS & REWARDS ============
+export type GameTier = 'easy' | 'medium' | 'hard';
+
+export const GAME_TIERS: Record<GameTier, {
+  baseReward: number;
+  highScoreBonus: number;
+  top10Bonus: number;
+}> = {
+  easy: { baseReward: 5, highScoreBonus: 10, top10Bonus: 20 },
+  medium: { baseReward: 10, highScoreBonus: 15, top10Bonus: 30 },
+  hard: { baseReward: 15, highScoreBonus: 20, top10Bonus: 40 },
+};
+
+export const GAME_TIER_MAP: Record<string, GameTier> = {
+  // Easy tier (5🍊 base)
+  'memory-match': 'easy',
+  'color-reaction': 'easy',
+  'orange-snake': 'easy',
+  'citrus-drop': 'easy',
+  'wojak-whack': 'easy',
+
+  // Medium tier (10🍊 base)
+  'orange-pong': 'medium',
+  'merge-2048': 'medium',
+  'block-puzzle': 'medium',
+  'brick-breaker': 'medium',
+  'orange-wordle': 'medium',
+
+  // Hard tier (15🍊 base)
+  'flappy-orange': 'hard',
+  'wojak-runner': 'hard',
+  'orange-stack': 'hard',
+  'knife-game': 'hard',
+  'orange-juggle': 'hard',
 };
 
 // ============ DAILY CHALLENGES ============
 export const DAILY_CHALLENGES = {
-  easy: { target: 5, reward: 35, type: 'games_played' },
-  medium: { target: 1, reward: 52, type: 'personal_best' },
+  easy: { target: 5, reward: 30, type: 'games_played' },
+  medium: { target: 1, reward: 50, type: 'personal_best' },
   hard: { target: 600, reward: 70, type: 'play_time_seconds' },
-  bonusPercent: 0.5, // 50% bonus for all 3
+  // No bonus for completing all 3
 };
 
 // ============ LEADERBOARD REWARDS ============
@@ -560,13 +645,17 @@ CREATE INDEX IF NOT EXISTS idx_transactions_source ON currency_transactions(sour
 ## Testing Checklist
 
 - [ ] Starting balance is 100 oranges
-- [ ] Tutorial gives 500 oranges + cosmetic
-- [ ] Login streak progresses correctly (30→45→55→70→85→100→140)
+- [ ] Tutorial gives 250 oranges + cosmetic
+- [ ] Wallet connect (NFT) gives 500 oranges
+- [ ] Login streak progresses correctly (15→30→45→60→75→90→105)
 - [ ] Day 7 streak gives 3 gems
-- [ ] Gameplay rewards capped at 5x base
+- [ ] Easy games give 5🍊 base, +10 high score, +20 top 10
+- [ ] Medium games give 10🍊 base, +15 high score, +30 top 10
+- [ ] Hard games give 15🍊 base, +20 high score, +40 top 10
 - [ ] Score validation prevents instant-quit farming
-- [ ] Daily challenges track correctly
-- [ ] Challenge bonus (78🍊) only after all 3 claimed
+- [ ] Daily challenges: 30 (play 5), 50 (personal best), 70 (10 min) = 150🍊 total
+- [ ] No bonus for completing all 3 challenges
+- [ ] Daily leaderboard: #1=20, #2=15, #3=10, #4-10=5, #11-20=2, #21-50=1
 - [ ] Leaderboard uses ELO/skill rating
 - [ ] Orange→Gem conversion at 1,500:1
 - [ ] Gem conversion capped at 10/month

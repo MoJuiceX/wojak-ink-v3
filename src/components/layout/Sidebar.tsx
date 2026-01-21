@@ -98,10 +98,10 @@ export function Sidebar({
       style={{
         top: 0,
         width,
-        background: 'rgba(10, 10, 10, 0.95)',
+        background: 'var(--color-chrome-bg)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        borderRight: '1px solid rgba(249, 115, 22, 0.1)',
+        borderRight: '1px solid var(--color-chrome-border)',
       }}
       onMouseLeave={handleMouseLeave}
       onKeyDown={handleKeyDown}

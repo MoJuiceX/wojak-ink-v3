@@ -388,15 +388,24 @@ async function fetchNFTCollections(): Promise<NFTCollection[]> {
       return fallbackCollections;
     }
 
-    // Group NFTs by collection
+    // Group NFTs by collection with deduplication
     const collectionMap = new Map<string, NFTCollection>();
+    const seenNftIds = new Set<string>(); // Track seen NFT IDs to avoid duplicates
 
     for (const nft of allNfts) {
+      const nftId = (nft.encoded_id as string) || (nft.id as string) || '';
+
+      // Skip if we've already seen this NFT (deduplication)
+      if (!nftId || seenNftIds.has(nftId)) {
+        continue;
+      }
+      seenNftIds.add(nftId);
+
       const collectionId = (nft.collection_id as string) || 'unknown';
       const collectionName = (nft.collection_name as string) || 'Unknown Collection';
 
       const nftItem: NFTItem = {
-        nftId: (nft.encoded_id as string) || (nft.id as string) || '',
+        nftId,
         name: (nft.name as string) || `NFT #${nft.edition_number || 'Unknown'}`,
         imageUrl: (nft.thumbnail_uri as string) || (nft.data_uris as string[])?.[0] || '',
         collectionId,

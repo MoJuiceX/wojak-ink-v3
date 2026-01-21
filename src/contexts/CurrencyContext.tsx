@@ -1,42 +1,63 @@
 /**
- * Currency Context
+ * CurrencyContext - Server-Backed Implementation
  *
- * Manages dual-currency economy with Oranges (soft) and Gems (hard currency).
- * Demo mode uses localStorage; production will use backend API.
+ * All currency operations go through the API.
+ * Local state is just a cache of server state.
+ *
+ * @see claude-specs/11-SERVER-STATE-SPEC.md
+ * @see src/config/economy.ts for economy constants
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth } from '@clerk/clerk-react';
+import { STARTING_BALANCE, SHOP_PRICES } from '../config/economy';
 import type {
   UserCurrency,
   CurrencyTransaction,
   TransactionSource,
-  GameRewardConfig,
-  // DailyReward, // Unused - reserved for future daily rewards feature
   Achievement,
   EarnResult,
   DailyRewardResult,
   DailyRewardStatus,
   PurchaseResult,
 } from '../types/currency';
-import {
-  GAME_REWARDS,
-  DAILY_REWARDS,
-  CONTINUE_COST,
-} from '../types/currency';
+import { DAILY_REWARDS } from '../types/currency';
 
-// Storage keys
-const CURRENCY_KEY = 'wojak_currency';
-const DAILY_STATUS_KEY = 'wojak_daily_status';
-const TRANSACTIONS_KEY = 'wojak_transactions';
+// Check if Clerk is configured
+const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+// Default currency values for new users
+const DEFAULT_CURRENCY: UserCurrency = {
+  oranges: STARTING_BALANCE.oranges,
+  gems: STARTING_BALANCE.gems,
+  lifetimeOranges: STARTING_BALANCE.oranges,
+  lifetimeGems: STARTING_BALANCE.gems,
+  giftedOranges: 0,
+  gemsConvertedThisMonth: 0,
+};
 
 interface CurrencyContextType {
   // Currency state
   currency: UserCurrency;
   isLoading: boolean;
+  isInitialized: boolean;
 
-  // Earning
+  // Game session management
+  startGameSession: (gameId: string) => Promise<{ success: boolean; sessionId?: string; error?: string }>;
+  sendHeartbeat: (sessionId: string) => Promise<void>;
+
+  // Earning (new SPEC 11 method)
+  completeGame: (params: {
+    sessionId: string;
+    gameId: string;
+    score: number;
+    durationSeconds: number;
+    isHighScore: boolean;
+    isTop10: boolean;
+  }) => Promise<{ success: boolean; reward?: { oranges: number; gems?: number }; newBalance?: { oranges: number; gems: number } }>;
+
+  // Legacy methods (compatibility)
   earnFromGame: (
     gameId: string,
     score: number,
@@ -64,305 +85,345 @@ interface CurrencyContextType {
   // Transactions
   recentTransactions: CurrencyTransaction[];
   fetchTransactionHistory: () => void;
+
+  // Refresh balance from server
+  refreshBalance: () => Promise<void>;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
-// Default currency values for new users
-const DEFAULT_CURRENCY: UserCurrency = {
-  oranges: 100, // Starting bonus
-  gems: 0,
-  lifetimeOranges: 100,
-  lifetimeGems: 0,
-};
-
 export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  // Use Clerk auth if available
+  const authResult = CLERK_ENABLED ? useAuth() : { userId: null, isSignedIn: false, getToken: async () => null };
+  const userId = authResult.userId;
+  const isSignedIn = authResult.isSignedIn;
+  const getToken = authResult.getToken;
+
   const [currency, setCurrency] = useState<UserCurrency>(DEFAULT_CURRENCY);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [recentTransactions, setRecentTransactions] = useState<CurrencyTransaction[]>([]);
   const [dailyStatus, setDailyStatus] = useState<{
     lastClaimDate: string | null;
     currentStreak: number;
-  }>({ lastClaimDate: null, currentStreak: 0 });
+    canClaim: boolean;
+  }>({ lastClaimDate: null, currentStreak: 0, canClaim: false });
 
-  // Load currency data on mount and when user changes
+  // Ref to track if we've fetched initial data
+  const hasFetchedRef = useRef(false);
+
+  /**
+   * Make authenticated API call
+   */
+  const apiCall = useCallback(
+    async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
+      const token = await getToken?.();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options.headers as Record<string, string>),
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      return fetch(endpoint, {
+        ...options,
+        headers,
+      });
+    },
+    [getToken]
+  );
+
+  /**
+   * Initialize/refresh balance from server
+   */
+  const refreshBalance = useCallback(async () => {
+    if (!isSignedIn) return;
+
+    try {
+      // First try to get balance
+      let response = await apiCall('/api/currency');
+      let data = await response.json();
+
+      // If not initialized, initialize
+      if (!data.initialized) {
+        response = await apiCall('/api/currency/init', { method: 'POST' });
+        data = await response.json();
+      }
+
+      setCurrency({
+        oranges: data.oranges,
+        gems: data.gems,
+        lifetimeOranges: data.lifetimeOranges,
+        lifetimeGems: data.lifetimeGems,
+        giftedOranges: data.giftedOranges || 0,
+        gemsConvertedThisMonth: 0, // Not tracked in new system
+      });
+      setIsInitialized(true);
+    } catch (error) {
+      console.error('[Currency] Failed to refresh balance:', error);
+    }
+  }, [isSignedIn, apiCall]);
+
+  /**
+   * Fetch login streak status from server
+   */
+  const fetchLoginStreakStatus = useCallback(async () => {
+    if (!isSignedIn) return;
+
+    try {
+      const response = await apiCall('/api/currency/login-streak');
+      if (response.ok) {
+        const data = await response.json();
+        setDailyStatus({
+          lastClaimDate: data.lastClaimDate,
+          currentStreak: data.currentStreak,
+          canClaim: data.canClaim,
+        });
+      }
+    } catch (error) {
+      console.error('[Currency] Failed to fetch login streak:', error);
+    }
+  }, [isSignedIn, apiCall]);
+
+  // Load data on mount and when user changes
   useEffect(() => {
-    if (user) {
-      loadCurrencyData(user.id);
-      loadDailyStatus(user.id);
-      loadTransactions(user.id);
+    if (userId && isSignedIn) {
+      if (!hasFetchedRef.current) {
+        hasFetchedRef.current = true;
+        setIsLoading(true);
+        Promise.all([refreshBalance(), fetchLoginStreakStatus()]).finally(() => {
+          setIsLoading(false);
+        });
+      }
     } else {
       setCurrency(DEFAULT_CURRENCY);
-      setDailyStatus({ lastClaimDate: null, currentStreak: 0 });
+      setDailyStatus({ lastClaimDate: null, currentStreak: 0, canClaim: false });
       setRecentTransactions([]);
+      setIsInitialized(false);
+      hasFetchedRef.current = false;
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }, [user]);
+  }, [userId, isSignedIn, refreshBalance, fetchLoginStreakStatus]);
 
-  // Load currency from localStorage
-  const loadCurrencyData = (userId: string) => {
-    try {
-      const stored = localStorage.getItem(`${CURRENCY_KEY}_${userId}`);
-      if (stored) {
-        setCurrency(JSON.parse(stored));
-      } else {
-        // New user - give starting bonus
-        saveCurrencyData(userId, DEFAULT_CURRENCY);
-        setCurrency(DEFAULT_CURRENCY);
+  /**
+   * Start a game session (single-session enforcement)
+   */
+  const startGameSession = useCallback(
+    async (gameId: string): Promise<{ success: boolean; sessionId?: string; error?: string }> => {
+      if (!isSignedIn) {
+        return { success: false, error: 'Not signed in' };
       }
-    } catch (error) {
-      console.error('Failed to load currency data:', error);
-      setCurrency(DEFAULT_CURRENCY);
-    }
-  };
 
-  // Save currency to localStorage
-  const saveCurrencyData = (userId: string, data: UserCurrency) => {
-    try {
-      localStorage.setItem(`${CURRENCY_KEY}_${userId}`, JSON.stringify(data));
-    } catch (error) {
-      console.error('Failed to save currency data:', error);
-    }
-  };
+      try {
+        const response = await apiCall('/api/game/start', {
+          method: 'POST',
+          body: JSON.stringify({ gameId }),
+        });
 
-  // Load daily status from localStorage
-  const loadDailyStatus = (userId: string) => {
-    try {
-      const stored = localStorage.getItem(`${DAILY_STATUS_KEY}_${userId}`);
-      if (stored) {
-        setDailyStatus(JSON.parse(stored));
+        const data = await response.json();
+
+        if (response.status === 409) {
+          return {
+            success: false,
+            error: data.message || 'Already playing a game',
+          };
+        }
+
+        if (response.ok && data.sessionId) {
+          return { success: true, sessionId: data.sessionId };
+        }
+
+        return { success: false, error: data.error || 'Failed to start game' };
+      } catch (error) {
+        console.error('[Currency] Failed to start game session:', error);
+        return { success: false, error: 'Network error' };
       }
-    } catch (error) {
-      console.error('Failed to load daily status:', error);
-    }
-  };
+    },
+    [isSignedIn, apiCall]
+  );
 
-  // Save daily status to localStorage
-  const saveDailyStatus = (userId: string, status: { lastClaimDate: string | null; currentStreak: number }) => {
-    try {
-      localStorage.setItem(`${DAILY_STATUS_KEY}_${userId}`, JSON.stringify(status));
-    } catch (error) {
-      console.error('Failed to save daily status:', error);
-    }
-  };
+  /**
+   * Send heartbeat for active game session
+   */
+  const sendHeartbeat = useCallback(
+    async (sessionId: string): Promise<void> => {
+      if (!isSignedIn || !sessionId) return;
 
-  // Load transactions from localStorage
-  const loadTransactions = (userId: string) => {
-    try {
-      const stored = localStorage.getItem(`${TRANSACTIONS_KEY}_${userId}`);
-      if (stored) {
-        const transactions = JSON.parse(stored) as CurrencyTransaction[];
-        setRecentTransactions(transactions.slice(0, 50)); // Keep last 50
+      try {
+        await apiCall('/api/game/heartbeat', {
+          method: 'POST',
+          body: JSON.stringify({ sessionId }),
+        });
+      } catch (error) {
+        console.error('[Currency] Failed to send heartbeat:', error);
       }
-    } catch (error) {
-      console.error('Failed to load transactions:', error);
-    }
-  };
+    },
+    [isSignedIn, apiCall]
+  );
 
-  // Save transaction to localStorage
-  const saveTransaction = useCallback((transaction: CurrencyTransaction) => {
-    if (!user) return;
+  /**
+   * Complete game and earn rewards (new SPEC 11 method)
+   */
+  const completeGame = useCallback(
+    async (params: {
+      sessionId: string;
+      gameId: string;
+      score: number;
+      durationSeconds: number;
+      isHighScore: boolean;
+      isTop10: boolean;
+    }) => {
+      if (!isSignedIn) {
+        return { success: false };
+      }
 
-    try {
-      const stored = localStorage.getItem(`${TRANSACTIONS_KEY}_${user.id}`) || '[]';
-      const transactions = JSON.parse(stored) as CurrencyTransaction[];
-      transactions.unshift(transaction);
-      const limited = transactions.slice(0, 100); // Keep last 100
-      localStorage.setItem(`${TRANSACTIONS_KEY}_${user.id}`, JSON.stringify(limited));
-      setRecentTransactions(limited.slice(0, 50));
-    } catch (error) {
-      console.error('Failed to save transaction:', error);
-    }
-  }, [user]);
+      try {
+        const response = await apiCall('/api/gameplay/complete', {
+          method: 'POST',
+          body: JSON.stringify(params),
+        });
+        const data = await response.json();
 
-  // Calculate rewards for a game
-  const calculateGameRewards = (
-    config: GameRewardConfig,
-    score: number,
-    isHighScore: boolean,
-    leaderboardRank?: number
-  ): EarnResult['breakdown'] => {
-    const base = config.baseOranges;
-    let scoreBonus = Math.floor(score / config.scoreThreshold) * config.scoreMultiplier;
-    const highScoreBonus = isHighScore ? config.bonusForHighScore : 0;
-    let leaderboardBonus = 0;
+        if (data.success && data.newBalance) {
+          setCurrency((prev) => ({
+            ...prev,
+            oranges: data.newBalance.oranges,
+            gems: data.newBalance.gems ?? prev.gems,
+          }));
+        }
 
-    if (leaderboardRank && leaderboardRank <= 10) {
-      leaderboardBonus = config.bonusForTop10;
-    }
+        return data;
+      } catch (error) {
+        console.error('[Currency] Failed to complete game:', error);
+        return { success: false };
+      }
+    },
+    [isSignedIn, apiCall]
+  );
 
-    // Apply cap to score bonus
-    const maxScoreBonus = config.maxOrangesPerGame - base;
-    scoreBonus = Math.min(scoreBonus, maxScoreBonus);
+  /**
+   * Legacy: Earn currency from playing a game
+   * Uses old API for backwards compatibility
+   */
+  const earnFromGame = useCallback(
+    async (
+      gameId: string,
+      score: number,
+      isHighScore: boolean,
+      leaderboardRank?: number
+    ): Promise<EarnResult> => {
+      if (!isSignedIn || !userId) {
+        return {
+          success: false,
+          orangesEarned: 0,
+          gemsEarned: 0,
+          breakdown: { base: 0, scoreBonus: 0, highScoreBonus: 0, leaderboardBonus: 0 },
+        };
+      }
 
-    return {
-      base,
-      scoreBonus,
-      highScoreBonus,
-      leaderboardBonus,
-    };
-  };
+      // Create a session and complete it
+      const sessionId = crypto.randomUUID();
+      const result = await completeGame({
+        sessionId,
+        gameId,
+        score,
+        durationSeconds: 60, // Estimate
+        isHighScore,
+        isTop10: leaderboardRank ? leaderboardRank <= 10 : false,
+      });
 
-  // Earn currency from playing a game
-  const earnFromGame = useCallback(async (
-    gameId: string,
-    score: number,
-    isHighScore: boolean,
-    leaderboardRank?: number
-  ): Promise<EarnResult> => {
-    const config = GAME_REWARDS[gameId];
-    if (!config || !user) {
+      if (result.success && result.reward) {
+        return {
+          success: true,
+          orangesEarned: result.reward.oranges,
+          gemsEarned: result.reward.gems || 0,
+          breakdown: {
+            base: result.reward.oranges,
+            scoreBonus: 0,
+            highScoreBonus: 0,
+            leaderboardBonus: 0,
+          },
+        };
+      }
+
       return {
         success: false,
         orangesEarned: 0,
         gemsEarned: 0,
         breakdown: { base: 0, scoreBonus: 0, highScoreBonus: 0, leaderboardBonus: 0 },
       };
-    }
+    },
+    [isSignedIn, userId, completeGame]
+  );
 
-    const breakdown = calculateGameRewards(config, score, isHighScore, leaderboardRank);
-    const total = Math.min(
-      breakdown.base + breakdown.scoreBonus + breakdown.highScoreBonus + breakdown.leaderboardBonus,
-      config.maxOrangesPerGame
-    );
-
-    // Update currency
-    const newCurrency: UserCurrency = {
-      oranges: currency.oranges + total,
-      gems: currency.gems,
-      lifetimeOranges: currency.lifetimeOranges + total,
-      lifetimeGems: currency.lifetimeGems,
-    };
-
-    setCurrency(newCurrency);
-    saveCurrencyData(user.id, newCurrency);
-
-    // Record transaction
-    const transaction: CurrencyTransaction = {
-      id: crypto.randomUUID(),
-      userId: user.id,
-      type: 'earn',
-      currency: 'oranges',
-      amount: total,
-      source: 'game_score',
-      metadata: { gameId, score, isHighScore, leaderboardRank },
-      createdAt: new Date(),
-    };
-    saveTransaction(transaction);
-
-    return {
-      success: true,
-      orangesEarned: total,
-      gemsEarned: 0,
-      breakdown,
-    };
-  }, [user, currency, saveTransaction]);
-
-  // Claim daily reward
+  /**
+   * Claim daily login reward
+   */
   const claimDailyReward = useCallback(async (): Promise<DailyRewardResult> => {
-    if (!user) {
+    if (!isSignedIn || !userId) {
       throw new Error('Must be logged in to claim daily reward');
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    try {
+      const response = await apiCall('/api/daily-login/claim', {
+        method: 'POST',
+      });
 
-    if (dailyStatus.lastClaimDate === today) {
-      throw new Error('Already claimed today');
-    }
+      const data = await response.json();
 
-    // Check if streak continues
-    let newStreak = 1;
-    if (dailyStatus.lastClaimDate) {
-      const lastDate = new Date(dailyStatus.lastClaimDate);
-      const todayDate = new Date(today);
-      const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) {
-        // Consecutive day
-        newStreak = (dailyStatus.currentStreak % 7) + 1;
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to claim daily reward');
       }
-      // If more than 1 day, streak resets to 1
-    }
 
-    // Get reward for this day
-    const reward = DAILY_REWARDS[newStreak - 1];
+      // Update local state
+      if (data.newBalance) {
+        setCurrency((prev) => ({
+          ...prev,
+          oranges: data.newBalance.oranges,
+          gems: data.newBalance.gems,
+          lifetimeOranges: prev.lifetimeOranges + (data.reward?.oranges || 0),
+          lifetimeGems: prev.lifetimeGems + (data.reward?.gems || 0),
+        }));
+      }
 
-    // Update currency
-    const newCurrency: UserCurrency = {
-      oranges: currency.oranges + reward.oranges,
-      gems: currency.gems + reward.gems,
-      lifetimeOranges: currency.lifetimeOranges + reward.oranges,
-      lifetimeGems: currency.lifetimeGems + reward.gems,
-    };
+      setDailyStatus({
+        lastClaimDate: new Date().toISOString().split('T')[0],
+        currentStreak: data.streakDay || 1,
+        canClaim: false,
+      });
 
-    setCurrency(newCurrency);
-    saveCurrencyData(user.id, newCurrency);
+      // Calculate time until midnight UTC
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setUTCHours(24, 0, 0, 0);
+      const hoursUntilReset = Math.floor((midnight.getTime() - now.getTime()) / (1000 * 60 * 60));
 
-    // Update daily status
-    const newStatus = {
-      lastClaimDate: today,
-      currentStreak: newStreak,
-    };
-    setDailyStatus(newStatus);
-    saveDailyStatus(user.id, newStatus);
-
-    // Record transactions
-    if (reward.oranges > 0) {
-      const orangeTransaction: CurrencyTransaction = {
-        id: crypto.randomUUID(),
-        userId: user.id,
-        type: 'earn',
-        currency: 'oranges',
-        amount: reward.oranges,
-        source: 'daily_login',
-        metadata: { day: newStreak },
-        createdAt: new Date(),
+      return {
+        success: true,
+        reward: {
+          oranges: data.reward?.oranges || 0,
+          gems: data.reward?.gems || 0,
+        },
+        currentStreak: data.streakDay || 1,
+        nextRewardIn: hoursUntilReset,
       };
-      saveTransaction(orangeTransaction);
+    } catch (error) {
+      console.error('[Currency] Failed to claim daily reward:', error);
+      throw error;
     }
+  }, [isSignedIn, userId, apiCall]);
 
-    if (reward.gems > 0) {
-      const gemTransaction: CurrencyTransaction = {
-        id: crypto.randomUUID(),
-        userId: user.id,
-        type: 'earn',
-        currency: 'gems',
-        amount: reward.gems,
-        source: 'daily_login',
-        metadata: { day: newStreak },
-        createdAt: new Date(),
-      };
-      saveTransaction(gemTransaction);
-    }
-
-    // Calculate time until midnight UTC
-    const now = new Date();
-    const midnight = new Date(now);
-    midnight.setUTCHours(24, 0, 0, 0);
-    const hoursUntilReset = Math.floor((midnight.getTime() - now.getTime()) / (1000 * 60 * 60));
-
-    return {
-      success: true,
-      reward: {
-        oranges: reward.oranges,
-        gems: reward.gems,
-        bonusItem: reward.bonusItem,
-      },
-      currentStreak: newStreak,
-      nextRewardIn: hoursUntilReset,
-    };
-  }, [user, currency, dailyStatus, saveTransaction]);
-
-  // Get daily reward status
+  /**
+   * Get daily reward status
+   */
   const getDailyRewardStatus = useCallback((): DailyRewardStatus => {
-    const today = new Date().toISOString().split('T')[0];
-    const canClaim = dailyStatus.lastClaimDate !== today;
-
     // Calculate next reward based on streak
-    const nextDay = canClaim
-      ? ((dailyStatus.currentStreak % 7) + 1)
-      : (((dailyStatus.currentStreak % 7) + 1) % 7) + 1;
+    const nextDay = dailyStatus.canClaim
+      ? Math.max(1, (dailyStatus.currentStreak % 7) + 1)
+      : Math.max(1, ((dailyStatus.currentStreak % 7) + 1) % 7 + 1);
+
     const nextReward = DAILY_REWARDS[nextDay - 1] || DAILY_REWARDS[0];
 
     // Calculate time until reset (midnight UTC)
@@ -372,223 +433,283 @@ export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }
     const timeUntilReset = midnight.getTime() - now.getTime();
 
     return {
-      canClaim,
+      canClaim: dailyStatus.canClaim,
       currentStreak: dailyStatus.currentStreak,
       nextReward,
       timeUntilReset,
     };
   }, [dailyStatus]);
 
-  // Claim achievement reward (placeholder)
-  const claimAchievement = useCallback(async (_achievementId: string): Promise<Achievement | null> => {
-    // TODO: Implement achievement system
-    console.log('Achievement claiming not yet implemented');
-    return null;
-  }, []);
+  /**
+   * Claim achievement reward - delegates to AchievementsContext
+   */
+  const claimAchievement = useCallback(
+    async (achievementId: string): Promise<Achievement | null> => {
+      // Use the new achievements/claim endpoint
+      try {
+        const response = await apiCall('/api/achievements/claim', {
+          method: 'POST',
+          body: JSON.stringify({ achievementId }),
+        });
 
-  // Generic earn currency
-  const earnCurrency = useCallback((
-    oranges: number,
-    gems: number,
-    source: TransactionSource,
-    metadata?: Record<string, unknown>
-  ) => {
-    if (!user) return;
+        const data = await response.json();
 
-    const newCurrency: UserCurrency = {
-      oranges: currency.oranges + oranges,
-      gems: currency.gems + gems,
-      lifetimeOranges: currency.lifetimeOranges + oranges,
-      lifetimeGems: currency.lifetimeGems + gems,
-    };
+        if (data.success && data.newBalance) {
+          setCurrency((prev) => ({
+            ...prev,
+            oranges: data.newBalance.oranges,
+            gems: data.newBalance.gems,
+          }));
+        }
 
-    setCurrency(newCurrency);
-    saveCurrencyData(user.id, newCurrency);
+        return data.success ? data : null;
+      } catch (error) {
+        console.error('[Currency] Failed to claim achievement:', error);
+        return null;
+      }
+    },
+    [apiCall]
+  );
 
-    if (oranges > 0) {
-      const transaction: CurrencyTransaction = {
-        id: crypto.randomUUID(),
-        userId: user.id,
-        type: 'earn',
-        currency: 'oranges',
-        amount: oranges,
-        source,
-        metadata,
-        createdAt: new Date(),
-      };
-      saveTransaction(transaction);
-    }
+  /**
+   * Generic earn currency (for non-game sources)
+   */
+  const earnCurrency = useCallback(
+    async (
+      oranges: number,
+      gems: number,
+      source: TransactionSource,
+      metadata?: Record<string, unknown>
+    ) => {
+      if (!isSignedIn || !userId) return;
 
-    if (gems > 0) {
-      const transaction: CurrencyTransaction = {
-        id: crypto.randomUUID(),
-        userId: user.id,
-        type: 'earn',
-        currency: 'gems',
-        amount: gems,
-        source,
-        metadata,
-        createdAt: new Date(),
-      };
-      saveTransaction(transaction);
-    }
-  }, [user, currency, saveTransaction]);
+      // Legacy - refresh balance after external earning
+      await refreshBalance();
+    },
+    [isSignedIn, userId, refreshBalance]
+  );
 
-  // Purchase item from shop
-  const purchaseItem = useCallback(async (
-    itemId: string,
-    orangesCost?: number,
-    gemsCost?: number
-  ): Promise<PurchaseResult> => {
-    if (!user) {
-      return { success: false, error: 'Must be logged in' };
-    }
+  /**
+   * Purchase item from shop
+   */
+  const purchaseItem = useCallback(
+    async (itemId: string, orangesCost?: number, gemsCost?: number): Promise<PurchaseResult> => {
+      if (!isSignedIn || !userId) {
+        return { success: false, error: 'Must be logged in' };
+      }
 
-    if (!canAfford(orangesCost, gemsCost)) {
-      return { success: false, error: 'Insufficient funds' };
-    }
+      const costOranges = orangesCost || 0;
+      const costGems = gemsCost || 0;
 
-    const newCurrency: UserCurrency = {
-      oranges: currency.oranges - (orangesCost || 0),
-      gems: currency.gems - (gemsCost || 0),
-      lifetimeOranges: currency.lifetimeOranges,
-      lifetimeGems: currency.lifetimeGems,
-    };
+      if (!canAfford(costOranges, costGems)) {
+        return { success: false, error: 'Insufficient funds' };
+      }
 
-    setCurrency(newCurrency);
-    saveCurrencyData(user.id, newCurrency);
+      try {
+        // Use new spend endpoint for oranges
+        if (costOranges > 0) {
+          const response = await apiCall('/api/currency/spend', {
+            method: 'POST',
+            body: JSON.stringify({
+              currency: 'oranges',
+              amount: costOranges,
+              itemId,
+              itemType: 'shop_purchase',
+            }),
+          });
 
-    // Record transactions
-    if (orangesCost && orangesCost > 0) {
-      const transaction: CurrencyTransaction = {
-        id: crypto.randomUUID(),
-        userId: user.id,
-        type: 'spend',
-        currency: 'oranges',
-        amount: orangesCost,
-        source: 'shop_purchase',
-        metadata: { itemId },
-        createdAt: new Date(),
-      };
-      saveTransaction(transaction);
-    }
+          if (!response.ok) {
+            const error = await response.json();
+            return { success: false, error: error.error || 'Purchase failed' };
+          }
 
-    if (gemsCost && gemsCost > 0) {
-      const transaction: CurrencyTransaction = {
-        id: crypto.randomUUID(),
-        userId: user.id,
-        type: 'spend',
-        currency: 'gems',
-        amount: gemsCost,
-        source: 'shop_purchase',
-        metadata: { itemId },
-        createdAt: new Date(),
-      };
-      saveTransaction(transaction);
-    }
+          const data = await response.json();
+          setCurrency((prev) => ({
+            ...prev,
+            oranges: data.newBalance?.oranges ?? prev.oranges - costOranges,
+          }));
+        }
 
-    return { success: true, newBalance: newCurrency };
-  }, [user, currency, saveTransaction]);
+        // Use new spend endpoint for gems
+        if (costGems > 0) {
+          const response = await apiCall('/api/currency/spend', {
+            method: 'POST',
+            body: JSON.stringify({
+              currency: 'gems',
+              amount: costGems,
+              itemId,
+              itemType: 'shop_purchase',
+            }),
+          });
 
-  // Use a continue token
-  const useContinue = useCallback(async (gameId: string): Promise<boolean> => {
-    if (!user || currency.oranges < CONTINUE_COST) {
+          if (!response.ok) {
+            const error = await response.json();
+            return { success: false, error: error.error || 'Purchase failed' };
+          }
+
+          const data = await response.json();
+          setCurrency((prev) => ({
+            ...prev,
+            gems: data.newBalance?.gems ?? prev.gems - costGems,
+          }));
+        }
+
+        return { success: true, newBalance: currency };
+      } catch (error) {
+        console.error('[Currency] Failed to purchase item:', error);
+        return { success: false, error: 'Purchase failed' };
+      }
+    },
+    [isSignedIn, userId, currency, apiCall]
+  );
+
+  /**
+   * Use a continue token
+   */
+  const useContinue = useCallback(
+    async (gameId: string): Promise<boolean> => {
+      if (!isSignedIn || !userId || currency.oranges < SHOP_PRICES.continueGame) {
+        return false;
+      }
+
+      try {
+        const response = await apiCall('/api/currency/spend', {
+          method: 'POST',
+          body: JSON.stringify({
+            currency: 'oranges',
+            amount: SHOP_PRICES.continueGame,
+            itemId: `continue_${gameId}`,
+            itemType: 'continue',
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setCurrency((prev) => ({
+            ...prev,
+            oranges: data.newBalance?.oranges ?? prev.oranges - SHOP_PRICES.continueGame,
+          }));
+          return true;
+        }
+      } catch (error) {
+        console.error('[Currency] Failed to use continue:', error);
+      }
+
       return false;
+    },
+    [isSignedIn, userId, currency.oranges, apiCall]
+  );
+
+  /**
+   * Generic spend currency
+   */
+  const spendCurrency = useCallback(
+    (oranges: number, gems: number, source: TransactionSource): boolean => {
+      if (!isSignedIn || !userId || !canAfford(oranges, gems)) {
+        return false;
+      }
+
+      // Optimistically update local state
+      setCurrency((prev) => ({
+        ...prev,
+        oranges: prev.oranges - oranges,
+        gems: prev.gems - gems,
+      }));
+
+      // Make API call in background for oranges
+      if (oranges > 0) {
+        apiCall('/api/currency/spend', {
+          method: 'POST',
+          body: JSON.stringify({
+            currency: 'oranges',
+            amount: oranges,
+            itemId: `${source}_${Date.now()}`,
+            itemType: source,
+          }),
+        }).catch((error) => {
+          console.error('[Currency] Failed to spend oranges:', error);
+          // Revert on failure
+          setCurrency((prev) => ({
+            ...prev,
+            oranges: prev.oranges + oranges,
+          }));
+        });
+      }
+
+      // Make API call in background for gems
+      if (gems > 0) {
+        apiCall('/api/currency/spend', {
+          method: 'POST',
+          body: JSON.stringify({
+            currency: 'gems',
+            amount: gems,
+            itemId: `${source}_${Date.now()}`,
+            itemType: source,
+          }),
+        }).catch((error) => {
+          console.error('[Currency] Failed to spend gems:', error);
+          // Revert on failure
+          setCurrency((prev) => ({
+            ...prev,
+            gems: prev.gems + gems,
+          }));
+        });
+      }
+
+      return true;
+    },
+    [isSignedIn, userId, apiCall]
+  );
+
+  /**
+   * Check if user can afford something
+   */
+  const canAfford = useCallback(
+    (oranges?: number, gems?: number): boolean => {
+      if (oranges && currency.oranges < oranges) return false;
+      if (gems && currency.gems < gems) return false;
+      return true;
+    },
+    [currency]
+  );
+
+  /**
+   * Fetch transaction history
+   */
+  const fetchTransactionHistory = useCallback(async () => {
+    if (!isSignedIn || !userId) return;
+
+    try {
+      const response = await apiCall('/api/currency/transactions?limit=50');
+      if (response.ok) {
+        const data = await response.json();
+        setRecentTransactions(
+          data.transactions.map((t: any) => ({
+            id: String(t.id),
+            userId,
+            type: t.amount > 0 ? 'earn' : 'spend',
+            currency: t.currencyType,
+            amount: Math.abs(t.amount),
+            source: t.source,
+            metadata: t.sourceDetails,
+            createdAt: new Date(t.createdAt),
+          }))
+        );
+      }
+    } catch (error) {
+      console.error('[Currency] Failed to fetch transactions:', error);
     }
-
-    const newCurrency: UserCurrency = {
-      oranges: currency.oranges - CONTINUE_COST,
-      gems: currency.gems,
-      lifetimeOranges: currency.lifetimeOranges,
-      lifetimeGems: currency.lifetimeGems,
-    };
-
-    setCurrency(newCurrency);
-    saveCurrencyData(user.id, newCurrency);
-
-    const transaction: CurrencyTransaction = {
-      id: crypto.randomUUID(),
-      userId: user.id,
-      type: 'spend',
-      currency: 'oranges',
-      amount: CONTINUE_COST,
-      source: 'continue_game',
-      metadata: { gameId },
-      createdAt: new Date(),
-    };
-    saveTransaction(transaction);
-
-    return true;
-  }, [user, currency, saveTransaction]);
-
-  // Generic spend currency
-  const spendCurrency = useCallback((
-    oranges: number,
-    gems: number,
-    source: TransactionSource
-  ): boolean => {
-    if (!user || !canAfford(oranges, gems)) {
-      return false;
-    }
-
-    const newCurrency: UserCurrency = {
-      oranges: currency.oranges - oranges,
-      gems: currency.gems - gems,
-      lifetimeOranges: currency.lifetimeOranges,
-      lifetimeGems: currency.lifetimeGems,
-    };
-
-    setCurrency(newCurrency);
-    saveCurrencyData(user.id, newCurrency);
-
-    if (oranges > 0) {
-      const transaction: CurrencyTransaction = {
-        id: crypto.randomUUID(),
-        userId: user.id,
-        type: 'spend',
-        currency: 'oranges',
-        amount: oranges,
-        source,
-        createdAt: new Date(),
-      };
-      saveTransaction(transaction);
-    }
-
-    if (gems > 0) {
-      const transaction: CurrencyTransaction = {
-        id: crypto.randomUUID(),
-        userId: user.id,
-        type: 'spend',
-        currency: 'gems',
-        amount: gems,
-        source,
-        createdAt: new Date(),
-      };
-      saveTransaction(transaction);
-    }
-
-    return true;
-  }, [user, currency, saveTransaction]);
-
-  // Check if user can afford something
-  const canAfford = useCallback((oranges?: number, gems?: number): boolean => {
-    if (oranges && currency.oranges < oranges) return false;
-    if (gems && currency.gems < gems) return false;
-    return true;
-  }, [currency]);
-
-  // Fetch transaction history
-  const fetchTransactionHistory = useCallback(() => {
-    if (user) {
-      loadTransactions(user.id);
-    }
-  }, [user]);
+  }, [isSignedIn, userId, apiCall]);
 
   return (
     <CurrencyContext.Provider
       value={{
         currency,
         isLoading,
+        isInitialized,
+        startGameSession,
+        sendHeartbeat,
+        completeGame,
         earnFromGame,
         claimDailyReward,
         claimAchievement,
@@ -600,6 +721,7 @@ export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }
         canAfford,
         recentTransactions,
         fetchTransactionHistory,
+        refreshBalance,
       }}
     >
       {children}

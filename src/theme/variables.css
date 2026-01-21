@@ -177,6 +177,12 @@
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
 
+  /* ---------- CHROME (Sidebar/Header) ---------- */
+  --color-chrome-bg: rgba(10, 10, 10, 0.95);
+  --color-chrome-bg-scrolled: rgba(10, 10, 10, 0.9);
+  --color-chrome-border: rgba(249, 115, 22, 0.1);
+  --color-chrome-border-glow: rgba(249, 115, 22, 0.15);
+
   /* ---------- GLASSMORPHISM ---------- */
   --glass-bg-light: rgba(255, 255, 255, 0.05);
   --glass-bg-medium: rgba(255, 255, 255, 0.08);
@@ -266,6 +272,12 @@
   --color-bg-card: rgba(0, 0, 0, 0.02);
   --color-bg-glass: rgba(255, 255, 255, 0.8);
   --color-bg-input: rgba(0, 0, 0, 0.05);
+
+  /* Chrome (Sidebar/Header) - light theme */
+  --color-chrome-bg: rgba(255, 255, 255, 0.95);
+  --color-chrome-bg-scrolled: rgba(255, 255, 255, 0.98);
+  --color-chrome-border: rgba(0, 0, 0, 0.08);
+  --color-chrome-border-glow: rgba(249, 115, 22, 0.2);
 
   --color-text-primary: #1a1a1a;
   --color-text-secondary: rgba(0, 0, 0, 0.6);

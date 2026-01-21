@@ -29,6 +29,8 @@ BigPulp AI uses Claude API. 12 canvas-based mini-games with global leaderboards.
 | Topic | Location |
 |-------|----------|
 | **Game development** | `.claude/patterns/game-architecture.md` |
+| **Economy system** | `.claude/patterns/economy-patterns.md` |
+| **Implementation specs** | `claude-specs/README.md` (11 specs) |
 | API patterns, rate limits | `.claude/patterns/api-patterns.md` |
 | UI/animation patterns | `.claude/patterns/ui-patterns.md` |
 | Audio/haptics systems | `.claude/patterns/audio-haptics.md` |
@@ -41,14 +43,17 @@ BigPulp AI uses Claude API. 12 canvas-based mini-games with global leaderboards.
 - `/functions/api/**` → Read `api-patterns.md`
 - `/src/components/**` → Read `ui-patterns.md`
 - `*.sql`, migrations → Read `database-patterns.md`
+- Currency, rewards, economy → Read `economy-patterns.md` + `claude-specs/11-SERVER-STATE-SPEC.md`
 
 ## Critical Rules (Permanent)
-1. **[P0] Never trust client for currency** - all mutations through API
+1. **[P0] Never trust client for currency** - all mutations through API with idempotency keys
 2. **[P0] Clear Vite cache when hooks break** - `rm -rf node_modules/.vite`
 3. **[P0] D1 uses batch()** for atomic transactions (no RETURNING clause)
 4. **[P0] Game navigation** - use `navigate('/games')` NOT `window.history.back()`
-5. **[P1] Clerk JWT** - user_id is in `sub` claim, tokens expire 60s
-6. **[P1] SpaceScan rate limit** - 1 req/20s, 30s backoff on 429
+5. **[P0] Economy is server-authoritative** - see `claude-specs/11-SERVER-STATE-SPEC.md`
+6. **[P1] Clerk JWT** - user_id is in `sub` claim, tokens expire 60s
+7. **[P1] SpaceScan rate limit** - 1 req/20s, 30s backoff on 429
+8. **[P1] Cheaters get immediate permanent ban** - zero tolerance policy
 
 ## Quick Wins (High-Impact Gotchas)
 - Game CSS: Prefix classes with game initials (bp-, fo-, os-) to avoid conflicts
@@ -167,11 +172,17 @@ docs/
 | `src/services/salesDatabank.ts` | Sales history, CAT fixes |
 | `vite.config.ts` | Dev proxies, React deduplication |
 
-## Games (12 total, all in src/pages/)
+## Games (15 total, all in src/pages/)
 FlappyOrange, BlockPuzzle, CitrusDrop, OrangeSnake, BrickBreaker, WojakWhack,
-OrangeStack, MemoryMatch, OrangePong, WojakRunner, OrangeJuggle, KnifeGame
+OrangeStack, MemoryMatch, OrangePong, WojakRunner, OrangeJuggle, KnifeGame,
+ColorReaction, Merge2048, OrangeWordle
 
 **All games use**: `@ts-nocheck`, canvas rendering, useGameSounds, useGameHaptics, useLeaderboard, useGameEffects
+
+**Game Tiers** (for rewards):
+- **Easy** (5🍊): memory-match, color-reaction, orange-snake, citrus-drop, wojak-whack
+- **Medium** (10🍊): orange-pong, merge-2048, block-puzzle, brick-breaker, orange-wordle
+- **Hard** (15🍊): flappy-orange, wojak-runner, orange-stack, knife-game, orange-juggle
 
 ## Common Issues Quick Reference
 | Issue | Fix |
@@ -182,6 +193,22 @@ OrangeStack, MemoryMatch, OrangePong, WojakRunner, OrangeJuggle, KnifeGame
 | NFT shows "Wojak #XXXX" | Use `getNftName()` with metadata |
 
 See `.claude/patterns/api-patterns.md` for CAT token rates and full troubleshooting.
+
+## Economy System (Quick Reference)
+**Currencies**: Oranges (🍊 soft) and Gems (💎 hard)
+**Future crypto**: 10,000🍊 = 1 HOA (~$0.00143) | 1,500🍊 = 1💎
+
+| Earning Source | Amount |
+|----------------|--------|
+| Starting balance | 100🍊 |
+| Tutorial | 250🍊 |
+| Wallet connect (NFT) | 500🍊 |
+| Daily login (1-7) | 15→30→45→60→75→90→105🍊 (+3💎 on day 7) |
+| Daily challenges | 30+50+70 = 150🍊 |
+| Game rewards | Easy 5🍊, Medium 10🍊, Hard 15🍊 (+ bonuses) |
+
+**Full spec**: `claude-specs/10-ECONOMY-MASTERPLAN-SPEC.md`
+**Server implementation**: `claude-specs/11-SERVER-STATE-SPEC.md`
 
 ## Links
 - **Live**: https://wojak.ink

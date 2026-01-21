@@ -20,22 +20,22 @@ interface ToggleProps {
 
 const sizeConfig = {
   small: {
-    track: 'w-10 h-6',
-    thumb: 'w-4 h-4',
-    thumbTranslate: 16,
-    thumbOffset: 4, // (24 - 16) / 2 = 4px for centering
+    trackWidth: 44,          // px
+    trackHeight: 24,         // px - matches thumb + 4px padding
+    thumbSize: 20,           // px
+    thumbOffset: 2,          // (24 - 20) / 2 = 2px vertical centering
   },
   medium: {
-    track: 'w-12 h-7',
-    thumb: 'w-5 h-5',
-    thumbTranslate: 20,
-    thumbOffset: 4, // (28 - 20) / 2 = 4px for centering
+    trackWidth: 50,          // px
+    trackHeight: 28,         // px - matches thumb + 4px padding
+    thumbSize: 24,           // px
+    thumbOffset: 2,          // (28 - 24) / 2 = 2px vertical centering
   },
   large: {
-    track: 'w-14 h-8',
-    thumb: 'w-6 h-6',
-    thumbTranslate: 24,
-    thumbOffset: 4, // (32 - 24) / 2 = 4px for centering
+    trackWidth: 56,          // px
+    trackHeight: 32,         // px - matches thumb + 4px padding
+    thumbSize: 28,           // px
+    thumbOffset: 2,          // (32 - 28) / 2 = 2px vertical centering
   },
 };
 
@@ -103,12 +103,14 @@ export function Toggle({
         onClick={handleToggle}
         onKeyDown={handleKeyDown}
         className={`
-          ${config.track} rounded-full relative transition-colors
+          rounded-full relative transition-colors
           focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
           focus-visible:ring-[var(--color-brand-primary)]
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
         style={{
+          width: config.trackWidth,
+          height: config.trackHeight,
           background: checked
             ? 'var(--color-brand-primary)'
             : 'var(--color-bg-tertiary)',
@@ -116,21 +118,21 @@ export function Toggle({
         }}
       >
         <motion.span
-          className={`
-            ${config.thumb} absolute bg-white rounded-full shadow-sm
-          `}
+          className="absolute bg-white rounded-full shadow-sm"
           variants={prefersReducedMotion ? undefined : toggleThumbVariants}
           animate={checked ? 'on' : 'off'}
-          custom={config.thumbTranslate}
+          custom={config.trackWidth - config.thumbSize - config.thumbOffset * 2}
           transition={
             prefersReducedMotion
               ? { duration: 0.05 }
               : { type: 'spring', stiffness: 500, damping: 30 }
           }
           style={{
+            width: config.thumbSize,
+            height: config.thumbSize,
             top: config.thumbOffset,
             left: config.thumbOffset,
-            x: checked ? config.thumbTranslate : 0,
+            x: checked ? config.trackWidth - config.thumbSize - config.thumbOffset * 2 : 0,
           }}
           aria-hidden="true"
         />

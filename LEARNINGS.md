@@ -1,7 +1,7 @@
 # Learnings Log
 
-<!-- Last consolidated: 2026-01-18 -->
-<!-- Active entries: 14 (target: <50) -->
+<!-- Last consolidated: 2026-01-21 -->
+<!-- Active entries: 20 (target: <50) -->
 <!-- Health check: .claude/scripts/knowledge-health.sh -->
 
 ## Format Guide
@@ -19,6 +19,98 @@ Entry format: `### [DATE] [CATEGORY] [PRIORITY] Title`
 ---
 
 ## Active Learnings
+
+### [2026-01-21] [DECISION] [P0] Economy System - Bulletproof Server-Side State
+**ID**: LEARN-2026-01-21-001
+**Problem**: Currency and achievements stored in localStorage were lost on cache clear, easy to manipulate, and didn't sync across devices.
+**Solution**: Complete server-side state system with:
+- D1 database as single source of truth
+- Atomic transactions (currency update + transaction log together)
+- Idempotency keys (safe to retry any request)
+- Complete audit trail for every currency change
+- Statistical anomaly detection for cheating
+- Single-session enforcement (one game per user)
+- Immediate permanent ban for cheaters
+**Key Decisions**:
+- Clean slate migration (all players start fresh)
+- Simple reward display ("+25🍊" not breakdown)
+- Full balance transparency (anyone can see anyone's balance)
+- No rate limits (players can grind freely)
+- Block concurrent play (one tab only)
+**Files**: `claude-specs/11-SERVER-STATE-SPEC.md`, `migrations/008_server_state.sql`
+**Status**: ACTIVE - Ready for implementation
+
+---
+
+### [2026-01-21] [DECISION] [P0] Simplified Economy Numbers
+**ID**: LEARN-2026-01-21-002
+**Problem**: Original economy had confusing ranges (7-14🍊) and complex bonus calculations
+**Solution**: Simplified to clean, predictable numbers:
+- Login streak: 15→30→45→60→75→90→105 (always +15)
+- Daily challenges: 30+50+70 = 150🍊 (no bonus for all 3)
+- Game tiers: Easy=5🍊, Medium=10🍊, Hard=15🍊
+- High score bonus: +10/+15/+20 by tier
+- Top 10 bonus: +20/+30/+40 by tier
+- Tutorial: 250🍊 (was 500)
+- Wallet connect: 500🍊 (was 1000)
+**Files**: `claude-specs/10-ECONOMY-MASTERPLAN-SPEC.md`, `src/config/economy.ts`
+**Status**: ACTIVE
+
+---
+
+### [2026-01-21] [PATTERN] [P0] Game Tier Classification
+**ID**: LEARN-2026-01-21-003
+**Problem**: Needed consistent reward structure across all 15 games
+**Solution**: Classified games into 3 tiers based on difficulty:
+- **Easy** (5🍊): memory-match, color-reaction, orange-snake, citrus-drop, wojak-whack
+- **Medium** (10🍊): orange-pong, merge-2048, block-puzzle, brick-breaker, orange-wordle
+- **Hard** (15🍊): flappy-orange, wojak-runner, orange-stack, knife-game, orange-juggle
+**Reward validation**: Each game has minimum score threshold - instant quits earn 0
+**Files**: `claude-specs/10-ECONOMY-MASTERPLAN-SPEC.md`
+**Status**: ACTIVE
+
+---
+
+### [2026-01-21] [PATTERN] [P1] Idempotent API Design
+**ID**: LEARN-2026-01-21-004
+**Problem**: Retrying failed currency requests could award double rewards
+**Solution**: Every currency operation uses an idempotency key:
+- Game completion: `game_${sessionId}`
+- Daily login: `daily_${userId}_${date}_oranges`
+- Achievement: `achievement_${userId}_${achievementId}`
+- Challenge: `challenge_${userId}_${date}_${challengeId}`
+**Implementation**: Check for existing transaction with key before processing
+**Files**: `claude-specs/11-SERVER-STATE-SPEC.md`
+**Status**: ACTIVE
+
+---
+
+### [2026-01-21] [PATTERN] [P1] Statistical Anomaly Detection
+**ID**: LEARN-2026-01-21-005
+**Problem**: Need to detect cheaters without false positives on legitimate players
+**Solution**: Accept all scores but flag outliers for manual review:
+1. Score > 99th percentile (3x average AND beats max)
+2. Impossibly fast completion (<10 sec with above-average score)
+3. Suspicious points-per-second ratio (5x normal)
+**Key**: Only triggers after 100+ games for statistical significance
+**Files**: `claude-specs/11-SERVER-STATE-SPEC.md`, `functions/lib/anomaly.ts`
+**Status**: ACTIVE
+
+---
+
+### [2026-01-21] [DECISION] [P1] Future Crypto Conversion Rates
+**ID**: LEARN-2026-01-21-006
+**Problem**: Need to plan economy around future HOA token withdrawals
+**Solution**: Established conversion rates (disabled for now):
+- 10,000🍊 = 1 HOA (~$0.00143)
+- 1,500🍊 = 1💎 (max 10💎/month conversion)
+- Gifted oranges tracked separately, cannot convert to crypto
+- Premium (gem) items are soulbound, cannot be gifted
+**Monthly projection**: 100 active players ≈ $0.20 in payouts
+**Files**: `claude-specs/10-ECONOMY-MASTERPLAN-SPEC.md`
+**Status**: ACTIVE
+
+---
 
 ### [2026-01-18] [BUG] [P1] Game Navigation - Back Button Goes to Gallery
 **ID**: LEARN-2026-01-18-001

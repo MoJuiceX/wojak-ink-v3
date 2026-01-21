@@ -1001,11 +1001,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 - [ ] Monthly leaderboard resets 1st of month midnight UTC
 - [ ] Payouts process correctly for each period
 - [ ] Payouts are not duplicated (idempotent)
-- [ ] Top 3 daily rewards: 25, 15, 5 oranges
-- [ ] Top 4-10 daily rewards: 10 oranges each
-- [ ] Top 11-50 daily rewards: 3 oranges each
-- [ ] Weekly top 3 rewards: 500, 300, 150 oranges
-- [ ] Monthly top 3 rewards: 2000, 1000, 500 oranges
+- [ ] Daily rewards: #1=20🍊, #2=15🍊, #3=10🍊, #4-10=5🍊, #11-20=2🍊, #21-50=1🍊
+- [ ] Weekly top 3 rewards: 350, 210, 105 oranges
+- [ ] Monthly top 3 rewards: 1400, 700, 350 oranges
 - [ ] Period selector UI works correctly
 - [ ] Reward amounts display next to ranks
 - [ ] NFT holder badge displays on period leaderboards

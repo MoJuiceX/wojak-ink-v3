@@ -2,9 +2,13 @@
  * AchievementsContext
  *
  * Tracks achievement progress and handles unlocking/claiming.
+ * Uses server-side API for persistence to prevent "delete cache = claim again" issue.
+ *
+ * @see claude-specs/05-ACHIEVEMENT-SYSTEM-SPEC.md
  */
 
-import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { useUserProfile } from './UserProfileContext';
 import { useCurrency } from './CurrencyContext';
 import { useFriends } from './FriendsContext';
@@ -16,7 +20,10 @@ import type {
   AchievementStats,
 } from '@/types/achievement';
 
-const PROGRESS_STORAGE_KEY = 'wojak_achievement_progress';
+// Check if Clerk is configured
+const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+// LocalStorage keys (kept for stats only, not progress)
 const STATS_STORAGE_KEY = 'wojak_achievement_stats';
 const OWNED_ITEMS_KEY = 'wojak_owned_items';
 
@@ -42,11 +49,21 @@ interface AchievementsContextType {
 const AchievementsContext = createContext<AchievementsContextType | null>(null);
 
 export function AchievementsProvider({ children }: { children: React.ReactNode }) {
+  const authResult = CLERK_ENABLED ? useAuth() : { userId: null, isSignedIn: false, getToken: async () => null };
+  const getToken = authResult.getToken;
   const { profile, isSignedIn } = useUserProfile();
-  const { currency, earnCurrency } = useCurrency();
+  const { currency, refreshBalance } = useCurrency();
   const { friends } = useFriends();
 
   const [progress, setProgress] = useState<UserAchievementProgress[]>([]);
+  const progressRef = useRef<UserAchievementProgress[]>([]);
+  const hasFetchedRef = useRef(false);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    progressRef.current = progress;
+  }, [progress]);
+
   const [stats, setStats] = useState<AchievementStats>({
     totalGamesPlayed: 0,
     highestScore: 0,
@@ -63,6 +80,46 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
     lifetimeOranges: 0,
   });
 
+  /**
+   * Make authenticated API call
+   */
+  const apiCall = useCallback(
+    async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
+      const token = await getToken?.();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options.headers as Record<string, string>),
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      return fetch(`/api/currency${endpoint}`, {
+        ...options,
+        headers,
+      });
+    },
+    [getToken]
+  );
+
+  /**
+   * Fetch progress from server
+   */
+  const fetchProgress = useCallback(async () => {
+    if (!isSignedIn) return;
+
+    try {
+      const response = await apiCall('/achievements');
+      if (response.ok) {
+        const data = await response.json();
+        setProgress(data.progress);
+      }
+    } catch (error) {
+      console.error('[Achievements] Failed to fetch progress:', error);
+    }
+  }, [isSignedIn, apiCall]);
+
   // Load owned items from localStorage
   const loadOwnedItemsCount = useCallback((): number => {
     try {
@@ -77,22 +134,20 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
     return 0;
   }, []);
 
-  // Load progress from localStorage
+  // Load progress from server on mount
   useEffect(() => {
     if (!isSignedIn) {
       setProgress([]);
+      hasFetchedRef.current = false;
       return;
     }
 
-    const storedProgress = localStorage.getItem(PROGRESS_STORAGE_KEY);
-    if (storedProgress) {
-      try {
-        setProgress(JSON.parse(storedProgress));
-      } catch (e) {
-        console.error('[Achievements] Failed to load progress:', e);
-      }
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchProgress();
     }
 
+    // Load stats from localStorage (stats are local-only)
     const storedStats = localStorage.getItem(STATS_STORAGE_KEY);
     if (storedStats) {
       try {
@@ -101,13 +156,34 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
         console.error('[Achievements] Failed to load stats:', e);
       }
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, fetchProgress]);
 
-  // Save progress to localStorage
-  const saveProgress = useCallback((newProgress: UserAchievementProgress[]) => {
+  // Save progress to server (and update local state)
+  const saveProgress = useCallback(async (newProgress: UserAchievementProgress[]) => {
     setProgress(newProgress);
-    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(newProgress));
-  }, []);
+
+    // Save each changed achievement to server
+    for (const p of newProgress) {
+      const achievement = getAchievementById(p.achievementId);
+      if (!achievement) continue;
+
+      try {
+        await apiCall('/achievements', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'update_progress',
+            achievementId: p.achievementId,
+            progress: p.progress,
+            target: p.target,
+            rewardOranges: achievement.reward.oranges,
+            rewardGems: achievement.reward.gems,
+          }),
+        });
+      } catch (error) {
+        console.error('[Achievements] Failed to save progress:', error);
+      }
+    }
+  }, [apiCall]);
 
   // Save stats to localStorage
   const saveStats = useCallback((newStats: AchievementStats) => {
@@ -238,16 +314,19 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
 
   // Check all achievements
   const checkAchievements = useCallback(() => {
-    const newProgress: UserAchievementProgress[] = [...progress];
+    // Use ref to avoid infinite loop (progress in deps would cause checkAchievements
+    // to be recreated on every progress update, triggering useEffects that call it again)
+    const currentProgress = progressRef.current;
+    const newProgress: UserAchievementProgress[] = [...currentProgress];
     const newlyUnlocked: string[] = [];
 
     for (const achievement of ACHIEVEMENTS) {
       const existing = newProgress.find(p => p.achievementId === achievement.id);
-      const { met, progress: currentProgress } = checkRequirement(achievement);
+      const { met, progress: achievementProgress } = checkRequirement(achievement);
 
       if (existing) {
         // Update progress
-        existing.progress = currentProgress;
+        existing.progress = achievementProgress;
         existing.target = achievement.requirement.target;
 
         // Check if newly completed
@@ -260,7 +339,7 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
         // Create new progress entry
         newProgress.push({
           achievementId: achievement.id,
-          progress: currentProgress,
+          progress: achievementProgress,
           target: achievement.requirement.target,
           completed: met,
           completedAt: met ? new Date().toISOString() : undefined,
@@ -278,9 +357,9 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
     if (newlyUnlocked.length > 0) {
       console.log('[Achievements] Newly unlocked:', newlyUnlocked);
     }
-  }, [progress, checkRequirement, saveProgress]);
+  }, [checkRequirement, saveProgress]);
 
-  // Claim achievement reward
+  // Claim achievement reward (server-side)
   const claimAchievement = useCallback(async (achievementId: string): Promise<boolean> => {
     const achievement = getAchievementById(achievementId);
     if (!achievement) return false;
@@ -288,20 +367,38 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
     const progressEntry = progress.find(p => p.achievementId === achievementId);
     if (!progressEntry?.completed || progressEntry.claimed) return false;
 
-    // Award rewards
-    const { oranges, gems } = achievement.reward;
-    earnCurrency(oranges, gems, 'achievement', { achievementId });
+    try {
+      const response = await apiCall('/achievements', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'claim',
+          achievementId,
+        }),
+      });
 
-    // Update progress
-    const newProgress = progress.map(p =>
-      p.achievementId === achievementId
-        ? { ...p, claimed: true, claimedAt: new Date().toISOString() }
-        : p
-    );
-    saveProgress(newProgress);
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('[Achievements] Claim failed:', error.error);
+        return false;
+      }
 
-    return true;
-  }, [progress, earnCurrency, saveProgress]);
+      // Update local progress
+      const newProgress = progress.map(p =>
+        p.achievementId === achievementId
+          ? { ...p, claimed: true, claimedAt: new Date().toISOString() }
+          : p
+      );
+      setProgress(newProgress);
+
+      // Refresh currency balance from server
+      await refreshBalance();
+
+      return true;
+    } catch (error) {
+      console.error('[Achievements] Failed to claim:', error);
+      return false;
+    }
+  }, [progress, apiCall, refreshBalance]);
 
   // Get progress for specific achievement
   const getProgress = useCallback((achievementId: string): UserAchievementProgress | null => {

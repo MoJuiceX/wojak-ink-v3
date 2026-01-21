@@ -27,7 +27,12 @@ export const CurrencyDisplay: React.FC<CurrencyDisplayProps> = ({
     return null;
   }
 
-  const { currency, isLoading } = context;
+  const { currency, isLoading, isInitialized } = context;
+
+  // Don't show currency when not signed in
+  if (!isInitialized) {
+    return null;
+  }
 
   if (isLoading) {
     return (

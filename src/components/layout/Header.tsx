@@ -193,13 +193,13 @@ export function Header({ transparent = false }: HeaderProps) {
           background: isTransparent
             ? 'transparent'
             : isScrolled
-              ? 'rgba(10, 10, 10, 0.9)'
-              : 'rgba(10, 10, 10, 0.8)',
+              ? 'var(--color-chrome-bg-scrolled)'
+              : 'var(--color-chrome-bg)',
           backdropFilter: isTransparent ? 'none' : 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: isTransparent ? 'none' : 'blur(20px) saturate(180%)',
           borderBottom: isTransparent
             ? 'none'
-            : '1px solid rgba(249, 115, 22, 0.15)',
+            : '1px solid var(--color-chrome-border-glow)',
           transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s, border-color 0.2s',
         }}
       >

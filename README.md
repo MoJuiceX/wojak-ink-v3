@@ -180,29 +180,66 @@ Entertainment center with videos, music, and game access.
 
 </details>
 
-### Mini-Games (6)
-Arcade-style games with leaderboards and sound effects.
+### Mini-Games (15)
+Arcade-style games with leaderboards, sound effects, and in-game currency rewards.
 
 <details>
 <summary>Technical Details</summary>
 
-**Games:**
-1. **Brick by Brick** - Block stacking puzzle (3 difficulties)
-2. **Memory Match** - Tile-flipping memory game
-3. **Orange Pong** - Classic Pong
-4. **Wojak Runner** - Side-scrolling endless runner
-5. **Orange Juggle** - Juggling mechanics
-6. **Knife Game** - Knife throwing
+**Games (15 total):**
+- **Easy Tier** (5🍊): Memory Match, Color Reaction, Orange Snake, Citrus Drop, Wojak Whack
+- **Medium Tier** (10🍊): Orange Pong, Merge 2048, Block Puzzle, Brick Breaker, Orange Wordle
+- **Hard Tier** (15🍊): Flappy Orange, Wojak Runner, Orange Stack, Knife Game, Orange Juggle
 
 **Common Features:**
 - Sound effects via `useGameSounds()` hook
 - Haptic feedback on mobile
-- Leaderboards (localStorage)
-- Score persistence
+- Server-side leaderboards with D1 database
+- In-game currency rewards (oranges/gems)
+- Daily/weekly/monthly reward payouts
 
 **Key Files:**
 - `src/pages/OrangeStack.tsx`, `MemoryMatch.tsx`, etc.
 - `src/hooks/useGameSounds.ts` - Audio management
+- `src/config/economy.ts` - Reward configuration
+
+</details>
+
+### Economy System
+Dual-currency system with oranges (soft) and gems (hard), designed for future crypto conversion.
+
+<details>
+<summary>Technical Details</summary>
+
+**Currencies:**
+- **Oranges (🍊)** - Earned from gameplay, challenges, leaderboards, daily login
+- **Gems (💎)** - Earned from login streaks (3/week), converting oranges (max 10/month)
+
+**Earning:**
+| Source | Amount |
+|--------|--------|
+| Starting balance | 100🍊 |
+| Tutorial completion | 250🍊 |
+| Wallet connect (NFT) | 500🍊 |
+| Daily login streak | 15→30→45→60→75→90→105🍊 (+3💎 on day 7) |
+| Daily challenges | 30+50+70 = 150🍊 |
+| Game rewards | Easy 5🍊, Medium 10🍊, Hard 15🍊 (+ bonuses) |
+
+**Future Crypto Conversion (disabled):**
+- 10,000🍊 = 1 HOA token (~$0.00143)
+- 1,500🍊 = 1💎
+
+**Server-Side Architecture:**
+- D1 database as single source of truth (not localStorage)
+- Atomic transactions with idempotency keys
+- Statistical anomaly detection for cheating
+- Zero tolerance ban system
+
+**Key Files:**
+- `claude-specs/10-ECONOMY-MASTERPLAN-SPEC.md` - Complete economy design
+- `claude-specs/11-SERVER-STATE-SPEC.md` - Server implementation
+- `src/config/economy.ts` - Reward configuration
+- `migrations/008_server_state.sql` - Database schema
 
 </details>
 
@@ -239,7 +276,9 @@ Theme selection, audio controls, and app configuration.
 | Animation | Framer Motion |
 | Styling | Tailwind CSS v4 |
 | Hosting | Cloudflare Pages |
-| Backend | Cloudflare Workers (cron) |
+| Database | Cloudflare D1 (SQLite) |
+| Auth | Clerk |
+| Backend | Cloudflare Workers (API + cron) |
 | APIs | MintGarden, Dexie, SpaceScan, CoinGecko |
 
 <details>
@@ -291,12 +330,14 @@ Theme selection, audio controls, and app configuration.
 <!-- AUTO-GENERATED FROM LEARNINGS.md -->
 | Date | Update |
 |------|--------|
+| 2026-01-21 | **Economy System v2** - Bulletproof server-side state, 11 spec files |
+| 2026-01-21 | Simplified economy numbers (clean +15 login progression, tier-based game rewards) |
+| 2026-01-21 | Anti-cheat systems: anomaly detection, single-session enforcement, ban system |
+| 2026-01-21 | 15 games now classified into Easy/Medium/Hard tiers with different rewards |
+| 2026-01-18 | Knowledge Flywheel v2.0 - pattern files, learnings system |
+| 2026-01-18 | Game navigation fix - all games use explicit /games route |
 | 2026-01-14 | Fixed BigPulp "No sales" bug - invalidate queries after sync |
-| 2026-01-14 | Created /sync-docs pipeline for automated documentation |
 | 2026-01-14 | Created 7 custom Claude Code skills |
-| 2026-01-14 | Full codebase exploration (59,810 lines documented) |
-| 2026-01-14 | Added Context7 plugin for live documentation |
-| 2026-01-14 | Fixed CAT token rates (SPROUT, PIZZA, G4M) |
 <!-- END AUTO-GENERATED -->
 
 ---
@@ -387,4 +428,4 @@ If you're an LLM reading this to understand the project:
 
 ---
 
-*Last updated: 2026-01-14 via automated docs pipeline*
+*Last updated: 2026-01-21 via automated docs pipeline*
