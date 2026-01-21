@@ -10,9 +10,12 @@
  *   progress?: number (for update_progress)
  *   target?: number (for update_progress)
  * }
+ *
+ * @see claude-specs/11-SERVER-STATE-SPEC.md
  */
 
 import { authenticateRequest } from '../../lib/auth';
+import { checkBanned, bannedResponse } from '../../lib/ban';
 
 interface Env {
   CLERK_DOMAIN: string;
@@ -30,26 +33,14 @@ const corsHeaders = {
 const STARTING_BALANCE = { oranges: 100, gems: 0 };
 
 /**
- * Ensure user profile exists
+ * Ensure user currency record exists
  */
-async function ensureUserRecords(db: D1Database, userId: string): Promise<void> {
+async function ensureUserCurrency(db: D1Database, userId: string): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO users (id, created_at, updated_at)
-       VALUES (?, datetime('now'), datetime('now'))
-       ON CONFLICT(id) DO UPDATE SET updated_at = datetime('now')`
-    )
-    .bind(userId)
-    .run();
-
-  await db
-    .prepare(
-      `INSERT INTO profiles (
-        user_id, oranges, gems, lifetime_oranges, lifetime_gems,
-        created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-      ON CONFLICT(user_id) DO NOTHING`
+      `INSERT INTO user_currency (user_id, oranges, gems, lifetime_oranges, lifetime_gems)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(user_id) DO NOTHING`
     )
     .bind(userId, STARTING_BALANCE.oranges, STARTING_BALANCE.gems, STARTING_BALANCE.oranges, STARTING_BALANCE.gems)
     .run();
@@ -65,13 +56,11 @@ async function getAchievementProgress(db: D1Database, userId: string) {
         achievement_id,
         progress,
         target,
-        is_completed,
         completed_at,
-        is_claimed,
         claimed_at,
         reward_oranges,
         reward_gems
-       FROM achievements
+       FROM user_achievements
        WHERE user_id = ?`
     )
     .bind(userId)
@@ -79,12 +68,10 @@ async function getAchievementProgress(db: D1Database, userId: string) {
       achievement_id: string;
       progress: number;
       target: number;
-      is_completed: number;
       completed_at: string | null;
-      is_claimed: number;
       claimed_at: string | null;
-      reward_oranges: number;
-      reward_gems: number;
+      reward_oranges: number | null;
+      reward_gems: number | null;
     }>();
 
   return result.results || [];
@@ -105,48 +92,50 @@ async function updateProgress(
   // Get current state
   const current = await db
     .prepare(
-      `SELECT progress, is_completed
-       FROM achievements
+      `SELECT progress, completed_at
+       FROM user_achievements
        WHERE user_id = ? AND achievement_id = ?`
     )
     .bind(userId, achievementId)
-    .first<{ progress: number; is_completed: number }>();
+    .first<{ progress: number; completed_at: string | null }>();
 
-  const wasCompleted = current?.is_completed === 1;
+  const wasCompleted = current?.completed_at !== null;
   const isNowCompleted = progress >= target;
   const justCompleted = !wasCompleted && isNowCompleted;
 
   // Upsert achievement progress
   await db
     .prepare(
-      `INSERT INTO achievements (
-        user_id, achievement_id, progress, target, is_completed, completed_at,
-        is_claimed, reward_oranges, reward_gems, created_at, updated_at
+      `INSERT INTO user_achievements (
+        user_id, achievement_id, progress, target, completed_at,
+        claimed_at, reward_oranges, reward_gems, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, CASE WHEN ? = 1 THEN datetime('now') ELSE NULL END, 0, ?, ?, datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, NULL, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       ON CONFLICT(user_id, achievement_id) DO UPDATE SET
         progress = ?,
         target = ?,
-        is_completed = CASE WHEN achievements.is_completed = 1 THEN 1 ELSE ? END,
-        completed_at = CASE WHEN achievements.is_completed = 0 AND ? = 1 THEN datetime('now') ELSE achievements.completed_at END,
+        completed_at = CASE
+          WHEN user_achievements.completed_at IS NOT NULL THEN user_achievements.completed_at
+          WHEN ? >= ? THEN CURRENT_TIMESTAMP
+          ELSE NULL
+        END,
         reward_oranges = ?,
         reward_gems = ?,
-        updated_at = datetime('now')`
+        updated_at = CURRENT_TIMESTAMP`
     )
     .bind(
       userId,
       achievementId,
       progress,
       target,
-      isNowCompleted ? 1 : 0,
-      isNowCompleted ? 1 : 0,
+      isNowCompleted ? new Date().toISOString() : null,
       rewardOranges,
       rewardGems,
       // Update values
       progress,
       target,
-      isNowCompleted ? 1 : 0,
-      isNowCompleted ? 1 : 0,
+      progress,
+      target,
       rewardOranges,
       rewardGems
     )
@@ -166,50 +155,49 @@ async function claimReward(
   // Get achievement state
   const achievement = await db
     .prepare(
-      `SELECT is_completed, is_claimed, reward_oranges, reward_gems
-       FROM achievements
+      `SELECT completed_at, claimed_at, reward_oranges, reward_gems
+       FROM user_achievements
        WHERE user_id = ? AND achievement_id = ?`
     )
     .bind(userId, achievementId)
-    .first<{ is_completed: number; is_claimed: number; reward_oranges: number; reward_gems: number }>();
+    .first<{ completed_at: string | null; claimed_at: string | null; reward_oranges: number | null; reward_gems: number | null }>();
 
   if (!achievement) {
     return { success: false, error: 'Achievement not found' };
   }
 
-  if (!achievement.is_completed) {
+  if (!achievement.completed_at) {
     return { success: false, error: 'Achievement not completed' };
   }
 
-  if (achievement.is_claimed) {
+  if (achievement.claimed_at) {
     return { success: false, error: 'Already claimed' };
   }
+
+  const oranges = achievement.reward_oranges || 0;
+  const gems = achievement.reward_gems || 0;
 
   // Mark as claimed
   await db
     .prepare(
-      `UPDATE achievements SET
-        is_claimed = 1,
-        claimed_at = datetime('now'),
-        updated_at = datetime('now')
+      `UPDATE user_achievements SET
+        claimed_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
       WHERE user_id = ? AND achievement_id = ?`
     )
     .bind(userId, achievementId)
     .run();
 
   // Award currency
-  const oranges = achievement.reward_oranges || 0;
-  const gems = achievement.reward_gems || 0;
-
   if (oranges > 0 || gems > 0) {
     await db
       .prepare(
-        `UPDATE profiles SET
+        `UPDATE user_currency SET
           oranges = oranges + ?,
           gems = gems + ?,
           lifetime_oranges = lifetime_oranges + ?,
           lifetime_gems = lifetime_gems + ?,
-          updated_at = datetime('now')
+          updated_at = CURRENT_TIMESTAMP
         WHERE user_id = ?`
       )
       .bind(oranges, gems, oranges, gems, userId)
@@ -218,7 +206,7 @@ async function claimReward(
 
   // Get new balance
   const balance = await db
-    .prepare(`SELECT oranges, gems FROM profiles WHERE user_id = ?`)
+    .prepare(`SELECT oranges, gems FROM user_currency WHERE user_id = ?`)
     .bind(userId)
     .first<{ oranges: number; gems: number }>();
 
@@ -232,7 +220,7 @@ async function claimReward(
       .prepare(
         `INSERT INTO currency_transactions
           (user_id, currency_type, amount, balance_after, source, source_details, is_gifted, created_at)
-         VALUES (?, 'oranges', ?, ?, 'achievement', ?, 0, datetime('now'))`
+         VALUES (?, 'oranges', ?, ?, 'achievement', ?, 0, CURRENT_TIMESTAMP)`
       )
       .bind(userId, oranges, balance.oranges, JSON.stringify({ achievementId }))
       .run();
@@ -243,7 +231,7 @@ async function claimReward(
       .prepare(
         `INSERT INTO currency_transactions
           (user_id, currency_type, amount, balance_after, source, source_details, is_gifted, created_at)
-         VALUES (?, 'gems', ?, ?, 'achievement', ?, 0, datetime('now'))`
+         VALUES (?, 'gems', ?, ?, 'achievement', ?, 0, CURRENT_TIMESTAMP)`
       )
       .bind(userId, gems, balance.gems, JSON.stringify({ achievementId }))
       .run();
@@ -267,6 +255,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   // Check configuration
   if (!env.CLERK_DOMAIN || !env.DB) {
+    console.error('[Achievements] Missing configuration: CLERK_DOMAIN or DB');
     return new Response(JSON.stringify({ error: 'Service not configured' }), {
       status: 500,
       headers: corsHeaders,
@@ -282,25 +271,32 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     });
   }
 
+  const userId = auth.userId;
+
   try {
-    // Ensure user records exist
-    await ensureUserRecords(env.DB, auth.userId);
+    // Check if banned
+    if (await checkBanned(env.DB, userId)) {
+      return bannedResponse();
+    }
+
+    // Ensure user currency record exists
+    await ensureUserCurrency(env.DB, userId);
 
     // Handle GET - return all progress
     if (request.method === 'GET') {
-      const progress = await getAchievementProgress(env.DB, auth.userId);
+      const progress = await getAchievementProgress(env.DB, userId);
 
       // Format response
       const formattedProgress = progress.map((p) => ({
         achievementId: p.achievement_id,
         progress: p.progress,
         target: p.target,
-        completed: Boolean(p.is_completed),
+        completed: p.completed_at !== null,
         completedAt: p.completed_at,
-        claimed: Boolean(p.is_claimed),
+        claimed: p.claimed_at !== null,
         claimedAt: p.claimed_at,
-        rewardOranges: p.reward_oranges,
-        rewardGems: p.reward_gems,
+        rewardOranges: p.reward_oranges || 0,
+        rewardGems: p.reward_gems || 0,
       }));
 
       const unclaimedCount = formattedProgress.filter((p) => p.completed && !p.claimed).length;
@@ -354,7 +350,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
           const result = await updateProgress(
             env.DB,
-            auth.userId,
+            userId,
             body.achievementId,
             body.progress,
             body.target,
@@ -373,7 +369,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         }
 
         case 'claim': {
-          const result = await claimReward(env.DB, auth.userId, body.achievementId);
+          const result = await claimReward(env.DB, userId, body.achievementId);
 
           if (!result.success) {
             return new Response(JSON.stringify({ error: result.error }), {
@@ -408,7 +404,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     });
   } catch (error) {
     console.error('[Achievements] Error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    return new Response(JSON.stringify({ error: 'Internal server error', details: String(error) }), {
       status: 500,
       headers: corsHeaders,
     });

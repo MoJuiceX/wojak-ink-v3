@@ -144,25 +144,51 @@ export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }
     try {
       // First try to get balance
       let response = await apiCall('/api/currency');
+
+      // Check if API responded successfully
+      if (!response.ok) {
+        console.warn('[Currency] API not available, using defaults');
+        setCurrency(DEFAULT_CURRENCY);
+        setIsInitialized(true);
+        return;
+      }
+
       let data = await response.json();
 
       // If not initialized, initialize
       if (!data.initialized) {
         response = await apiCall('/api/currency/init', { method: 'POST' });
+        if (!response.ok) {
+          console.warn('[Currency] Init API failed, using defaults');
+          setCurrency(DEFAULT_CURRENCY);
+          setIsInitialized(true);
+          return;
+        }
         data = await response.json();
+      }
+
+      // Defensive check for valid data
+      if (typeof data.oranges !== 'number' || typeof data.gems !== 'number') {
+        console.warn('[Currency] Invalid API response, using defaults');
+        setCurrency(DEFAULT_CURRENCY);
+        setIsInitialized(true);
+        return;
       }
 
       setCurrency({
         oranges: data.oranges,
         gems: data.gems,
-        lifetimeOranges: data.lifetimeOranges,
-        lifetimeGems: data.lifetimeGems,
+        lifetimeOranges: data.lifetimeOranges ?? data.oranges,
+        lifetimeGems: data.lifetimeGems ?? data.gems,
         giftedOranges: data.giftedOranges || 0,
         gemsConvertedThisMonth: 0, // Not tracked in new system
       });
       setIsInitialized(true);
     } catch (error) {
       console.error('[Currency] Failed to refresh balance:', error);
+      // Fallback to defaults on error
+      setCurrency(DEFAULT_CURRENCY);
+      setIsInitialized(true);
     }
   }, [isSignedIn, apiCall]);
 
@@ -181,9 +207,14 @@ export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }
           currentStreak: data.currentStreak,
           canClaim: data.canClaim,
         });
+      } else {
+        // API not available (e.g., localhost), use defaults
+        console.warn('[Currency] Login streak API not available');
+        setDailyStatus({ lastClaimDate: null, currentStreak: 0, canClaim: false });
       }
     } catch (error) {
       console.error('[Currency] Failed to fetch login streak:', error);
+      setDailyStatus({ lastClaimDate: null, currentStreak: 0, canClaim: false });
     }
   }, [isSignedIn, apiCall]);
 

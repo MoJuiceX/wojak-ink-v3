@@ -368,6 +368,22 @@ export function AchievementsProvider({ children }: { children: React.ReactNode }
     if (!progressEntry?.completed || progressEntry.claimed) return false;
 
     try {
+      // First, ensure achievement is synced to server with completion status
+      // Send progress = target to guarantee server sees it as completed
+      // (handles inverse achievements like leaderboard rank where lower is better)
+      await apiCall('/achievements', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'update_progress',
+          achievementId,
+          progress: progressEntry.target, // Always send target to mark as complete
+          target: progressEntry.target,
+          rewardOranges: achievement.reward.oranges,
+          rewardGems: achievement.reward.gems,
+        }),
+      });
+
+      // Now claim the reward
       const response = await apiCall('/achievements', {
         method: 'POST',
         body: JSON.stringify({
