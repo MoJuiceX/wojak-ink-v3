@@ -213,12 +213,18 @@ export default function Account() {
     }
   };
 
-  // Fetch NFTs when wallet connects
+  // Fetch NFTs and save wallet address when wallet connects
   useEffect(() => {
-    const fetchNfts = async () => {
+    const onWalletConnected = async () => {
       if (!isWalletConnected || !walletAddress) {
         setNftCount(null);
         return;
+      }
+
+      // Save wallet address to profile (required for NFT avatar validation)
+      if (profile?.walletAddress !== walletAddress) {
+        console.log('[Account] Saving wallet address to profile:', walletAddress);
+        await updateProfile({ walletAddress });
       }
 
       setIsLoadingNfts(true);
@@ -234,8 +240,8 @@ export default function Account() {
       }
     };
 
-    fetchNfts();
-  }, [isWalletConnected, walletAddress, getNFTs]);
+    onWalletConnected();
+  }, [isWalletConnected, walletAddress, getNFTs, profile?.walletAddress, updateProfile]);
 
   return (
     <PageTransition>
