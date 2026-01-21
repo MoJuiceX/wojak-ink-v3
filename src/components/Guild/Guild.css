@@ -1079,3 +1079,10 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Desktop: Show coming soon badge */
+@media (min-width: 768px) {
+  .coming-soon-badge-desktop {
+    display: block !important;
+  }
+}

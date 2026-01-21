@@ -22,6 +22,7 @@ interface MenuItem {
   label: string;
   description: string;
   route: string;
+  badge?: string;
 }
 
 const menuItems: MenuItem[] = [
@@ -42,6 +43,7 @@ const menuItems: MenuItem[] = [
     label: 'Guild',
     description: 'Join or create a guild',
     route: '/guild',
+    badge: 'Coming Soon',
   },
   {
     icon: Briefcase,
@@ -158,12 +160,26 @@ export function MoreMenu({ isOpen, onClose }: MoreMenuProps) {
 
                     {/* Text */}
                     <div className="flex-1 flex flex-col gap-0.5">
-                      <span
-                        className="font-semibold"
-                        style={{ color: 'var(--color-text-primary)' }}
-                      >
-                        {item.label}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="font-semibold"
+                          style={{ color: 'var(--color-text-primary)' }}
+                        >
+                          {item.label}
+                        </span>
+                        {item.badge && (
+                          <span
+                            className="text-xs px-2 py-0.5 rounded-full font-medium"
+                            style={{
+                              background: 'rgba(249, 115, 22, 0.15)',
+                              color: 'var(--color-brand-primary)',
+                              border: '1px solid rgba(249, 115, 22, 0.3)',
+                            }}
+                          >
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
                       <span
                         className="text-sm"
                         style={{ color: 'var(--color-text-muted)' }}

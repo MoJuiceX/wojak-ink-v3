@@ -13,8 +13,6 @@ import { GuildBannerDisplay } from './GuildCard';
 import { GuildMemberList } from './GuildMemberList';
 import { GuildLeaderboard } from './GuildLeaderboard';
 import { GuildActivity } from './GuildActivity';
-import { CreateGuildModal } from './CreateGuildModal';
-import { GuildSearch } from './GuildSearch';
 import type { GuildInvite } from '../../types/guild';
 import './Guild.css';
 
@@ -40,8 +38,6 @@ export function GuildPage() {
   const prefersReducedMotion = useReducedMotion();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'leaderboard'>('overview');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showSearchModal, setShowSearchModal] = useState(false);
 
   if (isLoading) {
     return (
@@ -54,7 +50,7 @@ export function GuildPage() {
     );
   }
 
-  // User is not in a guild - Epic Hero Section
+  // User is not in a guild - Coming Soon Section
   if (!myGuild) {
     return (
       <div className="guild-page">
@@ -69,6 +65,28 @@ export function GuildPage() {
               pointerEvents: 'none',
             }}
           />
+
+          {/* Desktop: Coming Soon badge in top right */}
+          <motion.div
+            className="coming-soon-badge-desktop"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            style={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(249, 115, 22, 0.1))',
+              border: '1px solid rgba(249, 115, 22, 0.4)',
+              borderRadius: 12,
+              padding: '12px 20px',
+              display: 'none',
+            }}
+          >
+            <span style={{ color: '#F97316', fontWeight: 600, fontSize: '0.9rem' }}>
+              Coming Soon
+            </span>
+          </motion.div>
 
           {/* Animated castle with glow and floating particles */}
           <motion.div
@@ -123,40 +141,34 @@ export function GuildPage() {
             </motion.div>
           </motion.div>
 
-          <h2 className="guild-hero-title">Join a Guild</h2>
+          <h2 className="guild-hero-title">Guilds Coming Soon</h2>
           <p className="guild-hero-subtitle">
             Team up with other players to compete on the guild leaderboard and earn exclusive rewards!
           </p>
 
-          {/* Pending invites */}
-          {myInvites.length > 0 && (
-            <div className="pending-invites">
-              <h3>You have {myInvites.length} pending invite(s)</h3>
-              {myInvites.map((invite) => (
-                <GuildInviteCard key={invite.id} invite={invite} />
-              ))}
-            </div>
-          )}
-
-          {/* Action buttons with personality */}
-          <div className="guild-hero-actions">
-            <motion.button
-              className="guild-btn primary"
-              onClick={() => setShowCreateModal(true)}
-              whileHover={{ y: -2, boxShadow: '0 10px 30px rgba(249, 115, 22, 0.4)' }}
-              whileTap={{ scale: 0.98 }}
-            >
-              🏗️ Create a Guild
-            </motion.button>
-            <motion.button
-              className="guild-btn secondary"
-              onClick={() => setShowSearchModal(true)}
-              whileHover={{ background: 'rgba(249, 115, 22, 0.1)' }}
-              whileTap={{ scale: 0.98 }}
-            >
-              🔍 Find a Guild
-            </motion.button>
-          </div>
+          {/* Coming Soon message */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            style={{
+              background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(249, 115, 22, 0.05))',
+              border: '1px solid rgba(249, 115, 22, 0.3)',
+              borderRadius: 16,
+              padding: '24px 32px',
+              textAlign: 'center',
+              maxWidth: 400,
+              margin: '0 auto 32px',
+            }}
+          >
+            <span style={{ fontSize: '2rem', display: 'block', marginBottom: 12 }}>
+              🚧
+            </span>
+            <p style={{ color: 'rgba(255, 255, 255, 0.8)', margin: 0, lineHeight: 1.6 }}>
+              We're building something epic! Guild features will be available soon.
+              Stay tuned for updates.
+            </p>
+          </motion.div>
         </div>
 
         {/* Benefits Section */}
@@ -179,9 +191,6 @@ export function GuildPage() {
             ))}
           </div>
         </div>
-
-        <CreateGuildModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
-        <GuildSearch isOpen={showSearchModal} onClose={() => setShowSearchModal(false)} />
       </div>
     );
   }
