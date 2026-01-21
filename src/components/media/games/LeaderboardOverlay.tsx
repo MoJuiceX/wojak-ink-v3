@@ -8,6 +8,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trophy } from 'lucide-react';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
+import { Avatar } from '@/components/Avatar/Avatar';
 import type { GameId } from '@/config/query/queryKeys';
 
 interface LeaderboardOverlayProps {
@@ -75,6 +76,16 @@ export function LeaderboardOverlay({
                         style={isTopThree ? { borderColor: accentColor } : undefined}
                       >
                         <span className="leaderboard-rank">#{index + 1}</span>
+                        {entry ? (
+                          <Avatar
+                            type={entry.avatar?.type || 'emoji'}
+                            value={entry.avatar?.value || '🎮'}
+                            size="small"
+                            isNftHolder={entry.avatar?.type === 'nft'}
+                          />
+                        ) : (
+                          <div className="leaderboard-avatar-placeholder" />
+                        )}
                         <span className="leaderboard-name">
                           {entry?.displayName || '---'}
                         </span>

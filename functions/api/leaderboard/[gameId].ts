@@ -14,6 +14,10 @@ interface LeaderboardEntry {
   score: number;
   level: number | null;
   date: string;
+  avatar: {
+    type: 'emoji' | 'nft';
+    value: string;
+  };
 }
 
 // Valid game IDs
@@ -53,7 +57,7 @@ async function getLeaderboard(
   limit: number,
   offset: number
 ): Promise<LeaderboardEntry[]> {
-  // Join with profiles to get display names
+  // Join with profiles to get display names and avatar data
   // Use ROW_NUMBER to calculate rank
   const results = await db
     .prepare(
@@ -62,6 +66,8 @@ async function getLeaderboard(
          ls.level,
          ls.created_at,
          COALESCE(p.display_name, 'Anonymous') as display_name,
+         COALESCE(p.avatar_type, 'emoji') as avatar_type,
+         COALESCE(p.avatar_value, '🎮') as avatar_value,
          ROW_NUMBER() OVER (ORDER BY ls.score DESC, ls.created_at ASC) as rank
        FROM leaderboard_scores ls
        LEFT JOIN profiles p ON ls.user_id = p.user_id
@@ -75,6 +81,8 @@ async function getLeaderboard(
       level: number | null;
       created_at: string;
       display_name: string;
+      avatar_type: string;
+      avatar_value: string;
       rank: number;
     }>();
 
@@ -84,6 +92,10 @@ async function getLeaderboard(
     score: row.score,
     level: row.level,
     date: row.created_at.split('T')[0], // Extract date part
+    avatar: {
+      type: row.avatar_type as 'emoji' | 'nft',
+      value: row.avatar_value,
+    },
   }));
 }
 

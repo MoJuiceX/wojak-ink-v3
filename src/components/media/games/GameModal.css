@@ -385,13 +385,21 @@
 
 .leaderboard-entry {
   display: grid;
-  grid-template-columns: 40px 1fr 70px;
+  grid-template-columns: 40px 32px 1fr 70px;
+  gap: 8px;
   align-items: center;
   padding: 12px 14px;
   background: rgba(255, 255, 255, 0.03);
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.2s ease;
+}
+
+.leaderboard-avatar-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .leaderboard-entry.top-three {

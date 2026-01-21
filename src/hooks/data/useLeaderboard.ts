@@ -20,6 +20,10 @@ export interface LeaderboardEntry {
   score: number;
   level: number | null;
   date: string;
+  avatar: {
+    type: 'emoji' | 'nft';
+    value: string;
+  };
 }
 
 export interface SubmitResult {

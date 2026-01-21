@@ -25,6 +25,8 @@ interface AvatarProps {
   isNftHolder?: boolean; // Deprecated: use avatar.type === 'nft' instead
   /** Show spinning highlight ring (for featured/top players) */
   highlighted?: boolean;
+  /** Show verified badge for NFT avatars (default: true) */
+  showBadge?: boolean;
   onClick?: () => void;
   className?: string;
 }
@@ -37,6 +39,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   showBorder = true,
   isNftHolder = false,
   highlighted = false,
+  showBadge = true,
   onClick,
   className = '',
 }) => {
@@ -52,6 +55,7 @@ export const Avatar: React.FC<AvatarProps> = ({
     `avatar-${size}`,
     !isNft ? 'avatar-emoji' : '',
     isNft ? 'avatar-nft' : '',
+    isNft && !showBadge ? 'avatar-no-badge' : '',
     highlighted ? 'avatar-highlighted' : '',
     showBorder && !isNft ? 'avatar-bordered' : '',
     onClick ? 'avatar-clickable' : '',

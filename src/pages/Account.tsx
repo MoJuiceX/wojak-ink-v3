@@ -393,6 +393,7 @@ export default function Account() {
                         avatar={profile?.avatar}
                         size="medium"
                         isNftHolder={profile?.avatar?.type === 'nft'}
+                        showBadge={false}
                       />
                       {/* Small edit badge */}
                       <div
@@ -424,7 +425,7 @@ export default function Account() {
 
                   {/* Play Streak Stats */}
                   {(profile?.currentStreak || profile?.longestStreak) ? (
-                    <div className="px-6 pb-6 flex gap-4">
+                    <div className="px-6 py-4 flex gap-4">
                       {/* Current Streak */}
                       <div
                         className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg"
