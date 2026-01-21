@@ -186,12 +186,35 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
     }
 
     // Fallback to localStorage
-    const storedProfile = loadProfileFromStorage();
+    let storedProfile = loadProfileFromStorage();
+
+    // Auto-assign random emoji if no avatar exists
+    if (!storedProfile?.avatar?.value) {
+      const randomAvatar = createDefaultAvatar();
+      console.log('[UserProfile] Assigning random emoji:', randomAvatar.value);
+
+      storedProfile = {
+        displayName: storedProfile?.displayName || null,
+        xHandle: storedProfile?.xHandle || null,
+        walletAddress: storedProfile?.walletAddress || null,
+        updatedAt: storedProfile?.updatedAt || null,
+        currentStreak: storedProfile?.currentStreak || 0,
+        longestStreak: storedProfile?.longestStreak || 0,
+        lastPlayedDate: storedProfile?.lastPlayedDate || null,
+        avatar: randomAvatar,
+        ownedNftIds: storedProfile?.ownedNftIds || [],
+      };
+
+      // Save the profile with the random avatar
+      saveProfileToStorage(storedProfile);
+    }
+
     const needsOnboarding = !storedProfile?.displayName;
 
     console.log('[UserProfile] Using localStorage profile:', {
       hasProfile: !!storedProfile,
       displayName: storedProfile?.displayName,
+      avatar: storedProfile?.avatar?.value,
     });
 
     setState(s => ({

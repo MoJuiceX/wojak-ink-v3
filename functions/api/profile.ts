@@ -28,8 +28,15 @@ interface ProfileData {
   ownedNftIds?: string[];
 }
 
-// Valid emoji list for validation
+// Valid emoji list for validation and random assignment
 const VALID_EMOJIS = ['🎮', '🔥', '🚀', '🎯', '🦊', '🐸', '👾', '🤖', '🎪', '🌸', '🍕', '🎸', '⚡', '🦁', '🐙'];
+
+/**
+ * Get a random emoji from the valid list
+ */
+function getRandomEmoji(): string {
+  return VALID_EMOJIS[Math.floor(Math.random() * VALID_EMOJIS.length)];
+}
 
 // CORS headers
 const corsHeaders = {
@@ -343,7 +350,25 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // Handle GET - return profile
     if (request.method === 'GET') {
-      const profile = await getProfile(env.DB, userId);
+      let profile = await getProfile(env.DB, userId);
+
+      // Auto-assign random emoji for new users without an avatar
+      if (!profile || !profile.avatar_value) {
+        const randomEmoji = getRandomEmoji();
+        console.log(`[Profile] Assigning random emoji ${randomEmoji} to user ${userId}`);
+
+        // Save the random emoji to the database
+        await upsertProfile(env.DB, userId, {
+          avatar: {
+            type: 'emoji',
+            value: randomEmoji,
+            source: 'default',
+          },
+        });
+
+        // Fetch the updated profile
+        profile = await getProfile(env.DB, userId);
+      }
 
       return new Response(
         JSON.stringify({
