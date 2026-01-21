@@ -13,7 +13,6 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import type { ReactNode } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useCurrency } from './CurrencyContext';
-import { DAILY_CHALLENGES as CHALLENGE_CONFIG } from '../config/economy';
 
 // Check if Clerk is configured
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -226,7 +225,7 @@ export const DailyChallengesProvider: React.FC<{ children: ReactNode }> = ({ chi
    * Record a personal best
    */
   const recordPersonalBest = useCallback(
-    async (gameId: string, score: number) => {
+    async (gameId: string, _score: number) => {
       if (!isSignedIn) return;
 
       try {
@@ -346,7 +345,7 @@ export const DailyChallengesProvider: React.FC<{ children: ReactNode }> = ({ chi
         });
 
         if (response.ok) {
-          const data = await response.json();
+          await response.json(); // Consume response body
 
           // Update local state
           setState((prev) => {

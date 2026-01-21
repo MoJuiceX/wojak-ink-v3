@@ -476,10 +476,10 @@ export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }
    */
   const earnCurrency = useCallback(
     async (
-      oranges: number,
-      gems: number,
-      source: TransactionSource,
-      metadata?: Record<string, unknown>
+      _oranges: number,
+      _gems: number,
+      _source: TransactionSource,
+      _metadata?: Record<string, unknown>
     ) => {
       if (!isSignedIn || !userId) return;
 
