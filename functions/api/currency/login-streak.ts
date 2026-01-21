@@ -89,9 +89,9 @@ async function ensureUserRecords(db: D1Database, userId: string): Promise<void> 
     .prepare(
       `INSERT INTO profiles (
         user_id, oranges, gems, lifetime_oranges, lifetime_gems,
-        created_at, updated_at
+        updated_at
       )
-      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
       ON CONFLICT(user_id) DO NOTHING`
     )
     .bind(userId, STARTING_BALANCE.oranges, STARTING_BALANCE.gems, STARTING_BALANCE.oranges, STARTING_BALANCE.gems)
