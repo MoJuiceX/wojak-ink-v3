@@ -105,14 +105,27 @@ async function prerender() {
     console.log(`📄 Rendering: ${route}`);
 
     try {
+      // Block external requests to prevent timeout from API calls
+      await page.setRequestInterception(true);
+      page.on('request', (request) => {
+        const requestUrl = request.url();
+        // Allow local requests only
+        if (requestUrl.startsWith(`http://localhost:${PORT}`)) {
+          request.continue();
+        } else {
+          // Block external requests (API calls, analytics, etc.)
+          request.abort('blockedbyclient');
+        }
+      });
+
       // Navigate and wait for DOM content (don't wait for all network)
       await page.goto(url, {
         waitUntil: 'domcontentloaded',
-        timeout: 15000,
+        timeout: 10000,
       });
 
       // Wait for React to mount and initial render
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Get rendered HTML
       let html = await page.content();
@@ -143,7 +156,11 @@ async function prerender() {
       results.push({ route, status: '❌', error: error.message });
     }
 
-    await page.close();
+    try {
+      await page.close();
+    } catch {
+      // Page may already be closed, ignore
+    }
   }
 
   await browser.close();
