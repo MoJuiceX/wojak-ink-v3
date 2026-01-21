@@ -24,6 +24,10 @@ export function EmojiPicker({ selectedEmoji, onSelect }: EmojiPickerProps) {
             type="button"
             className={`emoji-option ${selectedEmoji === emoji ? 'selected' : ''}`}
             onClick={() => onSelect(emoji)}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              onSelect(emoji);
+            }}
             aria-label={`Select ${emoji} as avatar`}
             aria-pressed={selectedEmoji === emoji}
           >

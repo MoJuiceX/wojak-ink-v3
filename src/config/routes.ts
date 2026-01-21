@@ -5,7 +5,8 @@
  *
  * Navigation hierarchy:
  * - PRIMARY (Bottom Nav + Sidebar top): Gallery, Generator, Games, Media
- * - SECONDARY (More Menu + Sidebar bottom): Leaderboard, Shop, Guild, Treasury, Settings, Account
+ * - SECONDARY (More Menu + Sidebar bottom): Leaderboard, Shop, Guild, Treasury, Settings
+ * - Account: Handled separately by UserAccountButton at sidebar bottom
  */
 
 import {
@@ -14,7 +15,6 @@ import {
   Lightbulb,
   Palette,
   Settings,
-  User,
   Trophy,
   Users,
   ShoppingBag,
@@ -146,13 +146,7 @@ export const SECONDARY_NAV_ITEMS: NavItem[] = [
       { id: 'settings-about', path: '/settings/about', label: 'About', icon: Settings },
     ]
   },
-  {
-    id: 'account',
-    path: '/account',
-    label: 'Account',
-    shortLabel: 'Account',
-    icon: User,
-  },
+  // Account removed - handled by UserAccountButton at bottom of sidebar
 ];
 
 /**

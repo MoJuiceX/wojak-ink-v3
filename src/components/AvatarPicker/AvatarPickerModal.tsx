@@ -99,7 +99,15 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
       <div className="avatar-picker-content">
         <div className="avatar-picker-header">
           <h2>Choose Your Avatar</h2>
-          <button className="close-button" onClick={onClose} aria-label="Close">
+          <button
+            className="close-button"
+            onClick={onClose}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              onClose();
+            }}
+            aria-label="Close"
+          >
             ✕
           </button>
         </div>

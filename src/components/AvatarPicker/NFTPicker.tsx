@@ -129,6 +129,10 @@ export function NFTPicker({ selectedNftId, onSelect }: NFTPickerProps) {
             type="button"
             className={`nft-option ${selectedNftId === nft.id ? 'selected' : ''}`}
             onClick={() => onSelect(nft)}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              onSelect(nft);
+            }}
             aria-label={`Select ${nft.name} as avatar`}
             aria-pressed={selectedNftId === nft.id}
           >

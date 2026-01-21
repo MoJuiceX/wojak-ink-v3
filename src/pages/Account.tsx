@@ -376,52 +376,36 @@ export default function Account() {
               {(
                 <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
                   {/* User Info Header with Clickable Avatar */}
-                  <div className="p-6 flex items-center gap-4">
-                    {/* Clickable Avatar with edit overlay */}
-                    <div className="flex flex-col items-center gap-1">
-                      <button
-                        onClick={() => setShowAvatarPicker(true)}
-                        className="relative group cursor-pointer"
-                        style={{ width: 72, height: 72 }}
-                        aria-label="Change avatar"
+                  <div className="p-5 flex items-center gap-4">
+                    {/* Clickable Avatar with edit indicator */}
+                    <button
+                      onClick={() => setShowAvatarPicker(true)}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        setShowAvatarPicker(true);
+                      }}
+                      className="relative group cursor-pointer flex-shrink-0"
+                      style={{ width: 56, height: 56 }}
+                      aria-label="Change avatar"
+                    >
+                      {/* Avatar */}
+                      <Avatar
+                        avatar={profile?.avatar}
+                        size="medium"
+                        isNftHolder={profile?.avatar?.type === 'nft'}
+                      />
+                      {/* Small edit badge */}
+                      <div
+                        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                        style={{
+                          background: '#F97316',
+                          border: '2px solid var(--color-bg-secondary)',
+                        }}
                       >
-                        {/* Spinning gold ring for NFT holders */}
-                        {profile?.avatar?.type === 'nft' && (
-                          <motion.div
-                            className="absolute inset-0 rounded-full"
-                            style={{
-                              border: '2px solid transparent',
-                              borderTopColor: '#FFD700',
-                              borderRightColor: 'rgba(255, 215, 0, 0.3)',
-                            }}
-                            animate={prefersReducedMotion ? {} : { rotate: 360 }}
-                            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                          />
-                        )}
-                        {/* Avatar */}
-                        <Avatar
-                          avatar={profile?.avatar}
-                          size="xlarge"
-                          isNftHolder={profile?.avatar?.type === 'nft'}
-                        />
-                        {/* Edit overlay - always visible on mobile, hover on desktop */}
-                        <div
-                          className="absolute inset-0 rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                          style={{
-                            background: 'rgba(0, 0, 0, 0.5)',
-                          }}
-                        >
-                          <Pencil size={20} style={{ color: '#fff' }} />
-                        </div>
-                      </button>
-                      {/* Hint text */}
-                      <span
-                        className="text-[10px] font-medium"
-                        style={{ color: 'var(--color-text-tertiary)' }}
-                      >
-                        Tap to change
-                      </span>
-                    </div>
+                        <Pencil size={10} style={{ color: '#fff' }} />
+                      </div>
+                    </button>
+                    {/* User info */}
                     <div className="flex-1 min-w-0">
                       <p
                         className="text-lg font-bold truncate"
