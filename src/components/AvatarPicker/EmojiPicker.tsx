@@ -2,11 +2,10 @@
  * EmojiPicker Component
  *
  * Grid of 15 curated emojis for avatar selection.
- * Used in AvatarPickerModal.
  */
 
 import { DEFAULT_EMOJIS } from '@/types/avatar';
-import './EmojiPicker.css';
+import './AvatarPicker.css';
 
 interface EmojiPickerProps {
   selectedEmoji?: string;
@@ -23,15 +22,12 @@ export function EmojiPicker({ selectedEmoji, onSelect }: EmojiPickerProps) {
             key={emoji}
             type="button"
             className={`emoji-option ${selectedEmoji === emoji ? 'selected' : ''}`}
-            onClick={() => onSelect(emoji)}
-            onTouchEnd={(e) => {
-              e.preventDefault();
+            onClick={() => {
+              console.log('[EmojiPicker] Clicked:', emoji);
               onSelect(emoji);
             }}
-            aria-label={`Select ${emoji} as avatar`}
-            aria-pressed={selectedEmoji === emoji}
           >
-            <span className="emoji-char">{emoji}</span>
+            {emoji}
           </button>
         ))}
       </div>
