@@ -78,10 +78,9 @@ export function LeaderboardOverlay({
                         <span className="leaderboard-rank">#{index + 1}</span>
                         {entry ? (
                           <Avatar
-                            type={entry.avatar?.type || 'emoji'}
-                            value={entry.avatar?.value || '🎮'}
+                            avatar={entry.avatar || { type: 'emoji', value: '🎮', source: 'default' }}
                             size="small"
-                            isNftHolder={entry.avatar?.type === 'nft'}
+                            showBadge={false}
                           />
                         ) : (
                           <div className="leaderboard-avatar-placeholder" />

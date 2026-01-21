@@ -96,8 +96,17 @@
 }
 
 /* Hide badge when showBadge=false */
-.avatar-nft.avatar-no-badge::after {
-  display: none;
+.avatar.avatar-nft.avatar-no-badge::after,
+.avatar-small.avatar-nft.avatar-no-badge::after,
+.avatar-medium.avatar-nft.avatar-no-badge::after,
+.avatar-large.avatar-nft.avatar-no-badge::after,
+.avatar-xlarge.avatar-nft.avatar-no-badge::after {
+  content: none !important;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* ===== Highlighted avatar (for featured/top players) ===== */

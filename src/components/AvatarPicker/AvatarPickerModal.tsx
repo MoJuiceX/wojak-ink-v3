@@ -25,7 +25,10 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
   const { profile, updateAvatar, updateProfile } = useUserProfile();
   const { status: walletStatus, address: walletAddress, connect: connectWallet } = useSageWallet();
 
-  const [activeTab, setActiveTab] = useState<'emoji' | 'nft'>('emoji');
+  // Default to NFT tab if user already has an NFT avatar
+  const [activeTab, setActiveTab] = useState<'emoji' | 'nft'>(
+    profile?.avatar?.type === 'nft' ? 'nft' : 'emoji'
+  );
   const [selectedEmoji, setSelectedEmoji] = useState(
     profile?.avatar?.type === 'emoji' ? profile.avatar.value : getRandomDefaultEmoji()
   );
