@@ -71,7 +71,7 @@ export const BigPulpPreview: React.FC = () => {
           {/* Layer 1: Base/Legs */}
           <img
             src="/assets/BigPulp/art/BigP_base.png"
-            alt=""
+            alt="BigPulp AI analyst base layer"
             loading="lazy"
             style={{
               position: 'absolute',

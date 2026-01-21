@@ -92,7 +92,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Layer 1: Base/Legs */}
             <img
               src="/assets/BigPulp/art/BigP_base.png"
-              alt=""
+              alt="BigPulp mascot base layer"
               loading="eager"
               style={{
                 position: 'absolute',

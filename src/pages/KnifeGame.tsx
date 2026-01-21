@@ -11,6 +11,7 @@ import { Play, Pause } from 'lucide-react';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { GameSEO } from '@/components/seo/GameSEO';
 import './KnifeGame.css';
 
 const AUDIO_URL = '/assets/Games/games_media/The New Knife Game Song - Rusty Cage.mp3';

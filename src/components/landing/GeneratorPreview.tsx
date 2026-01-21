@@ -38,7 +38,7 @@ export const GeneratorPreview = () => {
               src={`/assets/gallery-previews/${
                 ['wojak', 'soyjak', 'baddie'][index]
               }.png`}
-              alt=""
+              alt={`${['Wojak', 'Soyjak', 'Baddie'][index]} character layer preview`}
               loading="lazy"
             />
           </motion.div>

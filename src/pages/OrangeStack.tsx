@@ -10,6 +10,7 @@ import { useAudio } from '@/contexts/AudioContext';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { GameSEO } from '@/components/seo/GameSEO';
 import './OrangeStack.css';
 
 interface Block {

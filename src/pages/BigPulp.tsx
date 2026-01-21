@@ -392,6 +392,9 @@ function BigPulpContent() {
   return (
     <PageTransition>
       <div style={{ padding: contentPadding }}>
+        {/* SEO H1 - visually hidden but accessible */}
+        <h1 className="sr-only">BigPulp AI - Wojak Farmers NFT Intelligence & Analysis</h1>
+
         {/* Responsive layout - no header needed, title is in browser tab */}
         {isDesktop ? <DesktopLayout /> : <MobileLayout />}
       </div>

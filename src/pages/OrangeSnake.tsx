@@ -16,6 +16,7 @@ import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { GameSEO } from '@/components/seo/GameSEO';
 import './OrangeSnake.css';
 
 // ============================================

@@ -110,7 +110,7 @@ export const FinalCTA: React.FC = () => {
               <motion.img
                 key={leftImages[index]}
                 src={leftImages[index]}
-                alt=""
+                alt="Floating Wojak NFT preview"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -150,7 +150,7 @@ export const FinalCTA: React.FC = () => {
               <motion.img
                 key={rightImages[index]}
                 src={rightImages[index]}
-                alt=""
+                alt="Floating Wojak NFT preview"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}

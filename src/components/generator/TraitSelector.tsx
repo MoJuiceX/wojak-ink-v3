@@ -209,14 +209,14 @@ function BaseImageCard({ image, isSelected, isDisabled, disabledReason, onClick 
         {/* Clothes layer (varies by base) */}
         <img
           src={getClothesForBase(image.path)}
-          alt=""
+          alt="Clothes layer preview"
           className="absolute inset-0 w-full h-full object-cover"
           loading="lazy"
         />
         {/* Mouth layer (Numb) */}
         <img
           src={DEFAULT_MOUTH_PATH}
-          alt=""
+          alt="Mouth layer preview"
           className="absolute inset-0 w-full h-full object-cover"
           loading="lazy"
         />
@@ -278,7 +278,7 @@ function ClothesImageCard({ image, isSelected, isDisabled, disabledReason, onCli
         {/* Base layer (Classic) */}
         <img
           src={DEFAULT_BASE_PATH}
-          alt=""
+          alt="Base layer preview"
           className="absolute inset-0 w-full h-full object-cover"
           loading="lazy"
         />
@@ -292,7 +292,7 @@ function ClothesImageCard({ image, isSelected, isDisabled, disabledReason, onCli
         {/* Mouth layer (Numb) */}
         <img
           src={DEFAULT_MOUTH_PATH}
-          alt=""
+          alt="Mouth layer preview"
           className="absolute inset-0 w-full h-full object-cover"
           loading="lazy"
         />

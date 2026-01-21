@@ -1,7 +1,7 @@
 {
-  "name": "Wojak Games",
-  "short_name": "Wojak",
-  "description": "Play mini-games, compete on leaderboards, and join guilds in the Wojak Farmers community!",
+  "name": "Wojak.ink - NFT Games & Community",
+  "short_name": "Wojak.ink",
+  "description": "Explore 4,200+ Wojak Farmers NFTs, play 15 arcade games, chat with BigPulp AI, and compete on leaderboards!",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f1a",

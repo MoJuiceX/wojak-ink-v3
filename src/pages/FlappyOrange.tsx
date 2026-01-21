@@ -10,6 +10,7 @@ import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { GameSEO } from '@/components/seo/GameSEO';
 import './FlappyOrange.css';
 
 // ============================================
@@ -3047,6 +3048,12 @@ const FlappyOrange: React.FC = () => {
   // ============================================
   return (
     <div ref={containerRef} className={`flappy-container ${isMobile ? 'mobile' : 'desktop'}`}>
+      <GameSEO
+        gameName="Flappy Orange"
+        gameSlug="flappy-orange"
+        description="Guide your orange through pipes in this addictive arcade game. Tap to flap and avoid obstacles!"
+        genre="Arcade"
+      />
       {/* Control Buttons */}
       <button
         className="fo-back-btn"

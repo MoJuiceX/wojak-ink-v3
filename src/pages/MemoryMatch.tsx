@@ -9,6 +9,7 @@ import { useTimeUrgency, getUrgencyClass } from '@/hooks/useTimeUrgency';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { getAllNfts, isReady as isPreloaderReady, initGalleryPreloader } from '@/services/galleryPreloader';
+import { GameSEO } from '@/components/seo/GameSEO';
 import './MemoryMatch.css';
 
 interface NFTMetadata {

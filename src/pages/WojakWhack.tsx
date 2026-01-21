@@ -14,6 +14,7 @@ import { useGameEffects } from '@/components/media';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { GameSEO } from '@/components/seo/GameSEO';
 import './WojakWhack.css';
 
 // =============================================================================

@@ -8,6 +8,7 @@ import { useColorReactionSounds } from '@/hooks/useColorReactionSounds';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameHaptics } from '@/systems/haptics';
+import { GameSEO } from '@/components/seo/GameSEO';
 import './ColorReaction.css';
 
 // Color definitions - TASK 91: Expanded with Strawberry & Kiwi

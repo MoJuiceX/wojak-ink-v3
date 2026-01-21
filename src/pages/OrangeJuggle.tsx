@@ -7,6 +7,7 @@ import { useGameHaptics } from '@/systems/haptics';
 import { ShareButton } from '@/systems/sharing';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { GameSEO } from '@/components/seo/GameSEO';
 // import { useMedia } from '@/contexts/MediaContext'; // Temporarily disabled
 import './OrangeJuggle.css';
 

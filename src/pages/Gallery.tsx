@@ -341,6 +341,9 @@ function GalleryContent() {
 
   return (
     <PageTransition>
+      {/* SEO H1 - visually hidden but accessible */}
+      <h1 className="sr-only">Wojak Farmers Plot NFT Gallery - Browse 4,200 Unique NFTs</h1>
+
       {/* Animated gradient background */}
       <div className="gallery-page-background" />
 

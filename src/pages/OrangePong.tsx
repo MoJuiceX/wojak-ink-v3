@@ -6,6 +6,7 @@ import { useAudio } from '@/contexts/AudioContext';
 import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { GameSEO } from '@/components/seo/GameSEO';
 import './OrangePong.css';
 
 const PADDLE_HEIGHT = 80;

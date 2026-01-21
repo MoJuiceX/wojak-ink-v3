@@ -108,7 +108,7 @@ export const SectionFloatingNFTs: React.FC<SectionFloatingNFTsProps> = ({
             <motion.img
               key={images[index]}
               src={images[index]}
-              alt=""
+              alt="Decorative Wojak NFT"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

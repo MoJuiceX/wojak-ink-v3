@@ -111,7 +111,7 @@ export function DesktopNFTImage({
               {nft.blurDataUrl ? (
                 <img
                   src={nft.blurDataUrl}
-                  alt=""
+                  alt="Loading placeholder"
                   className="w-full h-full object-cover"
                   style={{ filter: 'blur(20px)' }}
                 />

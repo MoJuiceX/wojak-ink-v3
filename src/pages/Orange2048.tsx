@@ -12,6 +12,7 @@ import {
 } from '@ionic/react';
 import { informationCircleOutline, close } from 'ionicons/icons';
 import { useGameEffects, GameEffects } from '@/components/media';
+import { GameSEO } from '@/components/seo/GameSEO';
 import './Orange2048.css';
 
 type Grid = (number | null)[][];

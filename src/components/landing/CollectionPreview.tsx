@@ -100,7 +100,7 @@ export const CollectionPreview: React.FC = () => {
               <motion.img
                 key={src}
                 src={src}
-                alt=""
+                alt="Wojak NFT collection preview"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
