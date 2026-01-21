@@ -9,6 +9,8 @@
  * - CAT/XCH: Dexie API
  */
 
+import { rateLimitedFetch } from '@/utils/rateLimiter';
+
 // ============ Types ============
 
 export interface PriceCache {
@@ -129,32 +131,56 @@ function findClosestDate(targetDate: string, availableDates: string[]): string |
 
 // ============ XCH Price Fetching ============
 
+// Track pending requests to avoid duplicate fetches
+const pendingRequests = new Map<string, Promise<number | null>>();
+
 /**
  * Fetch XCH/USD price for a specific date from CoinGecko
  */
 async function fetchXchPriceForDate(date: Date): Promise<number | null> {
-  try {
-    const dateStr = formatDateForCoinGecko(date);
-    const url = `${COINGECKO_API}/api/v3/coins/chia/history?date=${dateStr}&localization=false`;
+  const dateStr = formatDateForCoinGecko(date);
+  const cacheKey = `xch-${dateStr}`;
 
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.warn(`[PriceService] CoinGecko error for ${dateStr}:`, response.status);
-      return null;
-    }
-
-    const data = await response.json();
-    const price = data.market_data?.current_price?.usd;
-
-    if (typeof price === 'number') {
-      return price;
-    }
-
-    return null;
-  } catch (error) {
-    console.error('[PriceService] Error fetching XCH price:', error);
-    return null;
+  // Check if request is already in flight
+  if (pendingRequests.has(cacheKey)) {
+    return pendingRequests.get(cacheKey)!;
   }
+
+  const requestPromise = (async (): Promise<number | null> => {
+    try {
+      const url = `${COINGECKO_API}/api/v3/coins/chia/history?date=${dateStr}&localization=false`;
+
+      const response = await rateLimitedFetch(url, {
+        cacheTtl: 24 * 60 * 60 * 1000, // Cache for 24 hours
+      });
+
+      if (!response.ok) {
+        console.warn(`[PriceService] CoinGecko error for ${dateStr}:`, response.status);
+        return null;
+      }
+
+      const data = await response.json();
+      const price = data.market_data?.current_price?.usd;
+
+      if (typeof price === 'number') {
+        return price;
+      }
+
+      return null;
+    } catch (error) {
+      // Don't log 429 errors - they're expected when rate limited
+      const status = (error as { status?: number })?.status;
+      if (status !== 429) {
+        console.error('[PriceService] Error fetching XCH price:', error);
+      }
+      return null;
+    } finally {
+      pendingRequests.delete(cacheKey);
+    }
+  })();
+
+  pendingRequests.set(cacheKey, requestPromise);
+  return requestPromise;
 }
 
 /**
@@ -166,7 +192,10 @@ async function fetchXchPriceRange(fromDate: Date, toDate: Date): Promise<Record<
     const to = Math.floor(toDate.getTime() / 1000);
     const url = `${COINGECKO_API}/api/v3/coins/chia/market_chart/range?vs_currency=usd&from=${from}&to=${to}`;
 
-    const response = await fetch(url);
+    const response = await rateLimitedFetch(url, {
+      cacheTtl: 60 * 60 * 1000, // Cache for 1 hour
+    });
+
     if (!response.ok) {
       console.warn('[PriceService] CoinGecko range error:', response.status);
       return {};
@@ -185,7 +214,11 @@ async function fetchXchPriceRange(fromDate: Date, toDate: Date): Promise<Record<
     console.log('[PriceService] Fetched', Object.keys(prices).length, 'XCH prices from range');
     return prices;
   } catch (error) {
-    console.error('[PriceService] Error fetching XCH price range:', error);
+    // Don't log 429 errors
+    const status = (error as { status?: number })?.status;
+    if (status !== 429) {
+      console.error('[PriceService] Error fetching XCH price range:', error);
+    }
     return {};
   }
 }
@@ -289,27 +322,28 @@ export async function initializePriceService(): Promise<void> {
 
 /**
  * Get XCH/USD price for a specific date
- * Returns cached value or fetches if not available
+ * Returns cached value or closest cached value to minimize API calls
  */
 export async function getXchPrice(date: Date): Promise<number> {
   const dateStr = formatDate(date);
 
-  // Check cache
+  // Check cache first
   if (priceCache.xchUsd[dateStr]) {
     return priceCache.xchUsd[dateStr];
   }
 
-  // Find closest cached date
+  // Find closest cached date - ALWAYS prefer cached data to avoid API calls
   const closest = findClosestDate(dateStr, Object.keys(priceCache.xchUsd));
   if (closest) {
-    // Use closest if within 7 days
     const daysDiff = Math.abs(new Date(dateStr).getTime() - new Date(closest).getTime()) / (24 * 60 * 60 * 1000);
-    if (daysDiff <= 7) {
+    // Use closest if within 30 days (expanded from 7 to reduce API calls)
+    if (daysDiff <= 30) {
       return priceCache.xchUsd[closest];
     }
   }
 
-  // Fetch from API
+  // Only fetch from API if we have NO nearby cached data
+  // This drastically reduces API calls
   const price = await fetchXchPriceForDate(date);
   if (price) {
     priceCache.xchUsd[dateStr] = price;
@@ -317,7 +351,7 @@ export async function getXchPrice(date: Date): Promise<number> {
     return price;
   }
 
-  // Fallback to closest or default
+  // Fallback to closest cached price (any distance) or default
   if (closest) {
     return priceCache.xchUsd[closest];
   }

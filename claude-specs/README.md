@@ -124,7 +124,7 @@ Read the spec file at claude-specs/06-NFT-HOLDER-BADGE-SPEC.md and implement eve
 ### 08-LEADERBOARD-REWARDS-SPEC.md (NEW)
 - Automatic payouts: Daily, Weekly, Monthly
 - Per-game leaderboards (15 games × 3 periods)
-- **Daily**: #1=17🍊, #2=10🍊, #3=3🍊, #4-10=7🍊 each, #11-50=2🍊 each
+- **Daily**: #1=20🍊, #2=15🍊, #3=10🍊, #4-10=5🍊, #11-20=2🍊, #21-50=1🍊
 - **Weekly**: #1=350🍊, #2=210🍊, #3=105🍊
 - **Monthly**: #1=1400🍊, #2=700🍊, #3=350🍊
 - Fresh leaderboard reset each period

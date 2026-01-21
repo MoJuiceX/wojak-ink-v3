@@ -12,7 +12,7 @@ Implement automatic leaderboard rewards that pay out oranges to top players on a
 
 | Period | #1 | #2 | #3 | #4-10 | #11-50 |
 |--------|-----|-----|-----|-------|--------|
-| Daily | 17 🍊 | 10 🍊 | 3 🍊 | 7 🍊 each | 2 🍊 each |
+| Daily | 20 🍊 | 15 🍊 | 10 🍊 | 5 🍊 each | 2 🍊 (#11-20), 1 🍊 (#21-50) |
 | Weekly | 350 🍊 | 210 🍊 | 105 🍊 | - | - |
 | Monthly | 1400 🍊 | 700 🍊 | 350 🍊 | - | - |
 
@@ -99,13 +99,14 @@ export interface PeriodRewardConfig {
   resetTime: string; // Description of reset time
 }
 
-// Daily rewards: Top 3, Top 10, Top 50 (reduced 30% for sustainability)
+// Daily rewards: Top 3, Top 10, Top 20, Top 50
 export const DAILY_REWARDS: RewardTier[] = [
-  { minRank: 1, maxRank: 1, reward: 17 },  // Was 25
-  { minRank: 2, maxRank: 2, reward: 10 },  // Was 15
-  { minRank: 3, maxRank: 3, reward: 3 },   // Was 5
-  { minRank: 4, maxRank: 10, reward: 7 },  // Was 10
-  { minRank: 11, maxRank: 50, reward: 2 }, // Was 3
+  { minRank: 1, maxRank: 1, reward: 20 },
+  { minRank: 2, maxRank: 2, reward: 15 },
+  { minRank: 3, maxRank: 3, reward: 10 },
+  { minRank: 4, maxRank: 10, reward: 5 },
+  { minRank: 11, maxRank: 20, reward: 2 },
+  { minRank: 21, maxRank: 50, reward: 1 },
 ];
 
 // Weekly rewards: Top 3 only (reduced 30% for sustainability)

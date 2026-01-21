@@ -58,14 +58,17 @@ const DOMAIN_CONFIGS: Record<string, Partial<RateLimitConfig>> = {
     maxBackoffMs: 300000,
   },
   'api.coingecko.com': {
-    requestsPerSecond: 0.5,   // CoinGecko free tier - 1 request per 2 seconds
-    minDelayMs: 2000,
+    requestsPerSecond: 0.1,   // CoinGecko free tier - 1 request per 10 seconds (very conservative)
+    minDelayMs: 10000,
+    maxRetries: 2,
+    baseBackoffMs: 60000,     // 60 second backoff on failure
+    maxBackoffMs: 300000,     // Up to 5 minutes
   },
 };
 
 // Global cooldown tracking per domain (triggered by 429 errors)
 const domainCooldowns = new Map<string, number>();
-const COOLDOWN_DURATION = 60000; // 60 second cooldown after 429
+const COOLDOWN_DURATION = 120000; // 120 second cooldown after 429 (was 60)
 
 // ============================================
 // REQUEST QUEUE

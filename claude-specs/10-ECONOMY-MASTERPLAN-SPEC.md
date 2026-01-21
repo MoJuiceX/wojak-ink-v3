@@ -118,11 +118,12 @@ export const ALL_CHALLENGES_BONUS_PERCENT = 0.5; // 50%
 
 | Rank | Reward |
 |------|--------|
-| #1 | 17 🍊 |
-| #2 | 10 🍊 |
-| #3 | 3 🍊 |
-| #4-10 | 7 🍊 each |
-| #11-50 | 2 🍊 each |
+| #1 | 20 🍊 |
+| #2 | 15 🍊 |
+| #3 | 10 🍊 |
+| #4-10 | 5 🍊 each |
+| #11-20 | 2 🍊 each |
+| #21-50 | 1 🍊 each |
 
 **Weekly Rewards (Top 3 only):**
 
@@ -396,11 +397,12 @@ export const DAILY_CHALLENGES = {
 export const LEADERBOARD_REWARDS = {
   daily: {
     tiers: [
-      { minRank: 1, maxRank: 1, reward: 17 },
-      { minRank: 2, maxRank: 2, reward: 10 },
-      { minRank: 3, maxRank: 3, reward: 3 },
-      { minRank: 4, maxRank: 10, reward: 7 },
-      { minRank: 11, maxRank: 50, reward: 2 },
+      { minRank: 1, maxRank: 1, reward: 20 },
+      { minRank: 2, maxRank: 2, reward: 15 },
+      { minRank: 3, maxRank: 3, reward: 10 },
+      { minRank: 4, maxRank: 10, reward: 5 },
+      { minRank: 11, maxRank: 20, reward: 2 },
+      { minRank: 21, maxRank: 50, reward: 1 },
     ],
   },
   weekly: {
