@@ -41,8 +41,8 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
     return score.toLocaleString();
   };
 
-  const getTimeAgo = (date: Date): string => {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
+  const getTimeAgo = (dateStr: string): string => {
+    const seconds = Math.floor((new Date().getTime() - new Date(dateStr).getTime()) / 1000);
     if (seconds < 60) return 'Just now';
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
@@ -68,13 +68,12 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
         )}
         <div className="podium-rank">{getRankDisplay()}</div>
         <Avatar
-          type={entry.avatar.type}
-          value={entry.avatar.value}
+          avatar={entry.avatar}
           size="large"
           isNftHolder={entry.avatar.type === 'nft'}
         />
         <div className="podium-info">
-          <span className="podium-username">{entry.username}</span>
+          <span className="podium-username">{entry.displayName}</span>
           <span className="podium-score">{formatScore(entry.score)}</span>
         </div>
       </motion.div>
@@ -101,15 +100,14 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
       </div>
 
       <Avatar
-        type={entry.avatar.type}
-        value={entry.avatar.value}
+        avatar={entry.avatar}
         size="small"
         isNftHolder={entry.avatar.type === 'nft'}
       />
 
       <div className="row-info">
-        <span className="row-username">{entry.username}</span>
-        <span className="row-time">{getTimeAgo(entry.achievedAt)}</span>
+        <span className="row-username">{entry.displayName}</span>
+        <span className="row-time">{getTimeAgo(entry.createdAt)}</span>
       </div>
 
       <div className="row-score">

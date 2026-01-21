@@ -9,21 +9,28 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { leaderboardKeys, type GameId } from '@/config/query/queryKeys';
 import { DATA_CACHE_MAP } from '@/config/query/cacheConfig';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 
+// Check if Clerk is configured
+const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
 export interface LeaderboardEntry {
   rank: number;
+  userId: string;
   displayName: string;
-  score: number;
-  level: number | null;
-  date: string;
   avatar: {
     type: 'emoji' | 'nft';
     value: string;
+    source: 'default' | 'user' | 'wallet';
   };
+  score: number;
+  level?: number;
+  createdAt: string;
+  isCurrentUser?: boolean;
 }
 
 export interface SubmitResult {
@@ -76,10 +83,26 @@ export function useLeaderboard(gameId: GameId) {
   const { profile } = useUserProfile();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch top 10 leaderboard
+  // Get current user ID from Clerk
+  const authResult = CLERK_ENABLED ? useAuth() : { userId: null };
+  const currentUserId = authResult.userId;
+
+  // Fetch top 10 leaderboard with current user marking
   const leaderboardQuery = useQuery({
     queryKey: leaderboardKeys.top10(gameId),
-    queryFn: () => fetchLeaderboard(gameId, 10),
+    queryFn: async () => {
+      const data = await fetchLeaderboard(gameId, 10);
+
+      // Mark current user's entry
+      if (currentUserId) {
+        data.entries = data.entries.map(entry => ({
+          ...entry,
+          isCurrentUser: entry.userId === currentUserId,
+        }));
+      }
+
+      return data;
+    },
     ...DATA_CACHE_MAP.leaderboard,
   });
 

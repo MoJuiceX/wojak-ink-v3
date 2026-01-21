@@ -10,13 +10,26 @@ interface Env {
 
 interface LeaderboardEntry {
   rank: number;
+  userId: string;
   displayName: string;
-  score: number;
-  level: number | null;
-  date: string;
   avatar: {
     type: 'emoji' | 'nft';
     value: string;
+    source: 'default' | 'user' | 'wallet';
+  };
+  score: number;
+  level?: number;
+  createdAt: string;
+}
+
+interface LeaderboardResponse {
+  gameId: string;
+  entries: LeaderboardEntry[];
+  pagination: {
+    limit: number;
+    offset: number;
+    total: number;
+    hasMore: boolean;
   };
 }
 
@@ -62,13 +75,15 @@ async function getLeaderboard(
   const results = await db
     .prepare(
       `SELECT
+         ROW_NUMBER() OVER (ORDER BY ls.score DESC, ls.created_at ASC) as rank,
+         ls.user_id,
          ls.score,
          ls.level,
          ls.created_at,
-         COALESCE(p.display_name, 'Anonymous') as display_name,
+         COALESCE(p.display_name, 'Player') as display_name,
          COALESCE(p.avatar_type, 'emoji') as avatar_type,
          COALESCE(p.avatar_value, '🎮') as avatar_value,
-         ROW_NUMBER() OVER (ORDER BY ls.score DESC, ls.created_at ASC) as rank
+         COALESCE(p.avatar_source, 'default') as avatar_source
        FROM leaderboard_scores ls
        LEFT JOIN profiles p ON ls.user_id = p.user_id
        WHERE ls.game_id = ?
@@ -77,25 +92,29 @@ async function getLeaderboard(
     )
     .bind(gameId, limit, offset)
     .all<{
+      rank: number;
+      user_id: string;
       score: number;
       level: number | null;
       created_at: string;
       display_name: string;
       avatar_type: string;
       avatar_value: string;
-      rank: number;
+      avatar_source: string;
     }>();
 
   return (results.results || []).map((row) => ({
     rank: row.rank,
+    userId: row.user_id,
     displayName: row.display_name,
-    score: row.score,
-    level: row.level,
-    date: row.created_at.split('T')[0], // Extract date part
     avatar: {
       type: row.avatar_type as 'emoji' | 'nft',
       value: row.avatar_value,
+      source: row.avatar_source as 'default' | 'user' | 'wallet',
     },
+    score: row.score,
+    level: row.level || undefined,
+    createdAt: row.created_at,
   }));
 }
 
@@ -163,19 +182,24 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const entries = await getLeaderboard(env.DB, gameId, limit, offset);
     const totalCount = await getLeaderboardCount(env.DB, gameId);
 
-    return new Response(
-      JSON.stringify({
-        gameId,
-        entries,
-        pagination: {
-          limit,
-          offset,
-          total: totalCount,
-          hasMore: offset + entries.length < totalCount,
-        },
-      }),
-      { status: 200, headers: corsHeaders }
-    );
+    const response: LeaderboardResponse = {
+      gameId,
+      entries,
+      pagination: {
+        limit,
+        offset,
+        total: totalCount,
+        hasMore: offset + entries.length < totalCount,
+      },
+    };
+
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Cache-Control': 'public, max-age=30', // Cache for 30 seconds
+      },
+    });
   } catch (error) {
     console.error('[Leaderboard Get] Error:', error);
     return new Response(

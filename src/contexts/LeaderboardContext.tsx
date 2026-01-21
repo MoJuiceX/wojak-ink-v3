@@ -133,12 +133,15 @@ export const LeaderboardProvider: React.FC<{ children: ReactNode }> = ({ childre
         .map((entry, index) => ({
           rank: index + 1,
           userId: entry.userId,
-          username: entry.username,
           displayName: entry.displayName,
-          avatar: entry.avatar,
+          avatar: {
+            type: entry.avatar?.type || 'emoji',
+            value: entry.avatar?.value || '🎮',
+            source: entry.avatar?.source || 'default',
+          },
           score: entry.score,
-          gameId: entry.gameId,
-          achievedAt: new Date(entry.achievedAt),
+          level: entry.level,
+          createdAt: entry.achievedAt || new Date().toISOString(),
           isCurrentUser: user?.id === entry.userId,
         }));
 

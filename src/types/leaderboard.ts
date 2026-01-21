@@ -7,16 +7,27 @@
 export interface LeaderboardEntry {
   rank: number;
   userId: string;
-  username: string;
   displayName: string;
   avatar: {
     type: 'emoji' | 'nft';
     value: string;
+    source: 'default' | 'user' | 'wallet';
   };
   score: number;
+  level?: number;
+  createdAt: string;
+  isCurrentUser?: boolean; // Added client-side
+}
+
+export interface LeaderboardResponse {
   gameId: string;
-  achievedAt: Date;
-  isCurrentUser?: boolean;
+  entries: LeaderboardEntry[];
+  pagination: {
+    limit: number;
+    offset: number;
+    total: number;
+    hasMore: boolean;
+  };
 }
 
 export interface PersonalStats {
