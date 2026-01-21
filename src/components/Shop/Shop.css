@@ -391,3 +391,488 @@
   border-radius: 24px 24px 0 0;
   max-height: 90vh;
 }
+
+/* Updated Category Tabs */
+.category-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.category-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.category-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.category-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.category-tab.active {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.2));
+  border-color: rgba(249, 115, 22, 0.5);
+  color: #fff;
+}
+
+/* Uncommon rarity */
+.rarity-badge.rarity-uncommon {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+}
+
+.shop-item-card.rarity-uncommon {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+.shop-item-card.rarity-uncommon:hover {
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.3);
+}
+
+/* Equipped badge */
+.equipped-badge {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 20px;
+  z-index: 5;
+}
+
+/* Equip button */
+.equip-button {
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.equip-button:hover:not([disabled]) {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+  transform: translateY(-2px);
+}
+
+.equip-button.unequip {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+}
+
+.equip-button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Buy button (native) */
+.buy-button {
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #F97316, #EA580C);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.buy-button:hover:not([disabled]) {
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.5);
+  transform: translateY(-2px);
+}
+
+.buy-button[disabled] {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Preview styles for shop items */
+.preview-frame {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  border-radius: 8px;
+}
+
+.preview-name-effect {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.preview-background {
+  width: 60px;
+  height: 40px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Preview Modal */
+.preview-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.preview-content {
+  background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 360px;
+  width: 100%;
+  position: relative;
+  animation: scaleIn 0.2s ease;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.preview-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preview-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.preview-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.preview-header .rarity-badge {
+  position: static;
+}
+
+.preview-header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.25rem;
+  text-align: center;
+}
+
+.preview-large {
+  display: flex;
+  justify-content: center;
+  padding: 30px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  margin-bottom: 16px;
+}
+
+.preview-large .preview-emoji {
+  font-size: 5rem;
+}
+
+.preview-large .preview-frame {
+  width: 100px;
+  height: 100px;
+  font-size: 2.5rem;
+}
+
+.preview-large .preview-name-effect {
+  font-size: 2rem;
+}
+
+.preview-large .preview-background {
+  width: 120px;
+  height: 80px;
+}
+
+.preview-description {
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  font-size: 0.9rem;
+  margin: 0 0 16px;
+  line-height: 1.4;
+}
+
+.preview-demo {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.demo-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  margin: 0 0 12px;
+  text-align: center;
+}
+
+.demo-name {
+  display: block;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Loading state improvements */
+.loading-state {
+  gap: 12px;
+}
+
+.loading-state span {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+}
+
+/* =====================================================
+   TITLE PREVIEW STYLES
+   ===================================================== */
+
+.title-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 1rem;
+  text-align: center;
+}
+
+.title-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #F97316;
+  font-style: italic;
+  line-height: 1.3;
+}
+
+.title-preview.legendary .title-text {
+  text-shadow:
+    0 0 10px rgba(249, 115, 22, 0.5),
+    0 0 20px rgba(249, 115, 22, 0.3);
+  animation: title-glow 2s ease-in-out infinite;
+}
+
+@keyframes title-glow {
+  0%, 100% {
+    text-shadow:
+      0 0 10px rgba(249, 115, 22, 0.5),
+      0 0 20px rgba(249, 115, 22, 0.3);
+  }
+  50% {
+    text-shadow:
+      0 0 15px rgba(249, 115, 22, 0.7),
+      0 0 30px rgba(249, 115, 22, 0.5),
+      0 0 40px rgba(249, 115, 22, 0.3);
+  }
+}
+
+/* =====================================================
+   CELEBRATION PREVIEW STYLES
+   ===================================================== */
+
+.celebration-preview {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.celebration-icon {
+  font-size: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Confetti Animation */
+.celebration-confetti::before,
+.celebration-confetti::after {
+  content: '🎊';
+  position: absolute;
+  font-size: 16px;
+  animation: confetti-fall 2s linear infinite;
+  opacity: 0.8;
+}
+
+.celebration-confetti::before {
+  left: 20%;
+  animation-delay: 0s;
+}
+
+.celebration-confetti::after {
+  left: 70%;
+  animation-delay: 0.7s;
+}
+
+@keyframes confetti-fall {
+  0% {
+    top: -20px;
+    opacity: 1;
+    transform: rotate(0deg);
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+    transform: rotate(360deg);
+  }
+}
+
+/* Orange Rain Animation */
+.celebration-orange-rain::before,
+.celebration-orange-rain::after {
+  content: '🍊';
+  position: absolute;
+  font-size: 14px;
+  animation: orange-fall 1.5s linear infinite;
+}
+
+.celebration-orange-rain::before {
+  left: 25%;
+  animation-delay: 0s;
+}
+
+.celebration-orange-rain::after {
+  left: 65%;
+  animation-delay: 0.4s;
+}
+
+@keyframes orange-fall {
+  0% {
+    top: -20px;
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+    transform: rotate(360deg) scale(0.8);
+  }
+}
+
+/* Citrus Burst Animation */
+.celebration-citrus-burst .celebration-icon {
+  animation: citrus-explode 1.5s ease-out infinite;
+}
+
+@keyframes citrus-explode {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* Fireworks Animation */
+.celebration-fireworks .celebration-icon {
+  animation: firework-burst 2s ease-out infinite;
+}
+
+.celebration-fireworks::before {
+  content: '✨';
+  position: absolute;
+  font-size: 12px;
+  animation: sparkle-scatter 2s ease-out infinite;
+}
+
+@keyframes firework-burst {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+}
+
+@keyframes sparkle-scatter {
+  0% {
+    transform: translate(0, 0) scale(0);
+    opacity: 0;
+  }
+  30% {
+    transform: translate(20px, -15px) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(30px, -10px) scale(0.5);
+    opacity: 0;
+  }
+}

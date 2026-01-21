@@ -1,0 +1,2 @@
+# SPA fallback - handled by Cloudflare Pages automatically
+# No explicit redirect needed - Cloudflare Pages serves index.html for missing routes

@@ -1,0 +1,67 @@
+/**
+ * EmojiFrame Component Styles
+ *
+ * SVG-based emoji frame with animated border
+ */
+
+.emoji-frame-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emoji-frame-svg {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.emoji-frame-text {
+  dominant-baseline: middle;
+  text-anchor: start;
+}
+
+.emoji-frame-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Size variants */
+.emoji-frame-small {
+  min-width: 60px;
+  min-height: 60px;
+}
+
+.emoji-frame-medium {
+  min-width: 80px;
+  min-height: 80px;
+}
+
+.emoji-frame-large {
+  min-width: 120px;
+  min-height: 120px;
+}
+
+/* Animation for emoji frames */
+.emoji-frame-svg {
+  animation: emoji-frame-glow 2s ease-in-out infinite;
+}
+
+@keyframes emoji-frame-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
+  }
+}

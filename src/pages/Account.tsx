@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SignedOut, SignInButton, useClerk, useAuth } from '@clerk/clerk-react';
-import { LogOut, Settings, Flame, Trophy } from 'lucide-react';
+import { LogOut, Settings, Flame, Trophy, Palette, ExternalLink } from 'lucide-react';
 
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -21,6 +21,7 @@ import { NftGallery } from '@/components/Account/NftGallery';
 import { InventorySection } from '@/components/Account/InventorySection';
 import { RecentActivity } from '@/components/Account/RecentActivity';
 import { PageTransition } from '@/components/layout/PageTransition';
+import { DrawerEditor } from '@/components/Shop/DrawerEditor';
 
 import '@/components/Account/Account.css';
 
@@ -56,6 +57,9 @@ export default function Account() {
 
   // Mock voting counts - replace with actual data from voting context
   const [votingCounts] = useState({ donuts: 10, poops: 10 });
+
+  // Drawer editor state
+  const [isDrawerEditorOpen, setIsDrawerEditorOpen] = useState(false);
 
   // Mock activities - replace with actual activity tracking
   const [activities] = useState<any[]>([]);
@@ -221,6 +225,38 @@ export default function Account() {
           <InventorySection
             items={inventoryItems}
             isOwnProfile={true}
+          />
+
+          {/* Drawer Customization */}
+          <div className="drawer-customize-section">
+            <h2 className="section-title">Achievement Drawer</h2>
+            <p className="section-description">
+              Customize your public profile showcase
+            </p>
+            <div className="drawer-actions">
+              <button
+                className="customize-drawer-btn"
+                onClick={() => setIsDrawerEditorOpen(true)}
+              >
+                <Palette size={18} />
+                Customize Drawer
+              </button>
+              <a
+                href={`/drawer/${userId}`}
+                className="view-drawer-btn"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink size={18} />
+                View Drawer
+              </a>
+            </div>
+          </div>
+
+          {/* Drawer Editor Modal */}
+          <DrawerEditor
+            isOpen={isDrawerEditorOpen}
+            onClose={() => setIsDrawerEditorOpen(false)}
           />
 
           {/* Recent Activity */}

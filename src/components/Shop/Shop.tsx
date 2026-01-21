@@ -1,269 +1,392 @@
 /**
- * Shop Component
+ * Shop Component (SPEC 12)
  *
- * Browse and purchase items with oranges or gems.
+ * Browse and purchase Tang Gang collectibles.
+ * Categories: Emojis, Frames, Name Effects, Titles, Backgrounds, Celebrations, BigPulp Items
  */
 
-import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Loader2, Sparkles, Crown, Flame, Zap, Star, Package } from 'lucide-react';
+import { useAuth } from '@clerk/clerk-react';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { CurrencyDisplay } from '../Currency/CurrencyDisplay';
-import type { ShopItem, ShopCategory } from '../../types/currency';
+import { EmojiRing } from './EmojiRing';
+import { EmojiFrame, EMOJI_FRAME_MAP } from './EmojiFrame';
 import './Shop.css';
+import './frames.css';
 
-const CATEGORIES: { value: ShopCategory; label: string }[] = [
-  { value: 'avatar_frame', label: 'Frames' },
-  { value: 'avatar_accessory', label: 'Accessories' },
-  { value: 'game_theme', label: 'Themes' },
-  { value: 'celebration_effect', label: 'Effects' },
-  { value: 'badge', label: 'Badges' },
-  { value: 'title', label: 'Titles' },
+interface ShopItem {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  price_oranges: number;
+  price_gems: number | null;
+  css_class: string | null;
+  emoji: string | null;
+  preview_url: string | null;
+  is_active: boolean;
+  is_limited: boolean;
+  stock_limit: number | null;
+  stock_remaining: number | null;
+}
+
+interface InventoryItem {
+  id: string;
+  item_id: string;
+  acquired_at: string;
+}
+
+interface EquippedState {
+  frame_id: string | null;
+  title_id: string | null;
+  name_effect_id: string | null;
+  background_id: string | null;
+  celebration_id: string | null;
+}
+
+const CATEGORIES = [
+  { value: 'emoji_badge', label: 'Emojis', icon: Star },
+  { value: 'frame', label: 'Frames', icon: Package },
+  { value: 'name_effect', label: 'Effects', icon: Sparkles },
+  { value: 'title', label: 'Titles', icon: Crown },
+  { value: 'background', label: 'Backgrounds', icon: Zap },
+  { value: 'celebration', label: 'Celebrations', icon: Flame },
+  { value: 'bigpulp', label: 'BigPulp', icon: Star },
 ];
 
-// Demo shop items - in production, these would come from the backend
-const DEMO_SHOP_ITEMS: ShopItem[] = [
-  // Avatar Frames
-  {
-    id: 'frame-golden',
-    name: 'Golden Frame',
-    description: 'A prestigious golden border',
-    category: 'avatar_frame',
-    price: { oranges: 1000 },
-    preview: '🖼️',
-    rarity: 'rare',
-  },
-  {
-    id: 'frame-diamond',
-    name: 'Diamond Frame',
-    description: 'Sparkling diamond edges',
-    category: 'avatar_frame',
-    price: { gems: 10 },
-    preview: '💎',
-    rarity: 'epic',
-  },
-  {
-    id: 'frame-fire',
-    name: 'Fire Frame',
-    description: 'Blazing hot border',
-    category: 'avatar_frame',
-    price: { oranges: 2500 },
-    preview: '🔥',
-    rarity: 'epic',
-  },
-  {
-    id: 'frame-rainbow',
-    name: 'Rainbow Frame',
-    description: 'Colorful animated border',
-    category: 'avatar_frame',
-    price: { gems: 25 },
-    preview: '🌈',
-    rarity: 'legendary',
-  },
+const RARITY_COLORS: Record<string, string> = {
+  common: '#9ca3af',
+  uncommon: '#22c55e',
+  rare: '#3b82f6',
+  epic: '#a855f7',
+  legendary: '#f59e0b',
+};
+
+const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+
+// BigPulp item emoji mappings
+const BIGPULP_EMOJIS: Record<string, string> = {
+  // Hats
+  'bigpulp-hat-party': '🎉',
+  'bigpulp-hat-cowboy': '🤠',
+  'bigpulp-hat-chef': '👨‍🍳',
+  'bigpulp-hat-viking': '⚔️',
+  'bigpulp-hat-pirate': '🏴‍☠️',
+  'bigpulp-hat-beret': '🎨',
+  'bigpulp-hat-tophat': '🎩',
+  'bigpulp-hat-wizard': '🧙',
+  'bigpulp-hat-devil': '😈',
+  'bigpulp-hat-crown': '👑',
+  'bigpulp-hat-halo': '😇',
+  // Moods
+  'bigpulp-mood-happy': '😊',
+  'bigpulp-mood-chill': '😎',
+  'bigpulp-mood-sleepy': '😴',
+  'bigpulp-mood-hype': '🤩',
+  'bigpulp-mood-grumpy': '😤',
+  'bigpulp-mood-sergeant': '🫡',
+  'bigpulp-mood-numb': '😐',
+  'bigpulp-mood-rekt': '😵',
   // Accessories
-  {
-    id: 'acc-sunglasses',
-    name: 'Cool Shades',
-    description: 'Look cool, feel cool',
-    category: 'avatar_accessory',
-    price: { oranges: 500 },
-    preview: '😎',
-    rarity: 'common',
-  },
-  {
-    id: 'acc-crown',
-    name: 'Royal Crown',
-    description: 'Rule the leaderboards',
-    category: 'avatar_accessory',
-    price: { oranges: 2000, gems: 5 },
-    preview: '👑',
-    rarity: 'epic',
-  },
-  {
-    id: 'acc-halo',
-    name: 'Angel Halo',
-    description: 'Heavenly glow',
-    category: 'avatar_accessory',
-    price: { gems: 15 },
-    preview: '😇',
-    rarity: 'rare',
-  },
-  // Game Themes
-  {
-    id: 'theme-dark',
-    name: 'Dark Mode',
-    description: 'Easy on the eyes',
-    category: 'game_theme',
-    price: { oranges: 800 },
-    preview: '🌙',
-    rarity: 'common',
-  },
-  {
-    id: 'theme-neon',
-    name: 'Neon Glow',
-    description: 'Cyberpunk vibes',
-    category: 'game_theme',
-    price: { oranges: 1500 },
-    preview: '💜',
-    rarity: 'rare',
-  },
-  {
-    id: 'theme-retro',
-    name: 'Retro Arcade',
-    description: '80s gaming aesthetic',
-    category: 'game_theme',
-    price: { gems: 8 },
-    preview: '🕹️',
-    rarity: 'rare',
-  },
-  // Celebration Effects
-  {
-    id: 'effect-confetti',
-    name: 'Confetti Burst',
-    description: 'Celebrate your wins',
-    category: 'celebration_effect',
-    price: { oranges: 600 },
-    preview: '🎊',
-    rarity: 'common',
-  },
-  {
-    id: 'effect-fireworks',
-    name: 'Fireworks',
-    description: 'Light up the sky',
-    category: 'celebration_effect',
-    price: { oranges: 1200 },
-    preview: '🎆',
-    rarity: 'rare',
-  },
-  {
-    id: 'effect-stars',
-    name: 'Shooting Stars',
-    description: 'Wish upon a star',
-    category: 'celebration_effect',
-    price: { gems: 12 },
-    preview: '🌟',
-    rarity: 'epic',
-  },
-  // Badges
-  {
-    id: 'badge-og',
-    name: 'OG Badge',
-    description: 'Early supporter badge',
-    category: 'badge',
-    price: { oranges: 3000 },
-    preview: '🏅',
-    rarity: 'rare',
-    isLimited: true,
-  },
-  {
-    id: 'badge-whale',
-    name: 'Whale Badge',
-    description: 'Big spender status',
-    category: 'badge',
-    price: { gems: 50 },
-    preview: '🐋',
-    rarity: 'legendary',
-  },
-  // Titles
-  {
-    id: 'title-champion',
-    name: 'Champion',
-    description: 'Display "Champion" title',
-    category: 'title',
-    price: { oranges: 1500 },
-    preview: '🏆',
-    rarity: 'rare',
-  },
-  {
-    id: 'title-legend',
-    name: 'Legend',
-    description: 'Display "Legend" title',
-    category: 'title',
-    price: { gems: 20 },
-    preview: '⭐',
-    rarity: 'epic',
-  },
-  {
-    id: 'title-goat',
-    name: 'G.O.A.T.',
-    description: 'The greatest of all time',
-    category: 'title',
-    price: { gems: 100 },
-    preview: '🐐',
-    rarity: 'legendary',
-  },
-];
+  'bigpulp-acc-bowtie': '🎀',
+  'bigpulp-acc-bandana': '🧣',
+  'bigpulp-acc-earring': '💎',
+  'bigpulp-acc-headphones': '🎧',
+  'bigpulp-acc-cigar': '🚬',
+  'bigpulp-acc-monocle': '🧐',
+  'bigpulp-acc-scar': '⚡',
+};
+
+// Celebration type extraction from item ID
+const CELEBRATION_TYPES: Record<string, string> = {
+  'celebration-confetti': 'confetti',
+  'celebration-orange-rain': 'orange-rain',
+  'celebration-citrus-burst': 'citrus-burst',
+  'celebration-fireworks': 'fireworks',
+};
 
 interface ShopProps {
   onClose?: () => void;
 }
 
 export function Shop({ onClose }: ShopProps) {
-  const { purchaseItem, canAfford } = useCurrency();
-  const [activeCategory, setActiveCategory] = useState<ShopCategory>('avatar_frame');
-  const [items] = useState<ShopItem[]>(DEMO_SHOP_ITEMS);
-  const [isLoading] = useState(false);
+  const { getToken } = useAuth();
+  const { refreshBalance, currency } = useCurrency();
+  const [activeCategory, setActiveCategory] = useState('emoji_badge');
+  const [items, setItems] = useState<ShopItem[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [equipped, setEquipped] = useState<EquippedState | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
-  const [ownedItems, setOwnedItems] = useState<Set<string>>(new Set());
-  const [purchaseMessage, setPurchaseMessage] = useState<{
-    type: 'success' | 'error';
-    text: string;
-  } | null>(null);
+  const [equipingId, setEquipingId] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
 
-  // Load owned items from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem('wojak_owned_items');
-    if (stored) {
-      setOwnedItems(new Set(JSON.parse(stored)));
+  // Fetch shop items
+  const fetchItems = useCallback(async () => {
+    try {
+      const res = await fetch('/api/shop/items');
+      const data = await res.json();
+      if (data.items) {
+        setItems(data.items);
+      }
+    } catch (err) {
+      console.error('[Shop] Failed to fetch items:', err);
     }
   }, []);
 
-  // Save owned items to localStorage
-  const saveOwnedItems = (items: Set<string>) => {
-    localStorage.setItem('wojak_owned_items', JSON.stringify([...items]));
-    setOwnedItems(items);
+  // Fetch user inventory
+  const fetchInventory = useCallback(async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      const res = await fetch('/api/shop/inventory', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.inventory) {
+        setInventory(data.inventory);
+      }
+      if (data.equipped) {
+        setEquipped(data.equipped);
+      }
+    } catch (err) {
+      console.error('[Shop] Failed to fetch inventory:', err);
+    }
+  }, [getToken]);
+
+  // Load data on mount
+  useEffect(() => {
+    const load = async () => {
+      setIsLoading(true);
+      await Promise.all([fetchItems(), fetchInventory()]);
+      setIsLoading(false);
+    };
+    load();
+  }, [fetchItems, fetchInventory]);
+
+  // Check if item is owned
+  const isOwned = (itemId: string): boolean => {
+    return inventory.some(inv => inv.item_id === itemId);
   };
 
+  // Check if item is equipped
+  const isEquipped = (item: ShopItem): boolean => {
+    if (!equipped) return false;
+    switch (item.category) {
+      case 'frame': return equipped.frame_id === item.id;
+      case 'title': return equipped.title_id === item.id;
+      case 'name_effect': return equipped.name_effect_id === item.id;
+      case 'background': return equipped.background_id === item.id;
+      case 'celebration': return equipped.celebration_id === item.id;
+      default: return false;
+    }
+  };
+
+  // Check affordability
+  const canAfford = (item: ShopItem): boolean => {
+    if (!currency) return false;
+    const orangesOk = item.price_oranges <= currency.oranges;
+    const gemsOk = !item.price_gems || item.price_gems <= (currency.gems || 0);
+    return orangesOk && gemsOk;
+  };
+
+  // Handle purchase
   const handlePurchase = async (item: ShopItem) => {
     setPurchasingId(item.id);
-    setPurchaseMessage(null);
+    setMessage(null);
 
-    const result = await purchaseItem(item.id, item.price.oranges, item.price.gems);
+    try {
+      const token = await getToken();
+      if (!token) {
+        setMessage({ type: 'error', text: 'Please sign in to purchase' });
+        setPurchasingId(null);
+        return;
+      }
 
-    if (result.success) {
-      const newOwned = new Set([...ownedItems, item.id]);
-      saveOwnedItems(newOwned);
-      setPurchaseMessage({ type: 'success', text: `Purchased ${item.name}!` });
-    } else {
-      setPurchaseMessage({ type: 'error', text: result.error || 'Purchase failed' });
+      const res = await fetch('/api/shop/purchase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ itemId: item.id }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessage({ type: 'success', text: `Purchased ${item.name}!` });
+        await Promise.all([fetchInventory(), refreshBalance()]);
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Purchase failed' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Network error' });
     }
 
     setPurchasingId(null);
-
-    // Clear message after 3 seconds
-    setTimeout(() => setPurchaseMessage(null), 3000);
+    setTimeout(() => setMessage(null), 3000);
   };
 
-  const filteredItems = items.filter((item) => item.category === activeCategory);
+  // Handle equip/unequip
+  const handleEquip = async (item: ShopItem) => {
+    const slot = item.category as 'frame' | 'title' | 'name_effect' | 'background' | 'celebration';
+    if (!['frame', 'title', 'name_effect', 'background', 'celebration'].includes(slot)) return;
 
-  const getRarityColor = (rarity: string): string => {
-    switch (rarity) {
-      case 'legendary':
-        return '#FFD700';
-      case 'epic':
-        return '#9B59B6';
-      case 'rare':
-        return '#3498DB';
-      default:
-        return '#95A5A6';
+    setEquipingId(item.id);
+    setMessage(null);
+
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      const isCurrentlyEquipped = isEquipped(item);
+
+      const res = await fetch('/api/shop/equip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          slot,
+          itemId: isCurrentlyEquipped ? null : item.id,
+        }),
+      });
+
+      if (res.ok) {
+        setMessage({
+          type: 'success',
+          text: isCurrentlyEquipped ? `Unequipped ${item.name}` : `Equipped ${item.name}!`,
+        });
+        await fetchInventory();
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to equip item' });
     }
+
+    setEquipingId(null);
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  // Filter items by category
+  const getFilteredItems = (): ShopItem[] => {
+    let filtered: ShopItem[];
+
+    if (activeCategory === 'bigpulp') {
+      // Combine all BigPulp categories
+      filtered = items.filter(item =>
+        item.category === 'bigpulp_hat' ||
+        item.category === 'bigpulp_accessory' ||
+        item.category === 'bigpulp_mood'
+      );
+    } else {
+      filtered = items.filter(item => item.category === activeCategory);
+    }
+
+    // Sort by rarity then price
+    return filtered.sort((a, b) => {
+      const rarityDiff = RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity);
+      if (rarityDiff !== 0) return rarityDiff;
+      return a.price_oranges - b.price_oranges;
+    });
+  };
+
+  const filteredItems = getFilteredItems();
+
+  // Render item preview based on category
+  const renderItemPreview = (item: ShopItem, isLarge = false) => {
+    // Emoji badges - show the emoji
+    if (item.emoji) {
+      return <span className="preview-emoji">{item.emoji}</span>;
+    }
+
+    // BigPulp items (hats, moods, accessories) - show mapped emoji
+    if (item.category === 'bigpulp_hat' || item.category === 'bigpulp_mood' || item.category === 'bigpulp_accessory') {
+      const bigpulpEmoji = BIGPULP_EMOJIS[item.id];
+      if (bigpulpEmoji) {
+        return <span className="preview-emoji">{bigpulpEmoji}</span>;
+      }
+      // Fallback to orange for BigPulp
+      return <span className="preview-emoji">🍊</span>;
+    }
+
+    // Titles - show the actual title text
+    if (item.category === 'title') {
+      return (
+        <div className={`title-preview ${item.rarity === 'legendary' ? 'legendary' : ''}`}>
+          <span className="title-text">"{item.name}"</span>
+        </div>
+      );
+    }
+
+    // Celebrations - show animated preview
+    if (item.category === 'celebration') {
+      const celebType = CELEBRATION_TYPES[item.id] || 'confetti';
+      return (
+        <div className={`celebration-preview celebration-${celebType}`}>
+          <span className="celebration-icon">
+            {celebType === 'confetti' && '🎊'}
+            {celebType === 'orange-rain' && '🍊'}
+            {celebType === 'citrus-burst' && '💥'}
+            {celebType === 'fireworks' && '🎆'}
+          </span>
+        </div>
+      );
+    }
+
+    if (item.css_class) {
+      // For frames, show a demo frame with proper styling
+      if (item.category === 'frame') {
+        // Check if it's an emoji frame
+        const frameEmoji = item.css_class ? EMOJI_FRAME_MAP[item.css_class] : null;
+
+        if (frameEmoji) {
+          // Use EmojiFrame component for emoji-based frames
+          return (
+            <EmojiFrame
+              emoji={frameEmoji}
+              size={isLarge ? 'large' : 'small'}
+            >
+              <span style={{ fontSize: isLarge ? '2.5rem' : '1.5rem' }}>🍊</span>
+            </EmojiFrame>
+          );
+        }
+
+        // Regular frame with CSS effects
+        return (
+          <div className={`preview-frame ${item.css_class}`}>
+            <span>🍊</span>
+          </div>
+        );
+      }
+      // For name effects, show styled text
+      if (item.category === 'name_effect') {
+        return (
+          <span className={`preview-name-effect ${item.css_class}`} data-text="Name">
+            Name
+          </span>
+        );
+      }
+      // For backgrounds, show a swatch
+      if (item.category === 'background') {
+        return <div className={`preview-background ${item.css_class}`} />;
+      }
+    }
+    // Fallback
+    return <span className="preview-emoji">✨</span>;
   };
 
   return (
     <div className="shop-page">
-      {/* Header with Currency */}
+      {/* Header */}
       <div className="shop-header">
         <div className="shop-title-row">
-          <h1>Shop</h1>
+          <h1>Tang Gang Shop</h1>
           {onClose && (
             <button className="close-button" onClick={onClose}>
               ✕
@@ -273,89 +396,128 @@ export function Shop({ onClose }: ShopProps) {
         <CurrencyDisplay size="medium" />
       </div>
 
-      {/* Purchase Message */}
-      {purchaseMessage && (
-        <div className={`purchase-message ${purchaseMessage.type}`}>{purchaseMessage.text}</div>
+      {/* Message */}
+      {message && (
+        <div className={`purchase-message ${message.type}`}>
+          {message.text}
+        </div>
       )}
 
       {/* Category Tabs */}
       <div className="category-tabs">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat.value}
-            className={`category-tab ${activeCategory === cat.value ? 'active' : ''}`}
-            onClick={() => setActiveCategory(cat.value)}
-          >
-            {cat.label}
-          </button>
-        ))}
+        {CATEGORIES.map((cat) => {
+          const Icon = cat.icon;
+          return (
+            <button
+              key={cat.value}
+              className={`category-tab ${activeCategory === cat.value ? 'active' : ''}`}
+              onClick={() => setActiveCategory(cat.value)}
+            >
+              <Icon size={16} />
+              <span>{cat.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Items Grid */}
       {isLoading ? (
         <div className="loading-state">
           <Loader2 className="animate-spin" size={32} />
+          <span>Loading shop...</span>
         </div>
       ) : (
         <div className="items-grid">
           {filteredItems.map((item) => {
-            const isOwned = ownedItems.has(item.id);
-            const affordable = canAfford(item.price.oranges, item.price.gems);
+            const owned = isOwned(item.id);
+            const equipped = isEquipped(item);
+            const affordable = canAfford(item);
+            const isPurchasing = purchasingId === item.id;
+            const isEquiping = equipingId === item.id;
+            const canEquip = ['frame', 'title', 'name_effect', 'background', 'celebration'].includes(item.category);
 
             return (
               <div
                 key={item.id}
-                className={`shop-item-card rarity-${item.rarity} ${isOwned ? 'owned' : ''}`}
-                style={{ '--rarity-color': getRarityColor(item.rarity) } as React.CSSProperties}
+                className={`shop-item-card rarity-${item.rarity} ${owned ? 'owned' : ''} ${equipped ? 'equipped' : ''}`}
+                style={{ '--rarity-color': RARITY_COLORS[item.rarity] } as React.CSSProperties}
+                onClick={() => setPreviewItem(item)}
               >
                 {/* Rarity Badge */}
-                <span className={`rarity-badge rarity-${item.rarity}`}>{item.rarity}</span>
+                <span className={`rarity-badge rarity-${item.rarity}`}>
+                  {item.rarity}
+                </span>
 
                 {/* Limited Badge */}
-                {item.isLimited && <span className="limited-badge">Limited!</span>}
+                {item.is_limited && (
+                  <span className="limited-badge">
+                    {item.stock_remaining !== null
+                      ? `${item.stock_remaining} left`
+                      : 'Limited'}
+                  </span>
+                )}
+
+                {/* Equipped Badge */}
+                {equipped && <span className="equipped-badge">Equipped</span>}
 
                 {/* Item Preview */}
                 <div className="item-preview">
-                  {item.preview.startsWith('http') ? (
-                    <img src={item.preview} alt={item.name} />
-                  ) : (
-                    <span className="preview-emoji">{item.preview}</span>
-                  )}
+                  {renderItemPreview(item)}
                 </div>
 
                 {/* Item Info */}
                 <div className="item-info">
                   <span className="item-name">{item.name}</span>
-                  <span className="item-description">{item.description}</span>
+                  {item.description && (
+                    <span className="item-description">{item.description}</span>
+                  )}
                 </div>
 
-                {/* Price / Owned */}
-                <div className="item-footer">
-                  {isOwned ? (
-                    <span className="owned-badge">✓ Owned</span>
+                {/* Footer: Price / Actions */}
+                <div className="item-footer" onClick={e => e.stopPropagation()}>
+                  {owned ? (
+                    canEquip ? (
+                      <button
+                        className={`equip-button ${equipped ? 'unequip' : ''}`}
+                        onClick={() => handleEquip(item)}
+                        disabled={isEquiping}
+                      >
+                        {isEquiping ? (
+                          <Loader2 className="animate-spin" size={14} />
+                        ) : equipped ? (
+                          'Unequip'
+                        ) : (
+                          'Equip'
+                        )}
+                      </button>
+                    ) : (
+                      <span className="owned-badge">✓ Owned</span>
+                    )
                   ) : (
                     <>
                       <div className="item-price">
-                        {item.price.oranges && (
+                        {item.price_oranges > 0 && (
                           <span className="price oranges">
-                            🍊 {item.price.oranges.toLocaleString()}
+                            🍊 {item.price_oranges.toLocaleString()}
                           </span>
                         )}
-                        {item.price.gems && (
-                          <span className="price gems">💎 {item.price.gems}</span>
+                        {item.price_gems && item.price_gems > 0 && (
+                          <span className="price gems">
+                            💎 {item.price_gems}
+                          </span>
                         )}
                       </div>
                       <button
-                        disabled={!affordable || purchasingId === item.id}
-                        onClick={() => handlePurchase(item)}
                         className="buy-button"
+                        disabled={!affordable || isPurchasing}
+                        onClick={() => handlePurchase(item)}
                       >
-                        {purchasingId === item.id ? (
-                          <Loader2 className="animate-spin" size={16} />
+                        {isPurchasing ? (
+                          <Loader2 className="animate-spin" size={14} />
                         ) : affordable ? (
                           'Buy'
                         ) : (
-                          'Not enough'
+                          'Need more'
                         )}
                       </button>
                     </>
@@ -372,8 +534,52 @@ export function Shop({ onClose }: ShopProps) {
           )}
         </div>
       )}
+
+      {/* Preview Modal */}
+      {previewItem && (
+        <div className="preview-modal" onClick={() => setPreviewItem(null)}>
+          <div className="preview-content" onClick={e => e.stopPropagation()}>
+            <button className="preview-close" onClick={() => setPreviewItem(null)}>
+              ✕
+            </button>
+            <div className="preview-header">
+              <span className={`rarity-badge rarity-${previewItem.rarity}`}>
+                {previewItem.rarity}
+              </span>
+              <h2>{previewItem.name}</h2>
+            </div>
+            <div className="preview-large">
+              {renderItemPreview(previewItem, true)}
+            </div>
+            {previewItem.description && (
+              <p className="preview-description">{previewItem.description}</p>
+            )}
+            {previewItem.category === 'emoji_badge' && (
+              <div className="preview-demo">
+                <p className="demo-label">Preview in emoji ring:</p>
+                <EmojiRing
+                  username="YourName"
+                  positions={{
+                    left_1: previewItem.emoji,
+                    right_1: previewItem.emoji,
+                  }}
+                  size="large"
+                />
+              </div>
+            )}
+            {previewItem.category === 'name_effect' && previewItem.css_class && (
+              <div className="preview-demo">
+                <p className="demo-label">Preview effect:</p>
+                <span className={`demo-name ${previewItem.css_class}`} data-text="YourName">
+                  YourName
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+}
 
 export default Shop;

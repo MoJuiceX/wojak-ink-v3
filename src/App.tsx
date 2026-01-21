@@ -53,6 +53,7 @@ const Guild = lazy(() => import('./pages/Guild'));
 const Shop = lazy(() => import('./pages/Shop'));
 const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 const Achievements = lazy(() => import('./pages/Achievements'));
+const Drawer = lazy(() => import('./pages/Drawer'));
 
 // Games
 const OrangeStack = lazy(() => import('./pages/OrangeStack'));
@@ -70,6 +71,11 @@ const WojakWhack = lazy(() => import('./pages/WojakWhack'));
 
 // Skip boot sequence in development for faster testing
 const SKIP_BOOT_IN_DEV = true;
+
+// Check if running on localhost (for testing with production builds)
+const isLocalhost = () => {
+  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+};
 
 // Check if boot sequence was already shown this session (e.g., before OAuth redirect)
 const hasSeenBoot = () => {
@@ -90,9 +96,9 @@ const markBootComplete = () => {
 
 // Inner app component with access to router
 function AppContent() {
-  // Skip boot if: dev mode, or user already saw it this session
+  // Skip boot if: dev mode, localhost, or user already saw it this session
   const [isStartupComplete, setIsStartupComplete] = useState(
-    (import.meta.env.DEV && SKIP_BOOT_IN_DEV) || hasSeenBoot()
+    (import.meta.env.DEV && SKIP_BOOT_IN_DEV) || (SKIP_BOOT_IN_DEV && isLocalhost()) || hasSeenBoot()
   );
   const navigate = useNavigate();
   const location = useLocation();
@@ -111,8 +117,8 @@ function AppContent() {
     }, 50);
   };
 
-  // Show content if: startup complete, OR on landing page
-  const showContent = import.meta.env.DEV || isStartupComplete || isLandingPage;
+  // Show content if: startup complete, OR on landing page, OR localhost testing
+  const showContent = import.meta.env.DEV || isLocalhost() || isStartupComplete || isLandingPage;
 
   return (
     <PreloadProvider>
@@ -277,6 +283,14 @@ function AppContent() {
                     element={
                       <Suspense fallback={<PageSkeleton type="settings" />}>
                         <Achievements />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="drawer/:userId"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="settings" />}>
+                        <Drawer />
                       </Suspense>
                     }
                   />

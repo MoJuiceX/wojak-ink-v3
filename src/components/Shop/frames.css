@@ -1,0 +1,526 @@
+/**
+ * Shop Frame Styles (SPEC 12)
+ *
+ * Unique visual effects for all frame types:
+ * - Grove Tier (common): Basic borders
+ * - Orchard Tier (uncommon): Glow effects
+ * - Harvest Tier (rare): Animated effects
+ * - Legendary Tier: Complex animations
+ * - Legend Emoji Frames: Emoji borders
+ */
+
+/* =====================================================
+   COMMON FRAMES - Basic Borders
+   ===================================================== */
+
+.frame-seedling {
+  border: 3px solid #22c55e;
+  border-radius: 12px;
+}
+
+.frame-orange {
+  border: 3px solid #F97316;
+  border-radius: 12px;
+}
+
+/* =====================================================
+   UNCOMMON FRAMES - Glow Effects
+   ===================================================== */
+
+.frame-citrus-glow {
+  border: 3px solid #F97316;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(249, 115, 22, 0.5), inset 0 0 10px rgba(249, 115, 22, 0.2);
+}
+
+.frame-sunset-grove {
+  border: 3px solid transparent;
+  border-radius: 12px;
+  background:
+    linear-gradient(#1a1a2e, #1a1a2e) padding-box,
+    linear-gradient(135deg, #ff6b35, #f7c59f) border-box;
+  box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
+}
+
+.frame-honey-drip {
+  border: 3px solid #fbbf24;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+}
+
+.frame-ocean-mist {
+  border: 3px solid #06b6d4;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
+}
+
+.frame-berry-blush {
+  border: 3px solid #ec4899;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(236, 72, 153, 0.5);
+}
+
+.frame-mint-fresh {
+  border: 3px solid #34d399;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(52, 211, 153, 0.5);
+}
+
+.frame-lavender-dream {
+  border: 3px solid #a78bfa;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(167, 139, 250, 0.5);
+}
+
+.frame-arctic-frost {
+  border: 3px solid #67e8f9;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(103, 232, 249, 0.5), 0 0 30px rgba(103, 232, 249, 0.3);
+}
+
+/* =====================================================
+   RARE FRAMES - Animated Effects
+   ===================================================== */
+
+.frame-burning-citrus {
+  border: 3px solid #F97316;
+  border-radius: 12px;
+  box-shadow:
+    0 0 10px #F97316,
+    0 0 20px #ff6600,
+    0 0 30px rgba(255, 68, 0, 0.5);
+  animation: frame-burning 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes frame-burning {
+  0% {
+    box-shadow:
+      0 0 10px #F97316,
+      0 0 20px #ff6600,
+      0 0 30px rgba(255, 68, 0, 0.5);
+  }
+  100% {
+    box-shadow:
+      0 0 15px #F97316,
+      0 0 30px #ff6600,
+      0 0 45px rgba(255, 68, 0, 0.7);
+  }
+}
+
+.frame-electric-tang {
+  border: 3px solid #fbbf24;
+  border-radius: 12px;
+  animation: frame-electric 0.5s ease-in-out infinite;
+}
+
+@keyframes frame-electric {
+  0%, 100% {
+    box-shadow:
+      0 0 5px #fbbf24,
+      0 0 10px #fbbf24;
+  }
+  50% {
+    box-shadow:
+      0 0 15px #fbbf24,
+      0 0 25px #fbbf24,
+      0 0 35px rgba(251, 191, 36, 0.5);
+  }
+}
+
+.frame-liquid-gold {
+  border: 3px solid transparent;
+  border-radius: 12px;
+  background:
+    linear-gradient(#1a1a2e, #1a1a2e) padding-box,
+    linear-gradient(var(--gold-angle, 0deg), #ffd700, #ffb700, #ffa500, #ffb700, #ffd700) border-box;
+  animation: frame-liquid-gold 3s linear infinite;
+}
+
+@property --gold-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes frame-liquid-gold {
+  to {
+    --gold-angle: 360deg;
+  }
+}
+
+.frame-frozen-juice {
+  border: 3px solid #67e8f9;
+  border-radius: 12px;
+  box-shadow:
+    0 0 10px rgba(103, 232, 249, 0.5),
+    inset 0 0 15px rgba(103, 232, 249, 0.2);
+  animation: frame-frozen 2s ease-in-out infinite;
+}
+
+@keyframes frame-frozen {
+  0%, 100% {
+    box-shadow:
+      0 0 10px rgba(103, 232, 249, 0.5),
+      inset 0 0 15px rgba(103, 232, 249, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(103, 232, 249, 0.7),
+      0 0 30px rgba(103, 232, 249, 0.4),
+      inset 0 0 20px rgba(103, 232, 249, 0.3);
+  }
+}
+
+/* =====================================================
+   LEGENDARY EFFECT FRAMES - Complex Animations
+   ===================================================== */
+
+/* Aurora Grove - Northern lights effect */
+.frame-aurora-grove {
+  border: 3px solid transparent;
+  border-radius: 12px;
+  background:
+    linear-gradient(#1a1a2e, #1a1a2e) padding-box,
+    linear-gradient(var(--aurora-angle, 0deg),
+      #22c55e, #06b6d4, #3b82f6, #8b5cf6, #22c55e) border-box;
+  animation: frame-aurora 4s linear infinite;
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+}
+
+@property --aurora-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes frame-aurora {
+  to {
+    --aurora-angle: 360deg;
+  }
+}
+
+/* Void Citrus - Black hole effect */
+.frame-void-citrus {
+  border: 3px solid #7c3aed;
+  border-radius: 12px;
+  background:
+    linear-gradient(#0f0f1a, #0f0f1a) padding-box,
+    linear-gradient(var(--void-angle, 0deg),
+      #1a1a2e, #7c3aed, #F97316, #7c3aed, #1a1a2e) border-box;
+  animation: frame-void 3s linear infinite;
+  box-shadow:
+    0 0 15px rgba(124, 58, 237, 0.5),
+    inset 0 0 30px rgba(0, 0, 0, 0.8);
+}
+
+@property --void-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes frame-void {
+  to {
+    --void-angle: -360deg;
+  }
+}
+
+/* Holographic Tang - Rainbow shimmer */
+.frame-holographic-tang {
+  border: 3px solid transparent;
+  border-radius: 12px;
+  background:
+    linear-gradient(#1a1a2e, #1a1a2e) padding-box,
+    linear-gradient(var(--holo-angle, 0deg),
+      #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff0088, #ff0000) border-box;
+  animation: frame-holographic 3s linear infinite;
+}
+
+@property --holo-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes frame-holographic {
+  to {
+    --holo-angle: 360deg;
+  }
+}
+
+/* Supernova - Explosive star burst */
+.frame-supernova {
+  border: 3px solid #F97316;
+  border-radius: 12px;
+  box-shadow:
+    0 0 10px #F97316,
+    0 0 20px #F97316,
+    0 0 30px #ff6600,
+    0 0 40px #ff3300;
+  animation: frame-supernova-pulse 2s ease-in-out infinite;
+  position: relative;
+  overflow: visible;
+}
+
+@keyframes frame-supernova-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 10px #F97316,
+      0 0 20px #F97316,
+      0 0 30px #ff6600,
+      0 0 40px #ff3300;
+  }
+  50% {
+    box-shadow:
+      0 0 20px #F97316,
+      0 0 40px #F97316,
+      0 0 60px #ff6600,
+      0 0 80px #ff3300,
+      0 0 100px rgba(255, 0, 0, 0.5);
+  }
+}
+
+.frame-supernova::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 16px;
+  background: radial-gradient(circle at center, transparent 60%, rgba(249, 115, 22, 0.3) 100%);
+  animation: supernova-burst 1.5s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes supernova-burst {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+/* =====================================================
+   LEGEND EMOJI FRAMES - Emoji Borders
+   Using pseudo-elements with emoji backgrounds
+   ===================================================== */
+
+/* Base emoji frame setup */
+.frame-emoji-crown,
+.frame-emoji-tophat,
+.frame-emoji-cookie,
+.frame-emoji-frog,
+.frame-emoji-goose,
+.frame-emoji-trophy,
+.frame-emoji-fire {
+  border: none;
+  border-radius: 12px;
+  position: relative;
+  padding: 4px;
+}
+
+/* Crown Frame - 👑 */
+.frame-emoji-crown {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), transparent);
+}
+
+.frame-emoji-crown::before {
+  content: '👑👑👑👑👑👑👑👑👑👑👑👑';
+  position: absolute;
+  inset: -2px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  overflow: hidden;
+  border-radius: 14px;
+  pointer-events: none;
+  animation: emoji-rotate 10s linear infinite;
+  letter-spacing: 2px;
+  z-index: -1;
+}
+
+/* Top Hat Frame - 🎩 */
+.frame-emoji-tophat {
+  background: linear-gradient(135deg, rgba(75, 85, 99, 0.3), transparent);
+}
+
+.frame-emoji-tophat::before {
+  content: '🎩🎩🎩🎩🎩🎩🎩🎩🎩🎩🎩🎩';
+  position: absolute;
+  inset: -2px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  overflow: hidden;
+  border-radius: 14px;
+  pointer-events: none;
+  animation: emoji-rotate 10s linear infinite;
+  letter-spacing: 2px;
+  z-index: -1;
+}
+
+/* Cookie Frame - 🍪 */
+.frame-emoji-cookie {
+  background: linear-gradient(135deg, rgba(210, 180, 140, 0.2), transparent);
+}
+
+.frame-emoji-cookie::before {
+  content: '🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪';
+  position: absolute;
+  inset: -2px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  overflow: hidden;
+  border-radius: 14px;
+  pointer-events: none;
+  animation: emoji-rotate 10s linear infinite;
+  letter-spacing: 2px;
+  z-index: -1;
+}
+
+/* Frog Frame - 🐸 */
+.frame-emoji-frog {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), transparent);
+}
+
+.frame-emoji-frog::before {
+  content: '🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸';
+  position: absolute;
+  inset: -2px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  overflow: hidden;
+  border-radius: 14px;
+  pointer-events: none;
+  animation: emoji-rotate 10s linear infinite;
+  letter-spacing: 2px;
+  z-index: -1;
+}
+
+/* Goose Frame - 🪿 */
+.frame-emoji-goose {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+}
+
+.frame-emoji-goose::before {
+  content: '🪿🪿🪿🪿🪿🪿🪿🪿🪿🪿🪿🪿';
+  position: absolute;
+  inset: -2px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  overflow: hidden;
+  border-radius: 14px;
+  pointer-events: none;
+  animation: emoji-rotate 10s linear infinite;
+  letter-spacing: 2px;
+  z-index: -1;
+}
+
+/* Trophy Frame - 🏆 */
+.frame-emoji-trophy {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), transparent);
+}
+
+.frame-emoji-trophy::before {
+  content: '🏆🏆🏆🏆🏆🏆🏆🏆🏆🏆🏆🏆';
+  position: absolute;
+  inset: -2px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  overflow: hidden;
+  border-radius: 14px;
+  pointer-events: none;
+  animation: emoji-rotate 10s linear infinite;
+  letter-spacing: 2px;
+  z-index: -1;
+}
+
+/* Fire Frame - 🔥 */
+.frame-emoji-fire {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), transparent);
+}
+
+.frame-emoji-fire::before {
+  content: '🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥';
+  position: absolute;
+  inset: -2px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  overflow: hidden;
+  border-radius: 14px;
+  pointer-events: none;
+  animation: emoji-pulse 2s ease-in-out infinite;
+  letter-spacing: 2px;
+  z-index: -1;
+}
+
+@keyframes emoji-rotate {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes emoji-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+/* =====================================================
+   FRAME PREVIEW WRAPPER
+   Better container for shop previews
+   ===================================================== */
+
+.frame-preview-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+/* Ensure frames show correctly in preview */
+.preview-frame {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  position: relative;
+}
+
+/* Larger preview in modal */
+.preview-large .preview-frame {
+  width: 100px;
+  height: 100px;
+  font-size: 2.5rem;
+}

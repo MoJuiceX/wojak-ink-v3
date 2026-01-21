@@ -1,0 +1,756 @@
+/* ============================================
+   TANG GANG SHOP COSMETICS CSS
+   SPEC 12 v2.0 - All frames, name effects, backgrounds
+   ============================================ */
+
+/* ============================================
+   CSS CUSTOM PROPERTIES FOR ANIMATIONS
+   ============================================ */
+
+@property --liquid-gold-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@property --aurora-hue {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@property --void-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@property --holo-position {
+  syntax: '<percentage>';
+  initial-value: 0%;
+  inherits: false;
+}
+
+@property --electric-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* ============================================
+   SHOP VARIABLES
+   ============================================ */
+
+:root {
+  /* Tang Gang Orange Palette */
+  --tang-orange-500: #f97316;
+  --tang-orange-600: #ea580c;
+  --tang-honey: #fbbf24;
+  --tang-amber: #f59e0b;
+  --tang-gold: #ffd700;
+
+  /* Glow Colors */
+  --glow-orange: rgba(234, 88, 12, 0.6);
+  --glow-amber: rgba(245, 158, 11, 0.6);
+  --glow-honey: rgba(251, 191, 36, 0.6);
+  --glow-teal: rgba(20, 184, 166, 0.6);
+  --glow-pink: rgba(236, 72, 153, 0.6);
+  --glow-mint: rgba(52, 211, 153, 0.6);
+  --glow-lavender: rgba(167, 139, 250, 0.6);
+  --glow-ice: rgba(147, 197, 253, 0.6);
+
+  /* Emoji Ring Dimensions */
+  --ring-name-width: 200px;
+  --ring-emoji-size: 18px;
+  --ring-side-gap: 8px;
+  --ring-row-gap: 4px;
+}
+
+/* ============================================
+   FRAMES - GROVE TIER (1,250 🍊)
+   ============================================ */
+
+.frame-seedling {
+  border: 4px solid #22c55e;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+}
+
+.frame-orange {
+  border: 4px solid var(--tang-orange-600);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--glow-orange);
+}
+
+/* ============================================
+   FRAMES - ORCHARD TIER (3,750 🍊) - Glow Effects
+   ============================================ */
+
+.frame-citrus-glow {
+  border: 4px solid var(--tang-orange-600);
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px var(--glow-orange),
+    0 0 20px var(--glow-orange),
+    0 0 30px rgba(234, 88, 12, 0.3);
+  animation: glow-pulse-frame 2s ease-in-out infinite;
+}
+
+.frame-sunset-grove {
+  border: 4px solid var(--tang-amber);
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px var(--glow-amber),
+    0 0 20px var(--glow-amber),
+    0 0 30px rgba(245, 158, 11, 0.3);
+  animation: glow-pulse-frame 2s ease-in-out infinite;
+}
+
+.frame-honey-drip {
+  border: 4px solid var(--tang-honey);
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px var(--glow-honey),
+    0 0 20px var(--glow-honey),
+    0 0 30px rgba(251, 191, 36, 0.3);
+  animation: glow-pulse-frame 2s ease-in-out infinite;
+}
+
+.frame-ocean-mist {
+  border: 4px solid #14b8a6;
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px var(--glow-teal),
+    0 0 20px var(--glow-teal),
+    0 0 30px rgba(20, 184, 166, 0.3);
+  animation: glow-pulse-frame 2s ease-in-out infinite;
+}
+
+.frame-berry-blush {
+  border: 4px solid #ec4899;
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px var(--glow-pink),
+    0 0 20px var(--glow-pink),
+    0 0 30px rgba(236, 72, 153, 0.3);
+  animation: glow-pulse-frame 2s ease-in-out infinite;
+}
+
+.frame-mint-fresh {
+  border: 4px solid #34d399;
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px var(--glow-mint),
+    0 0 20px var(--glow-mint),
+    0 0 30px rgba(52, 211, 153, 0.3);
+  animation: glow-pulse-frame 2s ease-in-out infinite;
+}
+
+.frame-lavender-dream {
+  border: 4px solid #a78bfa;
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px var(--glow-lavender),
+    0 0 20px var(--glow-lavender),
+    0 0 30px rgba(167, 139, 250, 0.3);
+  animation: glow-pulse-frame 2s ease-in-out infinite;
+}
+
+.frame-arctic-frost {
+  border: 4px solid #93c5fd;
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px var(--glow-ice),
+    0 0 20px var(--glow-ice),
+    0 0 30px rgba(147, 197, 253, 0.3);
+  animation: glow-pulse-frame 2s ease-in-out infinite;
+}
+
+@keyframes glow-pulse-frame {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.2); }
+}
+
+/* ============================================
+   FRAMES - HARVEST TIER (12,500 🍊) - Animated
+   ============================================ */
+
+/* BURNING CITRUS */
+.frame-burning-citrus {
+  border: 4px solid var(--tang-orange-600);
+  border-radius: 50%;
+  position: relative;
+  animation: fire-flicker 0.15s ease-in-out infinite alternate;
+  box-shadow:
+    0 -5px 10px #ff4500,
+    5px 0 10px #ff6600,
+    0 5px 10px #ff8800,
+    -5px 0 10px #ffaa00;
+}
+
+@keyframes fire-flicker {
+  0% {
+    box-shadow:
+      0 -5px 10px #ff4500,
+      5px 0 10px #ff6600,
+      0 5px 10px #ff8800,
+      -5px 0 10px #ffaa00;
+  }
+  100% {
+    box-shadow:
+      0 -8px 15px #ff4500,
+      8px 0 15px #ff6600,
+      0 8px 15px #ff8800,
+      -8px 0 15px #ffaa00;
+  }
+}
+
+/* ELECTRIC TANG */
+.frame-electric-tang {
+  border: 4px solid var(--tang-orange-500);
+  border-radius: 50%;
+  position: relative;
+  animation: electric-base 0.1s ease-in-out infinite;
+}
+
+@keyframes electric-base {
+  0%, 100% { box-shadow: 0 0 15px var(--tang-orange-500); }
+  50% { box-shadow: 0 0 25px var(--tang-orange-500), 0 0 35px var(--tang-honey); }
+}
+
+/* LIQUID GOLD */
+.frame-liquid-gold {
+  border: 5px solid transparent;
+  border-radius: 50%;
+  background:
+    linear-gradient(#1a1a2e, #1a1a2e) padding-box,
+    linear-gradient(
+      var(--liquid-gold-angle),
+      #ffd700 0%,
+      #ffb700 15%,
+      #ffa500 30%,
+      #ffb700 45%,
+      #ffd700 60%,
+      #fff4b0 75%,
+      #ffd700 90%,
+      #ffb700 100%
+    ) border-box;
+  animation: liquid-gold-flow 3s linear infinite;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6));
+}
+
+@keyframes liquid-gold-flow {
+  0% { --liquid-gold-angle: 0deg; }
+  100% { --liquid-gold-angle: 360deg; }
+}
+
+/* FROZEN JUICE */
+.frame-frozen-juice {
+  border: 4px solid #a5d8ff;
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px rgba(165, 216, 255, 0.6),
+    0 0 20px rgba(165, 216, 255, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.3);
+  animation: frost-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes frost-shimmer {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.1) saturate(1.2); }
+}
+
+/* ============================================
+   FRAMES - LEGENDARY TIER (37,500 🍊)
+   ============================================ */
+
+/* AURORA GROVE */
+.frame-aurora-grove {
+  border: 5px solid transparent;
+  border-radius: 50%;
+  position: relative;
+  background:
+    linear-gradient(#1a1a2e, #1a1a2e) padding-box,
+    conic-gradient(
+      from var(--aurora-hue),
+      #22c55e, #3b82f6, #8b5cf6, #ec4899, #f97316, #fbbf24, #22c55e
+    ) border-box;
+  animation: aurora-rotate 8s linear infinite;
+  filter: saturate(1.3);
+}
+
+@keyframes aurora-rotate {
+  0% { --aurora-hue: 0deg; }
+  100% { --aurora-hue: 360deg; }
+}
+
+/* VOID CITRUS */
+.frame-void-citrus {
+  border: 5px solid transparent;
+  border-radius: 50%;
+  position: relative;
+  background:
+    radial-gradient(circle, #0a0a0a 40%, transparent 70%) padding-box,
+    conic-gradient(
+      from var(--void-angle),
+      #ea580c, #1a1a1a, #f97316, #0a0a0a, #fbbf24, #1a1a1a, #ea580c
+    ) border-box;
+  animation: void-spin 6s linear infinite;
+  box-shadow:
+    inset 0 0 30px rgba(0, 0, 0, 0.8),
+    0 0 20px rgba(234, 88, 12, 0.4);
+}
+
+@keyframes void-spin {
+  0% { --void-angle: 0deg; }
+  100% { --void-angle: 360deg; }
+}
+
+/* HOLOGRAPHIC TANG */
+.frame-holographic-tang {
+  border: 5px solid transparent;
+  border-radius: 50%;
+  position: relative;
+  background:
+    linear-gradient(#1a1a2e, #1a1a2e) padding-box,
+    linear-gradient(
+      135deg,
+      #ff6b6b var(--holo-position),
+      #feca57 calc(var(--holo-position) + 15%),
+      #48dbfb calc(var(--holo-position) + 30%),
+      #ff9ff3 calc(var(--holo-position) + 45%),
+      #54a0ff calc(var(--holo-position) + 60%),
+      #5f27cd calc(var(--holo-position) + 75%),
+      #ff6b6b calc(var(--holo-position) + 90%)
+    ) border-box;
+  animation: holo-shift 4s ease-in-out infinite;
+  filter: saturate(1.5) brightness(1.1);
+}
+
+@keyframes holo-shift {
+  0% { --holo-position: 0%; }
+  50% { --holo-position: 50%; }
+  100% { --holo-position: 0%; }
+}
+
+/* SUPERNOVA */
+.frame-supernova {
+  border: 5px solid var(--tang-orange-500);
+  border-radius: 50%;
+  position: relative;
+  animation: supernova-core 2s ease-in-out infinite;
+}
+
+@keyframes supernova-core {
+  0%, 100% { box-shadow: 0 0 20px var(--tang-orange-500); }
+  50% { box-shadow: 0 0 40px var(--tang-honey), 0 0 60px var(--tang-orange-500); }
+}
+
+/* ============================================
+   FRAMES - LEGEND EMOJI FRAMES (37,500 🍊)
+   ============================================ */
+
+.frame-emoji-crown,
+.frame-emoji-tophat,
+.frame-emoji-cookie,
+.frame-emoji-frog,
+.frame-emoji-goose,
+.frame-emoji-trophy,
+.frame-emoji-fire {
+  border: 4px solid var(--tang-orange-500);
+  border-radius: 50%;
+  position: relative;
+  box-shadow: 0 0 15px var(--glow-orange);
+}
+
+/* ============================================
+   NAME EFFECTS - BASIC TIER (1,250 🍊)
+   ============================================ */
+
+.name-citrus-text {
+  color: var(--tang-orange-600);
+}
+
+.name-bold-grove {
+  color: var(--tang-orange-600);
+  font-weight: 700;
+}
+
+.name-shimmer {
+  background: linear-gradient(90deg, var(--tang-orange-600) 0%, var(--tang-honey) 50%, var(--tang-orange-600) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: name-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes name-shimmer {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+.name-pulse {
+  color: var(--tang-orange-600);
+  animation: name-pulse 2s ease-in-out infinite;
+}
+
+@keyframes name-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.name-gradient-flow {
+  background: linear-gradient(90deg, var(--tang-orange-600), var(--tang-amber), var(--tang-honey), var(--tang-amber), var(--tang-orange-600));
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-flow 4s ease-in-out infinite;
+}
+
+@keyframes gradient-flow {
+  0% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+  100% { background-position: 0% center; }
+}
+
+/* ============================================
+   NAME EFFECTS - ANIMATED TIER (7,500 🍊)
+   ============================================ */
+
+.name-rainbow-tang {
+  background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff, #5f27cd, #ff6b6b);
+  background-size: 400% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: rainbow-cycle 5s linear infinite;
+}
+
+@keyframes rainbow-cycle {
+  0% { background-position: 0% center; }
+  100% { background-position: 400% center; }
+}
+
+.name-glitch {
+  color: var(--tang-orange-600);
+  position: relative;
+  animation: glitch-skew 1s infinite linear alternate-reverse;
+}
+
+.name-glitch::before,
+.name-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.name-glitch::before {
+  color: #ff00ff;
+  animation: glitch-effect 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+}
+
+.name-glitch::after {
+  color: #00ffff;
+  animation: glitch-effect 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse infinite;
+  clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+}
+
+@keyframes glitch-skew {
+  0%, 100% { transform: skew(0deg); }
+  20% { transform: skew(-2deg); }
+  40% { transform: skew(2deg); }
+}
+
+@keyframes glitch-effect {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0); }
+}
+
+.name-fire-text {
+  color: #ff4500;
+  text-shadow:
+    0 0 5px #ff4500,
+    0 0 10px #ff6600,
+    0 0 15px #ff8800,
+    0 0 20px #ffaa00,
+    0 -5px 10px rgba(255, 100, 0, 0.5);
+  animation: fire-text-flicker 0.15s ease-in-out infinite alternate;
+}
+
+@keyframes fire-text-flicker {
+  0% { text-shadow: 0 0 5px #ff4500, 0 0 10px #ff6600, 0 0 15px #ff8800, 0 0 20px #ffaa00, 0 -5px 10px rgba(255, 100, 0, 0.5); }
+  100% { text-shadow: 0 0 8px #ff4500, 0 0 15px #ff6600, 0 0 20px #ff8800, 0 0 25px #ffaa00, 0 -8px 15px rgba(255, 100, 0, 0.7); }
+}
+
+.name-neon-sign {
+  color: var(--tang-orange-500);
+  text-shadow:
+    0 0 5px var(--tang-orange-500),
+    0 0 10px var(--tang-orange-500),
+    0 0 20px var(--tang-orange-500),
+    0 0 40px var(--tang-orange-600);
+  animation: neon-flicker 1.5s infinite alternate;
+}
+
+@keyframes neon-flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    text-shadow: 0 0 5px var(--tang-orange-500), 0 0 10px var(--tang-orange-500), 0 0 20px var(--tang-orange-500), 0 0 40px var(--tang-orange-600);
+  }
+  20%, 24%, 55% { text-shadow: none; }
+}
+
+.name-matrix {
+  color: #00ff00;
+  text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
+  animation: matrix-glow 0.5s ease-in-out infinite alternate;
+  font-family: 'Courier New', monospace;
+}
+
+@keyframes matrix-glow {
+  0% { text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00; }
+  100% { text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00; }
+}
+
+/* ============================================
+   NAME EFFECTS - LEGENDARY TIER (20,000 🍊)
+   ============================================ */
+
+.name-dripping-gold {
+  background: linear-gradient(180deg, #ffd700 0%, #ffb700 30%, #ffa500 60%, #cc8400 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.5));
+}
+
+.name-electric-shock {
+  color: var(--tang-orange-500);
+  text-shadow: 0 0 10px #fff, 0 0 20px var(--tang-orange-500), 0 0 30px var(--tang-orange-500);
+  animation: electric-shock 0.1s linear infinite;
+}
+
+@keyframes electric-shock {
+  0%, 100% { text-shadow: 0 0 10px #fff, 0 0 20px var(--tang-orange-500); transform: translate(0, 0); }
+  25% { text-shadow: 2px 0 10px #fff; transform: translate(1px, 0); }
+  50% { text-shadow: -2px 0 10px #fff; transform: translate(-1px, 0); }
+  75% { text-shadow: 0 2px 10px #fff; transform: translate(0, 1px); }
+}
+
+.name-void-whisper {
+  color: #1a1a1a;
+  text-shadow: 0 0 10px var(--tang-orange-600), 0 0 20px var(--tang-orange-600), 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.name-supernova-text {
+  color: var(--tang-orange-500);
+  text-shadow: 0 0 10px var(--tang-orange-500), 0 0 20px var(--tang-honey), 0 0 30px var(--tang-orange-600), 0 0 40px var(--tang-honey);
+  animation: supernova-text-pulse 2s ease-in-out infinite;
+}
+
+@keyframes supernova-text-pulse {
+  0%, 100% { text-shadow: 0 0 10px var(--tang-orange-500), 0 0 20px var(--tang-honey); transform: scale(1); }
+  50% { text-shadow: 0 0 20px var(--tang-orange-500), 0 0 40px var(--tang-honey), 0 0 60px var(--tang-orange-600); transform: scale(1.02); }
+}
+
+/* FOUNDER'S NAME GLOW */
+.name-founders-glow {
+  background: linear-gradient(90deg, var(--tang-gold) 0%, var(--tang-amber) 25%, var(--tang-honey) 50%, var(--tang-amber) 75%, var(--tang-gold) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: founder-name-shimmer 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+  font-weight: 700;
+}
+
+@keyframes founder-name-shimmer {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+/* ============================================
+   BACKGROUNDS
+   ============================================ */
+
+/* Solid Colors (1,250 🍊) */
+.bg-midnight { background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); }
+.bg-sunset { background: linear-gradient(135deg, var(--tang-orange-600) 0%, #9a3412 100%); }
+.bg-honey { background: linear-gradient(135deg, var(--tang-honey) 0%, var(--tang-amber) 100%); }
+.bg-forest { background: linear-gradient(135deg, #166534 0%, #14532d 100%); }
+.bg-ember { background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); }
+
+/* Gradients (3,750 🍊) */
+.bg-orange-sunrise { background: linear-gradient(135deg, var(--tang-orange-600) 0%, var(--tang-amber) 50%, var(--tang-honey) 100%); }
+.bg-twilight-grove { background: linear-gradient(135deg, #7c3aed 0%, var(--tang-orange-500) 50%, #ec4899 100%); }
+.bg-deep-ocean { background: linear-gradient(135deg, #1e3a5f 0%, #0891b2 100%); }
+.bg-cotton-candy { background: linear-gradient(135deg, #ec4899 0%, #fb923c 50%, var(--tang-honey) 100%); }
+
+/* Animated (12,500 🍊) */
+.bg-citrus-rain {
+  background: linear-gradient(180deg, #1a1a2e 0%, #2d1810 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.bg-floating-oranges {
+  background: linear-gradient(180deg, #1a1a2e 0%, #2d2010 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Premium Animated (20,000 🍊) */
+.bg-orange-grove {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(34, 197, 94, 0.2) 0%, transparent 50%),
+    linear-gradient(180deg, #0f172a 0%, #1a2010 100%);
+}
+
+.bg-starfield {
+  background: radial-gradient(ellipse at 50% 50%, rgba(234, 88, 12, 0.2) 0%, transparent 50%), linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 100%);
+}
+
+.bg-matrix-tang {
+  background: #0a0a0a;
+  position: relative;
+  overflow: hidden;
+}
+
+/* FOUNDER'S BACKGROUND */
+.bg-founders-grove {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(251, 191, 36, 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(234, 88, 12, 0.3) 0%, transparent 50%),
+    linear-gradient(180deg, #1a1510 0%, #2d1f10 50%, #1a1510 100%);
+  animation: founder-bg-pulse 5s ease-in-out infinite;
+}
+
+@keyframes founder-bg-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.1); }
+}
+
+/* ============================================
+   CELEBRATIONS
+   ============================================ */
+
+.celebration-confetti,
+.celebration-orange-rain,
+.celebration-citrus-explosion,
+.celebration-fireworks {
+  /* Placeholder - handled by JS canvas effects */
+}
+
+/* ============================================
+   EMOJI RING COMPONENT
+   ============================================ */
+
+.emoji-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ring-row-gap);
+}
+
+/* Size Variants */
+.ring-normal {
+  --ring-name-width: 200px;
+  --ring-emoji-size: 18px;
+  --ring-font-size: 16px;
+}
+
+.ring-compact {
+  --ring-name-width: 160px;
+  --ring-emoji-size: 14px;
+  --ring-font-size: 14px;
+}
+
+.ring-large {
+  --ring-name-width: 240px;
+  --ring-emoji-size: 22px;
+  --ring-font-size: 18px;
+}
+
+/* Top and Bottom Rows */
+.ring-row {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  min-height: var(--ring-emoji-size);
+  width: calc(var(--ring-name-width) + 60px);
+}
+
+.ring-emoji {
+  font-size: var(--ring-emoji-size);
+  line-height: 1;
+}
+
+/* Middle Section */
+.ring-middle {
+  display: flex;
+  align-items: center;
+  gap: var(--ring-side-gap);
+}
+
+/* Side Columns */
+.ring-column {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 24px;
+  align-items: center;
+}
+
+/* Name Area - FIXED WIDTH */
+.ring-name-area {
+  width: var(--ring-name-width);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ring-username {
+  font-size: var(--ring-font-size);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.ring-title {
+  font-size: calc(var(--ring-font-size) * 0.75);
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+/* Leaderboard Layout */
+.leaderboard-row .emoji-ring {
+  --ring-name-width: 180px;
+}
+
+/* ============================================
+   RARITY COLORS
+   ============================================ */
+
+.rarity-common { --rarity-color: #9ca3af; }
+.rarity-uncommon { --rarity-color: #22c55e; }
+.rarity-rare { --rarity-color: #3b82f6; }
+.rarity-epic { --rarity-color: #a855f7; }
+.rarity-legendary { --rarity-color: #f59e0b; }
+.rarity-founder { --rarity-color: linear-gradient(135deg, #fbbf24, #ea580c); }
+
+.rarity-glow {
+  box-shadow: 0 0 10px var(--rarity-color);
+}

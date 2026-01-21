@@ -1,0 +1,913 @@
+/**
+ * Drawer Customization Styles (SPEC 12B)
+ *
+ * All CSS classes for customizable drawer elements:
+ * - Font colors, styles, families
+ * - Page backgrounds
+ * - Avatar effects
+ * - Card styles
+ * - Animations
+ */
+
+/* =====================================================
+   FONT STYLES
+   ===================================================== */
+
+.font-style-normal {
+  font-weight: 400;
+  font-style: normal;
+}
+
+.font-style-bold {
+  font-weight: 700;
+}
+
+.font-style-italic {
+  font-style: italic;
+}
+
+.font-style-bold-italic {
+  font-weight: 700;
+  font-style: italic;
+}
+
+.font-style-outline {
+  -webkit-text-stroke: 1px currentColor;
+  color: transparent;
+}
+
+.font-style-shadow {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.font-style-glow {
+  text-shadow:
+    0 0 10px currentColor,
+    0 0 20px currentColor,
+    0 0 30px currentColor;
+}
+
+.font-style-3d {
+  text-shadow:
+    1px 1px 0 rgba(0, 0, 0, 0.3),
+    2px 2px 0 rgba(0, 0, 0, 0.2),
+    3px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* =====================================================
+   PAGE BACKGROUNDS - Solid Colors
+   ===================================================== */
+
+.drawer-bg-midnight-black {
+  background: #0a0a0a;
+}
+
+.drawer-bg-deep-navy {
+  background: #0a1628;
+}
+
+.drawer-bg-forest-green {
+  background: #0a1f0a;
+}
+
+.drawer-bg-wine-red {
+  background: #1f0a0a;
+}
+
+.drawer-bg-royal-purple {
+  background: #1a0a28;
+}
+
+.drawer-bg-charcoal {
+  background: #1a1a1a;
+}
+
+/* =====================================================
+   PAGE BACKGROUNDS - Gradients
+   ===================================================== */
+
+.drawer-bg-gradient-sunset {
+  background: linear-gradient(135deg, #0a0a0a 0%, #4a1942 50%, #0a1628 100%);
+}
+
+.drawer-bg-gradient-ocean {
+  background: linear-gradient(135deg, #0a1628 0%, #0a4a4a 50%, #0a0a1f 100%);
+}
+
+.drawer-bg-gradient-aurora {
+  background: linear-gradient(135deg, #1a0a28 0%, #0a281a 50%, #0a1f4a 100%);
+}
+
+.drawer-bg-gradient-ember {
+  background: linear-gradient(135deg, #0a0a0a 0%, #3d0a0a 50%, #4a2800 100%);
+}
+
+.drawer-bg-gradient-golden {
+  background: linear-gradient(135deg, #0a0a0a 0%, #3d3d00 50%, #4a2800 100%);
+}
+
+/* =====================================================
+   PAGE BACKGROUNDS - Patterns
+   ===================================================== */
+
+.drawer-bg-pattern-grid {
+  background-color: #0a0a0a;
+  background-image:
+    linear-gradient(rgba(249, 115, 22, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(249, 115, 22, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.drawer-bg-pattern-dots {
+  background-color: #0a0a0a;
+  background-image: radial-gradient(rgba(249, 115, 22, 0.2) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.drawer-bg-pattern-diagonal {
+  background-color: #0a0a0a;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(249, 115, 22, 0.05) 10px,
+    rgba(249, 115, 22, 0.05) 20px
+  );
+}
+
+.drawer-bg-pattern-hexagons {
+  background-color: #0a0a0a;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23f97316' fill-opacity='0.1'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+.drawer-bg-pattern-circuit {
+  background-color: #0a0a0a;
+  background-image:
+    linear-gradient(rgba(249, 115, 22, 0.1) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(249, 115, 22, 0.1) 2px, transparent 2px),
+    linear-gradient(rgba(249, 115, 22, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(249, 115, 22, 0.05) 1px, transparent 1px);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+}
+
+.drawer-bg-pattern-stars {
+  background-color: #0a0a0a;
+  background-image:
+    radial-gradient(white 1px, transparent 1px),
+    radial-gradient(rgba(249, 115, 22, 0.8) 1px, transparent 1px);
+  background-size: 100px 100px, 50px 50px;
+  background-position: 0 0, 25px 25px;
+}
+
+/* =====================================================
+   PAGE BACKGROUNDS - Animated
+   ===================================================== */
+
+.drawer-bg-anim-floating-oranges {
+  background: #0a0a0a;
+  position: relative;
+  overflow: hidden;
+}
+
+.drawer-bg-anim-floating-oranges::before {
+  content: '🍊';
+  position: absolute;
+  font-size: 30px;
+  animation: float-oranges 15s linear infinite;
+  opacity: 0.3;
+}
+
+@keyframes float-oranges {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    left: 10%;
+  }
+  25% {
+    left: 30%;
+  }
+  50% {
+    left: 60%;
+  }
+  75% {
+    left: 40%;
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg);
+    left: 80%;
+  }
+}
+
+.drawer-bg-anim-particles {
+  background: #0a0a0a;
+  position: relative;
+}
+
+.drawer-bg-anim-particles::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, #F97316 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: particles-float 20s linear infinite;
+  opacity: 0.3;
+}
+
+@keyframes particles-float {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50px);
+  }
+}
+
+.drawer-bg-anim-matrix {
+  background: #0a0a0a;
+  position: relative;
+  overflow: hidden;
+}
+
+.drawer-bg-anim-matrix::before {
+  content: '🍊0🍊1🍊0🍊1';
+  position: absolute;
+  font-size: 14px;
+  color: #F97316;
+  opacity: 0.2;
+  animation: matrix-fall 10s linear infinite;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+}
+
+@keyframes matrix-fall {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+.drawer-bg-anim-starfield {
+  background: radial-gradient(ellipse at bottom, #0a1628 0%, #0a0a0a 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.drawer-bg-anim-starfield::before,
+.drawer-bg-anim-starfield::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(white 1px, transparent 1px);
+  background-size: 200px 200px;
+  animation: starfield-move 100s linear infinite;
+}
+
+.drawer-bg-anim-starfield::after {
+  background-size: 100px 100px;
+  animation-duration: 50s;
+  opacity: 0.5;
+}
+
+@keyframes starfield-move {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(200px);
+  }
+}
+
+.drawer-bg-anim-aurora {
+  background: linear-gradient(to bottom, #0a0a0a, #0a1f0a);
+  position: relative;
+  overflow: hidden;
+}
+
+.drawer-bg-anim-aurora::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 200%;
+  height: 50%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(34, 197, 94, 0.2),
+    rgba(59, 130, 246, 0.2),
+    rgba(168, 85, 247, 0.2),
+    transparent
+  );
+  animation: aurora-wave 10s ease-in-out infinite;
+  filter: blur(30px);
+}
+
+@keyframes aurora-wave {
+  0%, 100% {
+    transform: translateX(-10%) skewX(-5deg);
+  }
+  50% {
+    transform: translateX(10%) skewX(5deg);
+  }
+}
+
+.drawer-bg-anim-grove {
+  background: linear-gradient(to bottom, #0a0a0a, #1f2a0a);
+  position: relative;
+}
+
+/* =====================================================
+   PAGE BACKGROUNDS - Legendary
+   ===================================================== */
+
+.drawer-bg-legendary-void {
+  background: radial-gradient(ellipse at center, #1a0a28 0%, #0a0a0a 70%);
+  position: relative;
+  overflow: hidden;
+}
+
+.drawer-bg-legendary-void::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(
+    circle,
+    transparent 30%,
+    rgba(124, 58, 237, 0.3) 50%,
+    rgba(249, 115, 22, 0.2) 70%,
+    transparent 100%
+  );
+  transform: translate(-50%, -50%);
+  animation: void-pulse 4s ease-in-out infinite;
+}
+
+@keyframes void-pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.5);
+    filter: hue-rotate(30deg);
+  }
+}
+
+.drawer-bg-legendary-supernova {
+  background: radial-gradient(ellipse at center, #2a1a0a 0%, #0a0a0a 60%);
+  position: relative;
+  overflow: hidden;
+}
+
+.drawer-bg-legendary-supernova::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 200, 100, 0.5) 0%,
+    rgba(249, 115, 22, 0.3) 30%,
+    rgba(255, 50, 0, 0.2) 60%,
+    transparent 100%
+  );
+  transform: translate(-50%, -50%);
+  animation: supernova-explode 3s ease-out infinite;
+}
+
+@keyframes supernova-explode {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+.drawer-bg-legendary-holographic {
+  background: linear-gradient(
+    var(--holo-bg-angle, 135deg),
+    #0a0a1a 0%,
+    #1a0a2a 25%,
+    #0a1a2a 50%,
+    #2a1a0a 75%,
+    #0a0a1a 100%
+  );
+  animation: holo-bg-shift 10s linear infinite;
+}
+
+@property --holo-bg-angle {
+  syntax: '<angle>';
+  initial-value: 135deg;
+  inherits: false;
+}
+
+@keyframes holo-bg-shift {
+  to {
+    --holo-bg-angle: 495deg;
+  }
+}
+
+/* =====================================================
+   AVATAR GLOW EFFECTS
+   ===================================================== */
+
+.avatar-glow-soft {
+  filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.3));
+}
+
+.avatar-glow-medium {
+  filter: drop-shadow(0 0 15px rgba(249, 115, 22, 0.5));
+}
+
+.avatar-glow-strong {
+  filter: drop-shadow(0 0 20px rgba(249, 115, 22, 0.7))
+          drop-shadow(0 0 30px rgba(249, 115, 22, 0.4));
+}
+
+.avatar-glow-pulsing {
+  animation: avatar-pulse 2s ease-in-out infinite;
+}
+
+@keyframes avatar-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(249, 115, 22, 0.7))
+            drop-shadow(0 0 40px rgba(249, 115, 22, 0.4));
+  }
+}
+
+.avatar-glow-rainbow {
+  animation: avatar-rainbow 3s linear infinite;
+}
+
+@keyframes avatar-rainbow {
+  0% { filter: drop-shadow(0 0 20px rgba(255, 0, 0, 0.5)); }
+  16% { filter: drop-shadow(0 0 20px rgba(255, 165, 0, 0.5)); }
+  33% { filter: drop-shadow(0 0 20px rgba(255, 255, 0, 0.5)); }
+  50% { filter: drop-shadow(0 0 20px rgba(0, 255, 0, 0.5)); }
+  66% { filter: drop-shadow(0 0 20px rgba(0, 0, 255, 0.5)); }
+  83% { filter: drop-shadow(0 0 20px rgba(128, 0, 255, 0.5)); }
+  100% { filter: drop-shadow(0 0 20px rgba(255, 0, 0, 0.5)); }
+}
+
+/* =====================================================
+   AVATAR SIZE
+   ===================================================== */
+
+.avatar-size-normal {
+  transform: scale(1);
+}
+
+.avatar-size-large {
+  transform: scale(1.25);
+}
+
+.avatar-size-xlarge {
+  transform: scale(1.5);
+}
+
+.avatar-size-massive {
+  transform: scale(1.75);
+}
+
+/* =====================================================
+   BIGPULP POSITION
+   ===================================================== */
+
+.bigpulp-right {
+  order: 2;
+}
+
+.bigpulp-left {
+  order: 0;
+}
+
+.bigpulp-center {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bigpulp-hidden {
+  display: none;
+}
+
+/* =====================================================
+   CARD STYLES
+   ===================================================== */
+
+.card-default {
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.card-minimal {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.card-fancy {
+  background: linear-gradient(135deg, rgba(40, 30, 20, 0.9), rgba(20, 15, 10, 0.9));
+  border: 2px solid rgba(249, 115, 22, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.card-neon {
+  background: rgba(10, 10, 10, 0.9);
+  border: 2px solid #F97316;
+  border-radius: 8px;
+  box-shadow:
+    0 0 10px rgba(249, 115, 22, 0.5),
+    inset 0 0 10px rgba(249, 115, 22, 0.1);
+}
+
+.card-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+}
+
+.card-pixel {
+  background: #1a1a1a;
+  border: 4px solid #F97316;
+  border-radius: 0;
+  image-rendering: pixelated;
+}
+
+/* =====================================================
+   ENTRANCE ANIMATIONS
+   ===================================================== */
+
+.entrance-fade {
+  animation: entrance-fade-in 0.5s ease-out forwards;
+}
+
+@keyframes entrance-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.entrance-slide {
+  animation: entrance-slide-up 0.5s ease-out forwards;
+}
+
+@keyframes entrance-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.entrance-zoom {
+  animation: entrance-zoom-in 0.5s ease-out forwards;
+}
+
+@keyframes entrance-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.entrance-bounce {
+  animation: entrance-bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+@keyframes entrance-bounce-in {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.entrance-dramatic {
+  animation: entrance-dramatic-reveal 1.5s ease-out forwards;
+}
+
+@keyframes entrance-dramatic-reveal {
+  0% {
+    opacity: 0;
+    filter: blur(20px) brightness(2);
+    transform: scale(1.2);
+  }
+  50% {
+    filter: blur(5px) brightness(1.5);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0) brightness(1);
+    transform: scale(1);
+  }
+}
+
+.entrance-glitch {
+  animation: entrance-glitch-in 0.5s ease-out forwards;
+}
+
+@keyframes entrance-glitch-in {
+  0% {
+    opacity: 0;
+    transform: translate(-5px, 0);
+    filter: hue-rotate(90deg);
+  }
+  20% {
+    transform: translate(5px, 0);
+    filter: hue-rotate(180deg);
+  }
+  40% {
+    transform: translate(-3px, 0);
+    filter: hue-rotate(270deg);
+  }
+  60% {
+    transform: translate(3px, 0);
+    filter: hue-rotate(0deg);
+  }
+  80% {
+    transform: translate(-1px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0);
+    filter: hue-rotate(0deg);
+  }
+}
+
+/* =====================================================
+   VISITOR COUNTER STYLES
+   ===================================================== */
+
+.visitor-simple {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.visitor-styled {
+  padding: 8px 16px;
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: #F97316;
+}
+
+.visitor-animated {
+  padding: 8px 16px;
+  background: linear-gradient(90deg, rgba(249, 115, 22, 0.2), rgba(249, 115, 22, 0.1));
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: #F97316;
+  animation: visitor-glow 2s ease-in-out infinite;
+}
+
+@keyframes visitor-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(249, 115, 22, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(249, 115, 22, 0.5);
+  }
+}
+
+/* =====================================================
+   STATS STYLES
+   ===================================================== */
+
+.stats-default {
+  display: flex;
+  gap: 1rem;
+}
+
+.stats-minimal {
+  display: flex;
+  gap: 2rem;
+  font-size: 0.9rem;
+}
+
+.stats-minimal .stat-card {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.stats-detailed {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.stats-fancy .stat-card {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), transparent);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.stats-hidden {
+  display: none;
+}
+
+/* =====================================================
+   COLLECTION LAYOUTS
+   ===================================================== */
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 1rem;
+}
+
+.layout-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.layout-list .collection-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.layout-showcase {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.layout-showcase .collection-item:first-child {
+  grid-column: span 2;
+}
+
+.layout-carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 1rem;
+  padding-bottom: 1rem;
+}
+
+.layout-carousel .collection-item {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
+
+.layout-masonry {
+  columns: 3;
+  column-gap: 1rem;
+}
+
+.layout-masonry .collection-item {
+  break-inside: avoid;
+  margin-bottom: 1rem;
+}
+
+/* =====================================================
+   CATEGORY TABS STYLES
+   ===================================================== */
+
+.tabs-default {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.5rem;
+}
+
+.tabs-pills {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tabs-pills button {
+  border-radius: 20px;
+  padding: 8px 16px;
+}
+
+.tabs-underline {
+  display: flex;
+  gap: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tabs-underline button {
+  background: transparent;
+  border: none;
+  padding: 8px 0;
+  position: relative;
+}
+
+.tabs-underline button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #F97316;
+}
+
+.tabs-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tabs-chips button {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.tabs-hidden {
+  display: none;
+}
+
+/* =====================================================
+   DIALOGUE STYLES
+   ===================================================== */
+
+.dialogue-default {
+  background: rgba(30, 30, 30, 0.9);
+  border-radius: 12px;
+  padding: 12px 16px;
+  position: relative;
+}
+
+.dialogue-default::before {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  right: 20px;
+  border: 8px solid transparent;
+  border-top-color: rgba(30, 30, 30, 0.9);
+}
+
+.dialogue-pixel {
+  background: #1a1a1a;
+  border: 4px solid #F97316;
+  padding: 12px 16px;
+  image-rendering: pixelated;
+}
+
+.dialogue-elegant {
+  background: linear-gradient(135deg, rgba(40, 30, 20, 0.95), rgba(20, 15, 10, 0.95));
+  border: 2px solid rgba(249, 115, 22, 0.5);
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.dialogue-comic {
+  background: #fff;
+  color: #000;
+  border: 3px solid #000;
+  border-radius: 20px;
+  padding: 12px 16px;
+  font-weight: 600;
+}
+
+.dialogue-minimal {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.dialogue-none {
+  background: transparent;
+  border: none;
+  padding: 0;
+}

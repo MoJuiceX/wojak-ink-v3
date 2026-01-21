@@ -13,6 +13,7 @@ import './styles/tokens.css'
 import './styles/animations.css'
 import './styles/utilities.css'
 import './styles/mobile.css'
+import './styles/shop-cosmetics.css'
 import App from './App.tsx'
 
 /* Initialize Ionic React */
