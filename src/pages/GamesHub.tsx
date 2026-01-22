@@ -9,7 +9,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useClerk } from '@clerk/clerk-react';
+import { useClerk, useAuth } from '@clerk/clerk-react';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useLayout } from '@/hooks/useLayout';
 import { GamesGrid, GameModal } from '@/components/media';
@@ -60,41 +60,41 @@ export default function GamesHub() {
     isLoading: isVotingLoading,
   } = useFlickVoting('games');
 
-  // Track user's vote balances (decreases when they vote)
-  // Persist to localStorage so balance survives navigation
-  const [donutBalance, setDonutBalance] = useState(() => {
-    try {
-      const saved = localStorage.getItem('wojak_donut_balance');
-      return saved !== null ? parseInt(saved, 10) : 100;
-    } catch {
-      return 100;
-    }
-  });
-  const [poopBalance, setPoopBalance] = useState(() => {
-    try {
-      const saved = localStorage.getItem('wojak_poop_balance');
-      return saved !== null ? parseInt(saved, 10) : 50;
-    } catch {
-      return 50;
-    }
-  });
+  // Track user's vote balances (consumables from the shop)
+  const [donutBalance, setDonutBalance] = useState(0);
+  const [poopBalance, setPoopBalance] = useState(0);
+  const authResult = CLERK_ENABLED ? useAuth() : { getToken: async () => null };
+  const { getToken } = authResult;
 
-  // Save balances to localStorage whenever they change
+  // Fetch consumable balances from API when signed in
   useEffect(() => {
-    try {
-      localStorage.setItem('wojak_donut_balance', String(donutBalance));
-    } catch {
-      // Ignore storage errors
-    }
-  }, [donutBalance]);
+    const fetchConsumables = async () => {
+      if (!isSignedIn) {
+        setDonutBalance(0);
+        setPoopBalance(0);
+        return;
+      }
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('wojak_poop_balance', String(poopBalance));
-    } catch {
-      // Ignore storage errors
-    }
-  }, [poopBalance]);
+      try {
+        const token = await getToken();
+        if (!token) return;
+
+        const res = await fetch('/api/shop/consumables', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setDonutBalance(data.donuts || 0);
+          setPoopBalance(data.poops || 0);
+        }
+      } catch (err) {
+        console.error('[GamesHub] Failed to fetch consumables:', err);
+      }
+    };
+
+    fetchConsumables();
+  }, [isSignedIn, getToken]);
 
   const toggleRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -197,13 +197,15 @@ export default function GamesHub() {
     });
   }, [activeMode, flickState.flyingEmoji, getTogglePosition, donutBalance, poopBalance]);
 
-  const handleEmojiLand = useCallback(() => {
+  const handleEmojiLand = useCallback(async () => {
     if (!flickState.flyingEmoji) return;
 
     const { type, end, targetId, xPercent, yPercent } = flickState.flyingEmoji;
 
     SoundManager.playVoteImpact(type);
-    addVote(targetId, type, xPercent, yPercent);
+
+    // Send vote to server and get new balance
+    const result = await addVote(targetId, type, xPercent, yPercent);
 
     // Save vote locally for heatmap display
     setLocalVotes(prev => [...prev, {
@@ -214,11 +216,13 @@ export default function GamesHub() {
       targetId,
     }]);
 
-    // Decrease the balance
-    if (type === 'donut') {
-      setDonutBalance(prev => Math.max(0, prev - 1));
-    } else {
-      setPoopBalance(prev => Math.max(0, prev - 1));
+    // Update balance from server response
+    if (result.success && result.newBalance !== undefined) {
+      if (type === 'donut') {
+        setDonutBalance(result.newBalance);
+      } else {
+        setPoopBalance(result.newBalance);
+      }
     }
 
     setFlickState({

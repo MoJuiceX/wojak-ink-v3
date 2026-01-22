@@ -20,6 +20,8 @@ import { GameScoresGrid } from '@/components/Account/GameScoresGrid';
 import { NftGallery } from '@/components/Account/NftGallery';
 import { InventorySection } from '@/components/Account/InventorySection';
 import { RecentActivity } from '@/components/Account/RecentActivity';
+import { FriendsWidget } from '@/components/Account/FriendsWidget';
+import { AchievementsWidget } from '@/components/Account/AchievementsWidget';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { DrawerEditor } from '@/components/Shop/DrawerEditor';
 
@@ -32,13 +34,14 @@ const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const WOJAK_COLLECTION_ID = 'col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah';
 
 export default function Account() {
-  const { contentPadding, isDesktop } = useLayout();
+  const { contentPadding } = useLayout();
   const navigate = useNavigate();
   const clerk = useClerk();
 
-  // Get user ID from Clerk for fetching scores
-  const authResult = CLERK_ENABLED ? useAuth() : { userId: null };
+  // Get user ID and token from Clerk for fetching scores
+  const authResult = CLERK_ENABLED ? useAuth() : { userId: null, getToken: async () => null };
   const userId = authResult.userId;
+  const getToken = authResult.getToken;
 
   const {
     profile,
@@ -55,8 +58,33 @@ export default function Account() {
     getNFTs,
   } = useSageWallet();
 
-  // Mock voting counts - replace with actual data from voting context
-  const [votingCounts] = useState({ donuts: 10, poops: 10 });
+  // Voting consumables - fetch from API
+  const [votingCounts, setVotingCounts] = useState({ donuts: 0, poops: 0 });
+
+  // Fetch consumables on mount and when user changes
+  useEffect(() => {
+    const fetchConsumables = async () => {
+      if (!isSignedIn) {
+        setVotingCounts({ donuts: 0, poops: 0 });
+        return;
+      }
+
+      try {
+        const token = await getToken();
+        const res = await fetch('/api/shop/consumables', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setVotingCounts({ donuts: data.donuts || 0, poops: data.poops || 0 });
+        }
+      } catch (err) {
+        console.error('[Account] Failed to fetch consumables:', err);
+      }
+    };
+
+    fetchConsumables();
+  }, [isSignedIn, getToken]);
 
   // Drawer editor state
   const [isDrawerEditorOpen, setIsDrawerEditorOpen] = useState(false);
@@ -64,8 +92,145 @@ export default function Account() {
   // Mock activities - replace with actual activity tracking
   const [activities] = useState<any[]>([]);
 
-  // Mock inventory items - replace with actual CurrencyContext inventory
-  const [inventoryItems] = useState<any[]>([]);
+  // Inventory items from shop
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [_equippedItems, setEquippedItems] = useState<{
+    frame_id: string | null;
+    title_id: string | null;
+    name_effect_id: string | null;
+    background_id: string | null;
+    celebration_id: string | null;
+  }>({
+    frame_id: null,
+    title_id: null,
+    name_effect_id: null,
+    background_id: null,
+    celebration_id: null,
+  });
+
+  // Fetch inventory when signed in
+  useEffect(() => {
+    const fetchInventory = async () => {
+      if (!isSignedIn) {
+        setInventoryItems([]);
+        return;
+      }
+
+      try {
+        const token = await getToken();
+        const res = await fetch('/api/shop/inventory', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setEquippedItems(data.equipped || {
+            frame_id: null,
+            title_id: null,
+            name_effect_id: null,
+            background_id: null,
+            celebration_id: null,
+          });
+          // Map items with equipped status
+          const itemsWithEquipped = (data.items || []).map((item: any) => ({
+            ...item,
+            equipped:
+              (item.category === 'frame' && data.equipped?.frame_id === item.item_id) ||
+              (item.category === 'title' && data.equipped?.title_id === item.item_id) ||
+              (item.category === 'name_effect' && data.equipped?.name_effect_id === item.item_id) ||
+              (item.category === 'background' && data.equipped?.background_id === item.item_id) ||
+              (item.category === 'celebration' && data.equipped?.celebration_id === item.item_id),
+          }));
+          setInventoryItems(itemsWithEquipped);
+        }
+      } catch (err) {
+        console.error('[Account] Failed to fetch inventory:', err);
+      }
+    };
+
+    fetchInventory();
+  }, [isSignedIn, getToken]);
+
+  // Equip handler
+  const handleEquip = async (itemId: string, category: string) => {
+    if (!isSignedIn) return;
+
+    const slotMap: Record<string, string> = {
+      frame: 'frame',
+      title: 'title',
+      name_effect: 'name_effect',
+      background: 'background',
+      celebration: 'celebration',
+    };
+
+    const slot = slotMap[category];
+    if (!slot) return;
+
+    try {
+      const token = await getToken();
+      const res = await fetch('/api/shop/equip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ slot, itemId }),
+      });
+
+      if (res.ok) {
+        // Update local state
+        setEquippedItems(prev => ({ ...prev, [`${slot}_id`]: itemId }));
+        setInventoryItems(prev =>
+          prev.map(item => ({
+            ...item,
+            equipped: item.category === category ? item.item_id === itemId : item.equipped,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error('[Account] Failed to equip item:', err);
+    }
+  };
+
+  // Unequip handler
+  const handleUnequip = async (category: string) => {
+    if (!isSignedIn) return;
+
+    const slotMap: Record<string, string> = {
+      frame: 'frame',
+      title: 'title',
+      name_effect: 'name_effect',
+      background: 'background',
+      celebration: 'celebration',
+    };
+
+    const slot = slotMap[category];
+    if (!slot) return;
+
+    try {
+      const token = await getToken();
+      const res = await fetch('/api/shop/equip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ slot, itemId: null }),
+      });
+
+      if (res.ok) {
+        // Update local state
+        setEquippedItems(prev => ({ ...prev, [`${slot}_id`]: null }));
+        setInventoryItems(prev =>
+          prev.map(item => ({
+            ...item,
+            equipped: item.category === category ? false : item.equipped,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error('[Account] Failed to unequip item:', err);
+    }
+  };
 
   // Track owned NFT IDs
   const [ownedNftIds, setOwnedNftIds] = useState<string[]>([]);
@@ -138,9 +303,8 @@ export default function Account() {
       <div
         style={{
           padding: contentPadding,
-          maxWidth: isDesktop ? '800px' : undefined,
-          margin: '0 auto',
         }}
+        className="account-page"
       >
         <div className="account-dashboard">
           {/* Profile Header */}
@@ -225,6 +389,8 @@ export default function Account() {
           <InventorySection
             items={inventoryItems}
             isOwnProfile={true}
+            onEquip={handleEquip}
+            onUnequip={handleUnequip}
           />
 
           {/* Drawer Customization */}
@@ -261,6 +427,12 @@ export default function Account() {
 
           {/* Recent Activity */}
           <RecentActivity activities={activities} />
+
+          {/* Social Widgets Row */}
+          <div className="account-widgets-row">
+            <FriendsWidget />
+            <AchievementsWidget />
+          </div>
 
           {/* Account Actions */}
           <div className="account-actions">

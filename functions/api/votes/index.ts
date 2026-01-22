@@ -2,9 +2,13 @@
  * Votes API - POST /api/votes
  *
  * Submit a vote (donut or poop) with position data
+ * Requires authentication and deducts from user's consumables
  */
 
+import { authenticateRequest } from '../../lib/auth';
+
 interface Env {
+  CLERK_DOMAIN: string;
   DB: D1Database;
 }
 
@@ -30,6 +34,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
 
   try {
+    // Authenticate user
+    const auth = await authenticateRequest(request, env.CLERK_DOMAIN);
+    if (!auth) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: corsHeaders,
+      });
+    }
+
     const body = await request.json() as {
       targetId: string;
       pageType: string;
@@ -65,6 +78,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       });
     }
 
+    // Check user has consumables
+    const consumableType = emoji; // 'donut' or 'poop'
+    const consumable = await env.DB.prepare(`
+      SELECT quantity FROM user_consumables
+      WHERE user_id = ? AND consumable_type = ?
+    `).bind(auth.userId, consumableType).first<{ quantity: number }>();
+
+    if (!consumable || consumable.quantity <= 0) {
+      return new Response(JSON.stringify({
+        error: 'No consumables available',
+        type: consumableType,
+        balance: consumable?.quantity || 0,
+      }), {
+        status: 400,
+        headers: corsHeaders,
+      });
+    }
+
     // Get IP for rate limiting (privacy-preserving hash)
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
     const ipHash = hashIP(ip);
@@ -83,20 +114,40 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       });
     }
 
-    // Insert vote
-    await env.DB.prepare(`
-      INSERT INTO votes (page_type, target_id, emoji, x_percent, y_percent, ip_hash, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-    `).bind(
-      pageType,
-      targetId,
-      emoji,
-      xPercent ?? null,
-      yPercent ?? null,
-      ipHash
-    ).run();
+    // Atomic transaction: decrement consumable and insert vote
+    await env.DB.batch([
+      // Decrement consumable
+      env.DB.prepare(`
+        UPDATE user_consumables
+        SET quantity = quantity - 1, updated_at = datetime('now')
+        WHERE user_id = ? AND consumable_type = ? AND quantity > 0
+      `).bind(auth.userId, consumableType),
 
-    return new Response(JSON.stringify({ success: true }), {
+      // Insert vote
+      env.DB.prepare(`
+        INSERT INTO votes (page_type, target_id, emoji, x_percent, y_percent, user_id, ip_hash, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        pageType,
+        targetId,
+        emoji,
+        xPercent ?? null,
+        yPercent ?? null,
+        auth.userId,
+        ipHash
+      ),
+    ]);
+
+    // Return new balance
+    const newBalance = await env.DB.prepare(`
+      SELECT quantity FROM user_consumables
+      WHERE user_id = ? AND consumable_type = ?
+    `).bind(auth.userId, consumableType).first<{ quantity: number }>();
+
+    return new Response(JSON.stringify({
+      success: true,
+      newBalance: newBalance?.quantity || 0,
+    }), {
       status: 200,
       headers: corsHeaders,
     });

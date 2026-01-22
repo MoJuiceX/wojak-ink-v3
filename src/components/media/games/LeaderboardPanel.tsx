@@ -2,62 +2,65 @@
  * Leaderboard Panel Component
  *
  * Displays top scores across all games in the sidebar.
+ * Fetches global #1 scores from server database.
+ * Ordered by game popularity (votes).
  */
 
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trophy } from 'lucide-react';
+import { Avatar } from '@/components/Avatar/Avatar';
 import { GAME_NAMES, type GameId } from '@/types/leaderboard';
 
 interface TopScore {
   gameId: GameId;
   gameName: string;
   playerName: string;
+  userId: string;
   score: number;
+  avatar: {
+    type: 'emoji' | 'nft';
+    value: string;
+    source: 'default' | 'user' | 'wallet';
+  };
+  equipped: {
+    frame: { name: string; emoji: string | null; css_class: string | null } | null;
+    title: { name: string; emoji: string | null; css_class: string | null } | null;
+    nameEffect: { name: string; emoji: string | null; css_class: string | null } | null;
+  };
 }
 
-// Storage key matching LeaderboardContext
-const SCORES_KEY = 'wojak_scores';
-
 export function LeaderboardPanel() {
+  const navigate = useNavigate();
   const [topScores, setTopScores] = useState<TopScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch top score per game from localStorage
-    const fetchTopScores = () => {
+    // Fetch top score per game from server (already ordered by popularity)
+    const fetchTopScores = async () => {
       try {
-        const allScores = JSON.parse(localStorage.getItem(SCORES_KEY) || '[]');
-        const allUsers = JSON.parse(localStorage.getItem('wojak_users') || '{}');
+        const response = await fetch('/api/leaderboard/top-per-game');
+        if (!response.ok) throw new Error('Failed to fetch');
 
-        // Get best score per game
-        const gameTopScores = new Map<GameId, TopScore>();
+        const data = await response.json();
 
-        allScores.forEach((score: any) => {
-          const gameId = score.gameId as GameId;
-          const gameName = GAME_NAMES[gameId];
-          if (!gameName) return;
+        const scores: TopScore[] = (data.topScores || []).map((entry: any) => ({
+          gameId: entry.gameId as GameId,
+          gameName: GAME_NAMES[entry.gameId as GameId] || entry.gameId,
+          playerName: entry.displayName || 'Player',
+          userId: entry.userId,
+          score: entry.score,
+          avatar: {
+            type: entry.avatar?.type || 'emoji',
+            value: entry.avatar?.value || '🎮',
+            source: entry.avatar?.source || 'default',
+          },
+          equipped: entry.equipped || { frame: null, title: null, nameEffect: null },
+        }));
 
-          const userData = allUsers[score.googleId];
-          const playerName = userData?.displayName || 'Player';
-
-          const existing = gameTopScores.get(gameId);
-          if (!existing || score.score > existing.score) {
-            gameTopScores.set(gameId, {
-              gameId,
-              gameName,
-              playerName,
-              score: score.score,
-            });
-          }
-        });
-
-        // Sort by score descending and take top entries
-        const sorted = Array.from(gameTopScores.values())
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 8);
-
-        setTopScores(sorted);
+        // Already sorted by popularity from API
+        setTopScores(scores.slice(0, 15));
       } catch (error) {
         console.error('Failed to fetch top scores:', error);
       } finally {
@@ -67,6 +70,10 @@ export function LeaderboardPanel() {
 
     fetchTopScores();
   }, []);
+
+  const handlePlayerClick = (userId: string) => {
+    navigate(`/profile/${userId}`);
+  };
 
   return (
     <div
@@ -97,7 +104,7 @@ export function LeaderboardPanel() {
             {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
-                className="h-12 rounded-lg animate-pulse"
+                className="h-14 rounded-lg animate-pulse"
                 style={{ background: 'var(--color-border)' }}
               />
             ))}
@@ -127,44 +134,49 @@ export function LeaderboardPanel() {
             {topScores.map((entry, index) => (
               <motion.div
                 key={entry.gameId}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer"
                 style={{
                   background: 'var(--color-bg-primary)',
                   border: '1px solid var(--color-border)',
                 }}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: index * 0.03 }}
+                whileHover={{ backgroundColor: 'rgba(249, 115, 22, 0.1)' }}
+                onClick={() => handlePlayerClick(entry.userId)}
               >
-                {/* Rank */}
-                <span
-                  className="text-xs font-bold w-5 text-center"
-                  style={{
-                    color: index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : 'var(--color-text-muted)',
-                  }}
-                >
-                  {index + 1}
-                </span>
+                {/* Player Avatar */}
+                <Avatar
+                  avatar={entry.avatar}
+                  size="small"
+                  showBorder={true}
+                />
 
-                {/* Game info */}
+                {/* Player info */}
                 <div className="flex-1 min-w-0">
-                  <p
-                    className="text-xs font-medium truncate"
-                    style={{ color: 'var(--color-text-primary)' }}
-                  >
-                    {entry.gameName}
-                  </p>
+                  <div className="flex items-center gap-1">
+                    <p
+                      className={`text-xs font-semibold truncate ${entry.equipped.nameEffect?.css_class || ''}`}
+                      style={{ color: 'var(--color-text-primary)' }}
+                    >
+                      {entry.playerName}
+                    </p>
+                    {/* Show equipped title emoji if any */}
+                    {entry.equipped.title?.emoji && (
+                      <span className="text-[10px]">{entry.equipped.title.emoji}</span>
+                    )}
+                  </div>
                   <p
                     className="text-[10px] truncate"
                     style={{ color: 'var(--color-text-muted)' }}
                   >
-                    {entry.playerName}
+                    {entry.gameName}
                   </p>
                 </div>
 
                 {/* Score */}
                 <span
-                  className="text-xs font-bold"
+                  className="text-xs font-bold flex-shrink-0"
                   style={{ color: 'var(--color-brand-primary)' }}
                 >
                   {entry.score.toLocaleString()}

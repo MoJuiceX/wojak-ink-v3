@@ -6,17 +6,32 @@
  * sliding time filters, and dramatic empty state.
  */
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ChevronDown, Trophy, Gamepad2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useLeaderboard } from '../../contexts/LeaderboardContext';
 import { useFriends } from '../../contexts/FriendsContext';
 import { LeaderboardEntry } from './LeaderboardEntry';
 import { NFTGatePrompt } from './NFTGatePrompt';
 import type { GameId } from '../../types/leaderboard';
 import { GAME_NAMES } from '../../types/leaderboard';
 import './Leaderboard.css';
+
+// Type for leaderboard entry from API
+interface LeaderboardEntryData {
+  rank: number;
+  userId: string;
+  displayName: string;
+  avatar: {
+    type: 'emoji' | 'nft';
+    value: string;
+    source: 'default' | 'user' | 'wallet';
+  };
+  score: number;
+  level?: number;
+  createdAt: string;
+  isCurrentUser?: boolean;
+}
 
 // Game emojis for selector
 const GAME_EMOJIS: Record<GameId, string> = {
@@ -54,7 +69,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 }) => {
   const prefersReducedMotion = useReducedMotion();
   const { user } = useAuth();
-  const { leaderboard, fetchLeaderboard, canUserCompete } = useLeaderboard();
   const { friends, isFriend } = useFriends();
   const [selectedGame, setSelectedGame] = useState<GameId>(initialGameId);
   const [timeframe, setTimeframe] = useState<TimeframeType>('all-time');
@@ -62,24 +76,52 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Server-side leaderboard state
+  const [entries, setEntries] = useState<LeaderboardEntryData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch leaderboard from server API
+  const fetchLeaderboard = useCallback(async (gameId: GameId) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/leaderboard/${gameId}?limit=100`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch leaderboard');
+      }
+      const data = await response.json();
+
+      // Mark current user's entries
+      const entriesWithUser = (data.entries || []).map((entry: LeaderboardEntryData) => ({
+        ...entry,
+        isCurrentUser: user?.id === entry.userId,
+      }));
+
+      setEntries(entriesWithUser);
+    } catch (err) {
+      console.error('[Leaderboard] Fetch error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load leaderboard');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
+
   // Filter entries based on selected tab
   const filteredEntries = useMemo(() => {
-    if (!leaderboard.entries) return [];
+    if (!entries) return [];
 
     if (filter === 'friends') {
-      return leaderboard.entries.filter(entry => isFriend(entry.userId));
+      return entries.filter(entry => isFriend(entry.userId));
     }
 
-    return leaderboard.entries;
-  }, [leaderboard.entries, filter, isFriend]);
+    return entries;
+  }, [entries, filter, isFriend]);
 
   useEffect(() => {
-    fetchLeaderboard({
-      gameId: selectedGame,
-      timeframe,
-      limit: 100,
-    });
-  }, [selectedGame, timeframe, fetchLeaderboard]);
+    fetchLeaderboard(selectedGame);
+  }, [selectedGame, fetchLeaderboard]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -92,7 +134,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const isNftHolder = canUserCompete();
+  const isNftHolder = !!user;
   const activeFilterIndex = TIME_FILTERS.findIndex(f => f.value === timeframe);
 
   const handleGameSelect = (gameId: GameId) => {
@@ -259,7 +301,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
       <div className="leaderboard-content-area">
         <AnimatePresence mode="wait">
           {/* Loading State */}
-          {leaderboard.isLoading && (
+          {isLoading && (
             <motion.div
               key="loading"
               className="leaderboard-loading"
@@ -283,7 +325,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
           )}
 
           {/* Error State */}
-          {!leaderboard.isLoading && leaderboard.error && (
+          {!isLoading && error && (
             <motion.div
               key="error"
               className="leaderboard-error"
@@ -293,14 +335,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               transition={{ duration: 0.2 }}
             >
               <p>Failed to load leaderboard</p>
-              <button onClick={() => fetchLeaderboard({ gameId: selectedGame, timeframe })}>
+              <button onClick={() => fetchLeaderboard(selectedGame)}>
                 Retry
               </button>
             </motion.div>
           )}
 
           {/* Leaderboard Entries */}
-          {!leaderboard.isLoading && !leaderboard.error && (
+          {!isLoading && !error && (
             <motion.div
               key={`entries-${timeframe}`}
               className="leaderboard-entries"
@@ -390,17 +432,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             </div>
           )}
 
-          {/* User's Position (if not in visible list) */}
-          {leaderboard.userEntry && leaderboard.userRank && leaderboard.userRank > 100 && (
-            <div className="user-position-footer">
-              <div className="separator">• • •</div>
-              <LeaderboardEntry
-                entry={leaderboard.userEntry}
-                isHighlighted
-                index={0}
-              />
-            </div>
-          )}
+          {/* User's Position - highlighted if in list */}
 
           {/* Epic Empty State - fade only, no slide */}
           {filteredEntries.length === 0 && (

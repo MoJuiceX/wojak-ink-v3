@@ -250,19 +250,21 @@ export function Sidebar({
         </ul>
       </nav>
 
-      {/* Gallery filter/sort controls - hovering here expands the sidebar */}
-      <div
-        className="flex-shrink-0"
-        style={{
-          paddingTop: 8,
-          paddingBottom: 8,
-          paddingLeft: LAYOUT.sidebar.paddingX,
-          paddingRight: LAYOUT.sidebar.paddingX,
-        }}
-        onMouseEnter={handleExpandableZoneEnter}
-      >
-        <GallerySidebarControls showLabels={showExpanded} />
-      </div>
+      {/* Gallery filter/sort controls - only show on Gallery page */}
+      {location.pathname === '/gallery' && (
+        <div
+          className="flex-shrink-0"
+          style={{
+            paddingTop: 8,
+            paddingBottom: 8,
+            paddingLeft: LAYOUT.sidebar.paddingX,
+            paddingRight: LAYOUT.sidebar.paddingX,
+          }}
+          onMouseEnter={handleExpandableZoneEnter}
+        >
+          <GallerySidebarControls showLabels={showExpanded} />
+        </div>
+      )}
 
       {/* Separator */}
       <div

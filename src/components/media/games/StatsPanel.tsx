@@ -2,93 +2,80 @@
  * Stats Panel Component
  *
  * Displays user's personal gaming statistics in the sidebar.
+ * Fetches user scores from server database.
+ * Shows tooltip on hover with next rank info.
  */
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, Gamepad2, Target, Flame, Clock } from 'lucide-react';
+import { BarChart3, Gamepad2, Trophy, TrendingUp } from 'lucide-react';
+import { useAuth } from '@clerk/clerk-react';
 import { GAME_NAMES, type GameId } from '@/types/leaderboard';
 
-interface UserStats {
-  totalGamesPlayed: number;
-  favoriteGame: string | null;
-  highestScore: number;
-  highestScoreGame: string | null;
-  totalPlayTime: number; // in minutes (estimated)
-  gamesWithScores: number;
+// Check if Clerk is configured
+const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+interface NextRankInfo {
+  rank: number;
+  userId: string;
+  displayName: string;
+  score: number;
+  pointsNeeded: number;
 }
 
-// Storage key matching LeaderboardContext
-const SCORES_KEY = 'wojak_scores';
+interface GameScore {
+  gameId: GameId;
+  gameName: string;
+  highScore: number;
+  rank: number | null;
+  nextRank: NextRankInfo | null;
+}
 
 export function StatsPanel() {
-  const [stats, setStats] = useState<UserStats | null>(null);
+  const [gameScores, setGameScores] = useState<GameScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hoveredGame, setHoveredGame] = useState<GameId | null>(null);
+
+  // Get user ID from Clerk
+  const authResult = CLERK_ENABLED ? useAuth() : { userId: null };
+  const userId = authResult.userId;
 
   useEffect(() => {
-    const fetchStats = () => {
+    const fetchStats = async () => {
+      if (!userId) {
+        setGameScores([]);
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        const allScores = JSON.parse(localStorage.getItem(SCORES_KEY) || '[]');
+        const response = await fetch(`/api/scores/${userId}`);
+        if (!response.ok) throw new Error('Failed to fetch');
 
-        if (allScores.length === 0) {
-          setStats(null);
-          setIsLoading(false);
-          return;
-        }
+        const data = await response.json();
 
-        // Count games per gameId
-        const gameCounts = new Map<GameId, number>();
-        let highestScore = 0;
-        let highestScoreGameId: GameId | null = null;
+        const scores: GameScore[] = (data.scores || []).map((s: any) => ({
+          gameId: s.gameId as GameId,
+          gameName: GAME_NAMES[s.gameId as GameId] || s.gameId,
+          highScore: s.highScore,
+          rank: s.rank,
+          nextRank: s.nextRank || null,
+        }));
 
-        allScores.forEach((score: any) => {
-          const gameId = score.gameId as GameId;
-          gameCounts.set(gameId, (gameCounts.get(gameId) || 0) + 1);
+        // Sort by high score descending
+        scores.sort((a, b) => b.highScore - a.highScore);
 
-          if (score.score > highestScore) {
-            highestScore = score.score;
-            highestScoreGameId = gameId;
-          }
-        });
-
-        // Find favorite game (most played)
-        let favoriteGameId: GameId | null = null;
-        let maxPlays = 0;
-        gameCounts.forEach((count, gameId) => {
-          if (count > maxPlays) {
-            maxPlays = count;
-            favoriteGameId = gameId;
-          }
-        });
-
-        // Estimate play time (rough: 2 min per game session)
-        const estimatedPlayTime = allScores.length * 2;
-
-        setStats({
-          totalGamesPlayed: allScores.length,
-          favoriteGame: favoriteGameId ? GAME_NAMES[favoriteGameId] : null,
-          highestScore,
-          highestScoreGame: highestScoreGameId ? GAME_NAMES[highestScoreGameId] : null,
-          totalPlayTime: estimatedPlayTime,
-          gamesWithScores: gameCounts.size,
-        });
+        setGameScores(scores);
       } catch (error) {
         console.error('Failed to fetch stats:', error);
-        setStats(null);
+        setGameScores([]);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchStats();
-  }, []);
-
-  const formatPlayTime = (minutes: number): string => {
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-  };
+  }, [userId]);
 
   return (
     <div
@@ -108,23 +95,23 @@ export function StatsPanel() {
           className="text-sm font-semibold"
           style={{ color: 'var(--color-text-primary)' }}
         >
-          Your Stats
+          Your High Scores
         </h3>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-3">
         {isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
-                className="h-16 rounded-lg animate-pulse"
+                className="h-12 rounded-lg animate-pulse"
                 style={{ background: 'var(--color-border)' }}
               />
             ))}
           </div>
-        ) : !stats ? (
+        ) : !userId ? (
           <div className="text-center py-8">
             <Gamepad2
               size={32}
@@ -135,177 +122,166 @@ export function StatsPanel() {
               className="text-sm"
               style={{ color: 'var(--color-text-muted)' }}
             >
-              No stats yet
+              Sign in to track scores
+            </p>
+          </div>
+        ) : gameScores.length === 0 ? (
+          <div className="text-center py-8">
+            <Gamepad2
+              size={32}
+              className="mx-auto mb-2 opacity-30"
+              style={{ color: 'var(--color-text-muted)' }}
+            />
+            <p
+              className="text-sm"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              No scores yet
             </p>
             <p
               className="text-xs mt-1"
               style={{ color: 'var(--color-text-muted)' }}
             >
-              Start playing to track your progress!
+              Play games to see your high scores!
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {/* Total Games Played */}
-            <motion.div
-              className="px-3 py-3 rounded-lg"
-              style={{
-                background: 'var(--color-bg-primary)',
-                border: '1px solid var(--color-border)',
-              }}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0 }}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <Gamepad2 size={14} style={{ color: 'var(--color-text-muted)' }} />
-                <span
-                  className="text-[10px] uppercase tracking-wide"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  Games Played
-                </span>
-              </div>
-              <p
-                className="text-xl font-bold"
-                style={{ color: 'var(--color-text-primary)' }}
-              >
-                {stats.totalGamesPlayed.toLocaleString()}
-              </p>
-            </motion.div>
-
-            {/* Highest Score */}
-            <motion.div
-              className="px-3 py-3 rounded-lg"
-              style={{
-                background: 'var(--color-bg-primary)',
-                border: '1px solid var(--color-border)',
-              }}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.05 }}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <Target size={14} style={{ color: 'var(--color-text-muted)' }} />
-                <span
-                  className="text-[10px] uppercase tracking-wide"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  Best Score
-                </span>
-              </div>
-              <p
-                className="text-xl font-bold"
-                style={{ color: 'var(--color-brand-primary)' }}
-              >
-                {stats.highestScore.toLocaleString()}
-              </p>
-              {stats.highestScoreGame && (
-                <p
-                  className="text-[10px] mt-0.5"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  in {stats.highestScoreGame}
-                </p>
-              )}
-            </motion.div>
-
-            {/* Favorite Game */}
-            {stats.favoriteGame && (
+          <div className="space-y-2">
+            {gameScores.map((game, index) => (
               <motion.div
-                className="px-3 py-3 rounded-lg"
+                key={game.gameId}
+                className="relative px-3 py-2 rounded-lg"
                 style={{
                   background: 'var(--color-bg-primary)',
                   border: '1px solid var(--color-border)',
                 }}
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
+                transition={{ delay: index * 0.05 }}
+                onMouseEnter={() => setHoveredGame(game.gameId)}
+                onMouseLeave={() => setHoveredGame(null)}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <Flame size={14} style={{ color: 'var(--color-text-muted)' }} />
+                <div className="flex items-center gap-2">
+                  {/* Game info */}
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="text-xs font-medium truncate"
+                      style={{ color: 'var(--color-text-primary)' }}
+                    >
+                      {game.gameName}
+                    </p>
+                    {game.rank && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <Trophy size={10} style={{ color: '#ffd700' }} />
+                        <span
+                          className="text-[10px]"
+                          style={{ color: 'var(--color-text-muted)' }}
+                        >
+                          Rank #{game.rank}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Score */}
                   <span
-                    className="text-[10px] uppercase tracking-wide"
-                    style={{ color: 'var(--color-text-muted)' }}
+                    className="text-sm font-bold cursor-help"
+                    style={{ color: 'var(--color-brand-primary)' }}
+                    title={game.nextRank ? `Beat ${game.nextRank.displayName} (${game.nextRank.score.toLocaleString()}) - need ${game.nextRank.pointsNeeded.toLocaleString()} more points` : 'You are #1!'}
                   >
-                    Favorite Game
+                    {game.highScore.toLocaleString()}
                   </span>
                 </div>
-                <p
-                  className="text-sm font-semibold truncate"
-                  style={{ color: 'var(--color-text-primary)' }}
-                >
-                  {stats.favoriteGame}
-                </p>
+
+                {/* Tooltip on hover */}
+                {hoveredGame === game.gameId && game.nextRank && (
+                  <motion.div
+                    className="absolute left-0 right-0 top-full mt-1 z-10 px-3 py-2 rounded-lg"
+                    style={{
+                      background: 'var(--color-bg-secondary)',
+                      border: '1px solid var(--color-border)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    }}
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <TrendingUp size={12} style={{ color: '#22c55e' }} />
+                      <span
+                        className="text-[10px] font-medium"
+                        style={{ color: 'var(--color-text-primary)' }}
+                      >
+                        To reach #{game.nextRank.rank}:
+                      </span>
+                    </div>
+                    <div
+                      className="text-[10px]"
+                      style={{ color: 'var(--color-text-secondary)' }}
+                    >
+                      <span className="font-semibold">{game.nextRank.displayName}</span>
+                      <span className="mx-1">has</span>
+                      <span className="font-semibold" style={{ color: 'var(--color-brand-primary)' }}>
+                        {game.nextRank.score.toLocaleString()}
+                      </span>
+                    </div>
+                    <div
+                      className="text-[10px] mt-1"
+                      style={{ color: '#22c55e' }}
+                    >
+                      Need <span className="font-bold">+{game.nextRank.pointsNeeded.toLocaleString()}</span> points to beat
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* #1 indicator */}
+                {hoveredGame === game.gameId && !game.nextRank && game.rank === 1 && (
+                  <motion.div
+                    className="absolute left-0 right-0 top-full mt-1 z-10 px-3 py-2 rounded-lg text-center"
+                    style={{
+                      background: 'var(--color-bg-secondary)',
+                      border: '1px solid #ffd700',
+                      boxShadow: '0 4px 12px rgba(255,215,0,0.2)',
+                    }}
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <span className="text-[10px] font-semibold" style={{ color: '#ffd700' }}>
+                      👑 You're #1!
+                    </span>
+                  </motion.div>
+                )}
               </motion.div>
-            )}
+            ))}
 
-            {/* Play Time */}
-            <motion.div
-              className="px-3 py-3 rounded-lg"
+            {/* Games discovered progress */}
+            <div
+              className="mt-3 px-3 py-2 rounded-lg"
               style={{
                 background: 'var(--color-bg-primary)',
                 border: '1px solid var(--color-border)',
               }}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 }}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <Clock size={14} style={{ color: 'var(--color-text-muted)' }} />
-                <span
-                  className="text-[10px] uppercase tracking-wide"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  Time Played
-                </span>
-              </div>
               <p
-                className="text-xl font-bold"
-                style={{ color: 'var(--color-text-primary)' }}
+                className="text-[10px] uppercase tracking-wide mb-1"
+                style={{ color: 'var(--color-text-muted)' }}
               >
-                {formatPlayTime(stats.totalPlayTime)}
-              </p>
-            </motion.div>
-
-            {/* Games Discovered */}
-            <motion.div
-              className="px-3 py-3 rounded-lg"
-              style={{
-                background: 'var(--color-bg-primary)',
-                border: '1px solid var(--color-border)',
-              }}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span
-                  className="text-[10px] uppercase tracking-wide"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  Games Discovered
-                </span>
-              </div>
-              <p
-                className="text-sm font-semibold"
-                style={{ color: 'var(--color-text-primary)' }}
-              >
-                {stats.gamesWithScores} / 15
+                Games Played: {gameScores.length} / 15
               </p>
               <div
-                className="mt-2 h-1.5 rounded-full overflow-hidden"
+                className="h-1.5 rounded-full overflow-hidden"
                 style={{ background: 'var(--color-border)' }}
               >
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
-                    width: `${(stats.gamesWithScores / 15) * 100}%`,
+                    width: `${(gameScores.length / 15) * 100}%`,
                     background: 'var(--color-brand-primary)',
                   }}
                 />
               </div>
-            </motion.div>
+            </div>
           </div>
         )}
       </div>

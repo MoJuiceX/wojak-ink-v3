@@ -91,17 +91,22 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       });
     }
 
-    // Check if user already owns this item
-    const existing = await env.DB
-      .prepare('SELECT id FROM user_inventory WHERE user_id = ? AND item_id = ?')
-      .bind(auth.userId, itemId)
-      .first();
+    // Consumables can be bought multiple times, other items only once
+    const isConsumable = item.category === 'consumable';
 
-    if (existing) {
-      return new Response(JSON.stringify({ error: 'You already own this item' }), {
-        status: 400,
-        headers: corsHeaders,
-      });
+    if (!isConsumable) {
+      // Check if user already owns this item
+      const existing = await env.DB
+        .prepare('SELECT id FROM user_inventory WHERE user_id = ? AND item_id = ?')
+        .bind(auth.userId, itemId)
+        .first();
+
+      if (existing) {
+        return new Response(JSON.stringify({ error: 'You already own this item' }), {
+          status: 400,
+          headers: corsHeaders,
+        });
+      }
     }
 
     // Get user's current balance
@@ -132,16 +137,44 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     // Perform the purchase using batch for atomicity
     const newBalance = profile.oranges - item.price_oranges;
 
+    // Determine consumable type and quantity from item ID
+    let consumableType: string | null = null;
+    let consumableQty = 0;
+    if (isConsumable) {
+      if (itemId.includes('donut')) {
+        consumableType = 'donut';
+        consumableQty = 10;
+      } else if (itemId.includes('poop')) {
+        consumableType = 'poop';
+        consumableQty = 10;
+      }
+    }
+
     await env.DB.batch([
-      // Deduct oranges from profile
+      // Deduct oranges from profiles table
       env.DB.prepare(
         'UPDATE profiles SET oranges = ?, updated_at = datetime("now") WHERE user_id = ?'
       ).bind(newBalance, auth.userId),
 
-      // Add item to inventory
+      // Also update user_currency table (for currency API consistency)
       env.DB.prepare(
-        'INSERT INTO user_inventory (user_id, item_id, acquisition_type, acquired_at) VALUES (?, ?, "purchase", datetime("now"))'
-      ).bind(auth.userId, itemId),
+        'UPDATE user_currency SET oranges = ?, updated_at = datetime("now") WHERE user_id = ?'
+      ).bind(newBalance, auth.userId),
+
+      // For consumables: add to user_consumables table
+      // For regular items: add to user_inventory
+      ...(isConsumable && consumableType ? [
+        env.DB.prepare(
+          `INSERT INTO user_consumables (user_id, consumable_type, quantity, updated_at)
+           VALUES (?, ?, ?, datetime("now"))
+           ON CONFLICT(user_id, consumable_type) DO UPDATE SET
+           quantity = quantity + ?, updated_at = datetime("now")`
+        ).bind(auth.userId, consumableType, consumableQty, consumableQty),
+      ] : [
+        env.DB.prepare(
+          'INSERT INTO user_inventory (user_id, item_id, acquisition_type, acquired_at) VALUES (?, ?, "purchase", datetime("now"))'
+        ).bind(auth.userId, itemId),
+      ]),
 
       // Record purchase history
       env.DB.prepare(
@@ -173,12 +206,21 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           emoji: item.emoji,
         },
         newBalance,
+        ...(isConsumable && consumableType ? {
+          consumable: {
+            type: consumableType,
+            quantityAdded: consumableQty,
+          },
+        } : {}),
       }),
       { status: 200, headers: corsHeaders }
     );
   } catch (error) {
     console.error('[Shop Purchase] Error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    return new Response(JSON.stringify({
+      error: 'Purchase failed',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    }), {
       status: 500,
       headers: corsHeaders,
     });

@@ -10,6 +10,20 @@ interface Env {
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { params, request, env } = context;
 
+  // Check if API key is configured
+  if (!env.PARSEBOT_API_KEY) {
+    return new Response(JSON.stringify({
+      error: 'Parse.bot API key not configured',
+      fallback: true,
+    }), {
+      status: 503,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  }
+
   // Get the path from the catch-all parameter
   const pathSegments = params.path as string[];
   const path = pathSegments ? pathSegments.join('/') : '';

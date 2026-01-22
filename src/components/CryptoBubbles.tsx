@@ -359,8 +359,11 @@ const CryptoBubbles: React.FC<CryptoBubblesProps> = ({
     }
   }, [width, height]);
 
-  // Shake detection
+  // Shake detection (with permissions policy check)
   useEffect(() => {
+    // Check if devicemotion is allowed by permissions policy
+    if (!('DeviceMotionEvent' in window)) return;
+
     let lastX = 0, lastY = 0, lastZ = 0;
     let lastShake = 0;
     const shakeThreshold = 25;
@@ -386,8 +389,19 @@ const CryptoBubbles: React.FC<CryptoBubblesProps> = ({
       lastZ = acc.z;
     };
 
-    window.addEventListener('devicemotion', handleMotion);
-    return () => window.removeEventListener('devicemotion', handleMotion);
+    try {
+      window.addEventListener('devicemotion', handleMotion);
+    } catch {
+      // Permissions policy may block devicemotion, fail silently
+      return;
+    }
+    return () => {
+      try {
+        window.removeEventListener('devicemotion', handleMotion);
+      } catch {
+        // Ignore cleanup errors
+      }
+    };
   }, [resetAllBubbles]);
 
   // Particle animation

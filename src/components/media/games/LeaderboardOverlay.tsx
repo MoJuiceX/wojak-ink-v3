@@ -85,7 +85,7 @@ export function LeaderboardOverlay({
                         ) : (
                           <div className="leaderboard-avatar-placeholder" />
                         )}
-                        <span className="leaderboard-name">
+                        <span className={`leaderboard-name ${entry?.equipped?.nameEffect?.css_class || ''}`}>
                           {entry?.displayName || '---'}
                         </span>
                         <span className="leaderboard-score">

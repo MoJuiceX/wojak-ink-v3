@@ -9,6 +9,12 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
 
+# HTML pages - no cache (so deployments take effect immediately)
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+
 # Homepage - preload critical assets for LCP
 /
   Link: </icons/icon-192.png>; rel=preload; as=image

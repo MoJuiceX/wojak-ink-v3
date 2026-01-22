@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Avatar } from '../Avatar/Avatar';
 import type { LeaderboardEntry as LeaderboardEntryType } from '../../types/leaderboard';
@@ -29,6 +30,11 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
   isFriend = false,
 }) => {
   const prefersReducedMotion = useReducedMotion();
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/profile/${entry.userId}`);
+  };
 
   const getRankDisplay = () => {
     if (podiumPosition === 1) return '🥇';
@@ -57,6 +63,8 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
         className={`podium-card position-${podiumPosition} ${entry.isCurrentUser ? 'is-current-user' : ''}`}
         whileHover={prefersReducedMotion ? {} : { y: -4 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+        onClick={handleClick}
+        style={{ cursor: 'pointer' }}
       >
         {/* Crown for 1st place */}
         {podiumPosition === 1 && (
@@ -75,7 +83,9 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
           isNftHolder={entry.avatar.type === 'nft'}
         />
         <div className="podium-info">
-          <span className="podium-username">{entry.displayName}</span>
+          <span className={`podium-username ${entry.equipped?.nameEffect?.css_class || ''}`}>
+            {entry.displayName}
+          </span>
           <span className="podium-score">{formatScore(entry.score)}</span>
         </div>
       </motion.div>
@@ -92,6 +102,8 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.05, duration: 0.3 }}
       whileHover={prefersReducedMotion ? {} : { x: 4, backgroundColor: 'rgba(249, 115, 22, 0.1)' }}
+      onClick={handleClick}
+      style={{ cursor: 'pointer' }}
     >
       <div className={`row-rank ${rankClass}`}>
         {entry.rank <= 3 ? (
@@ -108,7 +120,7 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
       />
 
       <div className="row-info">
-        <span className="row-username">
+        <span className={`row-username ${entry.equipped?.nameEffect?.css_class || ''}`}>
           {entry.displayName}
           {isFriend && <span className="friend-indicator">👤</span>}
         </span>

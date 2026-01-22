@@ -113,6 +113,40 @@ const PREVIEW_COLORS: Record<string, string> = {
   bronze: '#CD7F32',
 };
 
+// Preview backgrounds - solid colors
+const BACKGROUND_PREVIEWS: Record<string, string> = {
+  midnight_black: '#0a0a0a',
+  deep_navy: '#0a1628',
+  forest_green: '#0a1f0a',
+  wine_red: '#1f0a0a',
+  royal_purple: '#1a0a28',
+  charcoal: '#1a1a1a',
+  // Gradients
+  gradient_sunset: 'linear-gradient(135deg, #0a0a0a 0%, #4a1942 50%, #0a1628 100%)',
+  gradient_ocean: 'linear-gradient(135deg, #0a1628 0%, #0a4a4a 50%, #0a0a1f 100%)',
+  gradient_aurora: 'linear-gradient(135deg, #1a0a28 0%, #0a281a 50%, #0a1f4a 100%)',
+  gradient_ember: 'linear-gradient(135deg, #0a0a0a 0%, #3d0a0a 50%, #4a2800 100%)',
+  gradient_golden: 'linear-gradient(135deg, #0a0a0a 0%, #3d3d00 50%, #4a2800 100%)',
+  // Patterns
+  pattern_grid: '#0a0a0a',
+  pattern_dots: '#0a0a0a',
+  pattern_diagonal: '#0a0a0a',
+  pattern_hexagons: '#0a0a0a',
+  pattern_circuit: '#0a0a0a',
+  pattern_stars: '#0a0a0a',
+  // Animated
+  anim_floating_oranges: '#0a0a0a',
+  anim_particles: '#0a0a0a',
+  anim_matrix: '#0a0a0a',
+  anim_starfield: 'linear-gradient(to bottom, #0a1628, #0a0a0a)',
+  anim_aurora: 'linear-gradient(to bottom, #0a0a0a, #0a1f0a)',
+  anim_grove: 'linear-gradient(to bottom, #0a0a0a, #1f2a0a)',
+  // Legendary
+  legendary_void: 'radial-gradient(ellipse at center, #1a0a28 0%, #0a0a0a 70%)',
+  legendary_supernova: 'radial-gradient(ellipse at center, #2a1a0a 0%, #0a0a0a 60%)',
+  legendary_holographic: 'linear-gradient(135deg, #0a0a1a 0%, #1a0a2a 25%, #0a1a2a 50%, #2a1a0a 75%, #0a0a1a 100%)',
+};
+
 interface DrawerEditorProps {
   isOpen: boolean;
   onClose: () => void;
@@ -305,8 +339,12 @@ export function DrawerEditor({ isOpen, onClose }: DrawerEditorProps) {
 
     // Backgrounds
     if (category === 'page_background') {
+      const bgStyle = BACKGROUND_PREVIEWS[id] || '#0a0a0a';
       return (
-        <div className={`preview-bg drawer-bg-${id.replace(/_/g, '-')}`} />
+        <div
+          className="preview-bg"
+          style={{ background: bgStyle }}
+        />
       );
     }
 

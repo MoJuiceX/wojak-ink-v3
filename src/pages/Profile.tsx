@@ -47,6 +47,10 @@ interface ProfileData {
     id: string;
     css_class: string;
   };
+  nameEffect?: {
+    id: string;
+    css_class: string;
+  };
   emojiRing?: Record<string, string>;
   customization?: {
     banner_style?: string;
@@ -394,6 +398,7 @@ export default function Profile() {
             bio={profile.bio}
             avatar={profile.avatar}
             frame={profile.frame}
+            nameEffect={profile.nameEffect}
             emojiRing={profile.emojiRing}
             xHandle={profile.xHandle}
             discord={profile.discord}

@@ -94,16 +94,25 @@ const markBootComplete = () => {
   }
 };
 
+// Routes that should be publicly accessible without boot sequence
+const PUBLIC_ROUTES = ['/landing', '/drawer/', '/profile/'];
+
 // Inner app component with access to router
 function AppContent() {
-  // Skip boot if: dev mode, localhost, or user already saw it this session
-  const [isStartupComplete, setIsStartupComplete] = useState(
-    (import.meta.env.DEV && SKIP_BOOT_IN_DEV) || (SKIP_BOOT_IN_DEV && isLocalhost()) || hasSeenBoot()
-  );
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Landing page doesn't need boot sequence
+  // Check if current route is public (shareable links that skip boot)
+  const isPublicRoute = PUBLIC_ROUTES.some(route =>
+    location.pathname === route || location.pathname.startsWith(route)
+  );
+
+  // Skip boot if: dev mode, localhost, user already saw it, or public route
+  const [isStartupComplete, setIsStartupComplete] = useState(
+    (import.meta.env.DEV && SKIP_BOOT_IN_DEV) || (SKIP_BOOT_IN_DEV && isLocalhost()) || hasSeenBoot() || isPublicRoute
+  );
+
+  // Landing page doesn't need boot sequence (covered by isPublicRoute but kept for clarity)
   const isLandingPage = location.pathname === '/landing';
 
   const handleStartupComplete = () => {
@@ -125,7 +134,8 @@ function AppContent() {
       <GalleryProvider>
         <LayoutProvider>
           {/* Boot Sequence - shows until complete, then navigates to Landing */}
-          {!isStartupComplete && !isLandingPage && (
+          {/* Skip boot for public routes (drawer, profile) so shareable links work */}
+          {!isStartupComplete && !isPublicRoute && (
             <StartupSequence onComplete={handleStartupComplete} />
           )}
 

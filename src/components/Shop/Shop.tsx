@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Sparkles, Crown, Flame, Zap, Star, Package } from 'lucide-react';
+import { Loader2, Sparkles, Crown, Flame, Zap, Star, Package, Target } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { CurrencyDisplay } from '../Currency/CurrencyDisplay';
@@ -22,14 +22,11 @@ interface ShopItem {
   category: string;
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
   price_oranges: number;
-  price_gems: number | null;
+  price_xch: number | null;
   css_class: string | null;
   emoji: string | null;
-  preview_url: string | null;
   is_active: boolean;
-  is_limited: boolean;
-  stock_limit: number | null;
-  stock_remaining: number | null;
+  sort_order: number;
 }
 
 interface InventoryItem {
@@ -47,6 +44,7 @@ interface EquippedState {
 }
 
 const CATEGORIES = [
+  { value: 'consumable', label: 'Ammo', icon: Target },
   { value: 'emoji_badge', label: 'Emojis', icon: Star },
   { value: 'frame', label: 'Frames', icon: Package },
   { value: 'name_effect', label: 'Effects', icon: Sparkles },
@@ -114,7 +112,7 @@ interface ShopProps {
 export function Shop({ onClose }: ShopProps) {
   const { getToken } = useAuth();
   const { refreshBalance, currency } = useCurrency();
-  const [activeCategory, setActiveCategory] = useState('emoji_badge');
+  const [activeCategory, setActiveCategory] = useState('consumable');
   const [items, setItems] = useState<ShopItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [equipped, setEquipped] = useState<EquippedState | null>(null);
@@ -168,9 +166,10 @@ export function Shop({ onClose }: ShopProps) {
     load();
   }, [fetchItems, fetchInventory]);
 
-  // Check if item is owned
-  const isOwned = (itemId: string): boolean => {
-    return inventory.some(inv => inv.item_id === itemId);
+  // Check if item is owned (consumables are never "owned" - they can always be bought)
+  const isOwned = (item: ShopItem): boolean => {
+    if (item.category === 'consumable') return false;
+    return inventory.some(inv => inv.item_id === item.id);
   };
 
   // Check if item is equipped
@@ -189,9 +188,7 @@ export function Shop({ onClose }: ShopProps) {
   // Check affordability
   const canAfford = (item: ShopItem): boolean => {
     if (!currency) return false;
-    const orangesOk = item.price_oranges <= currency.oranges;
-    const gemsOk = !item.price_gems || item.price_gems <= (currency.gems || 0);
-    return orangesOk && gemsOk;
+    return item.price_oranges <= currency.oranges;
   };
 
   // Handle purchase
@@ -429,8 +426,8 @@ export function Shop({ onClose }: ShopProps) {
       ) : (
         <div className="items-grid">
           {filteredItems.map((item) => {
-            const owned = isOwned(item.id);
-            const equipped = isEquipped(item);
+            const owned = isOwned(item);
+            const equippedItem = isEquipped(item);
             const affordable = canAfford(item);
             const isPurchasing = purchasingId === item.id;
             const isEquiping = equipingId === item.id;
@@ -439,7 +436,7 @@ export function Shop({ onClose }: ShopProps) {
             return (
               <div
                 key={item.id}
-                className={`shop-item-card rarity-${item.rarity} ${owned ? 'owned' : ''} ${equipped ? 'equipped' : ''}`}
+                className={`shop-item-card rarity-${item.rarity} ${owned ? 'owned' : ''} ${equippedItem ? 'equipped' : ''}`}
                 style={{ '--rarity-color': RARITY_COLORS[item.rarity] } as React.CSSProperties}
                 onClick={() => setPreviewItem(item)}
               >
@@ -448,17 +445,9 @@ export function Shop({ onClose }: ShopProps) {
                   {item.rarity}
                 </span>
 
-                {/* Limited Badge */}
-                {item.is_limited && (
-                  <span className="limited-badge">
-                    {item.stock_remaining !== null
-                      ? `${item.stock_remaining} left`
-                      : 'Limited'}
-                  </span>
-                )}
 
                 {/* Equipped Badge */}
-                {equipped && <span className="equipped-badge">Equipped</span>}
+                {equippedItem && <span className="equipped-badge">Equipped</span>}
 
                 {/* Item Preview */}
                 <div className="item-preview">
@@ -478,13 +467,13 @@ export function Shop({ onClose }: ShopProps) {
                   {owned ? (
                     canEquip ? (
                       <button
-                        className={`equip-button ${equipped ? 'unequip' : ''}`}
+                        className={`equip-button ${equippedItem ? 'unequip' : ''}`}
                         onClick={() => handleEquip(item)}
                         disabled={isEquiping}
                       >
                         {isEquiping ? (
                           <Loader2 className="animate-spin" size={14} />
-                        ) : equipped ? (
+                        ) : equippedItem ? (
                           'Unequip'
                         ) : (
                           'Equip'
@@ -501,9 +490,9 @@ export function Shop({ onClose }: ShopProps) {
                             🍊 {item.price_oranges.toLocaleString()}
                           </span>
                         )}
-                        {item.price_gems && item.price_gems > 0 && (
-                          <span className="price gems">
-                            💎 {item.price_gems}
+                        {item.price_xch && item.price_xch > 0 && (
+                          <span className="price xch">
+                            ◎ {item.price_xch}
                           </span>
                         )}
                       </div>

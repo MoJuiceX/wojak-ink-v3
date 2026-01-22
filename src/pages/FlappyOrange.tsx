@@ -68,6 +68,124 @@ const JUICE_CONFIG = {
   FIRE_MULTIPLIER: 1.5,
 };
 
+// ============================================
+// WEATHER CONSTANTS - Dynamic weather system
+// ============================================
+const WEATHER_CONFIG = {
+  // Weather durations (ms)
+  MIN_WEATHER_DURATION: 15000,
+  MAX_WEATHER_DURATION: 45000,
+  TRANSITION_DURATION: 3000,
+
+  // Particle limits
+  MAX_SNOWFLAKES: 60,
+  MAX_RAIN_DROPS: 50,
+  MAX_LEAVES: 30,
+  MAX_BACKGROUND_BIRDS: 7,
+
+  // Weather probabilities by time of day [clear, cloudy, rain, storm, snow, fog]
+  DAY_WEIGHTS: [0.5, 0.25, 0.15, 0.05, 0, 0.05],
+  NIGHT_WEIGHTS: [0.4, 0.2, 0.1, 0.05, 0.15, 0.1],
+  DAWN_WEIGHTS: [0.3, 0.2, 0.1, 0, 0.1, 0.3],
+
+  // Wind settings
+  MAX_WIND_SPEED: 3,
+  WIND_CHANGE_RATE: 0.01,
+
+  // Snow settings
+  SNOW_FALL_SPEED: { min: 0.8, max: 2 },
+  SNOW_DRIFT_AMPLITUDE: 30,
+  SNOW_SIZE: { min: 2, max: 5 },
+
+  // Fog settings
+  FOG_LAYERS: 3,
+  FOG_MAX_OPACITY: 0.4,
+
+  // Bird flock settings
+  BIRD_SPAWN_INTERVAL: 20000,
+  FLOCK_SIZE: { min: 3, max: 7 },
+  BIRD_SPEED: { min: 1.5, max: 3 },
+
+  // Leaf settings
+  LEAF_COLORS: ['#FF6B00', '#FF8C33', '#FFD700', '#FF4500', '#8B4513'],
+  LEAF_SPAWN_RATE: 0.02,
+};
+
+// ============================================
+// DIFFICULTY CONSTANTS - Casual progression
+// ============================================
+const DIFFICULTY_CONFIG = {
+  // Score thresholds for difficulty tiers
+  TIER_THRESHOLDS: [10, 24, 40, 60, 80],
+
+  // Gap sizes per tier (starts easy, gets tighter)
+  GAP_SIZES: [220, 215, 210, 200, 195, 190],
+
+  // Speed multipliers per tier
+  SPEED_MULTIPLIERS: [1.0, 1.08, 1.16, 1.24, 1.32, 1.4],
+
+  // Moving pipe chances per tier
+  MOVING_PIPE_CHANCES: [0, 0, 0.2, 0.4, 0.5, 0.6],
+
+  // Moving pipe settings
+  MOVE_SPEED: { min: 0.3, max: 0.8 },
+  MOVE_RANGE: { min: 30, max: 60 },
+};
+
+// Weather types
+type WeatherType = 'clear' | 'cloudy' | 'rain' | 'storm' | 'snow' | 'fog';
+
+// Weather state interface
+interface WeatherState {
+  current: WeatherType;
+  intensity: number;
+  windSpeed: number;
+  windDirection: number;
+  transitionProgress: number;
+  nextWeather: WeatherType | null;
+}
+
+// Snowflake particle
+interface Snowflake {
+  x: number;
+  y: number;
+  size: number;
+  speed: number;
+  drift: number;
+  driftPhase: number;
+  opacity: number;
+}
+
+// Background bird in flock
+interface BackgroundBird {
+  x: number;
+  y: number;
+  wingPhase: number;
+  speed: number;
+  size: number;
+  yOffset: number;
+}
+
+// Falling leaf particle
+interface FallingLeaf {
+  x: number;
+  y: number;
+  rotation: number;
+  rotationSpeed: number;
+  size: number;
+  speed: number;
+  drift: number;
+  driftPhase: number;
+  color: string;
+}
+
+// Lightning bolt segment
+interface LightningBolt {
+  segments: Array<{ x1: number; y1: number; x2: number; y2: number }>;
+  alpha: number;
+  startTime: number;
+}
+
 // Particle interface for death/wing effects
 interface Particle {
   x: number;
@@ -259,6 +377,13 @@ interface Pipe {
   x: number;
   gapY: number;
   passed: boolean;
+  // Moving pipe properties
+  isMoving: boolean;
+  moveSpeed: number;
+  moveDirection: 1 | -1;
+  moveRange: number;
+  baseGapY: number;
+  movePhase: number;
 }
 
 type GameState = 'idle' | 'playing' | 'gameover';
@@ -599,6 +724,24 @@ const FlappyOrange: React.FC = () => {
   // Audio context for synthesized sounds
   const coinAudioCtxRef = useRef<AudioContext | null>(null);
 
+
+  // ============================================
+  // WEATHER SYSTEM REFS
+  // ============================================
+  const weatherRef = useRef<WeatherState>({
+    current: 'clear',
+    intensity: 0,
+    windSpeed: 0,
+    windDirection: 1,
+    transitionProgress: 1,
+    nextWeather: null,
+  });
+  const weatherTimerRef = useRef(WEATHER_CONFIG.MIN_WEATHER_DURATION + Math.random() * (WEATHER_CONFIG.MAX_WEATHER_DURATION - WEATHER_CONFIG.MIN_WEATHER_DURATION));
+  const snowflakesRef = useRef<Snowflake[]>([]);
+  const backgroundBirdsRef = useRef<BackgroundBird[]>([]);
+  const fallingLeavesRef = useRef<FallingLeaf[]>([]);
+  const lightningBoltsRef = useRef<LightningBolt[]>([]);
+  const lastBirdSpawnRef = useRef(0);
   // Initialize audio context on first interaction
   useEffect(() => {
     const initAudioContext = () => {
@@ -1496,23 +1639,377 @@ const FlappyOrange: React.FC = () => {
     ctx.restore();
   }, [CANVAS_WIDTH, CANVAS_HEIGHT]);
 
-  // Draw vignette effect - optimized for mobile (simpler, no gradient)
-  // Only draw vignette for night/storm modes for performance
+  // Draw vignette effect - only for truly dark environments
   const drawVignette = useCallback((ctx: CanvasRenderingContext2D, env: keyof typeof ENVIRONMENT_COLORS) => {
-    // Skip vignette for day mode (performance)
-    if (env === 'day') return;
+    // Only draw vignette for night and storm - skip all other environments
+    if (env !== 'night' && env !== 'storm') return;
 
     ctx.save();
-    // Simple top darkening only (no bottom bar)
-    const alpha = env === 'storm' ? 0.3 : env === 'night' ? 0.25 : 0.15;
-    ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
-
-    // Top edge only
-    ctx.fillRect(0, 0, CANVAS_WIDTH, 30);
+    // Subtle top darkening for atmosphere - use gradient for smooth fade
+    const alpha = env === 'storm' ? 0.2 : 0.15;
+    const gradient = ctx.createLinearGradient(0, 0, 0, 40);
+    gradient.addColorStop(0, `rgba(0, 0, 0, ${alpha})`);
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, 40);
 
     ctx.restore();
   }, [CANVAS_WIDTH]);
 
+  // ============================================
+  // WEATHER SYSTEM FUNCTIONS
+  // ============================================
+
+  // Get current time-of-day phase for weather decisions
+  const getTimeOfDayPhase = useCallback((): 'day' | 'night' | 'dawn' | 'dusk' => {
+    const progress = cycleTimeRef.current / CYCLE_DURATION_MS;
+    if (progress < 0.5) {
+      const dayProgress = progress / 0.5;
+      if (dayProgress < 0.12) return 'dawn';
+      if (dayProgress > 0.85) return 'dusk';
+      return 'day';
+    } else {
+      const nightProgress = (progress - 0.5) / 0.5;
+      if (nightProgress > 0.9) return 'dawn';
+      return 'night';
+    }
+  }, []);
+
+  // Get difficulty tier based on score
+  const getDifficultyTier = useCallback((score: number): number => {
+    const thresholds = DIFFICULTY_CONFIG.TIER_THRESHOLDS;
+    for (let i = 0; i < thresholds.length; i++) {
+      if (score < thresholds[i]) return i;
+    }
+    return thresholds.length;
+  }, []);
+
+  // Get current gap size based on difficulty
+  const getCurrentGapSize = useCallback((score: number): number => {
+    const tier = getDifficultyTier(score);
+    return DIFFICULTY_CONFIG.GAP_SIZES[tier] || DIFFICULTY_CONFIG.GAP_SIZES[DIFFICULTY_CONFIG.GAP_SIZES.length - 1];
+  }, [getDifficultyTier]);
+
+  // Get current speed multiplier
+  const getSpeedMultiplier = useCallback((score: number): number => {
+    const tier = getDifficultyTier(score);
+    return DIFFICULTY_CONFIG.SPEED_MULTIPLIERS[tier] || DIFFICULTY_CONFIG.SPEED_MULTIPLIERS[DIFFICULTY_CONFIG.SPEED_MULTIPLIERS.length - 1];
+  }, [getDifficultyTier]);
+
+  // Update weather state machine
+  const updateWeather = useCallback((deltaTime: number) => {
+    if (PERFORMANCE_MODE || ULTRA_PERFORMANCE_MODE) return;
+
+    const weather = weatherRef.current;
+    weatherTimerRef.current -= deltaTime * 16.67;
+
+    // Check if it's time to change weather
+    if (weatherTimerRef.current <= 0 && !weather.nextWeather) {
+      const timePhase = getTimeOfDayPhase();
+      let weights: number[];
+      if (timePhase === 'dawn') weights = WEATHER_CONFIG.DAWN_WEIGHTS;
+      else if (timePhase === 'night') weights = WEATHER_CONFIG.NIGHT_WEIGHTS;
+      else weights = WEATHER_CONFIG.DAY_WEIGHTS;
+
+      // Weighted random selection
+      const weatherTypes: WeatherType[] = ['clear', 'cloudy', 'rain', 'storm', 'snow', 'fog'];
+      const totalWeight = weights.reduce((a, b) => a + b, 0);
+      let random = Math.random() * totalWeight;
+      let newWeather: WeatherType = 'clear';
+      for (let i = 0; i < weights.length; i++) {
+        random -= weights[i];
+        if (random <= 0) {
+          newWeather = weatherTypes[i];
+          break;
+        }
+      }
+
+      if (newWeather !== weather.current) {
+        weather.nextWeather = newWeather;
+        weather.transitionProgress = 0;
+      }
+      weatherTimerRef.current = WEATHER_CONFIG.MIN_WEATHER_DURATION + 
+        Math.random() * (WEATHER_CONFIG.MAX_WEATHER_DURATION - WEATHER_CONFIG.MIN_WEATHER_DURATION);
+    }
+
+    // Handle weather transitions
+    if (weather.nextWeather) {
+      weather.transitionProgress += deltaTime * 16.67 / WEATHER_CONFIG.TRANSITION_DURATION;
+      if (weather.transitionProgress >= 1) {
+        weather.current = weather.nextWeather;
+        weather.nextWeather = null;
+        weather.transitionProgress = 1;
+      }
+    }
+
+    // Update wind
+    weather.windSpeed += (Math.random() - 0.5) * WEATHER_CONFIG.WIND_CHANGE_RATE;
+    weather.windSpeed = Math.max(-WEATHER_CONFIG.MAX_WIND_SPEED, Math.min(WEATHER_CONFIG.MAX_WIND_SPEED, weather.windSpeed));
+  }, [getTimeOfDayPhase]);
+
+  // Spawn snowflakes
+  const spawnSnowflakes = useCallback((count: number) => {
+    const snowflakes = snowflakesRef.current;
+    for (let i = 0; i < count && snowflakes.length < WEATHER_CONFIG.MAX_SNOWFLAKES; i++) {
+      snowflakes.push({
+        x: Math.random() * CANVAS_WIDTH,
+        y: -10,
+        size: WEATHER_CONFIG.SNOW_SIZE.min + Math.random() * (WEATHER_CONFIG.SNOW_SIZE.max - WEATHER_CONFIG.SNOW_SIZE.min),
+        speed: WEATHER_CONFIG.SNOW_FALL_SPEED.min + Math.random() * (WEATHER_CONFIG.SNOW_FALL_SPEED.max - WEATHER_CONFIG.SNOW_FALL_SPEED.min),
+        drift: Math.random() * Math.PI * 2,
+        driftPhase: Math.random() * Math.PI * 2,
+        opacity: 0.5 + Math.random() * 0.5,
+      });
+    }
+  }, [CANVAS_WIDTH]);
+
+  // Update snowflakes
+  const updateSnowflakes = useCallback((deltaTime: number) => {
+    const snowflakes = snowflakesRef.current;
+    const wind = weatherRef.current.windSpeed;
+    for (let i = snowflakes.length - 1; i >= 0; i--) {
+      const flake = snowflakes[i];
+      flake.y += flake.speed * deltaTime;
+      flake.driftPhase += 0.02 * deltaTime;
+      flake.x += Math.sin(flake.driftPhase) * 0.5 + wind * 0.3 * deltaTime;
+      if (flake.y > CANVAS_HEIGHT || flake.x < -20 || flake.x > CANVAS_WIDTH + 20) {
+        snowflakes.splice(i, 1);
+      }
+    }
+  }, [CANVAS_HEIGHT, CANVAS_WIDTH]);
+
+  // Draw snowflakes
+  const drawSnowflakes = useCallback((ctx: CanvasRenderingContext2D) => {
+    ctx.save();
+    snowflakesRef.current.forEach(flake => {
+      ctx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
+      ctx.beginPath();
+      ctx.arc(flake.x, flake.y, flake.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+  }, []);
+
+  // Draw fog effect
+  const drawFog = useCallback((ctx: CanvasRenderingContext2D) => {
+    const weather = weatherRef.current;
+    if (weather.current !== 'fog' && weather.nextWeather !== 'fog') return;
+    
+    const intensity = weather.current === 'fog' ? weather.transitionProgress : (1 - weather.transitionProgress);
+    const alpha = WEATHER_CONFIG.FOG_MAX_OPACITY * intensity * 0.5;
+    
+    ctx.save();
+    // Layer 1: Bottom fog
+    const gradient1 = ctx.createLinearGradient(0, CANVAS_HEIGHT * 0.5, 0, CANVAS_HEIGHT);
+    gradient1.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    gradient1.addColorStop(1, `rgba(200, 200, 220, ${alpha})`);
+    ctx.fillStyle = gradient1;
+    ctx.fillRect(0, CANVAS_HEIGHT * 0.5, CANVAS_WIDTH, CANVAS_HEIGHT * 0.5);
+    
+    // Layer 2: Mid fog
+    const gradient2 = ctx.createLinearGradient(0, CANVAS_HEIGHT * 0.2, 0, CANVAS_HEIGHT * 0.7);
+    gradient2.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    gradient2.addColorStop(0.5, `rgba(220, 220, 230, ${alpha * 0.6})`);
+    gradient2.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = gradient2;
+    ctx.fillRect(0, CANVAS_HEIGHT * 0.2, CANVAS_WIDTH, CANVAS_HEIGHT * 0.5);
+    
+    // Layer 3: Top haze
+    ctx.fillStyle = `rgba(200, 200, 210, ${alpha * 0.3})`;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT * 0.3);
+    ctx.restore();
+  }, [CANVAS_WIDTH, CANVAS_HEIGHT]);
+
+  // Spawn bird flock
+  const spawnBirdFlock = useCallback(() => {
+    const birds = backgroundBirdsRef.current;
+    if (birds.length > 0) return; // Only one flock at a time
+    
+    const flockSize = WEATHER_CONFIG.FLOCK_SIZE.min + Math.floor(Math.random() * (WEATHER_CONFIG.FLOCK_SIZE.max - WEATHER_CONFIG.FLOCK_SIZE.min));
+    const baseY = 50 + Math.random() * (CANVAS_HEIGHT * 0.4);
+    const baseSpeed = WEATHER_CONFIG.BIRD_SPEED.min + Math.random() * (WEATHER_CONFIG.BIRD_SPEED.max - WEATHER_CONFIG.BIRD_SPEED.min);
+    const direction = Math.random() > 0.5 ? 1 : -1;
+    const startX = direction > 0 ? -50 : CANVAS_WIDTH + 50;
+    
+    for (let i = 0; i < flockSize; i++) {
+      birds.push({
+        x: startX - (i * 20 * direction) + (Math.random() - 0.5) * 15,
+        y: baseY + (i % 2 === 0 ? i * 8 : -i * 8),
+        wingPhase: Math.random() * Math.PI * 2,
+        speed: baseSpeed * direction,
+        size: 3 + Math.random() * 2,
+        yOffset: Math.sin(i) * 10,
+      });
+    }
+  }, [CANVAS_WIDTH, CANVAS_HEIGHT]);
+
+  // Update background birds
+  const updateBackgroundBirds = useCallback((deltaTime: number) => {
+    const birds = backgroundBirdsRef.current;
+    for (let i = birds.length - 1; i >= 0; i--) {
+      const bird = birds[i];
+      bird.x += bird.speed * deltaTime;
+      bird.wingPhase += 0.3 * deltaTime;
+      bird.y += Math.sin(bird.wingPhase * 0.5) * 0.2;
+      if ((bird.speed > 0 && bird.x > CANVAS_WIDTH + 100) || (bird.speed < 0 && bird.x < -100)) {
+        birds.splice(i, 1);
+      }
+    }
+  }, [CANVAS_WIDTH]);
+
+  // Draw background birds
+  const drawBackgroundBirds = useCallback((ctx: CanvasRenderingContext2D) => {
+    ctx.save();
+    ctx.fillStyle = 'rgba(40, 40, 50, 0.6)';
+    backgroundBirdsRef.current.forEach(bird => {
+      const wingOffset = Math.sin(bird.wingPhase) * bird.size * 0.8;
+      ctx.beginPath();
+      // Body
+      ctx.ellipse(bird.x, bird.y, bird.size, bird.size * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Wings
+      ctx.beginPath();
+      ctx.moveTo(bird.x - bird.size, bird.y);
+      ctx.quadraticCurveTo(bird.x - bird.size * 1.5, bird.y - wingOffset, bird.x - bird.size * 2.5, bird.y - wingOffset * 0.5);
+      ctx.moveTo(bird.x + bird.size, bird.y);
+      ctx.quadraticCurveTo(bird.x + bird.size * 1.5, bird.y - wingOffset, bird.x + bird.size * 2.5, bird.y - wingOffset * 0.5);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }, []);
+
+  // Spawn falling leaf
+  const spawnFallingLeaf = useCallback(() => {
+    const leaves = fallingLeavesRef.current;
+    if (leaves.length >= WEATHER_CONFIG.MAX_LEAVES) return;
+    
+    leaves.push({
+      x: Math.random() * CANVAS_WIDTH,
+      y: -10,
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() - 0.5) * 0.1,
+      size: 4 + Math.random() * 4,
+      speed: 0.5 + Math.random() * 1,
+      drift: Math.random() * Math.PI * 2,
+      driftPhase: Math.random() * Math.PI * 2,
+      color: WEATHER_CONFIG.LEAF_COLORS[Math.floor(Math.random() * WEATHER_CONFIG.LEAF_COLORS.length)],
+    });
+  }, [CANVAS_WIDTH]);
+
+  // Update falling leaves
+  const updateFallingLeaves = useCallback((deltaTime: number) => {
+    const leaves = fallingLeavesRef.current;
+    const wind = weatherRef.current.windSpeed;
+    for (let i = leaves.length - 1; i >= 0; i--) {
+      const leaf = leaves[i];
+      leaf.y += leaf.speed * deltaTime;
+      leaf.driftPhase += 0.03 * deltaTime;
+      leaf.x += Math.sin(leaf.driftPhase) * 0.8 + wind * 0.4 * deltaTime;
+      leaf.rotation += leaf.rotationSpeed * deltaTime;
+      if (leaf.y > CANVAS_HEIGHT + 10) {
+        leaves.splice(i, 1);
+      }
+    }
+  }, [CANVAS_HEIGHT]);
+
+  // Draw falling leaves
+  const drawFallingLeaves = useCallback((ctx: CanvasRenderingContext2D) => {
+    ctx.save();
+    fallingLeavesRef.current.forEach(leaf => {
+      ctx.save();
+      ctx.translate(leaf.x, leaf.y);
+      ctx.rotate(leaf.rotation);
+      ctx.fillStyle = leaf.color;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, leaf.size, leaf.size * 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+    ctx.restore();
+  }, []);
+
+  // Generate lightning bolt with zigzag segments
+  const generateLightningBolt = useCallback((): LightningBolt => {
+    const segments: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+    let x = CANVAS_WIDTH * 0.3 + Math.random() * CANVAS_WIDTH * 0.4;
+    let y = 0;
+    const endY = CANVAS_HEIGHT * 0.6 + Math.random() * CANVAS_HEIGHT * 0.3;
+    
+    while (y < endY) {
+      const nextY = y + 15 + Math.random() * 25;
+      const nextX = x + (Math.random() - 0.5) * 40;
+      segments.push({ x1: x, y1: y, x2: nextX, y2: nextY });
+      
+      // Branch chance
+      if (Math.random() < 0.3 && segments.length > 2) {
+        const branchEndX = nextX + (Math.random() - 0.5) * 60;
+        const branchEndY = nextY + 20 + Math.random() * 30;
+        segments.push({ x1: nextX, y1: nextY, x2: branchEndX, y2: branchEndY });
+      }
+      
+      x = nextX;
+      y = nextY;
+    }
+    
+    return { segments, alpha: 1, startTime: Date.now() };
+  }, [CANVAS_WIDTH, CANVAS_HEIGHT]);
+
+  // Trigger lightning bolt
+  const triggerLightningBolt = useCallback(() => {
+    lightningBoltsRef.current.push(generateLightningBolt());
+    // Also trigger the flash
+    setLightningAlpha(0.8);
+    setTimeout(() => setLightningAlpha(0.2), 50);
+    setTimeout(() => setLightningAlpha(0.6), 100);
+    setTimeout(() => setLightningAlpha(0.1), 150);
+    setTimeout(() => setLightningAlpha(0.4), 200);
+    setTimeout(() => setLightningAlpha(0), 300);
+    // Thunder shake
+    setTimeout(() => {
+      triggerScreenShake(4, 300);
+      playTone(60, 0.15, 400);
+    }, 400);
+  }, [generateLightningBolt, triggerScreenShake, playTone]);
+
+  // Update lightning bolts
+  const updateLightningBolts = useCallback(() => {
+    const bolts = lightningBoltsRef.current;
+    const now = Date.now();
+    for (let i = bolts.length - 1; i >= 0; i--) {
+      const age = now - bolts[i].startTime;
+      bolts[i].alpha = Math.max(0, 1 - age / 200);
+      if (bolts[i].alpha <= 0) {
+        bolts.splice(i, 1);
+      }
+    }
+  }, []);
+
+  // Draw lightning bolts
+  const drawLightningBolts = useCallback((ctx: CanvasRenderingContext2D) => {
+    ctx.save();
+    lightningBoltsRef.current.forEach(bolt => {
+      ctx.strokeStyle = `rgba(255, 255, 220, ${bolt.alpha})`;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = 'rgba(255, 255, 200, 0.8)';
+      ctx.shadowBlur = 10;
+      bolt.segments.forEach(seg => {
+        ctx.beginPath();
+        ctx.moveTo(seg.x1, seg.y1);
+        ctx.lineTo(seg.x2, seg.y2);
+        ctx.stroke();
+      });
+      // Inner bright line
+      ctx.strokeStyle = `rgba(255, 255, 255, ${bolt.alpha})`;
+      ctx.lineWidth = 1;
+      bolt.segments.forEach(seg => {
+        ctx.beginPath();
+        ctx.moveTo(seg.x1, seg.y1);
+        ctx.lineTo(seg.x2, seg.y2);
+        ctx.stroke();
+      });
+    });
+    ctx.restore();
+  }, []);
   // Spawn touch ripple - skip in ultra mode
   const spawnTouchRipple = useCallback((x: number, y: number) => {
     if (ULTRA_PERFORMANCE_MODE) return;
@@ -1585,29 +2082,40 @@ const FlappyOrange: React.FC = () => {
   }, []);
 
   // Generate pipe
-  const generatePipe = useCallback((isFirst: boolean = false): Pipe => {
-    // Gap positioned more towards center for easier gameplay
-    const minGapY = PIPE_GAP / 2 + 100;
-    const maxGapY = CANVAS_HEIGHT - PIPE_GAP / 2 - 100;
+  const generatePipe = useCallback((isFirst: boolean = false, currentScore: number = 0): Pipe => {
+    // Get dynamic gap size based on difficulty tier
+    const gapSize = getCurrentGapSize(currentScore);
+    const minGapY = gapSize / 2 + 100;
+    const maxGapY = CANVAS_HEIGHT - gapSize / 2 - 100;
     const gapY = Math.random() * (maxGapY - minGapY) + minGapY;
 
     // 40% chance to spawn a coin in the pipe gap
     if (Math.random() < 0.4 && !isFirst) {
       coinsRef.current.push({
-        x: CANVAS_WIDTH + PIPE_WIDTH + PIPE_SPACING / 2, // Between this pipe and the next
-        y: gapY + (Math.random() - 0.5) * (PIPE_GAP * 0.5), // Within the gap area
+        x: CANVAS_WIDTH + PIPE_WIDTH + PIPE_SPACING / 2,
+        y: gapY + (Math.random() - 0.5) * (gapSize * 0.5),
         collected: false,
         rotation: 0,
       });
     }
 
+    // Check if this pipe should move (based on difficulty tier)
+    const tier = getDifficultyTier(currentScore);
+    const movingChance = DIFFICULTY_CONFIG.MOVING_PIPE_CHANCES[tier] || 0;
+    const isMoving = !isFirst && Math.random() < movingChance;
+
     return {
-      // First pipe spawns much further away for easy start (~3 seconds of free flying)
       x: isFirst ? CANVAS_WIDTH + PIPE_WIDTH + 300 : CANVAS_WIDTH + PIPE_WIDTH,
       gapY,
       passed: false,
+      isMoving,
+      moveSpeed: isMoving ? DIFFICULTY_CONFIG.MOVE_SPEED.min + Math.random() * (DIFFICULTY_CONFIG.MOVE_SPEED.max - DIFFICULTY_CONFIG.MOVE_SPEED.min) : 0,
+      moveDirection: Math.random() > 0.5 ? 1 : -1,
+      moveRange: isMoving ? DIFFICULTY_CONFIG.MOVE_RANGE.min + Math.random() * (DIFFICULTY_CONFIG.MOVE_RANGE.max - DIFFICULTY_CONFIG.MOVE_RANGE.min) : 0,
+      baseGapY: gapY,
+      movePhase: Math.random() * Math.PI * 2,
     };
-  }, [CANVAS_WIDTH, CANVAS_HEIGHT]);
+  }, [CANVAS_WIDTH, CANVAS_HEIGHT, getCurrentGapSize, getDifficultyTier]);
 
   // Handle score point
   // pointsEarned and actionWord are passed from updatePipes for context
@@ -1824,11 +2332,12 @@ const FlappyOrange: React.FC = () => {
   }, [soundEnabled, playGameOver, hapticGameOver, highScore, isSignedIn, submitScore, triggerDeathFreeze]);
 
   // Check collision
-  const checkCollision = useCallback((bird: Bird, pipes: Pipe[]): boolean => {
+  const checkCollision = useCallback((bird: Bird, pipes: Pipe[], currentScore: number = 0): boolean => {
     // Ground collision - game over
     if (bird.y + BIRD_RADIUS > CANVAS_HEIGHT - 20) return true;
 
-    // Ceiling - no longer instant death, handled in updateBird instead
+    // Get current gap size based on difficulty
+    const gapSize = getCurrentGapSize(currentScore);
 
     // Pipe collision
     for (const pipe of pipes) {
@@ -1836,8 +2345,8 @@ const FlappyOrange: React.FC = () => {
         continue;
       }
 
-      const topPipeBottom = pipe.gapY - PIPE_GAP / 2;
-      const bottomPipeTop = pipe.gapY + PIPE_GAP / 2;
+      const topPipeBottom = pipe.gapY - gapSize / 2;
+      const bottomPipeTop = pipe.gapY + gapSize / 2;
 
       if (BIRD_X + BIRD_RADIUS > pipe.x && BIRD_X - BIRD_RADIUS < pipe.x + PIPE_WIDTH) {
         if (bird.y - BIRD_RADIUS < topPipeBottom || bird.y + BIRD_RADIUS > bottomPipeTop) {
@@ -1847,7 +2356,7 @@ const FlappyOrange: React.FC = () => {
     }
 
     return false;
-  }, [CANVAS_HEIGHT, BIRD_X]);
+  }, [CANVAS_HEIGHT, BIRD_X, getCurrentGapSize]);
 
   // Update bird physics
   const updateBird = useCallback((bird: Bird, timeScale: number = 1, isDying: boolean = false): Bird => {
@@ -1902,38 +2411,47 @@ const FlappyOrange: React.FC = () => {
   // Update pipes
   const updatePipes = useCallback((pipes: Pipe[], currentScore: number, deltaTime: number = 1): { pipes: Pipe[]; newScore: number } => {
     let newScore = currentScore;
-    // Easy start, difficulty ramps after 5 pipes
-    // Speed: 2.5 base (increased for better feel), frame-rate independent
-    const baseSpeed = 2.5 + Math.max(0, Math.floor((currentScore - 5) / 20)) * 0.2;
+    // Get speed multiplier from difficulty tier
+    const speedMultiplier = getSpeedMultiplier(currentScore);
+    const baseSpeed = 2.5 * speedMultiplier;
     const speed = baseSpeed * deltaTime;
 
     pipes.forEach(pipe => {
       pipe.x -= speed;
+      
+      // Oscillate moving pipes
+      if (pipe.isMoving) {
+        pipe.movePhase += pipe.moveSpeed * 0.05 * deltaTime;
+        pipe.gapY = pipe.baseGapY + Math.sin(pipe.movePhase) * pipe.moveRange;
+        
+        // Clamp to valid range
+        const gapSize = getCurrentGapSize(currentScore);
+        const minY = gapSize / 2 + 80;
+        const maxY = CANVAS_HEIGHT - gapSize / 2 - 80;
+        pipe.gapY = Math.max(minY, Math.min(maxY, pipe.gapY));
+      }
     });
 
     // Update coins (move with same speed as pipes)
     coinsRef.current.forEach(coin => {
       coin.x -= speed;
-      coin.rotation += 0.08 * deltaTime; // Spin animation
+      coin.rotation += 0.08 * deltaTime;
     });
-    // Remove off-screen coins
     coinsRef.current = coinsRef.current.filter(coin => coin.x > -30);
 
     // Check coin collision with bird
     const birdY = gameStateRef.current.bird.y;
-    // Check coin collision - coins add +3 to main score
     coinsRef.current.forEach(coin => {
       if (!coin.collected) {
         const dx = coin.x - BIRD_X;
         const dy = coin.y - birdY;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const collisionRadius = BIRD_RADIUS + 12; // Bird radius + coin radius
+        const collisionRadius = BIRD_RADIUS + 12;
 
         if (distance < collisionRadius) {
           coin.collected = true;
-          newScore += 1; // Coins add +1 to main score
+          newScore += 1;
           playCoinSound();
-          // Show floating +1
           const rect = canvasRef.current?.getBoundingClientRect();
           if (rect) {
             showFloatingScore('+1', rect.left + coin.x, rect.top + coin.y - 20);
@@ -1945,27 +2463,20 @@ const FlappyOrange: React.FC = () => {
     const filteredPipes = pipes.filter(pipe => pipe.x > -PIPE_WIDTH);
 
     if (filteredPipes.length === 0 || filteredPipes[filteredPipes.length - 1].x < CANVAS_WIDTH - PIPE_SPACING) {
-      // First pipe gets extra distance for grace period
-      filteredPipes.push(generatePipe(filteredPipes.length === 0));
+      filteredPipes.push(generatePipe(filteredPipes.length === 0, currentScore));
     }
 
     filteredPipes.forEach(pipe => {
-      // Trigger score when bird enters the pipe gap (immediate feedback)
       if (!pipe.passed && pipe.x < BIRD_X) {
         pipe.passed = true;
 
-        // In ultra performance mode, skip all effects to minimize state updates
         if (ULTRA_PERFORMANCE_MODE) {
           newScore += 1;
           onScorePoint(newScore);
           return;
         }
 
-        // Base score: +1 per pipe
-        // Simple scoring: +1 per pipe passed
         const birdY = gameStateRef.current.bird.y;
-
-        // Show floating score
         const rect = canvasRef.current?.getBoundingClientRect();
         if (rect) {
           showFloatingScore('+1', rect.left + BIRD_X + 40, rect.top + birdY - 20);
@@ -1977,7 +2488,7 @@ const FlappyOrange: React.FC = () => {
     });
 
     return { pipes: filteredPipes, newScore };
-  }, [CANVAS_WIDTH, BIRD_X, generatePipe, onScorePoint, showFloatingScore, playCoinSound]);
+  }, [CANVAS_WIDTH, CANVAS_HEIGHT, BIRD_X, generatePipe, onScorePoint, showFloatingScore, playCoinSound, getSpeedMultiplier, getCurrentGapSize]);
 
   // Draw background
   // Draw a single cloud - optimized for mobile (no gradients)
@@ -2389,27 +2900,31 @@ const FlappyOrange: React.FC = () => {
 
   // Draw pipes - ultra minimal in performance mode
   const drawPipes = useCallback((ctx: CanvasRenderingContext2D, pipes: Pipe[], currentScore: number) => {
-    ctx.fillStyle = '#228B22';
+    // Get dynamic gap size
+    const gapSize = getCurrentGapSize(currentScore);
 
     pipes.forEach(pipe => {
-      const topPipeBottom = pipe.gapY - PIPE_GAP / 2;
-      const bottomPipeTop = pipe.gapY + PIPE_GAP / 2;
+      const topPipeBottom = pipe.gapY - gapSize / 2;
+      const bottomPipeTop = pipe.gapY + gapSize / 2;
 
-      // Top pipe - just a rectangle
+      // Use slightly different color for moving pipes
+      ctx.fillStyle = pipe.isMoving ? '#1E8B1E' : '#228B22';
+
+      // Top pipe
       ctx.fillRect(pipe.x, 0, PIPE_WIDTH, topPipeBottom);
 
-      // Bottom pipe - just a rectangle
+      // Bottom pipe
       ctx.fillRect(pipe.x, bottomPipeTop, PIPE_WIDTH, CANVAS_HEIGHT - bottomPipeTop - 20);
 
       // Caps only if not in performance mode
       if (!PERFORMANCE_MODE) {
-        ctx.fillStyle = '#1B5E20';
+        ctx.fillStyle = pipe.isMoving ? '#145A14' : '#1B5E20';
         ctx.fillRect(pipe.x - 5, topPipeBottom - 25, PIPE_WIDTH + 10, 25);
         ctx.fillRect(pipe.x - 5, bottomPipeTop, PIPE_WIDTH + 10, 25);
         ctx.fillStyle = '#228B22';
       }
     });
-  }, [CANVAS_HEIGHT]);
+  }, [CANVAS_HEIGHT, getCurrentGapSize]);
 
   // Draw score on canvas
   const drawScore = useCallback((ctx: CanvasRenderingContext2D, currentScore: number) => {
@@ -2767,6 +3282,61 @@ const FlappyOrange: React.FC = () => {
 
       const state = gameStateRef.current;
 
+      // ============================================
+      // WEATHER SYSTEM UPDATE
+      // ============================================
+      if (!PERFORMANCE_MODE && !ULTRA_PERFORMANCE_MODE && state.gameState === 'playing' && !state.isFrozen) {
+        updateWeather(deltaTime);
+        const weather = weatherRef.current;
+        
+        // Rain particles
+        if (weather.current === 'rain' || weather.current === 'storm') {
+          // Spawn rain (using existing rain system)
+          if (Math.random() < 0.3 * deltaTime) {
+            rainDropsRef.current.push({
+              x: Math.random() * CANVAS_WIDTH,
+              y: -10,
+              length: 15 + Math.random() * 10,
+              speed: 8 + Math.random() * 4,
+              opacity: 0.4 + Math.random() * 0.3,
+            });
+          }
+          // Trigger lightning in storms
+          if (weather.current === 'storm' && Math.random() < 0.001 * deltaTime) {
+            triggerLightningBolt();
+          }
+        }
+        
+        // Snow particles
+        if (weather.current === 'snow') {
+          if (Math.random() < 0.1 * deltaTime) {
+            spawnSnowflakes(2);
+          }
+          updateSnowflakes(deltaTime);
+        }
+        
+        // Background birds (spawn periodically)
+        const now = Date.now();
+        if (now - lastBirdSpawnRef.current > WEATHER_CONFIG.BIRD_SPAWN_INTERVAL) {
+          if (Math.random() < 0.3) {
+            spawnBirdFlock();
+          }
+          lastBirdSpawnRef.current = now;
+        }
+        updateBackgroundBirds(deltaTime);
+        
+        // Falling leaves (golden/sunset phases)
+        const { colors: cycleColors } = getCachedColors();
+        if ((cycleColors.currentEnv === 'golden' || cycleColors.currentEnv === 'sunset') && Math.random() < WEATHER_CONFIG.LEAF_SPAWN_RATE * deltaTime) {
+          spawnFallingLeaf();
+        }
+        updateFallingLeaves(deltaTime);
+        
+        // Update lightning bolts
+        updateLightningBolts();
+      }
+
+
       // Update physics (skip if frozen, but not if dying with slow-mo)
       const shouldUpdatePhysics = !state.isFrozen && !showExitDialogRef.current;
 
@@ -2787,7 +3357,7 @@ const FlappyOrange: React.FC = () => {
             state.pipes = pipes;
             state.score = newScore;
 
-            if (checkCollision(state.bird, state.pipes)) {
+            if (checkCollision(state.bird, state.pipes, state.score)) {
               handleGameOver();
             }
           }
@@ -2952,6 +3522,38 @@ const FlappyOrange: React.FC = () => {
         // Rain removed - was tied to high score, doesn't fit time-based cycle
         const { colors: cycleColors } = getCachedColors();
         drawVignette(ctx, cycleColors.currentEnv);
+
+        // ============================================
+        // WEATHER EFFECTS RENDERING
+        // ============================================
+        // Draw weather particles
+        const weather = weatherRef.current;
+        
+        // Background birds (behind everything but sky)
+        drawBackgroundBirds(ctx);
+        
+        // Falling leaves
+        drawFallingLeaves(ctx);
+        
+        // Snow
+        if (weather.current === 'snow') {
+          drawSnowflakes(ctx);
+        }
+        
+        // Rain
+        if (weather.current === 'rain' || weather.current === 'storm') {
+          drawRain(ctx);
+        }
+        
+        // Fog
+        if (weather.current === 'fog' || weather.nextWeather === 'fog') {
+          drawFog(ctx);
+        }
+        
+        // Lightning bolts
+        if (weather.current === 'storm') {
+          drawLightningBolts(ctx);
+        }
         drawNearMissFlash(ctx, nearMissFlashAlphaRef.current);
         drawLightningFlash(ctx, lightningAlphaRef.current);
         drawImpactFlash(ctx, impactFlashAlphaRef.current);

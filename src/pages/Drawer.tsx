@@ -205,6 +205,9 @@ export default function Drawer() {
   const fontStyleClass = cust?.font_style && cust.font_style !== 'normal'
     ? `font-style-${cust.font_style.replace(/_/g, '-')}`
     : '';
+  const fontFamilyClass = cust?.font_family && cust.font_family !== 'default'
+    ? `font-family-${cust.font_family.replace(/_/g, '-')}`
+    : '';
   const avatarGlowClass = cust?.avatar_glow && cust.avatar_glow !== 'none'
     ? `avatar-glow-${cust.avatar_glow}`
     : '';
@@ -343,7 +346,7 @@ export default function Drawer() {
           transition={{ delay: 0.2 }}
         >
           <h2
-            className={`hero-username ${fontStyleClass} ${data.equipped?.nameEffect?.css_class || ''}`}
+            className={`hero-username ${fontStyleClass} ${fontFamilyClass} ${data.equipped?.nameEffect?.css_class || ''}`}
             style={getFontColorStyle()}
             data-text={data.username}
           >

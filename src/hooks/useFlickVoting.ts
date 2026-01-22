@@ -8,6 +8,9 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import { useAuth } from '@clerk/clerk-react';
+
+const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 // Page types for voting - extend this as you add more pages
 export type VotePageType = 'games' | 'gallery' | 'media' | 'shop';
@@ -36,6 +39,8 @@ export function useFlickVoting(pageType: VotePageType) {
   const [activeMode, setActiveMode] = useState<'donut' | 'poop' | null>(null);
   const [votes, setVotes] = useState<VoteStore>({});
   const [isLoading, setIsLoading] = useState(false);
+  const authResult = CLERK_ENABLED ? useAuth() : { getToken: async () => null };
+  const { getToken } = authResult;
 
   // Load vote counts on mount
   useEffect(() => {
@@ -71,8 +76,8 @@ export function useFlickVoting(pageType: VotePageType) {
     type: 'donut' | 'poop',
     xPercent: number,
     yPercent: number
-  ) => {
-    // Optimistic update
+  ): Promise<{ success: boolean; newBalance?: number }> => {
+    // Optimistic update for vote counts (what's displayed on items)
     setVotes(prev => {
       const current = prev[targetId] || { donuts: 0, poops: 0 };
       return {
@@ -85,11 +90,20 @@ export function useFlickVoting(pageType: VotePageType) {
       };
     });
 
-    // Send to backend
+    // Send to backend with auth
     try {
-      await fetch(`${API_BASE}`, {
+      const token = await getToken();
+      if (!token) {
+        console.error('No auth token for voting');
+        return { success: false };
+      }
+
+      const response = await fetch(`${API_BASE}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           targetId,
           pageType,
@@ -98,19 +112,20 @@ export function useFlickVoting(pageType: VotePageType) {
           yPercent: Math.round(yPercent * 100) / 100,
         }),
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        return { success: true, newBalance: data.newBalance };
+      } else {
+        const error = await response.json();
+        console.error('Vote failed:', error);
+        return { success: false };
+      }
     } catch (error) {
       console.error('Failed to save vote:', error);
-      // Store in localStorage as backup
-      try {
-        const stored = localStorage.getItem('wojak_pending_votes') || '[]';
-        const pending = JSON.parse(stored);
-        pending.push({ targetId, pageType, emoji: type, xPercent, yPercent, timestamp: Date.now() });
-        localStorage.setItem('wojak_pending_votes', JSON.stringify(pending));
-      } catch {
-        // Ignore localStorage errors
-      }
+      return { success: false };
     }
-  }, [pageType]);
+  }, [pageType, getToken]);
 
   // Fetch votes with positions for heatmap
   const fetchVotesForHeatmap = useCallback(async (

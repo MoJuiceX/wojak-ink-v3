@@ -20,6 +20,20 @@ interface LeaderboardEntry {
   score: number;
   level?: number;
   createdAt: string;
+  equipped?: {
+    nameEffect?: {
+      id: string;
+      css_class: string;
+    };
+    frame?: {
+      id: string;
+      css_class: string;
+    };
+    title?: {
+      id: string;
+      name: string;
+    };
+  };
 }
 
 interface LeaderboardResponse {
@@ -71,6 +85,7 @@ async function getLeaderboard(
   offset: number
 ): Promise<LeaderboardEntry[]> {
   // Join with profiles to get display names and avatar data
+  // Join with user_equipped and shop_items to get equipped cosmetics
   // Use ROW_NUMBER to calculate rank
   const results = await db
     .prepare(
@@ -83,9 +98,19 @@ async function getLeaderboard(
          COALESCE(p.display_name, 'Player') as display_name,
          COALESCE(p.avatar_type, 'emoji') as avatar_type,
          COALESCE(p.avatar_value, '🎮') as avatar_value,
-         COALESCE(p.avatar_source, 'default') as avatar_source
+         COALESCE(p.avatar_source, 'default') as avatar_source,
+         ue.name_effect_id,
+         ne.css_class as name_effect_class,
+         ue.frame_id,
+         fr.css_class as frame_class,
+         ue.title_id,
+         ti.name as title_name
        FROM leaderboard_scores ls
        LEFT JOIN profiles p ON ls.user_id = p.user_id
+       LEFT JOIN user_equipped ue ON ls.user_id = ue.user_id
+       LEFT JOIN shop_items ne ON ue.name_effect_id = ne.id
+       LEFT JOIN shop_items fr ON ue.frame_id = fr.id
+       LEFT JOIN shop_items ti ON ue.title_id = ti.id
        WHERE ls.game_id = ?
        ORDER BY ls.score DESC, ls.created_at ASC
        LIMIT ? OFFSET ?`
@@ -101,21 +126,54 @@ async function getLeaderboard(
       avatar_type: string;
       avatar_value: string;
       avatar_source: string;
+      name_effect_id: string | null;
+      name_effect_class: string | null;
+      frame_id: string | null;
+      frame_class: string | null;
+      title_id: string | null;
+      title_name: string | null;
     }>();
 
-  return (results.results || []).map((row) => ({
-    rank: row.rank,
-    userId: row.user_id,
-    displayName: row.display_name,
-    avatar: {
-      type: row.avatar_type as 'emoji' | 'nft',
-      value: row.avatar_value,
-      source: row.avatar_source as 'default' | 'user' | 'wallet',
-    },
-    score: row.score,
-    level: row.level || undefined,
-    createdAt: row.created_at,
-  }));
+  return (results.results || []).map((row) => {
+    const entry: LeaderboardEntry = {
+      rank: row.rank,
+      userId: row.user_id,
+      displayName: row.display_name,
+      avatar: {
+        type: row.avatar_type as 'emoji' | 'nft',
+        value: row.avatar_value,
+        source: row.avatar_source as 'default' | 'user' | 'wallet',
+      },
+      score: row.score,
+      level: row.level || undefined,
+      createdAt: row.created_at,
+    };
+
+    // Add equipped items if present
+    if (row.name_effect_id || row.frame_id || row.title_id) {
+      entry.equipped = {};
+      if (row.name_effect_id && row.name_effect_class) {
+        entry.equipped.nameEffect = {
+          id: row.name_effect_id,
+          css_class: row.name_effect_class,
+        };
+      }
+      if (row.frame_id && row.frame_class) {
+        entry.equipped.frame = {
+          id: row.frame_id,
+          css_class: row.frame_class,
+        };
+      }
+      if (row.title_id && row.title_name) {
+        entry.equipped.title = {
+          id: row.title_id,
+          name: row.title_name,
+        };
+      }
+    }
+
+    return entry;
+  });
 }
 
 /**

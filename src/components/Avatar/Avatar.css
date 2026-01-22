@@ -50,64 +50,7 @@
   object-fit: cover;
 }
 
-/* Verified badge for NFT avatars */
-.avatar-nft::after {
-  content: '✓';
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 18px;
-  height: 18px;
-  background: #FFD700;
-  color: #000;
-  border-radius: 50%;
-  font-size: 10px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--color-bg-primary, #0d0d0d);
-}
-
-.avatar-small.avatar-nft::after {
-  width: 14px;
-  height: 14px;
-  font-size: 8px;
-  bottom: -1px;
-  right: -1px;
-}
-
-.avatar-medium.avatar-nft::after {
-  width: 18px;
-  height: 18px;
-  font-size: 10px;
-}
-
-.avatar-large.avatar-nft::after {
-  width: 24px;
-  height: 24px;
-  font-size: 12px;
-}
-
-.avatar-xlarge.avatar-nft::after {
-  width: 32px;
-  height: 32px;
-  font-size: 16px;
-}
-
-/* Hide badge when showBadge=false */
-.avatar.avatar-nft.avatar-no-badge::after,
-.avatar-small.avatar-nft.avatar-no-badge::after,
-.avatar-medium.avatar-nft.avatar-no-badge::after,
-.avatar-large.avatar-nft.avatar-no-badge::after,
-.avatar-xlarge.avatar-nft.avatar-no-badge::after {
-  content: none !important;
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  width: 0 !important;
-  height: 0 !important;
-}
+/* Verified badge for NFT avatars - REMOVED per user request */
 
 /* ===== Highlighted avatar (for featured/top players) ===== */
 .avatar-highlighted::before {

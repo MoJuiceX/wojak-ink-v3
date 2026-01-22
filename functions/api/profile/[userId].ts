@@ -145,7 +145,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       const frameResult = await env.DB.prepare(`
         SELECT ui.item_id, sc.css_class
         FROM user_inventory ui
-        JOIN shop_catalog sc ON ui.item_id = sc.id
+        JOIN shop_items sc ON ui.item_id = sc.id
         WHERE ui.user_id = ? AND ui.equipped = 1 AND sc.category = 'frame'
         LIMIT 1
       `).bind(userId).first<{ item_id: string; css_class: string | null }>();
@@ -162,7 +162,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       const emojis = await env.DB.prepare(`
         SELECT ui.item_id, sc.icon
         FROM user_inventory ui
-        JOIN shop_catalog sc ON ui.item_id = sc.id
+        JOIN shop_items sc ON ui.item_id = sc.id
         WHERE ui.user_id = ? AND ui.equipped = 1 AND sc.category = 'emoji_badge'
         LIMIT 4
       `).bind(userId).all<{ item_id: string; icon: string }>();
@@ -181,12 +181,31 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       const titleResult = await env.DB.prepare(`
         SELECT sc.name
         FROM user_inventory ui
-        JOIN shop_catalog sc ON ui.item_id = sc.id
+        JOIN shop_items sc ON ui.item_id = sc.id
         WHERE ui.user_id = ? AND ui.equipped = 1 AND sc.category = 'title'
         LIMIT 1
       `).bind(userId).first<{ name: string }>();
       if (titleResult) {
         title = titleResult.name;
+      }
+    } catch {
+      // Tables may not exist
+    }
+
+    // Fetch equipped name effect from user_equipped table
+    let nameEffect: { id: string; css_class: string } | null = null;
+    try {
+      const nameEffectResult = await env.DB.prepare(`
+        SELECT ue.name_effect_id, si.css_class
+        FROM user_equipped ue
+        JOIN shop_items si ON ue.name_effect_id = si.id
+        WHERE ue.user_id = ?
+      `).bind(userId).first<{ name_effect_id: string; css_class: string | null }>();
+      if (nameEffectResult && nameEffectResult.name_effect_id) {
+        nameEffect = {
+          id: nameEffectResult.name_effect_id,
+          css_class: nameEffectResult.css_class || '',
+        };
       }
     } catch {
       // Tables may not exist
@@ -198,7 +217,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       const bpHat = await env.DB.prepare(`
         SELECT sc.css_value
         FROM user_inventory ui
-        JOIN shop_catalog sc ON ui.item_id = sc.id
+        JOIN shop_items sc ON ui.item_id = sc.id
         WHERE ui.user_id = ? AND ui.equipped = 1 AND sc.category = 'bigpulp_hat'
         LIMIT 1
       `).bind(userId).first<{ css_value: string }>();
@@ -206,7 +225,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       const bpMood = await env.DB.prepare(`
         SELECT sc.css_value
         FROM user_inventory ui
-        JOIN shop_catalog sc ON ui.item_id = sc.id
+        JOIN shop_items sc ON ui.item_id = sc.id
         WHERE ui.user_id = ? AND ui.equipped = 1 AND sc.category = 'bigpulp_mood'
         LIMIT 1
       `).bind(userId).first<{ css_value: string }>();
@@ -214,7 +233,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       const bpAccessory = await env.DB.prepare(`
         SELECT sc.css_value
         FROM user_inventory ui
-        JOIN shop_catalog sc ON ui.item_id = sc.id
+        JOIN shop_items sc ON ui.item_id = sc.id
         WHERE ui.user_id = ? AND ui.equipped = 1 AND sc.category = 'bigpulp_accessory'
         LIMIT 1
       `).bind(userId).first<{ css_value: string }>();
@@ -243,7 +262,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       const items = await env.DB.prepare(`
         SELECT sc.id, sc.name, sc.category, sc.rarity, sc.icon, sc.css_class
         FROM user_inventory ui
-        JOIN shop_catalog sc ON ui.item_id = sc.id
+        JOIN shop_items sc ON ui.item_id = sc.id
         WHERE ui.user_id = ?
         ORDER BY sc.rarity DESC, sc.category, sc.name
       `).bind(userId).all();
@@ -432,6 +451,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         nftId: profile.avatar_nft_id,
       },
       frame,
+      nameEffect,
       emojiRing: Object.keys(emojiRing).length > 0 ? emojiRing : undefined,
       customization: customization ? {
         banner_style: customization.banner_style,

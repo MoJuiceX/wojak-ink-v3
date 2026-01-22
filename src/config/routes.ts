@@ -10,7 +10,6 @@
  */
 
 import {
-  Award,
   Camera,
   Briefcase,
   Lightbulb,
@@ -18,7 +17,6 @@ import {
   Settings,
   Trophy,
   Users,
-  UserPlus,
   ShoppingBag,
   Gamepad2,
   Menu,
@@ -105,6 +103,7 @@ export const MORE_NAV_ITEM: NavItem = {
 
 /**
  * Secondary navigation items (More Menu + Sidebar bottom)
+ * NOTE: Friends and Achievements moved to Account page widgets (SPEC 17)
  */
 export const SECONDARY_NAV_ITEMS: NavItem[] = [
   {
@@ -114,20 +113,8 @@ export const SECONDARY_NAV_ITEMS: NavItem[] = [
     shortLabel: 'Ranks',
     icon: Trophy,
   },
-  {
-    id: 'friends',
-    path: '/friends',
-    label: 'Friends',
-    shortLabel: 'Friends',
-    icon: UserPlus,
-  },
-  {
-    id: 'achievements',
-    path: '/achievements',
-    label: 'Achievements',
-    shortLabel: 'Awards',
-    icon: Award,
-  },
+  // REMOVED: Friends (moved to Account page widget - SPEC 17)
+  // REMOVED: Achievements (moved to Account page widget - SPEC 17)
   {
     id: 'shop',
     path: '/shop',

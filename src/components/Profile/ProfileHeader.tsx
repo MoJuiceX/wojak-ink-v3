@@ -30,6 +30,10 @@ interface ProfileHeaderProps {
     id: string;
     css_class: string;
   };
+  nameEffect?: {
+    id: string;
+    css_class: string;
+  };
   emojiRing?: Record<string, string>;
   xHandle?: string;
   discord?: string;
@@ -52,6 +56,7 @@ export function ProfileHeader({
   bio,
   avatar,
   frame,
+  nameEffect,
   emojiRing,
   xHandle,
   discord,
@@ -165,7 +170,7 @@ export function ProfileHeader({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <h1 className="header-username" style={getUsernameStyle()}>
+          <h1 className={`header-username ${nameEffect?.css_class || ''}`} style={getUsernameStyle()}>
             {username}
           </h1>
 

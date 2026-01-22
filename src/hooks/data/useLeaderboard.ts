@@ -32,6 +32,20 @@ export interface LeaderboardEntry {
   level?: number;
   createdAt: string;
   isCurrentUser?: boolean;
+  equipped?: {
+    nameEffect?: {
+      id: string;
+      css_class: string;
+    };
+    frame?: {
+      id: string;
+      css_class: string;
+    };
+    title?: {
+      id: string;
+      name: string;
+    };
+  };
 }
 
 export interface SubmitResult {
