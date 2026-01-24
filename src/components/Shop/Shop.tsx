@@ -465,14 +465,17 @@ export function Shop({ onClose }: ShopProps) {
       <div className="category-tabs">
         {CATEGORIES.map((cat) => {
           const Icon = cat.icon;
+          const isDisabled = cat.value !== 'consumable'; // Only Ammo tab is enabled
           return (
             <button
               key={cat.value}
-              className={`category-tab ${activeCategory === cat.value ? 'active' : ''}`}
-              onClick={() => setActiveCategory(cat.value)}
+              className={`category-tab ${activeCategory === cat.value ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
+              onClick={() => !isDisabled && setActiveCategory(cat.value)}
+              disabled={isDisabled}
             >
               <Icon size={16} />
               <span>{cat.label}</span>
+              {isDisabled && <span className="coming-soon-badge">Soon</span>}
             </button>
           );
         })}

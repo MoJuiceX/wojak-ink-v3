@@ -496,6 +496,32 @@
   color: #fff;
 }
 
+.category-tab.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+  position: relative;
+}
+
+.category-tab.disabled:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.coming-soon-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  padding: 2px 5px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
 /* Uncommon rarity */
 .rarity-badge.rarity-uncommon {
   background: linear-gradient(135deg, #22c55e, #16a34a);
