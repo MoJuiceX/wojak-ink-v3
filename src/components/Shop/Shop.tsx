@@ -6,27 +6,43 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Sparkles, Crown, Flame, Zap, Star, Package, Target } from 'lucide-react';
+import { Loader2, Sparkles, Crown, Flame, Zap, Star, Package, Target, Palette, Gift } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { CurrencyDisplay } from '../Currency/CurrencyDisplay';
 import { EmojiRing } from './EmojiRing';
 import { EmojiFrame, EMOJI_FRAME_MAP } from './EmojiFrame';
+import { ItemInfoButton } from './ItemInfoButton';
+import { DrawerStylePreview } from './DrawerStylePreview';
 import './Shop.css';
 import './frames.css';
+import './ItemInfoButton.css';
+import './DrawerStylePreview.css';
 
 interface ShopItem {
   id: string;
   name: string;
   description: string | null;
   category: string;
-  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  tier: 'free' | 'basic' | 'premium';
   price_oranges: number;
-  price_xch: number | null;
+  price_gems: number;
   css_class: string | null;
+  css_value: string | null;
   emoji: string | null;
-  is_active: boolean;
+  preview_type: string | null;
+  effect: string | null;
+  is_limited: number;
+  stock_limit: number | null;
+  stock_remaining: number | null;
+  available_from: string | null;
+  available_until: string | null;
+  bundle_items: string | null;
+  bundle_discount: number | null;
+  is_consumable: number;
   sort_order: number;
+  owned?: boolean;
+  isAvailable?: boolean;
 }
 
 interface InventoryItem {
@@ -52,17 +68,18 @@ const CATEGORIES = [
   { value: 'background', label: 'Backgrounds', icon: Zap },
   { value: 'celebration', label: 'Celebrations', icon: Flame },
   { value: 'bigpulp', label: 'BigPulp', icon: Star },
+  { value: 'drawer', label: 'Drawer Style', icon: Palette },
+  { value: 'bundle', label: 'Bundles', icon: Gift },
 ];
 
-const RARITY_COLORS: Record<string, string> = {
-  common: '#9ca3af',
-  uncommon: '#22c55e',
-  rare: '#3b82f6',
-  epic: '#a855f7',
-  legendary: '#f59e0b',
+// Tier colors for item badges
+const TIER_COLORS: Record<string, string> = {
+  free: '#9ca3af',
+  basic: '#22c55e',
+  premium: '#f59e0b',
 };
 
-const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+const TIER_ORDER = ['free', 'basic', 'premium'];
 
 // BigPulp item emoji mappings
 const BIGPULP_EMOJIS: Record<string, string> = {
@@ -122,10 +139,17 @@ export function Shop({ onClose }: ShopProps) {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
 
-  // Fetch shop items
+  // Fetch shop items (with owned status if authenticated)
   const fetchItems = useCallback(async () => {
     try {
-      const res = await fetch('/api/shop/items');
+      const token = await getToken();
+      // If authenticated, include userId to get owned status
+      const url = token ? '/api/shop/items?includeOwned=true' : '/api/shop/items';
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      const res = await fetch(url, { headers });
       const data = await res.json();
       if (data.items) {
         setItems(data.items);
@@ -133,7 +157,7 @@ export function Shop({ onClose }: ShopProps) {
     } catch (err) {
       console.error('[Shop] Failed to fetch items:', err);
     }
-  }, []);
+  }, [getToken]);
 
   // Fetch user inventory
   const fetchInventory = useCallback(async () => {
@@ -169,6 +193,9 @@ export function Shop({ onClose }: ShopProps) {
   // Check if item is owned (consumables are never "owned" - they can always be bought)
   const isOwned = (item: ShopItem): boolean => {
     if (item.category === 'consumable') return false;
+    // Use owned flag from API if available
+    if (item.owned !== undefined) return item.owned;
+    // Fallback to inventory check
     return inventory.some(inv => inv.item_id === item.id);
   };
 
@@ -217,7 +244,8 @@ export function Shop({ onClose }: ShopProps) {
 
       if (res.ok) {
         setMessage({ type: 'success', text: `Purchased ${item.name}!` });
-        await Promise.all([fetchInventory(), refreshBalance()]);
+        // Refresh both items (for owned status) and inventory
+        await Promise.all([fetchItems(), fetchInventory(), refreshBalance()]);
       } else {
         setMessage({ type: 'error', text: data.error || 'Purchase failed' });
       }
@@ -281,14 +309,35 @@ export function Shop({ onClose }: ShopProps) {
         item.category === 'bigpulp_accessory' ||
         item.category === 'bigpulp_mood'
       );
+    } else if (activeCategory === 'drawer') {
+      // Combine all drawer customization categories
+      filtered = items.filter(item =>
+        item.category === 'font_color' ||
+        item.category === 'font_style' ||
+        item.category === 'font_family' ||
+        item.category === 'page_background' ||
+        item.category === 'avatar_glow' ||
+        item.category === 'avatar_size' ||
+        item.category === 'bigpulp_position' ||
+        item.category === 'dialogue_style' ||
+        item.category === 'collection_layout' ||
+        item.category === 'card_style' ||
+        item.category === 'entrance_animation' ||
+        item.category === 'stats_style' ||
+        item.category === 'tabs_style' ||
+        item.category === 'visitor_counter'
+      );
+    } else if (activeCategory === 'bundle') {
+      // Show items that have bundle_items defined
+      filtered = items.filter(item => item.bundle_items !== null);
     } else {
       filtered = items.filter(item => item.category === activeCategory);
     }
 
-    // Sort by rarity then price
+    // Sort by tier then price
     return filtered.sort((a, b) => {
-      const rarityDiff = RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity);
-      if (rarityDiff !== 0) return rarityDiff;
+      const tierDiff = TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier);
+      if (tierDiff !== 0) return tierDiff;
       return a.price_oranges - b.price_oranges;
     });
   };
@@ -315,7 +364,7 @@ export function Shop({ onClose }: ShopProps) {
     // Titles - show the actual title text
     if (item.category === 'title') {
       return (
-        <div className={`title-preview ${item.rarity === 'legendary' ? 'legendary' : ''}`}>
+        <div className={`title-preview ${item.tier === 'premium' ? 'premium' : ''}`}>
           <span className="title-text">"{item.name}"</span>
         </div>
       );
@@ -374,6 +423,18 @@ export function Shop({ onClose }: ShopProps) {
         return <div className={`preview-background ${item.css_class}`} />;
       }
     }
+
+    // Drawer style items - use special preview component
+    const drawerCategories = [
+      'font_color', 'font_style', 'font_family', 'page_background',
+      'avatar_glow', 'avatar_size', 'bigpulp_position', 'dialogue_style',
+      'collection_layout', 'card_style', 'entrance_animation',
+      'stats_style', 'tabs_style', 'visitor_counter'
+    ];
+    if (drawerCategories.includes(item.category)) {
+      return <DrawerStylePreview item={item} />;
+    }
+
     // Fallback
     return <span className="preview-emoji">✨</span>;
   };
@@ -436,15 +497,26 @@ export function Shop({ onClose }: ShopProps) {
             return (
               <div
                 key={item.id}
-                className={`shop-item-card rarity-${item.rarity} ${owned ? 'owned' : ''} ${equippedItem ? 'equipped' : ''}`}
-                style={{ '--rarity-color': RARITY_COLORS[item.rarity] } as React.CSSProperties}
+                className={`shop-item-card tier-${item.tier} ${owned ? 'owned' : ''} ${equippedItem ? 'equipped' : ''} ${item.is_limited ? 'limited' : ''}`}
+                style={{ '--tier-color': TIER_COLORS[item.tier] } as React.CSSProperties}
                 onClick={() => setPreviewItem(item)}
               >
-                {/* Rarity Badge */}
-                <span className={`rarity-badge rarity-${item.rarity}`}>
-                  {item.rarity}
+                {/* Tier Badge */}
+                <span className={`tier-badge tier-${item.tier}`}>
+                  {item.tier}
                 </span>
 
+                {/* Info Button */}
+                <div className="item-info-position" onClick={e => e.stopPropagation()}>
+                  <ItemInfoButton item={item} />
+                </div>
+
+                {/* Limited Edition Badge */}
+                {item.is_limited === 1 && item.stock_remaining !== null && (
+                  <span className="limited-badge">
+                    {item.stock_remaining > 0 ? `${item.stock_remaining} left` : 'Sold Out'}
+                  </span>
+                )}
 
                 {/* Equipped Badge */}
                 {equippedItem && <span className="equipped-badge">Equipped</span>}
@@ -490,19 +562,24 @@ export function Shop({ onClose }: ShopProps) {
                             🍊 {item.price_oranges.toLocaleString()}
                           </span>
                         )}
-                        {item.price_xch && item.price_xch > 0 && (
-                          <span className="price xch">
-                            ◎ {item.price_xch}
+                        {item.price_gems > 0 && (
+                          <span className="price gems">
+                            💎 {item.price_gems}
                           </span>
+                        )}
+                        {item.price_oranges === 0 && item.price_gems === 0 && (
+                          <span className="price free">Free</span>
                         )}
                       </div>
                       <button
                         className="buy-button"
-                        disabled={!affordable || isPurchasing}
+                        disabled={!affordable || isPurchasing || (item.is_limited === 1 && item.stock_remaining === 0)}
                         onClick={() => handlePurchase(item)}
                       >
                         {isPurchasing ? (
                           <Loader2 className="animate-spin" size={14} />
+                        ) : item.is_limited === 1 && item.stock_remaining === 0 ? (
+                          'Sold Out'
                         ) : affordable ? (
                           'Buy'
                         ) : (
@@ -532,9 +609,12 @@ export function Shop({ onClose }: ShopProps) {
               ✕
             </button>
             <div className="preview-header">
-              <span className={`rarity-badge rarity-${previewItem.rarity}`}>
-                {previewItem.rarity}
+              <span className={`tier-badge tier-${previewItem.tier}`}>
+                {previewItem.tier}
               </span>
+              {previewItem.is_limited === 1 && (
+                <span className="limited-badge-preview">Limited Edition</span>
+              )}
               <h2>{previewItem.name}</h2>
             </div>
             <div className="preview-large">

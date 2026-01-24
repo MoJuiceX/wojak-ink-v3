@@ -171,7 +171,7 @@ export function Header({ transparent = false }: HeaderProps) {
       {/* Desktop: Centered logo - completely separate from header to avoid transform issues */}
       {!isMobile && (
         <div
-          className="fixed"
+          className="fixed header-centered-logo"
           style={{
             left: '50vw',
             top: height / 2,

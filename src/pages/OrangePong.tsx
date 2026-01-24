@@ -1,12 +1,13 @@
-// @ts-nocheck
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useAudio } from '@/contexts/AudioContext';
 import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { GameSEO } from '@/components/seo/GameSEO';
+import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
 import './OrangePong.css';
 
 const PADDLE_HEIGHT = 80;
@@ -24,16 +25,8 @@ const AI_REACTION_ZONE = 20;
 // - Lose a point to AI: no penalty to total, but AI gets closer to winning
 // - Match ends when someone reaches WIN_SCORE (5)
 
-// Sad images for game over screen
-const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/Games/games_media/sad_runner_${i + 1}.png`);
-
-interface LocalLeaderboardEntry {
-  name: string;
-  score: number;
-  date: string;
-}
-
 const OrangePong: React.FC = () => {
+  const isMobile = useIsMobile();
   const { playPaddleHit, playWallBounce, playScorePoint, playWinSound, playGameOver } = useGameSounds();
 
   // Visual effects system
@@ -70,6 +63,19 @@ const OrangePong: React.FC = () => {
   const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
     isPlaying: gameState === 'playing',
   });
+
+  // Mobile fullscreen mode - hide header during gameplay
+  useEffect(() => {
+    if (isMobile && gameState === 'playing') {
+      document.body.classList.add('game-fullscreen-mode');
+    } else {
+      document.body.classList.remove('game-fullscreen-mode');
+    }
+    return () => {
+      document.body.classList.remove('game-fullscreen-mode');
+    };
+  }, [isMobile, gameState]);
+
   const [playerScore, setPlayerScore] = useState(0);
   const [aiScore, setAiScore] = useState(0);
   const [totalPoints, setTotalPoints] = useState(0);
@@ -80,18 +86,11 @@ const OrangePong: React.FC = () => {
   const [ballY, setBallY] = useState(0);
   const [ballVX, setBallVX] = useState(5);
   const [ballVY, setBallVY] = useState(3);
-  const [playerName, setPlayerName] = useState('');
-  const [sadImage, setSadImage] = useState('');
-  const [localLeaderboard, setLocalLeaderboard] = useState<LocalLeaderboardEntry[]>(() => {
-    const saved = localStorage.getItem('orangePongLeaderboard');
-    return saved ? JSON.parse(saved) : [];
-  });
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('orangePongHighScore') || '0', 10);
   });
   const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
-  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -105,7 +104,6 @@ const OrangePong: React.FC = () => {
   }, [showExitDialog]);
 
   // Rally tracking for combo effects
-  const [rally, setRally] = useState(0);
   const rallyRef = useRef(0);
 
   // Subtle hit ripples at paddle contact points
@@ -185,21 +183,14 @@ const OrangePong: React.FC = () => {
     setPlayerY(centerY);
     setAiY(centerY);
     playerYRef.current = centerY;
-    setPlayerName('');
     setScoreSubmitted(false);
     setIsNewPersonalBest(false);
     // Reset rally and effects
-    setRally(0);
     rallyRef.current = 0;
     resetAllEffects();
     // Ball starts going to AI first
     resetBall(-1);
     setGameState('playing');
-  };
-
-  const goToMenu = () => {
-    setGameState('idle');
-    setPlayerName('');
   };
 
   // Auto-start game on mount (unified intro from GameModal)
@@ -213,26 +204,6 @@ const OrangePong: React.FC = () => {
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Save score to local leaderboard (for guests)
-  const saveScoreLocal = () => {
-    if (!playerName.trim()) return;
-
-    const newEntry: LocalLeaderboardEntry = {
-      name: playerName.trim(),
-      score: totalPoints,
-      date: new Date().toISOString().split('T')[0],
-    };
-
-    const updatedLeaderboard = [...localLeaderboard, newEntry]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-
-    setLocalLeaderboard(updatedLeaderboard);
-    localStorage.setItem('orangePongLeaderboard', JSON.stringify(updatedLeaderboard));
-    setPlayerName('');
-    goToMenu();
-  };
 
   // Auto-submit score to global leaderboard (for signed-in users)
   const submitScoreGlobal = useCallback(async (finalScore: number) => {
@@ -258,20 +229,6 @@ const OrangePong: React.FC = () => {
       console.error('[OrangePong] Failed to submit score:', result.error);
     }
   }, [isSignedIn, scoreSubmitted, submitScore, playerScore, highScore]);
-
-  const skipSaveScore = () => {
-    setPlayerName('');
-    goToMenu();
-  };
-
-  // Merge global and local leaderboard for display
-  const displayLeaderboard = globalLeaderboard.length > 0
-    ? globalLeaderboard.map(entry => ({
-        name: entry.displayName,
-        score: entry.score,
-        date: entry.date,
-      }))
-    : localLeaderboard;
 
   // Global mouse move handler - works outside the game area
   useEffect(() => {
@@ -387,8 +344,7 @@ const OrangePong: React.FC = () => {
 
             // Visual effects on player hit
             rallyRef.current += 1;
-            setRally(rallyRef.current);
-            updateComboRef.current(rallyRef.current);
+                        updateComboRef.current();
 
             // Subtle hit ripple at paddle contact point
             addHitRipple(playerPaddleX, newY + BALL_SIZE / 2);
@@ -427,8 +383,7 @@ const OrangePong: React.FC = () => {
 
               // Visual effects on AI hit
               rallyRef.current += 1;
-              setRally(rallyRef.current);
-
+              
               // Subtle hit ripple at AI paddle contact point
               addHitRipple(aiPaddleX + PADDLE_WIDTH, newY + BALL_SIZE / 2);
             }
@@ -453,8 +408,8 @@ const OrangePong: React.FC = () => {
             playScorePointRef.current();
 
             // Visual celebration for scoring
-            triggerShockwaveRef.current(10, 50);
-            triggerSparksRef.current(10, 50);
+            triggerShockwaveRef.current('#ff6b00', 1.5);
+            triggerSparksRef.current('#ff6b00');
             triggerScreenShakeRef.current();
             addFloatingEmojiRef.current('🎯');
 
@@ -469,8 +424,7 @@ const OrangePong: React.FC = () => {
 
             // Reset rally after scoring
             rallyRef.current = 0;
-            setRally(0);
-            resetComboRef.current();
+                        resetComboRef.current();
 
             setPlayerScore(prev => {
               const newScore = prev + 1;
@@ -497,8 +451,7 @@ const OrangePong: React.FC = () => {
 
             // Reset rally
             rallyRef.current = 0;
-            setRally(0);
-            resetComboRef.current();
+                        resetComboRef.current();
 
             setAiScore(prev => {
               const newScore = prev + 1;
@@ -506,7 +459,6 @@ const OrangePong: React.FC = () => {
                 // AI wins - game over, keep accumulated points
                 playGameOverRef.current();
                 showEpicCalloutRef.current('💀 GAME OVER');
-                setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
                 setGameState('gameover');
               } else {
                 setTimeout(() => resetBall(1), 500);
@@ -596,7 +548,7 @@ const OrangePong: React.FC = () => {
           </div>
 
           {/* Lightbox wrapper for game area - RIGHT side */}
-          <div className={`lightbox-wrapper ${effects.showScreenShake ? 'screen-shake' : ''}`}>
+          <div className={`lightbox-wrapper ${effects.screenShake ? 'screen-shake' : ''}`}>
             {/* Visual Effects Layer */}
             <GameEffects effects={effects} accentColor="#ff6b00" />
 
@@ -651,125 +603,26 @@ const OrangePong: React.FC = () => {
       {/* NON-PLAYING STATES: Menu and Game Over */}
       {gameState !== 'playing' && (
       <div
-        ref={gameState !== 'playing' ? gameAreaRef : undefined}
+        ref={gameAreaRef}
         className="pong-area"
       >
         {/* Main Menu removed - now handled by unified GameModal intro screen */}
 
-        {/* Game Over */}
+        {/* Game Over - Uses shared component */}
         {gameState === 'gameover' && (
-          <div className="pong-game-over-overlay" onClick={(e) => e.stopPropagation()}>
-            {/* Main Game Over Content - stays fixed */}
-            <div className="pong-game-over-content">
-              <div className="pong-game-over-left">
-                {playerScore >= WIN_SCORE ? (
-                  <div className="pong-game-over-emoji">🏆</div>
-                ) : sadImage ? (
-                  <img src={sadImage} alt="Game Over" className="pong-sad-image" />
-                ) : (
-                  <div className="pong-game-over-emoji">😢</div>
-                )}
-              </div>
-              <div className="pong-game-over-right">
-                <h2 className="pong-game-over-title">
-                  {playerScore >= WIN_SCORE ? 'You Won!' : 'Game Over!'}
-                </h2>
-
-                <div className="pong-game-over-reason">
-                  {playerScore >= WIN_SCORE
-                    ? `You beat the AI ${playerScore} - ${aiScore}!`
-                    : `AI beat you ${aiScore} - ${playerScore}`}
-                </div>
-
-                <div className="pong-game-over-score">
-                  <span className="pong-score-value">{totalPoints}</span>
-                  <span className="pong-score-label">total points</span>
-                </div>
-
-                <div className="pong-game-over-stats">
-                  <div className="pong-stat">
-                    <span className="pong-stat-value">{playTime}s</span>
-                    <span className="pong-stat-label">time</span>
-                  </div>
-                  <div className="pong-stat">
-                    <span className="pong-stat-value">{highScore}</span>
-                    <span className="pong-stat-label">best</span>
-                  </div>
-                </div>
-
-                {(isNewPersonalBest || totalPoints > highScore) && totalPoints > 0 && (
-                  <div className="pong-new-record">New Personal Best!</div>
-                )}
-
-                {isSignedIn && (
-                  <div className="pong-submitted">
-                    {isSubmitting ? 'Saving...' : scoreSubmitted ? `Saved as ${userDisplayName}!` : ''}
-                  </div>
-                )}
-
-                {/* Guest name input */}
-                {!isSignedIn && totalPoints > 0 && (
-                  <div className="pong-guest-form">
-                    <input
-                      type="text"
-                      className="pong-name-input"
-                      placeholder="Enter your name"
-                      value={playerName}
-                      onChange={(e) => setPlayerName(e.target.value)}
-                      maxLength={15}
-                      onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
-                    />
-                  </div>
-                )}
-
-                {/* Buttons: Play Again + Leaderboard */}
-                <div className="pong-game-over-buttons">
-                  <button onClick={!isSignedIn && playerName.trim() ? saveScoreLocal : startGame} className="pong-play-btn">
-                    {!isSignedIn && playerName.trim() ? 'Save & Play' : 'Play Again'}
-                  </button>
-                  <button
-                    onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                    className="pong-leaderboard-btn"
-                  >
-                    Leaderboard
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Leaderboard Panel - overlays on top */}
-            {showLeaderboardPanel && (
-              <div className="pong-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
-                <div className="pong-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
-                  <div className="pong-leaderboard-header">
-                    <h3>{globalLeaderboard.length > 0 ? 'Leaderboard' : 'Leaderboard'}</h3>
-                    <button className="pong-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
-                  </div>
-                  <div className="pong-leaderboard-list">
-                    {Array.from({ length: 10 }, (_, index) => {
-                      const entry = displayLeaderboard[index];
-                      const isCurrentUser = entry && totalPoints === entry.score;
-                      return (
-                        <div key={index} className={`pong-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
-                          <span className="pong-leaderboard-rank">#{index + 1}</span>
-                          <span className="pong-leaderboard-name">{entry?.name || '---'}</span>
-                          <span className="pong-leaderboard-score">{entry?.score ?? '-'}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Back to Games - positioned in safe area (bottom right) */}
-            <button
-              onClick={() => { window.location.href = '/games'; }}
-              className="pong-back-to-games-btn"
-            >
-              Back to Games
-            </button>
-          </div>
+          <ArcadeGameOverScreen
+            score={totalPoints}
+            highScore={highScore}
+            scoreLabel="total points"
+            isNewPersonalBest={isNewPersonalBest}
+            isSignedIn={isSignedIn}
+            isSubmitting={isSubmitting}
+            scoreSubmitted={scoreSubmitted}
+            userDisplayName={userDisplayName ?? undefined}
+            leaderboard={globalLeaderboard}
+            onPlayAgain={startGame}
+            accentColor="#f59e0b"
+          />
         )}
       </div>
       )}

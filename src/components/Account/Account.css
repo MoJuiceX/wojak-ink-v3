@@ -353,7 +353,12 @@
   background: rgba(249, 115, 22, 0.05);
 }
 
-/* Rarity colors */
+/* Tier colors */
+.inventory-item.tier-premium { border-left: 3px solid #FFD700; }
+.inventory-item.tier-basic { border-left: 3px solid #22c55e; }
+.inventory-item.tier-free { border-left: 3px solid #95A5A6; }
+
+/* Legacy rarity colors (for backwards compat) */
 .inventory-item.rarity-legendary { border-left: 3px solid #FFD700; }
 .inventory-item.rarity-epic { border-left: 3px solid #9B59B6; }
 .inventory-item.rarity-rare { border-left: 3px solid #3498DB; }
@@ -373,10 +378,17 @@
   color: var(--color-text-primary);
 }
 
-.item-rarity {
+.item-rarity,
+.item-tier {
   font-size: 0.75rem;
   color: var(--color-text-tertiary);
   text-transform: capitalize;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .equip-button {
@@ -397,6 +409,26 @@
   background: var(--color-brand-primary);
   border-color: var(--color-brand-primary);
   color: white;
+}
+
+.gift-button {
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.gift-button:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: #ef4444;
 }
 
 /* ============ Recent Activity ============ */

@@ -1,0 +1,428 @@
+/**
+ * Arcade Frame Styles
+ *
+ * Positions game content within the arcade cabinet frame PNG.
+ * Screen area coordinates are precisely measured from the PNG.
+ *
+ * @see claude-specs/28-ARCADE-FRAME-OVERLAY.md
+ */
+
+/* ============================================
+   WRAPPER - sizes frame to fill viewport
+   ============================================ */
+
+.arcade-frame-wrapper {
+  /* Fill entire viewport */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 100;
+  /* Allow glows to extend beyond visible frame area */
+  overflow: visible;
+  /* Allow clicks to pass through to game content */
+  pointer-events: auto;
+  /* Prevent tap highlight on mobile - must override global * rule in mobile.css */
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* ============================================
+   STANDARD FRAME (Desktop only)
+   Container fills viewport and crops excess (no black bars)
+   Game & PNG stay aligned because they're in same container
+   ============================================ */
+
+.arcade-frame-container {
+  position: absolute;
+  /* Center the container */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* Prevent tap highlight on mobile - must override global * rule in mobile.css */
+  -webkit-tap-highlight-color: transparent !important;
+  /* ZOOM FACTOR - increase to make game screen larger (crops more frame) */
+  /* 1.0 = no zoom, 1.2 = 20% zoom, 1.5 = 50% zoom */
+  --arcade-zoom: 1.35;
+  /* Size to FILL viewport with zoom applied */
+  min-width: calc(100vw * var(--arcade-zoom));
+  min-height: calc(100vh * var(--arcade-zoom));
+  /* Maintain 16:9 aspect ratio */
+  aspect-ratio: 16 / 9;
+  /* On wide screens: height=100vh, width expands */
+  /* On tall screens: width=100vw, height expands */
+  width: max(calc(100vw * var(--arcade-zoom)), calc(100vh * 16 / 9 * var(--arcade-zoom)));
+  height: max(calc(100vh * var(--arcade-zoom)), calc(100vw * 9 / 16 * var(--arcade-zoom)));
+}
+
+/* Screen area - positioned relative to container using percentages */
+/* Must match the PNG's screen area position exactly */
+/* arcade-frame_fin.png: screen at (960,540) size 1920x1080 in 3840x2160 canvas */
+/* Per SVG template: public/img/arcade-frame-template.svg */
+.arcade-screen {
+  position: absolute;
+  left: 25%;      /* 960 / 3840 */
+  top: 25%;       /* 540 / 2160 */
+  width: 50%;     /* 1920 / 3840 */
+  height: 50%;    /* 1080 / 2160 */
+  /* Prevent tap highlight on mobile - must override global * rule in mobile.css */
+  -webkit-tap-highlight-color: transparent !important;
+  overflow: hidden;
+  background: #000;
+  border-radius: 2px;
+  /* Force all content to fit within this box */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Allow clicks inside the screen */
+  pointer-events: auto;
+  /* Render above the frame overlay so UI elements (stats, timeline) are visible */
+  z-index: 100;
+}
+
+/* Disable tap highlight for ALL elements inside arcade screen */
+.arcade-screen *,
+.arcade-screen *::before,
+.arcade-screen *::after {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Game over overlays must appear above the arcade frame */
+/* Only the main overlay container gets high z-index, not all children */
+.arcade-screen .fo-game-over-overlay {
+  z-index: 1000 !important;
+}
+
+/* Allow game over overlays to not be clipped */
+.arcade-screen:has([class*="game-over"]),
+.arcade-screen:has(.fo-game-over-overlay) {
+  overflow: visible !important;
+}
+
+/* Game content fills screen and MUST be contained */
+.arcade-screen > * {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+
+/* Ensure game containers create stacking context for absolute children */
+.arcade-screen .flappy-container,
+.arcade-screen .game-container,
+.arcade-screen [class*="-container"] {
+  position: relative !important;
+}
+
+/* Ensure iframes and canvases fill the screen area */
+.arcade-screen iframe,
+.arcade-screen canvas {
+  border: none;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain;
+}
+
+/* IonPage and game containers should fill completely */
+.arcade-screen ion-page,
+.arcade-screen .game-container,
+.arcade-screen > div:not(.arcade-game-layer):not(.arcade-intro-screen) {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  position: relative !important;
+}
+
+/* Intro/game layer stacking - these need absolute positioning */
+.arcade-screen > .arcade-game-layer,
+.arcade-screen > .arcade-intro-screen {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  /* Prevent tap highlight on mobile - must override global * rule in mobile.css */
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.arcade-screen > .arcade-game-layer {
+  z-index: 20;
+  /* Center game content within the screen area */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* When game layer is inactive (hidden), force all descendants to not capture clicks */
+/* This prevents hidden games from stealing clicks from the intro screen */
+.arcade-screen > .arcade-game-layer.inactive,
+.arcade-screen > .arcade-game-layer.inactive * {
+  pointer-events: none !important;
+}
+
+.arcade-screen > .arcade-intro-screen {
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Frame PNG - fills the 16:9 container exactly */
+/* NOTE: z-index: 5 so game UI elements (stats, timeline) can appear above it */
+.arcade-frame-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* No object-fit needed - container is already 16:9 like the PNG */
+  pointer-events: none;
+  user-select: none;
+  z-index: 5;
+}
+
+
+/* ============================================
+   INTRO BUTTONS - Under the left red light
+   Red light position: left: 17.6%, top: 53.2%
+   ============================================ */
+
+.arcade-frame-btn {
+  position: absolute;
+  left: 18.4%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.7);
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 200; /* Above arcade-screen (z-index: 100) */
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.arcade-frame-btn:hover {
+  background: rgba(60, 60, 60, 0.9);
+  color: white;
+  transform: translateX(-50%) scale(1.1);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Question mark button - below the red light */
+.arcade-frame-btn-help {
+  top: 60%;
+}
+
+/* Mute button - between help and close */
+.arcade-frame-btn-mute {
+  top: 69%;
+  position: absolute; /* Ensure relative positioning for the hint */
+}
+
+/* Close button - further below */
+.arcade-frame-btn-close {
+  top: 78%;
+}
+
+/* ============================================
+   MOBILE: Full screen game mode
+   Remove transforms that break fixed positioning
+   and reposition buttons to right edge
+   ============================================ */
+@media (max-width: 768px) {
+  /* Remove transform so fixed positioning works for buttons */
+  .arcade-frame-container {
+    transform: none !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: unset !important;
+    min-height: unset !important;
+  }
+
+  /* Screen fills the container */
+  .arcade-screen {
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Hide the arcade frame overlay on mobile */
+  .arcade-frame-overlay {
+    display: none !important;
+  }
+
+  /* Hide arcade frame buttons on mobile - games provide their own UI */
+  .arcade-frame-btn,
+  .arcade-frame-btn-help,
+  .arcade-frame-btn-close,
+  .arcade-frame-btn-mute {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    left: -9999px !important;
+  }
+}
+
+
+/* ============================================
+   WIDE FRAME (Memory Match - Phase 2)
+   Uses edge pieces that stretch horizontally
+   ============================================ */
+
+.arcade-frame-wide {
+  position: relative;
+  width: 100%;
+  max-width: 1600px;
+  min-height: 500px;
+  margin: 0 auto;
+}
+
+.arcade-edge {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  z-index: 10;
+}
+
+/* Top edge stretches horizontally */
+.arcade-edge-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 70px;
+  object-fit: fill;
+}
+
+/* Bottom edge stretches horizontally */
+.arcade-edge-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 50px;
+  object-fit: fill;
+}
+
+/* Left edge - fixed width, full height */
+.arcade-edge-left {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 217px;
+  height: 100%;
+  object-fit: fill;
+}
+
+/* Right edge - fixed width, full height */
+.arcade-edge-right {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 215px;
+  height: 100%;
+  object-fit: fill;
+}
+
+/* Screen area - inset from edges (Phase 2) */
+.arcade-screen-wide {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  overflow: hidden;
+}
+
+/* When edge assets are ready, use this positioning instead:
+.arcade-screen-wide {
+  position: absolute;
+  top: 70px;
+  bottom: 50px;
+  left: 217px;
+  right: 215px;
+  background: #000;
+  overflow: hidden;
+}
+*/
+
+.arcade-screen-wide > * {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+/* No special responsive rules needed - wrapper is already fullscreen */
+
+
+/* ============================================
+   HEADER ADJUSTMENT - move logo when arcade visible
+   ============================================ */
+
+/* When arcade frame is visible, split logo and tagline */
+body.arcade-frame-visible .header-centered-logo {
+  left: 0 !important;
+  right: 0 !important;
+  top: 10px !important;
+  transform: none !important;
+  width: 100vw !important;
+  padding: 0 20px !important;
+  box-sizing: border-box !important;
+  transition: all 0.3s ease;
+}
+
+body.arcade-frame-visible .header-centered-logo a {
+  width: 100% !important;
+}
+
+body.arcade-frame-visible .header-centered-logo a > div {
+  width: 100% !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+/* Tagline container - push to the right and down slightly */
+body.arcade-frame-visible .header-centered-logo .split-flap-container {
+  margin-left: 0 !important;
+  margin-top: 5px !important;
+}
+
+/* Logo part - move right and up slightly */
+body.arcade-frame-visible .header-centered-logo a > div > div:first-child {
+  margin-left: 8px !important;
+  margin-top: -5px !important;
+  white-space: nowrap !important;
+}
+
+/* Add orange emoji after Wojak.ink text */
+body.arcade-frame-visible .header-centered-logo a > div > div:first-child > span::after {
+  content: ' 🍊';
+}

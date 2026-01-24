@@ -15,6 +15,7 @@ import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { GameSEO } from '@/components/seo';
+import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
 import './WojakWhack.css';
 
 // =============================================================================
@@ -99,7 +100,6 @@ export default function WojakWhack() {
     addScorePopup,
   } = useGameEffects();
   const { submitScore, isSignedIn, leaderboard: globalLeaderboard, userDisplayName, isSubmitting } = useLeaderboard('wojak-whack');
-  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   // Game state
   const [status, setStatus] = useState<GameStatus>('idle');
@@ -128,6 +128,18 @@ export default function WojakWhack() {
   const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
     isPlaying: status === 'playing',
   });
+
+  // Mobile fullscreen mode - hide header during gameplay
+  useEffect(() => {
+    if (isMobile && status === 'playing') {
+      document.body.classList.add('game-fullscreen-mode');
+    } else {
+      document.body.classList.remove('game-fullscreen-mode');
+    }
+    return () => {
+      document.body.classList.remove('game-fullscreen-mode');
+    };
+  }, [isMobile, status]);
 
   // Refs for intervals/timeouts
   const timerRef = useRef<number | null>(null);
@@ -490,8 +502,6 @@ export default function WojakWhack() {
   // RENDER
   // =============================================================================
 
-  const accuracy = totalSpawns > 0 ? Math.round((totalHits / totalSpawns) * 100) : 0;
-
   return (
     <div className={`wojak-whack-container ${isMobile ? 'mobile' : ''}`}>
       <GameSEO
@@ -576,92 +586,21 @@ export default function WojakWhack() {
         </div>
       )}
 
-      {/* Game Over Overlay */}
+      {/* Game Over - Uses shared component */}
       {status === 'gameover' && (
-        <div className="ww-game-over-overlay" onClick={(e) => e.stopPropagation()}>
-          {/* Main Game Over Content */}
-          <div className="ww-game-over-content">
-            <div className="ww-game-over-left">
-              <div className="ww-game-over-emoji">🔨</div>
-            </div>
-            <div className="ww-game-over-right">
-              <h2 className="ww-game-over-title">TIME'S UP!</h2>
-
-              <div className="ww-game-over-score">
-                <span className="ww-final-score-value">{score}</span>
-                <span className="ww-final-score-label">Final Score</span>
-              </div>
-
-              <div className="ww-game-over-stats">
-                <div className="ww-stat">
-                  <span className="ww-stat-value">{accuracy}%</span>
-                  <span className="ww-stat-label">Accuracy</span>
-                </div>
-                <div className="ww-stat">
-                  <span className="ww-stat-value">{totalHits}</span>
-                  <span className="ww-stat-label">Hits</span>
-                </div>
-                <div className="ww-stat">
-                  <span className="ww-stat-value">{maxComboRef.current}</span>
-                  <span className="ww-stat-label">Max Combo</span>
-                </div>
-              </div>
-
-              {isNewHighScore && <div className="ww-new-record">NEW HIGH SCORE!</div>}
-              {isSignedIn && (
-                <div className="ww-submitted">
-                  {isSubmitting ? 'Saving...' : submitted ? `Saved as ${userDisplayName}!` : ''}
-                </div>
-              )}
-
-              {/* Buttons: Play Again + Leaderboard */}
-              <div className="ww-game-over-buttons">
-                <button className="ww-play-btn" onClick={startGame}>
-                  Play Again
-                </button>
-                <button
-                  onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                  className="ww-leaderboard-btn"
-                >
-                  Leaderboard
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Leaderboard Panel - overlays on top */}
-          {showLeaderboardPanel && (
-            <div className="ww-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
-              <div className="ww-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
-                <div className="ww-leaderboard-header">
-                  <h3>Leaderboard</h3>
-                  <button className="ww-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>x</button>
-                </div>
-                <div className="ww-leaderboard-list">
-                  {Array.from({ length: 10 }, (_, index) => {
-                    const entry = globalLeaderboard[index];
-                    const isCurrentUser = entry && score === entry.score;
-                    return (
-                      <div key={index} className={`ww-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
-                        <span className="ww-leaderboard-rank">#{index + 1}</span>
-                        <span className="ww-leaderboard-name">{entry?.displayName || '---'}</span>
-                        <span className="ww-leaderboard-score">{entry?.score ?? '-'}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Back to Games - positioned in safe area (bottom right) */}
-          <button
-            onClick={() => { window.location.href = '/games'; }}
-            className="ww-back-to-games-btn"
-          >
-            Back to Games
-          </button>
-        </div>
+        <ArcadeGameOverScreen
+          score={score}
+          highScore={globalLeaderboard[0]?.score || 0}
+          scoreLabel="points"
+          isNewPersonalBest={isNewHighScore}
+          isSignedIn={isSignedIn}
+          isSubmitting={isSubmitting}
+          scoreSubmitted={submitted}
+          userDisplayName={userDisplayName ?? undefined}
+          leaderboard={globalLeaderboard}
+          onPlayAgain={startGame}
+          accentColor="#a855f7"
+        />
       )}
 
       {/* Exit Game Confirmation Dialog */}

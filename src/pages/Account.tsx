@@ -24,6 +24,7 @@ import { FriendsWidget } from '@/components/Account/FriendsWidget';
 import { AchievementsWidget } from '@/components/Account/AchievementsWidget';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { DrawerEditor } from '@/components/Shop/DrawerEditor';
+import { GiftModal } from '@/components/Account/GiftModal';
 
 import '@/components/Account/Account.css';
 
@@ -39,9 +40,10 @@ export default function Account() {
   const clerk = useClerk();
 
   // Get user ID and token from Clerk for fetching scores
-  const authResult = CLERK_ENABLED ? useAuth() : { userId: null, getToken: async () => null };
-  const userId = authResult.userId;
-  const getToken = authResult.getToken;
+  // Always call useAuth() to comply with rules of hooks
+  const authResult = useAuth();
+  const userId = CLERK_ENABLED ? authResult.userId : null;
+  const getToken = CLERK_ENABLED ? authResult.getToken : async () => null;
 
   const {
     profile,
@@ -89,12 +91,16 @@ export default function Account() {
   // Drawer editor state
   const [isDrawerEditorOpen, setIsDrawerEditorOpen] = useState(false);
 
+  // Gift modal state
+  const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
+  const [selectedGiftItem, setSelectedGiftItem] = useState<any>(null);
+
   // Mock activities - replace with actual activity tracking
   const [activities] = useState<any[]>([]);
 
   // Inventory items from shop
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
-  const [_equippedItems, setEquippedItems] = useState<{
+  const [, setEquippedItems] = useState<{
     frame_id: string | null;
     title_id: string | null;
     name_effect_id: string | null;
@@ -108,7 +114,7 @@ export default function Account() {
     celebration_id: null,
   });
 
-  // Fetch inventory when signed in
+  // Fetch inventory when signed in (using unified /api/inventory endpoint)
   useEffect(() => {
     const fetchInventory = async () => {
       if (!isSignedIn) {
@@ -118,7 +124,7 @@ export default function Account() {
 
       try {
         const token = await getToken();
-        const res = await fetch('/api/shop/inventory', {
+        const res = await fetch('/api/inventory', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -130,17 +136,14 @@ export default function Account() {
             background_id: null,
             celebration_id: null,
           });
-          // Map items with equipped status
-          const itemsWithEquipped = (data.items || []).map((item: any) => ({
-            ...item,
-            equipped:
-              (item.category === 'frame' && data.equipped?.frame_id === item.item_id) ||
-              (item.category === 'title' && data.equipped?.title_id === item.item_id) ||
-              (item.category === 'name_effect' && data.equipped?.name_effect_id === item.item_id) ||
-              (item.category === 'background' && data.equipped?.background_id === item.item_id) ||
-              (item.category === 'celebration' && data.equipped?.celebration_id === item.item_id),
-          }));
-          setInventoryItems(itemsWithEquipped);
+          // Flatten categories into items array
+          const allItems: any[] = [];
+          if (data.categories) {
+            for (const category of Object.keys(data.categories)) {
+              allItems.push(...data.categories[category]);
+            }
+          }
+          setInventoryItems(allItems);
         }
       } catch (err) {
         console.error('[Account] Failed to fetch inventory:', err);
@@ -189,6 +192,13 @@ export default function Account() {
     } catch (err) {
       console.error('[Account] Failed to equip item:', err);
     }
+  };
+
+  // Gift handler - opens gift modal with selected item
+  const handleGift = (itemId: string) => {
+    const item = inventoryItems.find(i => i.item_id === itemId);
+    setSelectedGiftItem(item || null);
+    setIsGiftModalOpen(true);
   };
 
   // Unequip handler
@@ -391,6 +401,7 @@ export default function Account() {
             isOwnProfile={true}
             onEquip={handleEquip}
             onUnequip={handleUnequip}
+            onGift={handleGift}
           />
 
           {/* Drawer Customization */}
@@ -423,6 +434,38 @@ export default function Account() {
           <DrawerEditor
             isOpen={isDrawerEditorOpen}
             onClose={() => setIsDrawerEditorOpen(false)}
+          />
+
+          {/* Gift Modal */}
+          <GiftModal
+            isOpen={isGiftModalOpen}
+            onClose={() => {
+              setIsGiftModalOpen(false);
+              setSelectedGiftItem(null);
+            }}
+            preselectedItem={selectedGiftItem}
+            onGiftSent={async () => {
+              // Refresh inventory after gifting
+              try {
+                const token = await getToken();
+                const res = await fetch('/api/inventory', {
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  // Flatten categories into items array
+                  const allItems: any[] = [];
+                  if (data.categories) {
+                    for (const category of Object.keys(data.categories)) {
+                      allItems.push(...data.categories[category]);
+                    }
+                  }
+                  setInventoryItems(allItems);
+                }
+              } catch (err) {
+                console.error('[Account] Failed to refresh inventory:', err);
+              }
+            }}
           />
 
           {/* Recent Activity */}

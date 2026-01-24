@@ -36,3 +36,7 @@ export { RetryCard, NetworkError } from './RetryCard';
 // Modals and feedback
 export { ConfirmModal } from './ConfirmModal';
 export { SuccessCheck, SuccessPulse } from './SuccessCheck';
+
+// Game UI
+export { GameButton } from './GameButton';
+export type { GameButtonProps } from './GameButton';

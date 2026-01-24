@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   IonContent,
@@ -6,13 +5,18 @@ import {
   IonPage,
   IonTitle,
   IonToolbar,
-  IonButton,
   IonIcon,
   IonButtons,
+  IonButton,
 } from '@ionic/react';
 import { informationCircleOutline, close } from 'ionicons/icons';
 import { useGameEffects, GameEffects } from '@/components/media';
+import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
 import { GameSEO } from '@/components/seo/GameSEO';
+import { generateGameScorecard } from '@/systems/sharing/GameScorecard';
+import { GameButton } from '@/components/ui/GameButton';
+import { useGameTouch } from '@/hooks/useGameTouch';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import './Orange2048.css';
 
 type Grid = (number | null)[][];
@@ -35,6 +39,7 @@ const TILE_EMOJI: { [key: number]: string } = {
 };
 
 const Orange2048: React.FC = () => {
+  const isMobile = useIsMobile();
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover' | 'won'>('idle');
   const [grid, setGrid] = useState<Grid>(() => createEmptyGrid());
   const [score, setScore] = useState(0);
@@ -43,7 +48,6 @@ const Orange2048: React.FC = () => {
   });
   const [showInfo, setShowInfo] = useState(false);
 
-  const touchStartRef = useRef({ x: 0, y: 0 });
   const lastMergeValueRef = useRef(0);
 
   // Universal visual effects system
@@ -59,6 +63,18 @@ const Orange2048: React.FC = () => {
     updateCombo,
     resetAllEffects,
   } = useGameEffects();
+
+  // Mobile fullscreen mode - hide header during gameplay
+  useEffect(() => {
+    if (isMobile && gameState === 'playing') {
+      document.body.classList.add('game-fullscreen-mode');
+    } else {
+      document.body.classList.remove('game-fullscreen-mode');
+    }
+    return () => {
+      document.body.classList.remove('game-fullscreen-mode');
+    };
+  }, [isMobile, gameState]);
 
   function createEmptyGrid(): Grid {
     return Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
@@ -94,6 +110,49 @@ const Orange2048: React.FC = () => {
     lastMergeValueRef.current = 0;
     resetAllEffects();
   };
+
+  // Share handler for game over scorecard
+  const handleShare = useCallback(async () => {
+    try {
+      const blob = await generateGameScorecard({
+        gameName: '2048 Merge',
+        gameNameParts: ['2048', 'MERGE'],
+        score: score,
+        scoreLabel: 'points',
+        bestScore: highScore,
+        isNewRecord: score >= highScore && score > 0,
+        screenshot: null, // No screenshot for this game
+        accentColor: '#ff6b00', // Orange accent
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `2048-merge-${score}.png`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      if (navigator.share && navigator.canShare) {
+        const file = new File([blob], '2048-merge-score.png', { type: 'image/png' });
+        const shareData = {
+          title: '2048 Merge Score',
+          text: `🍊 I scored ${score} points in 2048 Merge! Can you beat me?`,
+          files: [file],
+        };
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to generate share image:', err);
+      const shareText = `🍊 2048 Merge: ${score} points!\n\nCan you beat my score?\n\nhttps://wojak.ink/games`;
+      if (navigator.share) {
+        await navigator.share({ title: '2048 Merge', text: shareText });
+      } else {
+        await navigator.clipboard.writeText(shareText);
+      }
+    }
+  }, [score, highScore]);
 
   const slide = (row: (number | null)[]): { row: (number | null)[]; score: number } => {
     // Remove nulls
@@ -244,26 +303,15 @@ const Orange2048: React.FC = () => {
     return true;
   };
 
-  // Touch controls
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartRef.current.x = e.touches[0].clientX;
-    touchStartRef.current.y = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (gameState !== 'playing') return;
-
-    const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
-    const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
-
-    if (Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
-
-    if (Math.abs(dx) > Math.abs(dy)) {
-      move(dx > 0 ? 'right' : 'left');
-    } else {
-      move(dy > 0 ? 'down' : 'up');
-    }
-  };
+  // Touch controls using shared hook
+  const touchHandlers = useGameTouch({
+    onSwipe: (direction) => {
+      if (gameState === 'playing') {
+        move(direction);
+      }
+    },
+    swipeThreshold: 30,
+  });
 
   // Keyboard controls
   useEffect(() => {
@@ -329,8 +377,7 @@ const Orange2048: React.FC = () => {
 
         <div
           className={`game2048-area ${effects.screenShake ? 'screen-shake' : ''}`}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+          {...touchHandlers}
         >
           {/* Universal Game Effects Layer */}
           <GameEffects effects={effects} accentColor="#ff6b00" />
@@ -343,29 +390,23 @@ const Orange2048: React.FC = () => {
               {highScore > 0 && (
                 <p className="high-score">High Score: {highScore}</p>
               )}
-              <IonButton onClick={startGame} className="play-btn">
+              <GameButton onClick={startGame} className="play-btn" size="lg">
                 Play
-              </IonButton>
+              </GameButton>
             </div>
           )}
 
           {(gameState === 'gameover' || gameState === 'won') && (
-            <div className="game-menu">
-              <div className="game-title">{gameState === 'won' ? 'You Win!' : 'Game Over!'}</div>
-              <div className="final-score">
-                <span className="score-label">Score</span>
-                <span className="score-value">{score}</span>
-              </div>
-              {score === highScore && score > 0 && (
-                <div className="new-record">New Record!</div>
-              )}
-              <div className="high-score-display">
-                Best: {highScore}
-              </div>
-              <IonButton onClick={startGame} className="play-btn">
-                Play Again
-              </IonButton>
-            </div>
+            <ArcadeGameOverScreen
+              score={score}
+              highScore={highScore}
+              scoreLabel="points"
+              isNewPersonalBest={score >= highScore && score > 0}
+              onPlayAgain={startGame}
+              onShare={handleShare}
+              title={gameState === 'won' ? 'You Win!' : 'Game Over!'}
+              accentColor="#ff6b00"
+            />
           )}
 
           {gameState === 'playing' && (

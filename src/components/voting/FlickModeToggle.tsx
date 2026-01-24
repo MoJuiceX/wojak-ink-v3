@@ -99,7 +99,7 @@ export const FlickModeToggle = forwardRef<HTMLDivElement, FlickModeToggleProps>(
       return (
         <div ref={ref} className={`voting-panel ${isDesktop ? 'desktop' : 'mobile'}`}>
           <div className="voting-panel-header">
-            <span className="voting-title">Vote</span>
+            <span className="voting-title">Fade or Glaze</span>
           </div>
           <div className="voting-signin-prompt">
             <div className="voting-signin-emojis">🍩 💩</div>
@@ -110,7 +110,10 @@ export const FlickModeToggle = forwardRef<HTMLDivElement, FlickModeToggleProps>(
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              Sign In with Google
+              <span className="voting-signin-btn-text">
+                <span>Sign in with</span>
+                <span>Google or X</span>
+              </span>
             </motion.button>
           </div>
         </div>
@@ -121,7 +124,7 @@ export const FlickModeToggle = forwardRef<HTMLDivElement, FlickModeToggleProps>(
       <div ref={ref} className={`voting-panel ${isDesktop ? 'desktop' : 'mobile'}`}>
         {/* Header */}
         <div className="voting-panel-header">
-          <span className="voting-title">Vote</span>
+          <span className="voting-title">Fade or Glaze</span>
         </div>
 
         {/* Emoji buttons row */}

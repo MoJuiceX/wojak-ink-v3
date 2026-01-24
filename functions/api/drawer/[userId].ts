@@ -2,6 +2,7 @@
  * Achievement Drawer API - /api/drawer/[userId]
  *
  * GET: Returns public drawer data for a user (shareable link)
+ * Reads from unified items and user_equipment tables
  */
 
 interface Env {
@@ -20,8 +21,9 @@ interface InventoryItem {
   item_id: string;
   name: string;
   category: string;
-  rarity: string;
+  tier: string;
   css_class: string | null;
+  css_value: string | null;
   emoji: string | null;
   acquired_at: string;
 }
@@ -101,33 +103,71 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       });
     }
 
-    // Get all items in user's inventory
+    // Get all items in user's inventory from unified table
     const { results: inventory } = await env.DB
       .prepare(
         `SELECT
           ui.id,
           ui.item_id,
-          si.name,
-          si.category,
-          si.rarity,
-          si.css_class,
-          si.emoji,
+          i.name,
+          i.category,
+          i.tier,
+          i.css_class,
+          i.css_value,
+          i.emoji,
           ui.acquired_at
-        FROM user_inventory ui
-        JOIN shop_items si ON ui.item_id = si.id
-        WHERE ui.user_id = ?
-        ORDER BY si.category, ui.acquired_at DESC`
+        FROM user_items ui
+        JOIN items i ON ui.item_id = i.id
+        WHERE ui.user_id = ? AND ui.state IN ('owned', 'equipped')
+        ORDER BY i.category, ui.acquired_at DESC`
       )
       .bind(userId)
       .all<InventoryItem>();
 
-    // Get equipped items
+    // Get equipped items from unified user_equipment table
     const equipped = await env.DB
       .prepare(
-        'SELECT frame_id, title_id, name_effect_id, background_id, celebration_id FROM user_equipped WHERE user_id = ?'
+        `SELECT
+          e.*,
+          f.css_class as frame_css, f.name as frame_name,
+          t.name as title_name,
+          ne.css_class as name_effect_css, ne.name as name_effect_name,
+          fc.css_value as font_color_css, fc.name as font_color_name,
+          fs.css_class as font_style_css, fs.name as font_style_name,
+          ff.css_value as font_family_css, ff.name as font_family_name,
+          pb.css_class as page_background_css, pb.name as page_background_name,
+          ag.css_class as avatar_glow_css, ag.name as avatar_glow_name,
+          az.css_class as avatar_size_css, az.name as avatar_size_name,
+          bp.css_class as bigpulp_position_css, bp.name as bigpulp_position_name,
+          ds.css_class as dialogue_style_css, ds.name as dialogue_style_name,
+          cl.css_class as collection_layout_css, cl.name as collection_layout_name,
+          cs.css_class as card_style_css, cs.name as card_style_name,
+          ea.css_class as entrance_animation_css, ea.name as entrance_animation_name,
+          ss.css_class as stats_style_css, ss.name as stats_style_name,
+          ts.css_class as tabs_style_css, ts.name as tabs_style_name,
+          vc.css_class as visitor_counter_css, vc.name as visitor_counter_name
+        FROM user_equipment e
+        LEFT JOIN items f ON e.frame_id = f.id
+        LEFT JOIN items t ON e.title_id = t.id
+        LEFT JOIN items ne ON e.name_effect_id = ne.id
+        LEFT JOIN items fc ON e.font_color_id = fc.id
+        LEFT JOIN items fs ON e.font_style_id = fs.id
+        LEFT JOIN items ff ON e.font_family_id = ff.id
+        LEFT JOIN items pb ON e.page_background_id = pb.id
+        LEFT JOIN items ag ON e.avatar_glow_id = ag.id
+        LEFT JOIN items az ON e.avatar_size_id = az.id
+        LEFT JOIN items bp ON e.bigpulp_position_id = bp.id
+        LEFT JOIN items ds ON e.dialogue_style_id = ds.id
+        LEFT JOIN items cl ON e.collection_layout_id = cl.id
+        LEFT JOIN items cs ON e.card_style_id = cs.id
+        LEFT JOIN items ea ON e.entrance_animation_id = ea.id
+        LEFT JOIN items ss ON e.stats_style_id = ss.id
+        LEFT JOIN items ts ON e.tabs_style_id = ts.id
+        LEFT JOIN items vc ON e.visitor_counter_id = vc.id
+        WHERE e.user_id = ?`
       )
       .bind(userId)
-      .first();
+      .first<Record<string, string | null>>();
 
     // Get owned emojis
     const { results: ownedEmojis } = await env.DB
@@ -147,7 +187,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       ringPositions[pos.position] = pos.emoji;
     }
 
-    // Get BigPulp state
+    // Get BigPulp state (legacy support)
     const bigpulp = await env.DB
       .prepare('SELECT current_hat, current_mood, current_accessory FROM user_bigpulp WHERE user_id = ?')
       .bind(userId)
@@ -155,7 +195,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // Get total spent
     const spending = await env.DB
-      .prepare('SELECT SUM(price_paid) as total FROM purchase_history WHERE user_id = ?')
+      .prepare('SELECT SUM(price_paid) as total FROM user_items WHERE user_id = ?')
       .bind(userId)
       .first<{ total: number | null }>();
 
@@ -171,53 +211,37 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const totalItems = inventory?.length || 0;
     const dialogue = getBigPulpDialogue(totalItems);
 
-    // Get drawer customization settings
-    const customization = await env.DB
-      .prepare(`SELECT
-        font_color, font_style, font_family,
-        page_background, avatar_glow, avatar_size,
-        bigpulp_position, dialogue_style, dialogue_color,
-        stats_style, stats_color, stats_visible,
-        collection_layout, card_style, featured_slots, featured_items,
-        category_tabs_style, page_theme, page_border,
-        entrance_animation, background_music, visitor_counter_style
-      FROM drawer_customization WHERE user_id = ?`)
-      .bind(userId)
-      .first();
-
-    // Get equipped item details for display
-    let equippedFrame = null;
-    let equippedTitle = null;
-    let equippedNameEffect = null;
-
-    if (equipped) {
-      const equippedItems = equipped as {
-        frame_id: string | null;
-        title_id: string | null;
-        name_effect_id: string | null;
-        background_id: string | null;
-        celebration_id: string | null;
-      };
-
-      if (equippedItems.frame_id) {
-        equippedFrame = await env.DB
-          .prepare('SELECT id, name, css_class FROM shop_items WHERE id = ?')
-          .bind(equippedItems.frame_id)
-          .first();
-      }
-      if (equippedItems.title_id) {
-        equippedTitle = await env.DB
-          .prepare('SELECT id, name FROM shop_items WHERE id = ?')
-          .bind(equippedItems.title_id)
-          .first();
-      }
-      if (equippedItems.name_effect_id) {
-        equippedNameEffect = await env.DB
-          .prepare('SELECT id, name, css_class FROM shop_items WHERE id = ?')
-          .bind(equippedItems.name_effect_id)
-          .first();
-      }
-    }
+    // Build customization object from unified equipment
+    const customization = {
+      font_color: equipped?.font_color_id || 'font-color-orange',
+      font_color_css: equipped?.font_color_css || '#F97316',
+      font_style: equipped?.font_style_id || 'font-style-normal',
+      font_style_css: equipped?.font_style_css || 'font-style-normal',
+      font_family: equipped?.font_family_id || 'font-family-default',
+      font_family_css: equipped?.font_family_css || 'system-ui, -apple-system, sans-serif',
+      page_background: equipped?.page_background_id || 'bg-midnight-black',
+      page_background_css: equipped?.page_background_css || 'drawer-bg-midnight-black',
+      avatar_glow: equipped?.avatar_glow_id || 'avatar-glow-none',
+      avatar_glow_css: equipped?.avatar_glow_css || '',
+      avatar_size: equipped?.avatar_size_id || 'avatar-size-normal',
+      avatar_size_css: equipped?.avatar_size_css || 'avatar-size-normal',
+      bigpulp_position: equipped?.bigpulp_position_id || 'bigpulp-pos-right',
+      bigpulp_position_css: equipped?.bigpulp_position_css || 'bigpulp-right',
+      dialogue_style: equipped?.dialogue_style_id || 'dialogue-style-default',
+      dialogue_style_css: equipped?.dialogue_style_css || 'dialogue-default',
+      collection_layout: equipped?.collection_layout_id || 'layout-grid',
+      collection_layout_css: equipped?.collection_layout_css || 'layout-grid',
+      card_style: equipped?.card_style_id || 'card-style-default',
+      card_style_css: equipped?.card_style_css || 'card-default',
+      entrance_animation: equipped?.entrance_animation_id || 'entrance-none',
+      entrance_animation_css: equipped?.entrance_animation_css || '',
+      stats_style: equipped?.stats_style_id || 'stats-style-default',
+      stats_style_css: equipped?.stats_style_css || 'stats-default',
+      tabs_style: equipped?.tabs_style_id || 'tabs-style-default',
+      tabs_style_css: equipped?.tabs_style_css || 'tabs-default',
+      visitor_counter: equipped?.visitor_counter_id || 'visitor-counter-hidden',
+      visitor_counter_css: equipped?.visitor_counter_css || '',
+    };
 
     return new Response(
       JSON.stringify({
@@ -232,20 +256,35 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         nameEffects: byCategory.name_effect || [],
         backgrounds: byCategory.background || [],
         celebrations: byCategory.celebration || [],
-        bigpulp: bigpulp || { current_hat: null, current_mood: 'happy', current_accessory: null },
+        bigpulp: {
+          hat: equipped?.bigpulp_hat_id || bigpulp?.current_hat || null,
+          mood: equipped?.bigpulp_mood_id || bigpulp?.current_mood || 'happy',
+          accessory: equipped?.bigpulp_accessory_id || bigpulp?.current_accessory || null,
+        },
         bigpulpItems: {
           hats: byCategory.bigpulp_hat || [],
           moods: byCategory.bigpulp_mood || [],
           accessories: byCategory.bigpulp_accessory || [],
         },
         equipped: {
-          frame: equippedFrame,
-          title: equippedTitle,
-          nameEffect: equippedNameEffect,
+          frame: equipped?.frame_id ? {
+            id: equipped.frame_id,
+            name: equipped.frame_name,
+            css: equipped.frame_css,
+          } : null,
+          title: equipped?.title_id ? {
+            id: equipped.title_id,
+            name: equipped.title_name,
+          } : null,
+          nameEffect: equipped?.name_effect_id ? {
+            id: equipped.name_effect_id,
+            name: equipped.name_effect_name,
+            css: equipped.name_effect_css,
+          } : null,
         },
         bigpulpComment: dialogue.text,
         bigpulpMood: dialogue.mood,
-        customization: customization || null,
+        customization,
       }),
       { status: 200, headers: corsHeaders }
     );

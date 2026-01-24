@@ -9,42 +9,66 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  /* Gradient: header color at top, sky in middle, ground at bottom */
-  background: linear-gradient(to bottom,
-    rgb(10, 10, 10) 0px,
-    rgb(10, 10, 10) 56px,
-    #87CEEB 57px,
-    #87CEEB 85%,
-    #2d5016 95%,
-    #1a1a1a 100%);
+  /* Sky blue background - canvas will draw the actual game */
+  background: #87CEEB;
   position: relative;
   overflow: hidden;
   touch-action: none;
   user-select: none;
   -webkit-overflow-scrolling: touch;
+  /* Prevent tap highlight on mobile that causes darkening on click */
+  /* Must use !important to override global * rule in mobile.css */
+  -webkit-tap-highlight-color: transparent !important;
   /* Top padding clears the button row */
   padding-top: 24px;
   /* Note: removed 'contain' as it breaks position:fixed for buttons */
+  /* Smooth fade-in to hide canvas initialization */
+  animation: fo-container-fade-in 0.25s ease-out;
+}
+
+@keyframes fo-container-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .flappy-container.desktop {
-  /* Desktop: fill the modal container */
+  /* Desktop: fill the modal container - canvas fills entire space */
   width: 100%;
   height: 100%;
   padding-top: 0;
-  justify-content: center;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+/* Ensure canvas fills container in desktop mode */
+.flappy-container.desktop .fo-canvas {
+  flex: 1;
+  width: 100%;
+  height: 100%;
 }
 
 .flappy-container.mobile {
-  /* Use flex: 1 to fill available space in parent container */
+  /* Fill entire available space - no black bars */
   flex: 1;
-  /* Fallback heights for browsers that don't support dvh */
   height: 100%;
   min-height: 400px;
-  max-height: calc(100vh - 56px - 60px);
-  max-height: calc(100dvh - 56px - 60px);
+  /* Remove max-height constraints to fill full screen */
   margin-bottom: 0;
   padding-bottom: 0;
+  padding-top: 0;
+}
+
+/* Prevent ALL tap highlights on game elements */
+.flappy-container *,
+.flappy-container canvas,
+.fo-canvas {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
+  outline: none;
 }
 
 /* ============================================
@@ -121,7 +145,7 @@
    ============================================ */
 
 .fo-floating-score {
-  position: fixed;
+  position: absolute;
   font-size: 1.5rem;
   font-weight: 900;
   color: #ffd700;
@@ -155,39 +179,85 @@
 .fo-game-over-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.9);
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 500;
+  pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 500;
-  pointer-events: auto;
-  padding: 20px;
-  animation: fo-game-over-appear 0.5s ease-out;
+  animation: fo-game-over-appear 0.4s ease-out;
 }
 
 @keyframes fo-game-over-appear {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Exit animation for game over overlay */
+.fo-game-over-overlay.exiting {
+  animation: fo-game-over-exit 0.3s ease-out forwards;
+  pointer-events: none;
+}
+
+.fo-game-over-overlay.exiting .fo-game-over-content {
+  animation: fo-content-exit 0.25s ease-in forwards;
+}
+
+@keyframes fo-game-over-exit {
   0% {
+    opacity: 1;
+    backdrop-filter: blur(6px);
+  }
+  100% {
     opacity: 0;
     backdrop-filter: blur(0px);
   }
-  100% {
+}
+
+@keyframes fo-content-exit {
+  0% {
     opacity: 1;
-    backdrop-filter: blur(8px);
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
   }
 }
 
+/* Main content - centered, slides right when leaderboard opens */
 .fo-game-over-content {
   display: flex;
-  gap: 24px;
-  max-width: 500px;
-  width: 100%;
-  animation: fo-game-over-content 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 40px 60px;
+  background: linear-gradient(135deg, rgba(30, 30, 40, 0.95) 0%, rgba(20, 20, 30, 0.98) 100%);
+  border: 1px solid rgba(255, 107, 0, 0.3);
+  border-radius: 24px;
+  box-shadow:
+    0 0 60px rgba(255, 107, 0, 0.15),
+    0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: fo-content-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+  position: relative;
+  z-index: 100;
+  margin-left: 0;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes fo-game-over-content {
+.fo-game-over-content.pushed {
+  margin-left: 340px;
+}
+
+@keyframes fo-content-appear {
   0% {
     opacity: 0;
-    transform: scale(0.8) translateY(30px);
+    transform: scale(0.9) translateY(20px);
   }
   100% {
     opacity: 1;
@@ -195,86 +265,52 @@
   }
 }
 
-.mobile .fo-game-over-content {
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.fo-game-over-left {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.fo-sad-image {
-  width: 200px;
-  height: 200px;
-  object-fit: contain;
-  border-radius: 12px;
-}
-
-.mobile .fo-sad-image {
-  width: 150px;
-  height: 150px;
-}
-
-.fo-game-over-emoji {
-  font-size: 8rem;
-}
-
-.fo-game-over-right {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 8px;
-}
-
 .fo-game-over-title {
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: 800;
   color: #ff6b00;
-  margin: 0;
+  margin: 0 0 16px 0;
+  text-shadow: 0 2px 20px rgba(255, 107, 0, 0.4);
+  letter-spacing: -0.5px;
 }
 
 .fo-game-over-score {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 8px 0;
+  margin: 8px 0 16px 0;
 }
 
 .fo-game-over-score .fo-score-value {
-  font-size: 3rem;
-  font-weight: 800;
+  font-size: 5rem;
+  font-weight: 900;
   color: #fff;
-  text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+  text-shadow: 0 0 40px rgba(255, 107, 0, 0.6);
   line-height: 1;
   animation: fo-final-score-pulse 2s ease-in-out infinite;
 }
 
 @keyframes fo-final-score-pulse {
   0%, 100% {
-    text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+    text-shadow: 0 0 40px rgba(255, 107, 0, 0.6);
   }
   50% {
-    text-shadow: 0 0 50px rgba(255, 107, 0, 0.8), 0 0 80px rgba(255, 107, 0, 0.4);
+    text-shadow: 0 0 60px rgba(255, 107, 0, 0.9), 0 0 100px rgba(255, 107, 0, 0.5);
   }
 }
 
 .fo-game-over-score .fo-score-label {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
+  margin-top: 4px;
 }
 
 .fo-game-over-stats {
   display: flex;
-  gap: 24px;
-  margin: 8px 0;
+  gap: 32px;
+  margin: 16px 0;
 }
 
 .fo-stat {
@@ -284,21 +320,23 @@
 }
 
 .fo-stat-value {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #ff6b00;
 }
 
 .fo-stat-label {
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .fo-new-record {
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: #ffd700;
   font-weight: 700;
+  margin-top: 4px;
   animation: fo-glow 1s ease-in-out infinite alternate;
 }
 
@@ -308,28 +346,32 @@
 }
 
 .fo-submitted {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.6);
-  min-height: 1.2em;
+  min-height: 1.4em;
 }
 
 .fo-game-over-buttons {
   display: flex;
-  gap: 12px;
-  margin-top: 12px;
+  gap: 10px;
+  margin-top: 20px;
 }
 
 .fo-play-btn {
-  padding: 12px 32px;
-  font-size: 1rem;
-  font-weight: 700;
+  padding: 12px 28px;
+  font-size: 0.95rem;
+  font-weight: 600;
   color: #fff;
   background: linear-gradient(135deg, #ff6b00, #ff8533);
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
 }
 
 .fo-play-btn:hover {
@@ -342,13 +384,17 @@
 }
 
 .fo-leaderboard-btn {
-  padding: 12px 20px;
+  padding: 12px 24px;
   font-size: 0.95rem;
   font-weight: 600;
   color: #fff;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -358,21 +404,10 @@
   border-color: rgba(255, 255, 255, 0.5);
 }
 
-/* Back to Games - positioned in safe area (bottom right corner) */
-.fo-back-to-games-btn {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  padding: 10px 20px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.6);
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 100;
+.fo-leaderboard-btn.active {
+  background: rgba(255, 107, 0, 0.2);
+  border-color: rgba(255, 107, 0, 0.6);
+  color: #ff6b00;
 }
 
 .fo-back-to-games-btn:hover {
@@ -387,32 +422,40 @@
 
 .fo-leaderboard-overlay {
   position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 340px;
+  background: transparent;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 700;
-  animation: fo-fade-in 0.2s ease;
+  align-items: stretch;
+  justify-content: flex-start;
+  z-index: 50;
+  pointer-events: none;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes fo-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.fo-leaderboard-overlay.visible {
+  transform: translateX(0);
+  pointer-events: auto;
 }
 
 .fo-leaderboard-panel {
-  width: 360px;
-  max-width: 90%;
-  max-height: 80%;
-  background: rgba(20, 20, 30, 0.98);
-  border: 1px solid rgba(255, 107, 0, 0.4);
-  border-radius: 20px;
-  padding: 24px;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(25, 25, 35, 0.98) 0%, rgba(15, 15, 25, 0.99) 100%);
+  border: none;
+  border-right: 1px solid rgba(255, 107, 0, 0.4);
+  border-radius: 0;
+  padding: 20px;
   backdrop-filter: blur(20px);
-  animation: fo-scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  overflow-y: auto;
+  overflow: hidden;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
 }
+
 
 @keyframes fo-scale-in {
   from {
@@ -425,57 +468,54 @@
   }
 }
 
-.fo-leaderboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+/* Fade in for overlays */
+@keyframes fo-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-.fo-leaderboard-header h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #ff6b00;
+/* Premium modal pop-in with bounce */
+@keyframes fo-modal-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02) translateY(-5px);
+  }
+  70% {
+    transform: scale(0.98) translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
-.fo-leaderboard-close {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1.25rem;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  line-height: 1;
-}
-
-.fo-leaderboard-close:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-}
 
 .fo-leaderboard-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex: 1;
+  overflow: hidden;
 }
 
 .fo-leaderboard-entry {
   display: flex;
   align-items: center;
-  padding: 12px 14px;
+  padding: 0 12px;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 0.95rem;
   transition: background 0.2s ease;
+  flex: 1;
+  min-height: 0;
 }
 
 .fo-leaderboard-entry:hover {
@@ -488,10 +528,27 @@
 }
 
 .fo-leaderboard-rank {
-  width: 36px;
+  width: 32px;
   color: rgba(255, 255, 255, 0.5);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.fo-leaderboard-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 10px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.fo-leaderboard-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .fo-leaderboard-entry:nth-child(1) .fo-leaderboard-rank { color: #FFD700; }
@@ -521,41 +578,40 @@
 
 @media (max-width: 480px) {
   .fo-game-over-title {
-    font-size: 1.5rem;
+    font-size: 2rem;
   }
 
   .fo-game-over-score .fo-score-value {
-    font-size: 2.5rem;
+    font-size: 3.5rem;
+  }
+
+  .fo-game-over-score .fo-score-label {
+    font-size: 0.9rem;
+  }
+
+  .fo-stat-value {
+    font-size: 1.6rem;
   }
 
   .fo-game-over-buttons {
     flex-direction: row;
     width: 100%;
-    gap: 8px;
+    gap: 10px;
   }
 
   .fo-play-btn,
-  .fo-leaderboard-btn {
+  .fo-leaderboard-btn,
+  .fo-share-btn {
     flex: 1;
-    padding: 10px 12px;
-    font-size: 0.85rem;
-  }
-
-  .fo-back-to-games-btn {
-    bottom: 16px;
-    right: 16px;
-    padding: 8px 16px;
-    font-size: 0.8rem;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    min-width: auto;
   }
 
   .fo-leaderboard-panel {
-    width: calc(100% - 32px);
-    max-height: 70%;
-    padding: 20px;
-  }
-
-  .fo-leaderboard-header h3 {
-    font-size: 1.1rem;
+    width: 300px;
+    height: 100%;
+    padding: 12px 16px;
   }
 
   .fo-leaderboard-entry {
@@ -569,8 +625,8 @@
    ============================================ */
 
 .fo-share-btn {
-  padding: 12px 20px;
-  font-size: 0.95rem;
+  padding: 14px 24px;
+  font-size: 1rem;
   font-weight: 600;
   color: #fff;
   background: linear-gradient(135deg, #FF6B00, #FF8533);
@@ -578,6 +634,11 @@
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  text-align: center;
 }
 
 .fo-share-btn:hover {
@@ -656,18 +717,23 @@
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(8px);
-  animation: fo-fade-in 0.2s ease;
+  -webkit-backdrop-filter: blur(8px);
+  animation: fo-fade-in 0.3s ease-out;
 }
 
 .fo-share-modal {
   width: 90%;
   max-width: 400px;
-  background: rgba(20, 20, 30, 0.98);
-  border: 1px solid rgba(255, 107, 0, 0.4);
-  border-radius: 20px;
-  padding: 24px;
+  background: linear-gradient(145deg, rgba(30, 30, 45, 0.98), rgba(15, 15, 25, 0.99));
+  border: 1px solid rgba(255, 107, 0, 0.5);
+  border-radius: 24px;
+  padding: 28px;
   position: relative;
-  animation: fo-scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: fo-modal-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow:
+    0 0 40px rgba(255, 107, 0, 0.15),
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .fo-share-modal h3 {
@@ -704,6 +770,34 @@
   width: 100%;
   border-radius: 12px;
   margin-bottom: 16px;
+  animation: fo-fade-in 0.3s ease-out;
+}
+
+/* Loading state for share modal */
+.fo-share-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.fo-share-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 107, 0, 0.2);
+  border-top-color: #FF6B00;
+  border-radius: 50%;
+  animation: fo-spin 0.8s linear infinite;
+}
+
+@keyframes fo-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .fo-share-modal-buttons {
@@ -734,9 +828,34 @@
   border: none;
 }
 
-.fo-share-modal-btn-primary:hover {
+.fo-share-modal-btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+}
+
+.fo-share-modal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.fo-share-modal-btn-x {
+  background: linear-gradient(135deg, #000000, #1a1a1a);
+  border: 1px solid #333;
+  color: #ffffff;
+}
+
+.fo-share-modal-btn-x:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+}
+
+.fo-share-modal-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 12px;
+  text-align: center;
 }
 
 @media (max-width: 480px) {

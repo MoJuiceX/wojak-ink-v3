@@ -207,6 +207,7 @@
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -283,28 +284,32 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 8px;
+  gap: 16px;
 }
 
 .bb-game-over-title {
-  font-size: 1.8rem;
+  font-size: 2.4rem;
   font-weight: 800;
   color: #ff6b00;
   margin: 0;
+  text-shadow: 0 2px 20px rgba(255, 107, 0, 0.5);
 }
 
 .bb-game-over-score {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 8px 0;
+  margin: 12px 0;
 }
 
 .bb-game-over-score .bb-score-value {
-  font-size: 3rem;
+  font-size: 5rem;
   font-weight: 800;
   color: #fff;
-  text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+  text-shadow:
+    0 0 30px rgba(255, 107, 0, 0.6),
+    0 0 60px rgba(255, 107, 0, 0.4),
+    0 0 90px rgba(255, 107, 0, 0.2);
   line-height: 1;
   animation: bb-final-score-pulse 2s ease-in-out infinite;
 }
@@ -319,16 +324,17 @@
 }
 
 .bb-game-over-score .bb-score-label {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
+  margin-top: 4px;
 }
 
 .bb-game-over-stats {
   display: flex;
-  gap: 24px;
-  margin: 8px 0;
+  gap: 32px;
+  margin: 16px 0;
 }
 
 .bb-stat {
@@ -338,15 +344,16 @@
 }
 
 .bb-stat-value {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #ff6b00;
 }
 
 .bb-stat-label {
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .bb-new-record {
@@ -373,18 +380,22 @@
 
 .bb-game-over-buttons {
   display: flex;
-  gap: 12px;
-  margin-top: 12px;
+  gap: 16px;
+  margin-top: 20px;
 }
 
 .bb-play-btn {
-  padding: 12px 32px;
-  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 36px;
+  min-width: 140px;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #fff;
   background: linear-gradient(135deg, #ff6b00, #ff8533);
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
@@ -400,13 +411,17 @@
 }
 
 .bb-leaderboard-btn {
-  padding: 12px 20px;
-  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 24px;
+  min-width: 140px;
+  font-size: 1rem;
   font-weight: 600;
   color: #fff;
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -584,24 +599,37 @@
   }
 
   .bb-game-over-title {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
   }
 
   .bb-game-over-score .bb-score-value {
-    font-size: 2.5rem;
+    font-size: 3.5rem;
+  }
+
+  .bb-game-over-score .bb-score-label {
+    font-size: 0.9rem;
+  }
+
+  .bb-stat-value {
+    font-size: 1.6rem;
+  }
+
+  .bb-stat-label {
+    font-size: 0.75rem;
   }
 
   .bb-game-over-buttons {
     flex-direction: row;
     width: 100%;
-    gap: 8px;
+    gap: 12px;
   }
 
   .bb-play-btn,
   .bb-leaderboard-btn {
     flex: 1;
-    padding: 10px 12px;
-    font-size: 0.85rem;
+    padding: 12px 16px;
+    min-width: auto;
+    font-size: 0.95rem;
   }
 
   .bb-back-to-games-btn {

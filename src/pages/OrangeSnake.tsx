@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Orange Snake Game
  *
@@ -17,6 +16,7 @@ import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { GameSEO } from '@/components/seo/GameSEO';
+import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
 import './OrangeSnake.css';
 
 // ============================================
@@ -76,9 +76,6 @@ const SNAKE_COLORS = [
   { color: '#FFEB3B', glow: '#FFF176' }, // Yellow
   { color: '#E91E63', glow: '#F06292' }, // Pink
 ];
-
-// Sad images for game over
-const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/Games/games_media/sad_runner_${i + 1}.png`);
 
 // ============================================
 // HELPER FUNCTIONS
@@ -174,7 +171,6 @@ const OrangeSnake: React.FC = () => {
     userDisplayName,
     isSubmitting,
   } = useLeaderboard('orange-snake');
-  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   // React state for UI (moved before useGameNavigationGuard to avoid initialization order issue)
   const [gameState, setGameState] = useState<GameState>('idle');
@@ -183,6 +179,18 @@ const OrangeSnake: React.FC = () => {
   const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
     isPlaying: gameState === 'playing',
   });
+
+  // Mobile fullscreen mode - hide header during gameplay
+  useEffect(() => {
+    if (isMobile && gameState === 'playing') {
+      document.body.classList.add('game-fullscreen-mode');
+    } else {
+      document.body.classList.remove('game-fullscreen-mode');
+    }
+    return () => {
+      document.body.classList.remove('game-fullscreen-mode');
+    };
+  }, [isMobile, gameState]);
 
   // Ref for game loop to check dialog state
   const showExitDialogRef = useRef(false);
@@ -220,7 +228,6 @@ const OrangeSnake: React.FC = () => {
   });
   const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
-  const [sadImage, setSadImage] = useState('');
   const [soundEnabled, setSoundEnabled] = useState(() => {
     return localStorage.getItem('orangeSnakeSoundEnabled') !== 'false';
   });
@@ -523,8 +530,6 @@ const OrangeSnake: React.FC = () => {
     hapticGameOver();
     triggerScreenShake(300);
 
-    setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
-
     const maxLength = state.playerSnake.segments.length;
 
     if (maxLength > highScore) {
@@ -535,7 +540,7 @@ const OrangeSnake: React.FC = () => {
 
     if (isSignedIn && maxLength > 0) {
       setScoreSubmitted(true);
-      await submitScore(maxLength, null, {
+      await submitScore(maxLength, undefined, {
         survivalTime: Math.floor((Date.now() - gameStartTimeRef.current) / 1000),
         aiSnakesKilled: state.killCount,
       });
@@ -972,99 +977,21 @@ const OrangeSnake: React.FC = () => {
         style={{ touchAction: 'none' }}
       />
 
-      {/* Game Over Overlay */}
+      {/* Game Over - Uses shared component */}
       {gameState === 'gameover' && (
-        <div className="osn-game-over-overlay" onClick={(e) => e.stopPropagation()}>
-          {/* Main Game Over Content - stays fixed */}
-          <div className="osn-game-over-content">
-            <div className="osn-game-over-left">
-              {sadImage ? (
-                <img src={sadImage} alt="Game Over" className="osn-sad-image" />
-              ) : (
-                <div className="osn-game-over-emoji">🐍</div>
-              )}
-            </div>
-            <div className="osn-game-over-right">
-              <h2 className="osn-game-over-title">Game Over!</h2>
-
-              <div className="osn-game-over-score">
-                <span className="osn-score-value">{score}</span>
-                <span className="osn-score-label">max length</span>
-              </div>
-
-              <div className="osn-game-over-stats">
-                <div className="osn-stat">
-                  <span className="osn-stat-value">{highScore}</span>
-                  <span className="osn-stat-label">best</span>
-                </div>
-                <div className="osn-stat">
-                  <span className="osn-stat-value">{gameStateRef.current.killCount}</span>
-                  <span className="osn-stat-label">kills</span>
-                </div>
-              </div>
-
-              {isNewPersonalBest && score > 0 && (
-                <div className="osn-new-record">New Personal Best!</div>
-              )}
-
-              {isSignedIn && (
-                <div className="osn-submitted">
-                  {isSubmitting
-                    ? 'Saving...'
-                    : scoreSubmitted
-                    ? `Saved as ${userDisplayName}!`
-                    : ''}
-                </div>
-              )}
-
-              {/* Buttons: Play Again + Leaderboard */}
-              <div className="osn-game-over-buttons">
-                <button onClick={resetGame} className="osn-play-btn">
-                  Play Again
-                </button>
-                <button
-                  onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                  className="osn-leaderboard-btn"
-                >
-                  Leaderboard
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Leaderboard Panel - overlays on top */}
-          {showLeaderboardPanel && (
-            <div className="osn-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
-              <div className="osn-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
-                <div className="osn-leaderboard-header">
-                  <h3>Leaderboard</h3>
-                  <button className="osn-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
-                </div>
-                <div className="osn-leaderboard-list">
-                  {Array.from({ length: 10 }, (_, index) => {
-                    const entry = globalLeaderboard[index];
-                    const isCurrentUser = entry && score === entry.score;
-                    return (
-                      <div key={index} className={`osn-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
-                        <span className="osn-leaderboard-rank">#{index + 1}</span>
-                        <span className="osn-leaderboard-name">{entry?.displayName || '---'}</span>
-                        <span className="osn-leaderboard-score">{entry?.score ?? '-'}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Back to Games - positioned in safe area (bottom right) */}
-          <button
-            onClick={() => { window.location.href = '/games'; }}
-            className="osn-back-to-games-btn"
-          >
-            Back to Games
-          </button>
-        </div>
+        <ArcadeGameOverScreen
+          score={score}
+          highScore={highScore}
+          scoreLabel="max length"
+          isNewPersonalBest={isNewPersonalBest}
+          isSignedIn={isSignedIn}
+          isSubmitting={isSubmitting}
+          scoreSubmitted={scoreSubmitted}
+          userDisplayName={userDisplayName ?? undefined}
+          leaderboard={globalLeaderboard}
+          onPlayAgain={resetGame}
+          accentColor="#4ade80"
+        />
       )}
 
       {/* Exit Game Confirmation Dialog */}

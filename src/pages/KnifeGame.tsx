@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Knife Game - Coming Soon Placeholder
  *
@@ -10,6 +9,7 @@ import { IonContent, IonPage } from '@ionic/react';
 import { Play, Pause } from 'lucide-react';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { GameSEO } from '@/components/seo/GameSEO';
 import './KnifeGame.css';
@@ -18,6 +18,7 @@ const AUDIO_URL = '/assets/Games/games_media/The New Knife Game Song - Rusty Cag
 const IMAGE_URL = '/assets/Games/games_media/Knife_Game.png';
 
 const KnifeGame: React.FC = () => {
+  const isMobile = useIsMobile();
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -29,6 +30,18 @@ const KnifeGame: React.FC = () => {
   const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
     isPlaying: isPlaying,
   });
+
+  // Mobile fullscreen mode - hide header during gameplay
+  useEffect(() => {
+    if (isMobile && isPlaying) {
+      document.body.classList.add('game-fullscreen-mode');
+    } else {
+      document.body.classList.remove('game-fullscreen-mode');
+    }
+    return () => {
+      document.body.classList.remove('game-fullscreen-mode');
+    };
+  }, [isMobile, isPlaying]);
 
   // Calculate volume from settings
   const musicEnabled = settings.audio.backgroundMusicEnabled;

@@ -337,6 +337,58 @@
 }
 
 /* ============================================
+   SIMPLE SHARE MODAL (Image + Download)
+   ============================================ */
+
+.share-modal-simple {
+  max-width: 480px;
+}
+
+.share-image-preview {
+  margin-bottom: 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.share-image-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.share-modal-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.share-download-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #FF8C32, #FF6420);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.share-download-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255, 140, 50, 0.4);
+}
+
+.share-download-button:active {
+  transform: translateY(0);
+}
+
+/* ============================================
    RESPONSIVE ADJUSTMENTS
    ============================================ */
 

@@ -1,3 +1,86 @@
+/* Simple inline score popup - guaranteed to show on collect */
+.wr-inline-score-popup {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 36px;
+  font-weight: 900;
+  color: #ffd700;
+  text-shadow:
+    0 0 10px #ff6b00,
+    0 0 20px #ff6b00,
+    0 0 40px #ff6b00,
+    0 4px 8px rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  pointer-events: none;
+  animation: wr-score-fly 0.8s ease-out forwards;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+@keyframes wr-score-fly {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-60px) scale(1);
+  }
+}
+
+/* Inline combo display - positioned below the player avatar */
+.wr-inline-combo {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 9998;
+  pointer-events: none;
+  animation: wr-combo-pulse 0.6s ease-in-out infinite alternate;
+}
+
+.wr-combo-number {
+  font-size: 40px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow:
+    0 0 20px rgba(168, 85, 247, 0.8),
+    0 0 40px rgba(168, 85, 247, 0.6),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+  line-height: 1;
+}
+
+.wr-combo-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  margin-top: -2px;
+}
+
+.wr-combo-fire {
+  position: absolute;
+  top: -8px;
+  right: -24px;
+  font-size: 18px;
+  animation: wr-fire-float 1s ease-in-out infinite;
+}
+
+@keyframes wr-combo-pulse {
+  0% { transform: translateX(-50%) scale(1); }
+  100% { transform: translateX(-50%) scale(1.05); }
+}
+
+@keyframes wr-fire-float {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-5px) rotate(5deg); }
+}
+
 /* Main container - fills parent and can expand to cover modal header */
 .runner-container {
   display: flex;
@@ -163,6 +246,19 @@
   position: relative;
   overflow: hidden;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* runner-area needs explicit dimensions for game over overlay */
+.runner-content .runner-area {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 400px;
 }
 
 .runner-area {
@@ -173,6 +269,90 @@
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
+}
+
+/* Start Screen */
+.wr-start-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  gap: 20px;
+  padding: 20px;
+}
+
+.wr-start-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #ff6b00;
+  text-shadow: 0 2px 10px rgba(255, 107, 0, 0.5);
+}
+
+.wr-start-instructions {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.wr-start-instructions p {
+  margin: 4px 0;
+}
+
+.wr-start-best {
+  font-size: 1.1rem;
+  color: #ffd700;
+}
+
+.wr-start-btn {
+  padding: 16px 48px;
+  font-size: 1.3rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #ff6b00, #ff8c40);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+}
+
+.wr-start-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(255, 107, 0, 0.6);
+}
+
+.wr-start-btn:active {
+  transform: scale(0.98);
+}
+
+.wr-start-sound-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.wr-start-sound-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
 }
 
 .road {
@@ -214,9 +394,10 @@
   background: url('/assets/Games/games_media/runner.png') 0 0;
   background-size: 100px 50px;
   animation: wojak-run 0.3s steps(2) infinite;
-  transition: left 0.15s ease-out;
+  transition: left 0.05s ease-out; /* Snappy response on swipe */
   z-index: 10;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+  will-change: left;
 }
 
 @keyframes wojak-run {
@@ -233,6 +414,7 @@
   align-items: center;
   justify-content: center;
   z-index: 5;
+  will-change: top;
 }
 
 .runner-obstacle.camel {
@@ -252,6 +434,7 @@
   align-items: center;
   justify-content: center;
   z-index: 5;
+  will-change: top;
   animation: pulse-collectible 0.5s ease-in-out infinite alternate;
 }
 
@@ -445,6 +628,7 @@
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -481,18 +665,18 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 8px;
+  gap: 16px;
 }
 
-.wr-game-over-title { font-size: 1.8rem; font-weight: 800; color: #ff6b00; margin: 0; }
+.wr-game-over-title { font-size: 2.4rem; font-weight: 800; color: #ff6b00; margin: 0; text-shadow: 0 2px 20px rgba(255, 107, 0, 0.5); }
 .wr-game-over-reason { font-size: 0.9rem; color: rgba(255, 255, 255, 0.7); }
 
-.wr-game-over-score { display: flex; flex-direction: column; align-items: center; margin: 8px 0; }
+.wr-game-over-score { display: flex; flex-direction: column; align-items: center; margin: 16px 0; }
 .wr-game-over-score .wr-score-value {
-  font-size: 3rem;
+  font-size: 5rem;
   font-weight: 800;
   color: #fff;
-  text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+  text-shadow: 0 0 40px rgba(255, 107, 0, 0.6), 0 0 80px rgba(255, 107, 0, 0.3);
   line-height: 1;
   animation: wr-final-score-pulse 2s ease-in-out infinite;
 }
@@ -502,38 +686,26 @@
   50% { text-shadow: 0 0 50px rgba(255, 107, 0, 0.8), 0 0 80px rgba(255, 107, 0, 0.4); }
 }
 
-.wr-game-over-score .wr-score-label { font-size: 0.8rem; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; letter-spacing: 2px; }
+.wr-game-over-score .wr-score-label { font-size: 1rem; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; letter-spacing: 2px; }
 
-.wr-game-over-stats { display: flex; gap: 24px; margin: 8px 0; }
+.wr-game-over-stats { display: flex; gap: 32px; margin: 16px 0; }
 .wr-stat { display: flex; flex-direction: column; align-items: center; }
-.wr-stat-value { font-size: 1.5rem; font-weight: 700; color: #ff6b00; }
-.wr-stat-label { font-size: 0.7rem; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; }
+.wr-stat-value { font-size: 2rem; font-weight: 700; color: #ff6b00; }
+.wr-stat-label { font-size: 0.85rem; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; }
 
 .wr-new-record { font-size: 1rem; color: #ffd700; font-weight: 700; animation: wr-glow 1s ease-in-out infinite alternate; }
 @keyframes wr-glow { from { text-shadow: 0 0 10px #ffd700; } to { text-shadow: 0 0 30px #ffd700, 0 0 60px #ffa500; } }
 
 .wr-submitted { font-size: 0.85rem; color: rgba(255, 255, 255, 0.6); min-height: 1.2em; }
 
-.wr-guest-form { width: 100%; max-width: 200px; }
-.wr-name-input {
-  width: 100%;
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  font-size: 0.9rem;
-  text-align: center;
-  outline: none;
-  transition: border-color 0.2s;
-}
-.wr-name-input:focus { border-color: #ff6b00; }
-.wr-name-input::placeholder { color: rgba(255, 255, 255, 0.5); }
-
-.wr-game-over-buttons { display: flex; gap: 12px; margin-top: 12px; }
+.wr-game-over-buttons { display: flex; gap: 16px; margin-top: 20px; }
 .wr-play-btn {
-  padding: 12px 32px;
-  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 40px;
+  min-width: 140px;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #fff;
   background: linear-gradient(135deg, #ff6b00, #ff8533);
@@ -546,9 +718,32 @@
 .wr-play-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 30px rgba(255, 107, 0, 0.5); }
 .wr-play-btn:active { transform: translateY(0); }
 
+.wr-share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 24px;
+  min-width: 100px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #FF6B00, #FF8533);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
+}
+.wr-share-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(255, 107, 0, 0.5); }
+.wr-share-btn:active { transform: translateY(0); }
+
 .wr-leaderboard-btn {
-  padding: 12px 20px;
-  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 24px;
+  min-width: 140px;
+  font-size: 1rem;
   font-weight: 600;
   color: #fff;
   background: rgba(255, 255, 255, 0.15);
@@ -652,7 +847,30 @@
 
 /* Mobile responsive */
 @media (max-width: 768px) {
-  /* Full screen game on mobile */
+  /* PERFORMANCE: Disable heavy effects on mobile */
+  .runner-container .stats-panel {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .runner-player {
+    filter: none; /* Remove drop-shadow for performance */
+  }
+
+  .runner-obstacle {
+    filter: none !important; /* Remove glow effects */
+  }
+
+  /* Full screen game on mobile - TRUE full screen from top to bottom */
+  .runner-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 9999 !important;
+  }
+
   .runner-container .game-layout {
     flex-direction: column;
     padding: 0;
@@ -663,13 +881,50 @@
     width: 100%;
     height: auto;
     min-width: unset;
-    padding: 8px 16px;
+    /* Add right padding to leave room for ? and X buttons */
+    padding: 8px 60px 8px 16px;
     gap: 8px;
     border-radius: 0;
     border: none;
     border-bottom: 2px solid rgba(255, 107, 0, 0.4);
-    background: linear-gradient(180deg, rgba(20, 20, 35, 0.95) 0%, rgba(20, 20, 35, 0.8) 100%);
+    background: linear-gradient(180deg, rgba(20, 20, 35, 0.98) 0%, rgba(20, 20, 35, 0.9) 100%);
   }
+
+  /* Mobile control buttons - positioned below stats panel */
+  .wr-mobile-controls {
+    position: fixed;
+    top: 80px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 99999;
+    pointer-events: auto;
+  }
+
+  .wr-mobile-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(255, 107, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.7);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  .wr-mobile-btn:active {
+    transform: scale(0.95);
+    background: rgba(0, 0, 0, 0.9);
+  }
+
 
   .runner-container .stat-item {
     flex: 1;
@@ -691,16 +946,35 @@
     flex: 1;
     border-radius: 0;
     border: none;
+    overflow: visible; /* Allow effects to extend beyond on mobile */
+  }
+
+  /* On mobile, position player higher to clear the icon bar */
+  .runner-player {
+    bottom: 90px;
+  }
+
+  .swipe-hint {
+    bottom: 50px;
+  }
+
+  /* Add bottom padding to runner area for icon bar clearance */
+  .runner-container .lightbox-wrapper .runner-area {
+    padding-bottom: 70px;
   }
 }
 
 @media (max-width: 480px) {
   .wr-game-over-content { flex-direction: column; align-items: center; gap: 16px; }
   .wr-sad-image { width: 150px; height: 150px; }
-  .wr-game-over-title { font-size: 1.5rem; }
-  .wr-game-over-score .wr-score-value { font-size: 2.5rem; }
-  .wr-game-over-buttons { flex-direction: row; width: 100%; gap: 8px; }
-  .wr-play-btn, .wr-leaderboard-btn { flex: 1; padding: 10px 12px; font-size: 0.85rem; }
+  .wr-game-over-title { font-size: 1.8rem; }
+  .wr-game-over-score .wr-score-value { font-size: 3.5rem; }
+  .wr-game-over-score .wr-score-label { font-size: 0.9rem; }
+  .wr-game-over-stats { gap: 24px; }
+  .wr-stat-value { font-size: 1.6rem; }
+  .wr-stat-label { font-size: 0.75rem; }
+  .wr-game-over-buttons { flex-direction: row; width: 100%; gap: 12px; }
+  .wr-play-btn, .wr-leaderboard-btn { flex: 1; padding: 12px 16px; font-size: 0.95rem; min-width: unset; }
   .wr-back-to-games-btn { bottom: 16px; right: 16px; padding: 8px 16px; font-size: 0.8rem; }
   .wr-leaderboard-panel { width: calc(100% - 32px); max-height: 70%; padding: 20px; }
 }
@@ -1070,6 +1344,35 @@
   transform: scale(1.1);
 }
 
+/* Skip hint animation */
+.wr-skip-hint {
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  animation: wr-skip-slide 1.5s ease-out forwards;
+}
+
+@keyframes wr-skip-slide {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-10px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(-50%) translateX(5px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) translateX(15px);
+  }
+}
+
 /* Screen shake animation for crash effects */
 .runner-container .lightbox-wrapper.screen-shake {
   animation: runner-screen-shake 0.6s cubic-bezier(.36,.07,.19,.97) both;
@@ -1090,62 +1393,53 @@
 
 /* ============================================
    EFFECT POSITION OVERRIDES
-   Move effects to left/right sides to keep street visible
+   Center effects in the game area for visibility
    ============================================ */
 
-/* Shockwave - move to left side */
+/* Ensure effects container is above game elements */
+.runner-container .game-effects-container {
+  z-index: 500 !important;
+}
+
+/* Shockwave - center in game area */
 .runner-container .effect-shockwave {
-  left: 15% !important;
-  top: 40% !important;
+  left: 60% !important;
+  top: 50% !important;
 }
 
-/* Sparks - move to right side */
+/* Sparks - center in game area */
 .runner-container .effect-sparks {
-  left: 85% !important;
-  top: 40% !important;
+  left: 60% !important;
+  top: 50% !important;
 }
 
-/* Floating emojis - alternate left/right sides */
-.runner-container .effect-floating-emoji:nth-child(odd) {
-  left: 10% !important;
-}
-.runner-container .effect-floating-emoji:nth-child(even) {
-  left: 90% !important;
+/* Floating emojis - in game area */
+.runner-container .effect-floating-emoji {
+  left: 60% !important;
 }
 
-/* Epic callout - move completely outside playing field at bottom */
+/* Epic callout - center of screen */
 .runner-container .effect-epic-callout {
-  top: auto !important;
-  bottom: -2% !important;
-  font-size: 22px;
+  left: 50% !important;
+  top: 40% !important;
+  font-size: 28px;
 }
 
-/* Combo display - move to left side */
+/* Hide GameEffects combo - we use our own inline combo display instead */
 .runner-container .effect-combo {
-  left: 12% !important;
-  top: 35% !important;
-  transform: translate(-50%, -50%) scale(0.8);
+  display: none !important;
 }
 
-.runner-container .effect-combo .combo-number {
-  font-size: 48px;
-}
-
-.runner-container .effect-combo .combo-label {
-  font-size: 12px;
-  letter-spacing: 3px;
-}
-
-/* Score popups - alternate left/right */
-.runner-container .effect-score-popup:nth-child(odd) {
-  left: 12% !important;
-}
-.runner-container .effect-score-popup:nth-child(even) {
-  left: 88% !important;
+/* Score popups - center in game area (right side of layout) */
+.runner-container .effect-score-popup {
+  left: 60% !important;
+  top: 30% !important;
 }
 
 .runner-container .effect-score-popup .score-popup-value {
-  font-size: 24px;
+  font-size: 28px;
+  color: #ffd700 !important;
+  text-shadow: 0 0 20px #ff6b00, 0 0 40px #ff6b00, 0 2px 4px rgba(0,0,0,0.8) !important;
 }
 
 /* Vignette - keep full screen but subtle */
@@ -1164,14 +1458,24 @@
 /* Mobile adjustments for effects */
 @media (max-width: 768px) {
   .runner-container .effect-epic-callout {
-    top: auto !important;
-    bottom: -12% !important;
+    top: 30% !important;
     font-size: 20px;
   }
 
   .runner-container .effect-combo {
-    left: 8% !important;
-    top: 25% !important;
+    left: 50% !important;
+    top: 50% !important;
+  }
+
+  .runner-container .effect-score-popup {
+    left: 50% !important;
+    top: 40% !important;
+  }
+
+  .runner-container .effect-shockwave,
+  .runner-container .effect-sparks,
+  .runner-container .effect-floating-emoji {
+    left: 50% !important;
   }
 
   .runner-container .effect-combo .combo-number {
@@ -1189,4 +1493,106 @@
   .runner-container .effect-score-popup .score-popup-value {
     font-size: 20px;
   }
+}
+
+/* ============================================
+   ARCADE FRAME - Desktop sizing
+   Game fills the arcade screen edge-to-edge with no gaps.
+   Stats panel on left, game area on right.
+   ============================================ */
+
+/* Main container fills arcade screen completely */
+.arcade-screen .runner-container {
+  height: 100%;
+  max-height: 100%;
+  background-size: cover;
+  top: 0 !important;
+  /* Remove background-attachment: fixed which can cause rendering issues */
+  background-attachment: scroll;
+}
+
+.arcade-screen .runner-container.playing-mode {
+  top: 0 !important;
+}
+
+/* Game layout fills container - NO padding for edge-to-edge fill */
+.arcade-screen .runner-container .game-layout {
+  height: 100%;
+  padding: 0;
+  gap: 0;
+  align-items: stretch;
+}
+
+/* Stats panel - fills left side, vertically centered, no rounded corners in arcade */
+.arcade-screen .runner-container .stats-panel {
+  height: 100%;
+  max-height: 100%;
+  min-width: 90px;
+  width: 90px;
+  padding: 12px 8px;
+  gap: 8px;
+  border-radius: 0;
+  border: none;
+  border-right: 2px solid rgba(255, 107, 0, 0.4);
+  justify-content: center;
+}
+
+.arcade-screen .runner-container .stat-item {
+  padding: 8px 6px;
+}
+
+.arcade-screen .runner-container .stat-label {
+  font-size: 9px;
+}
+
+.arcade-screen .runner-container .stat-value {
+  font-size: 18px;
+}
+
+/* CRITICAL: Lightbox fills remaining space - NO borders/radius in arcade */
+.arcade-screen .runner-container .game-layout .lightbox-wrapper {
+  flex: 1;
+  max-width: none;
+  width: auto;
+  height: 100%;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
+
+/* Runner area fills lightbox completely */
+.arcade-screen .runner-container .lightbox-wrapper .runner-area.playing {
+  width: 100%;
+  height: 100%;
+}
+
+/* Hide swipe hint on desktop arcade - users use keyboard arrows */
+.arcade-screen .runner-container .swipe-hint {
+  display: none;
+}
+
+/* Performance: reduce heavy effects in arcade mode */
+.arcade-screen .runner-container .stats-panel {
+  backdrop-filter: blur(10px);
+}
+
+/* Disable collectible pulse animation in arcade for smoother performance */
+.arcade-screen .runner-container .runner-collectible {
+  animation: none;
+}
+
+/* Game over / non-playing state - fill entire arcade screen */
+.arcade-screen .runner-content {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.arcade-screen .runner-content .runner-area {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: unset;
 }

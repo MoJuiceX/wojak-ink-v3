@@ -29,6 +29,12 @@ Run these prompts in order. Each builds on the previous:
 | 10 | `10-ECONOMY-MASTERPLAN-SPEC.md` | Complete economy reference | None (reference doc) |
 | 11 | `11-SERVER-STATE-SPEC.md` | **Bulletproof server-side state** | Specs 1-10 |
 
+### Standalone Reference Docs
+
+| Spec File | Purpose |
+|-----------|---------|
+| `GAME-OVER-STANDARDIZATION.md` | Copy-paste templates for standardizing game over screens to FlappyOrange style |
+
 ---
 
 ## How to Use with Claude CLI
@@ -163,6 +169,16 @@ Read the spec file at claude-specs/06-NFT-HOLDER-BADGE-SPEC.md and implement eve
 - Updated CurrencyContext for server-backed state
 - Anti-cheat: staged trust, score validation, session tracking
 - Economy projections and time-to-earn analysis
+
+### GAME-OVER-STANDARDIZATION.md (Reference)
+- Copy-paste ready templates for game over screens
+- FlappyOrange-style design standard
+- Step-by-step process with code snippets
+- Full JSX template for game over overlay
+- Full CSS template (replace PREFIX with game prefix)
+- Verification checklist (visual, functional, mobile)
+- Completed games: FlappyOrange, MemoryMatch, WojakRunner, Merge2048, ColorReaction
+- Common prefixes and localStorage keys for all 15 games
 
 ---
 

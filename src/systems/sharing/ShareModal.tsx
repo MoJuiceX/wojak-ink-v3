@@ -42,12 +42,15 @@ interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
   scoreData: ScoreShareData;
+  /** Optional game screenshot (base64 data URL) for composite share image */
+  screenshot?: string | null;
 }
 
 export const ShareModal: React.FC<ShareModalProps> = ({
   isOpen,
   onClose,
-  scoreData
+  scoreData,
+  screenshot
 }) => {
   const { shareScore, shareToPlatform, copyToClipboard, shareSupported } = useShare();
   const { playMatchFound, playButtonClick } = useGameSounds(); // Use matchFound as success sound
@@ -58,7 +61,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
   const handleNativeShare = async () => {
     playButtonClick();
-    const success = await shareScore(scoreData);
+    const success = await shareScore(scoreData, screenshot);
     if (success) {
       playMatchFound();
       onClose();

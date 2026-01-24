@@ -1,11 +1,7 @@
-// @ts-nocheck
 import { useState } from 'react';
 import {
   IonContent,
-  IonHeader,
   IonPage,
-  IonTitle,
-  IonToolbar,
   IonList,
   IonItem,
   IonLabel,
@@ -15,28 +11,21 @@ import {
   IonButton,
 } from '@ionic/react';
 import { musicalNotes, volumeHigh, sunny, moon, colorPalette, statsChart } from 'ionicons/icons';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { loadSettings, saveSettings, applyTheme, type AppSettings, type ThemeMode } from '../utils/settingsUtils';
-import { useAudio } from '../contexts/AudioContext';
 import './SettingsPage.css';
 
 const SettingsPage: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
-  const audio = useAudio();
 
-  const handleSettingChange = (key: keyof AppSettings, value: any) => {
+  const handleSettingChange = (key: keyof AppSettings, value: boolean | ThemeMode) => {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
     saveSettings(newSettings);
 
     if (key === 'theme') {
-      applyTheme(value);
-    }
-
-    // Sync audio settings with AudioContext
-    if (key === 'backgroundMusic' || key === 'soundEffects') {
-      audio.updateFromSettings(newSettings);
+      applyTheme(value as ThemeMode);
     }
   };
 
@@ -110,7 +99,7 @@ const SettingsPage: React.FC = () => {
             expand="block"
             fill="outline"
             className="admin-button"
-            onClick={() => history.push('/admin/stats')}
+            onClick={() => navigate('/admin/stats')}
           >
             <IonIcon icon={statsChart} slot="start" />
             Generator Stats

@@ -14,8 +14,11 @@ import { useGameHaptics } from '@/systems/haptics';
 import { useGameEffects } from '@/components/media';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { useGameTouch } from '@/hooks/useGameTouch';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { GameSEO } from '@/components/seo';
+import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
+import { GameButton } from '@/components/ui/GameButton';
 import './CitrusDrop.css';
 
 const { Engine, World, Bodies, Body, Events } = Matter;
@@ -99,7 +102,6 @@ const CitrusDrop: React.FC = () => {
     userDisplayName,
     isSubmitting,
   } = useLeaderboard('citrus-drop');
-  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   // Game state (moved before useGameNavigationGuard to avoid initialization order issue)
   const [gameState, setGameState] = useState<GameState>('ready');
@@ -108,6 +110,18 @@ const CitrusDrop: React.FC = () => {
   const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
     isPlaying: gameState === 'playing',
   });
+
+  // Mobile fullscreen mode - hide header during gameplay
+  useEffect(() => {
+    if (isMobile && gameState === 'playing') {
+      document.body.classList.add('game-fullscreen-mode');
+    } else {
+      document.body.classList.remove('game-fullscreen-mode');
+    }
+    return () => {
+      document.body.classList.remove('game-fullscreen-mode');
+    };
+  }, [isMobile, gameState]);
 
   // Game dimensions
   const [dimensions, setDimensions] = useState({ width: 400, height: 600 });
@@ -120,6 +134,7 @@ const CitrusDrop: React.FC = () => {
   const [isNewRecord, setIsNewRecord] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [, setGameScreenshot] = useState<string | null>(null);
 
   // Refs for physics
   const engineRef = useRef<Matter.Engine | null>(null);
@@ -389,6 +404,17 @@ const CitrusDrop: React.FC = () => {
   // ============================================
 
   const handleGameOver = useCallback(async () => {
+    // CAPTURE SCREENSHOT FIRST - before any visual changes
+    const canvas = canvasRef.current;
+    if (canvas) {
+      try {
+        const screenshot = canvas.toDataURL('image/png');
+        setGameScreenshot(screenshot);
+      } catch (e) {
+        console.warn('[CitrusDrop] Failed to capture screenshot:', e);
+      }
+    }
+
     setGameState('gameover');
     if (soundEnabled) playGameOver();
 
@@ -663,6 +689,10 @@ const CitrusDrop: React.FC = () => {
       cancelAnimationFrame(animationRef.current);
       World.clear(engine.world, false);
       Engine.clear(engine);
+      // Clean up combo timeout to prevent memory leaks
+      if (comboTimeoutRef.current) {
+        clearTimeout(comboTimeoutRef.current);
+      }
     };
   }, [gameState, dimensions, setupCollisionEvents, render, checkGameOver]);
 
@@ -721,6 +751,59 @@ const CitrusDrop: React.FC = () => {
     }
   }, [gameState, dropFruit]);
 
+  // ============================================
+  // TOUCH HANDLERS (useGameTouch)
+  // ============================================
+
+  // Convert screen coordinates to canvas-relative X position
+  const screenToCanvasX = useCallback(
+    (screenX: number): number => {
+      const canvas = canvasRef.current;
+      if (!canvas) return dimensions.width / 2;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = screenX - rect.left;
+
+      // Clamp to container bounds
+      const fruit = FRUITS[nextFruitType];
+      const minX = WALL_THICKNESS + fruit.radius;
+      const maxX = dimensions.width - WALL_THICKNESS - fruit.radius;
+      return Math.max(minX, Math.min(x, maxX));
+    },
+    [nextFruitType, dimensions.width]
+  );
+
+  // Touch handlers for mobile - drag to position, tap to drop
+  const { onTouchStart, onTouchMove, onTouchEnd } = useGameTouch({
+    onTap: useCallback(
+      (x: number) => {
+        if (gameState !== 'playing') return;
+        // On tap: update position and drop
+        setDropX(screenToCanvasX(x));
+        dropFruit();
+      },
+      [gameState, screenToCanvasX, dropFruit]
+    ),
+    onDrag: useCallback(
+      (x: number) => {
+        if (gameState !== 'playing') return;
+        // Drag continuously updates drop position
+        setDropX(screenToCanvasX(x));
+      },
+      [gameState, screenToCanvasX]
+    ),
+    onDragEnd: useCallback(
+      (x: number) => {
+        if (gameState !== 'playing') return;
+        // Drop fruit when drag ends
+        setDropX(screenToCanvasX(x));
+        dropFruit();
+      },
+      [gameState, screenToCanvasX, dropFruit]
+    ),
+    preventScroll: true,
+  });
+
   // Keyboard support
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -765,6 +848,7 @@ const CitrusDrop: React.FC = () => {
     setCanDrop(true);
     setIsNewRecord(false);
     setSubmitted(false);
+    setGameScreenshot(null);
     gameStartTimeRef.current = Date.now();
     totalMergesRef.current = 0;
     mergedPairsRef.current.clear();
@@ -847,9 +931,9 @@ const CitrusDrop: React.FC = () => {
             ))}
           </div>
 
-          <button className="cd-play-btn" onClick={startGame}>
+          <GameButton variant="primary" size="lg" className="cd-play-btn" onClick={startGame}>
             TAP TO PLAY
-          </button>
+          </GameButton>
 
           <div className="cd-instructions">
             Move to position • Tap to drop • Match to merge!
@@ -864,92 +948,32 @@ const CitrusDrop: React.FC = () => {
           className="cd-canvas"
           width={dimensions.width}
           height={dimensions.height}
+          // Desktop: pointer events for mouse
           onPointerMove={handlePointerMove}
           onPointerDown={handlePointerDown}
+          // Mobile: touch events via useGameTouch for better scroll prevention
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
           style={{ touchAction: 'none' }}
         />
       )}
 
-      {/* Game Over Overlay */}
+      {/* Game Over - Uses shared component */}
       {gameState === 'gameover' && (
-        <div className="cd-game-over-overlay" onClick={(e) => e.stopPropagation()}>
-          {/* Main Game Over Content - stays fixed */}
-          <div className="cd-game-over-content">
-            <div className="cd-game-over-left">
-              <span className="cd-game-over-emoji">
-                {FRUITS[highestFruit].emoji}
-              </span>
-            </div>
-            <div className="cd-game-over-right">
-              <h2 className="cd-game-over-title">GAME OVER</h2>
-              <div className="cd-game-over-score">
-                <span className="cd-score-value">{score}</span>
-                <span className="cd-score-label">POINTS</span>
-              </div>
-              <div className="cd-game-over-stats">
-                <div className="cd-stat">
-                  <span className="cd-stat-value">{FRUITS[highestFruit].name}</span>
-                  <span className="cd-stat-label">Best Fruit</span>
-                </div>
-                <div className="cd-stat">
-                  <span className="cd-stat-value">{totalMergesRef.current}</span>
-                  <span className="cd-stat-label">Merges</span>
-                </div>
-              </div>
-              {isNewRecord && <div className="cd-new-record">NEW RECORD!</div>}
-              {isSignedIn && (
-                <div className="cd-submitted">
-                  {isSubmitting ? 'Saving...' : submitted ? `Saved as ${userDisplayName}!` : ''}
-                </div>
-              )}
-              {/* Buttons: Play Again + Leaderboard */}
-              <div className="cd-game-over-buttons">
-                <button className="cd-play-btn" onClick={resetGame}>
-                  Play Again
-                </button>
-                <button
-                  onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                  className="cd-leaderboard-btn"
-                >
-                  Leaderboard
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Leaderboard Panel - overlays on top */}
-          {showLeaderboardPanel && (
-            <div className="cd-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
-              <div className="cd-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
-                <div className="cd-leaderboard-header">
-                  <h3>Leaderboard</h3>
-                  <button className="cd-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
-                </div>
-                <div className="cd-leaderboard-list">
-                  {Array.from({ length: 10 }, (_, index) => {
-                    const entry = globalLeaderboard[index];
-                    const isCurrentUser = entry && score === entry.score;
-                    return (
-                      <div key={index} className={`cd-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
-                        <span className="cd-leaderboard-rank">#{index + 1}</span>
-                        <span className="cd-leaderboard-name">{entry?.displayName || '---'}</span>
-                        <span className="cd-leaderboard-score">{entry?.score ?? '-'}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Back to Games - positioned in safe area (bottom right) */}
-          <button
-            onClick={handleBack}
-            className="cd-back-to-games-btn"
-          >
-            Back to Games
-          </button>
-        </div>
+        <ArcadeGameOverScreen
+          score={score}
+          highScore={globalLeaderboard[0]?.score || 0}
+          scoreLabel="points"
+          isNewPersonalBest={isNewRecord}
+          isSignedIn={isSignedIn}
+          isSubmitting={isSubmitting}
+          scoreSubmitted={submitted}
+          userDisplayName={userDisplayName ?? undefined}
+          leaderboard={globalLeaderboard}
+          onPlayAgain={resetGame}
+          accentColor="#fbbf24"
+        />
       )}
 
       {/* Exit Game Confirmation Dialog */}

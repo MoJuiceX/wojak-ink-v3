@@ -1,0 +1,90 @@
+/* ============================================
+   GAME COLOR CLASSES
+   Reusable game color classes using CSS variables
+   ============================================ */
+
+/* ----------------------------------------
+   Block/piece gradients
+   ---------------------------------------- */
+.game-gradient-orange {
+  background: linear-gradient(135deg, var(--color-tang-500), var(--color-tang-600));
+}
+.game-gradient-green {
+  background: linear-gradient(135deg, var(--color-chia-500), var(--color-chia-600));
+}
+.game-gradient-purple {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+}
+.game-gradient-blue {
+  background: linear-gradient(135deg, var(--color-cyber-500), var(--color-cyber-600));
+}
+.game-gradient-pink {
+  background: linear-gradient(135deg, var(--color-neon-500), var(--color-neon-600));
+}
+.game-gradient-gold {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+/* ----------------------------------------
+   Text colors
+   ---------------------------------------- */
+.game-text-score { color: var(--game-score-color); }
+.game-text-combo { color: var(--game-combo-color); }
+.game-text-perfect { color: var(--game-perfect-color); }
+
+/* ----------------------------------------
+   Glow effects
+   ---------------------------------------- */
+.game-glow-orange {
+  box-shadow: 0 0 20px var(--color-tang-500-30);
+}
+.game-glow-intense {
+  box-shadow: 0 0 30px var(--color-tang-500), 0 0 60px var(--color-tang-500-30);
+}
+
+/* ----------------------------------------
+   Danger indicators
+   ---------------------------------------- */
+.game-danger-warning { border-color: var(--game-danger-low); }
+.game-danger-critical { border-color: var(--game-danger-medium); }
+.game-danger-imminent { border-color: var(--game-danger-high); }
+
+/* ============================================
+   GAME TYPOGRAPHY
+   ============================================ */
+
+.game-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  color: var(--color-text-primary);
+  text-shadow: 0 0 20px var(--color-tang-500-30);
+}
+
+.game-score {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  color: var(--game-score-color);
+}
+
+.game-score-large {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+}
+
+.game-combo-text {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  color: var(--game-combo-color);
+  text-shadow: 0 0 20px var(--game-combo-color);
+}
+
+.game-label {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

@@ -38,6 +38,9 @@ export interface MiniGame {
 
   // Availability
   disabled?: boolean; // If true, game is grayed out and not playable
+
+  // UI Control
+  hasOwnControls?: boolean; // If true, game has its own back/pause buttons (hides GameModal buttons on mobile)
 }
 
 export type GameStatus = 'available' | 'coming-soon' | 'maintenance';

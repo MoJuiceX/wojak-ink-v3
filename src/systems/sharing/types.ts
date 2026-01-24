@@ -20,6 +20,8 @@ export interface ScoreShareData {
   rank?: number;
   username?: string;
   avatar?: string;
+  /** Base64 data URL of game screenshot at game over */
+  screenshot?: string;
 }
 
 export type SharePlatform =

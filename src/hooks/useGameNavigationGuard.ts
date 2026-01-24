@@ -28,6 +28,8 @@ interface UseGameNavigationGuardOptions {
   isPlaying: boolean;
   /** Grace period in ms before blocking starts (default: 3000) */
   gracePeriod?: number;
+  /** Custom callback when user confirms exit (optional - defaults to history.go(-2)) */
+  onConfirmExit?: () => void;
 }
 
 interface UseGameNavigationGuardReturn {
@@ -42,6 +44,7 @@ interface UseGameNavigationGuardReturn {
 export function useGameNavigationGuard({
   isPlaying,
   gracePeriod = 3000,
+  onConfirmExit,
 }: UseGameNavigationGuardOptions): UseGameNavigationGuardReturn {
   // Note: useNavigate/useLocation available if needed for future features
   // Currently using window.history API directly for navigation control
@@ -129,12 +132,17 @@ export function useGameNavigationGuard({
 
     // Go back in history (the user wanted to leave)
     if (pendingNavigationRef.current === 'back') {
-      // Go back twice - once for our guard state, once for actual navigation
-      window.history.go(-2);
+      // Use custom callback if provided, otherwise navigate to /games
+      if (onConfirmExit) {
+        onConfirmExit();
+      } else {
+        // Navigate to games page - works better in modal context than history.go(-2)
+        window.location.href = '/games';
+      }
     }
 
     pendingNavigationRef.current = null;
-  }, []);
+  }, [onConfirmExit]);
 
   // Cancel exit - stay in game
   const cancelExit = useCallback(() => {

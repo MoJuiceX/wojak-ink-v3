@@ -1,0 +1,267 @@
+/**
+ * Arcade Button Lights - CSS Glow Approach
+ *
+ * Premium glow effects using CSS box-shadow.
+ */
+
+.arcade-button-lights {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 11;
+  overflow: visible;
+}
+
+/* Title glow overlay - full frame size, already positioned in PNG */
+.arcade-title-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 100;
+  animation: title-glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes title-glow-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.arcade-glow {
+  position: absolute;
+  left: var(--glow-left);
+  top: var(--glow-top);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  /* Visible dot for position reference */
+  background: var(--glow-color);
+  opacity: 0.85;
+  /* LED glow - balanced spread */
+  box-shadow:
+    0 0 35px 18px var(--glow-color),
+    0 0 70px 35px var(--glow-color);
+  pointer-events: none;
+}
+
+/* Bottom buttons - upward glow (no visible center dot) */
+.arcade-glow-bottom1,
+.arcade-glow-bottom2,
+.arcade-glow-bottom3,
+.arcade-glow-bottom4,
+.arcade-glow-bottom5,
+.arcade-glow-bottom6,
+.arcade-glow-bottom7 {
+  /* Remove debug dot */
+  width: 0;
+  height: 0;
+  background: transparent;
+  /* Slight upward offset */
+  box-shadow:
+    0 -8px 34px 17px var(--glow-color),
+    0 -12px 68px 34px var(--glow-color);
+}
+
+/* Right buttons - internal bulb effect */
+.arcade-glow-right1,
+.arcade-glow-right2,
+.arcade-glow-right3,
+.arcade-glow-right4,
+.arcade-glow-right5 {
+  width: 80px;
+  height: 80px;
+  opacity: 0.3;
+  /* Radial gradient: subtle white core */
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.05) 20%,
+    var(--glow-color) 40%,
+    transparent 75%
+  );
+  /* Reduced outer glow */
+  box-shadow:
+    0 0 10px 5px var(--glow-color),
+    0 0 25px 12px var(--glow-color);
+}
+
+/* Left button - internal bulb effect (fades out more at edges) */
+.arcade-glow-left1 {
+  width: 53px;
+  height: 53px;
+  opacity: 0.24;
+  /* Radial gradient: white core reduced 20% */
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.13) 0%,
+    rgba(255, 255, 255, 0.03) 15%,
+    var(--glow-color) 30%,
+    transparent 55%
+  );
+  /* Tighter outer glow */
+  box-shadow:
+    0 0 6px 3px var(--glow-color),
+    0 0 14px 7px var(--glow-color);
+}
+
+/* ============================================
+   IDLE SEQUENCE - gentle breathing
+   ============================================ */
+
+.arcade-lights-idle .arcade-glow {
+  animation: idle-glow 2.5s ease-in-out infinite;
+}
+
+.arcade-lights-idle .arcade-glow-bottom1 { animation-delay: 0s; }
+.arcade-lights-idle .arcade-glow-bottom2 { animation-delay: 0.2s; }
+.arcade-lights-idle .arcade-glow-bottom3 { animation-delay: 0.4s; }
+.arcade-lights-idle .arcade-glow-bottom4 { animation-delay: 0.6s; }
+.arcade-lights-idle .arcade-glow-bottom5 { animation-delay: 0.4s; }
+.arcade-lights-idle .arcade-glow-bottom6 { animation-delay: 0.2s; }
+.arcade-lights-idle .arcade-glow-bottom7 { animation-delay: 0s; }
+
+.arcade-lights-idle .arcade-glow-left1 { animation-delay: 0.3s; }
+
+.arcade-lights-idle .arcade-glow-right1 { animation-delay: 0.1s; }
+.arcade-lights-idle .arcade-glow-right2 { animation-delay: 0.2s; }
+.arcade-lights-idle .arcade-glow-right3 { animation-delay: 0.3s; }
+.arcade-lights-idle .arcade-glow-right4 { animation-delay: 0.4s; }
+.arcade-lights-idle .arcade-glow-right5 { animation-delay: 0.5s; }
+
+@keyframes idle-glow {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* ============================================
+   STARTUP SEQUENCE - cascade on
+   ============================================ */
+
+.arcade-lights-startup .arcade-glow {
+  animation: startup-glow 0.4s ease-out forwards;
+}
+
+.arcade-lights-startup .arcade-glow-bottom4 { animation-delay: 0s; }
+.arcade-lights-startup .arcade-glow-bottom3 { animation-delay: 0.08s; }
+.arcade-lights-startup .arcade-glow-bottom5 { animation-delay: 0.08s; }
+.arcade-lights-startup .arcade-glow-bottom2 { animation-delay: 0.16s; }
+.arcade-lights-startup .arcade-glow-bottom6 { animation-delay: 0.16s; }
+.arcade-lights-startup .arcade-glow-bottom1 { animation-delay: 0.24s; }
+.arcade-lights-startup .arcade-glow-bottom7 { animation-delay: 0.24s; }
+
+.arcade-lights-startup .arcade-glow-left1 { animation-delay: 0.4s; }
+
+.arcade-lights-startup .arcade-glow-right1 { animation-delay: 0.4s; }
+.arcade-lights-startup .arcade-glow-right2 { animation-delay: 0.5s; }
+.arcade-lights-startup .arcade-glow-right3 { animation-delay: 0.6s; }
+.arcade-lights-startup .arcade-glow-right4 { animation-delay: 0.7s; }
+.arcade-lights-startup .arcade-glow-right5 { animation-delay: 0.8s; }
+
+@keyframes startup-glow {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+/* ============================================
+   GAME START SEQUENCE - quick burst
+   ============================================ */
+
+.arcade-lights-gameStart .arcade-glow {
+  animation: gamestart-glow 0.2s ease-out forwards;
+}
+
+.arcade-lights-gameStart .arcade-glow-bottom1,
+.arcade-lights-gameStart .arcade-glow-bottom7 { animation-delay: 0s; }
+.arcade-lights-gameStart .arcade-glow-bottom2,
+.arcade-lights-gameStart .arcade-glow-bottom6 { animation-delay: 0.03s; }
+.arcade-lights-gameStart .arcade-glow-bottom3,
+.arcade-lights-gameStart .arcade-glow-bottom5 { animation-delay: 0.06s; }
+.arcade-lights-gameStart .arcade-glow-bottom4 { animation-delay: 0.09s; }
+
+.arcade-lights-gameStart .arcade-glow-left1 { animation-delay: 0.12s; }
+.arcade-lights-gameStart .arcade-glow-right1 { animation-delay: 0.12s; }
+.arcade-lights-gameStart .arcade-glow-right2 { animation-delay: 0.15s; }
+.arcade-lights-gameStart .arcade-glow-right3 { animation-delay: 0.18s; }
+.arcade-lights-gameStart .arcade-glow-right4 { animation-delay: 0.21s; }
+.arcade-lights-gameStart .arcade-glow-right5 { animation-delay: 0.24s; }
+
+@keyframes gamestart-glow {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ============================================
+   WIN SEQUENCE - celebration chase
+   ============================================ */
+
+.arcade-lights-win .arcade-glow {
+  animation: win-glow 0.4s ease-in-out infinite;
+}
+
+.arcade-lights-win .arcade-glow-bottom1 { animation-delay: 0s; }
+.arcade-lights-win .arcade-glow-bottom2 { animation-delay: 0.1s; }
+.arcade-lights-win .arcade-glow-bottom3 { animation-delay: 0.2s; }
+.arcade-lights-win .arcade-glow-bottom4 { animation-delay: 0.3s; }
+.arcade-lights-win .arcade-glow-bottom5 { animation-delay: 0.4s; }
+.arcade-lights-win .arcade-glow-bottom6 { animation-delay: 0.5s; }
+.arcade-lights-win .arcade-glow-bottom7 { animation-delay: 0.6s; }
+
+.arcade-lights-win .arcade-glow-right5 { animation-delay: 0.7s; }
+.arcade-lights-win .arcade-glow-right4 { animation-delay: 0.8s; }
+.arcade-lights-win .arcade-glow-right3 { animation-delay: 0.9s; }
+.arcade-lights-win .arcade-glow-right2 { animation-delay: 1s; }
+.arcade-lights-win .arcade-glow-right1 { animation-delay: 1.1s; }
+
+.arcade-lights-win .arcade-glow-left1 { animation-delay: 0.3s; }
+
+@keyframes win-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* ============================================
+   GAME OVER SEQUENCE - fade out
+   ============================================ */
+
+.arcade-lights-gameOver .arcade-glow {
+  animation: gameover-glow 1.5s ease-out forwards;
+}
+
+.arcade-lights-gameOver .arcade-glow-bottom1,
+.arcade-lights-gameOver .arcade-glow-bottom7 { animation-delay: 0s; }
+.arcade-lights-gameOver .arcade-glow-bottom2,
+.arcade-lights-gameOver .arcade-glow-bottom6 { animation-delay: 0.05s; }
+.arcade-lights-gameOver .arcade-glow-bottom3,
+.arcade-lights-gameOver .arcade-glow-bottom5 { animation-delay: 0.1s; }
+.arcade-lights-gameOver .arcade-glow-bottom4 { animation-delay: 0.15s; }
+
+.arcade-lights-gameOver .arcade-glow-left1 { animation-delay: 0.2s; }
+.arcade-lights-gameOver .arcade-glow-right1 { animation-delay: 0.2s; }
+.arcade-lights-gameOver .arcade-glow-right2 { animation-delay: 0.25s; }
+.arcade-lights-gameOver .arcade-glow-right3 { animation-delay: 0.3s; }
+.arcade-lights-gameOver .arcade-glow-right4 { animation-delay: 0.35s; }
+.arcade-lights-gameOver .arcade-glow-right5 { animation-delay: 0.4s; }
+
+@keyframes gameover-glow {
+  0% { opacity: 1; }
+  30% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .arcade-glow {
+    animation: none !important;
+    opacity: 0.5;
+  }
+}

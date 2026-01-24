@@ -110,21 +110,19 @@ interface PriceBadgesProps {
   size?: 'sm' | 'md';
 }
 
-// Live indicator pulsing dot component
+// Live indicator pulsing seedling emoji
 function LiveIndicator() {
   const prefersReducedMotion = usePrefersReducedMotion();
 
   return (
     <motion.span
-      className="inline-block rounded-full"
+      className="inline-block"
       style={{
-        width: 6,
-        height: 6,
-        background: '#22C55E',
-        boxShadow: '0 0 8px #22C55E',
+        fontSize: '0.85em',
+        lineHeight: 1,
       }}
       animate={prefersReducedMotion ? {} : {
-        scale: [1, 1.3, 1],
+        scale: [1, 1.2, 1],
         opacity: [1, 0.7, 1],
       }}
       transition={{
@@ -132,7 +130,9 @@ function LiveIndicator() {
         repeat: Infinity,
         ease: 'easeInOut',
       }}
-    />
+    >
+      🌱
+    </motion.span>
   );
 }
 
@@ -281,13 +281,12 @@ export function PriceBadges({ size = 'md' }: PriceBadgesProps) {
           <div className="flex items-center">
             <PriceFlapDisplay text={floorXchText} muted />
             <span
-              className="font-bold ml-1"
+              className="font-bold ml-1 mr-3"
               style={{ color: '#4ade80' }}
             >
               XCH
             </span>
-            <span className="mx-1" style={{ color: 'rgba(74, 222, 128, 0.7)' }}>(</span>
-            <span style={{ color: 'rgba(74, 222, 128, 0.7)' }}>$</span>
+            <span style={{ color: 'rgba(74, 222, 128, 0.7)' }}>($</span>
             <PriceFlapDisplay text={floorUsdText} muted />
             <span style={{ color: 'rgba(74, 222, 128, 0.7)' }}>)</span>
           </div>

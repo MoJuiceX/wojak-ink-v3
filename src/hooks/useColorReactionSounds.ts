@@ -457,6 +457,42 @@ export const useColorReactionSounds = () => {
     osc2.stop(ctx.currentTime + 0.4);
   }, [getAudioContext]);
 
+  // ========== Game Start Sound ==========
+  const playGameStart = useCallback(() => {
+    if (isMutedRef.current) return;
+    const ctx = getAudioContext();
+
+    // Simple, pleasant "pop" activation sound - plays instantly
+    // Main tone - warm and satisfying
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15); // Drops to A4
+
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.2);
+
+    // Subtle harmonic for warmth (plays simultaneously)
+    const harmonic = ctx.createOscillator();
+    const harmonicGain = ctx.createGain();
+
+    harmonic.type = 'sine';
+    harmonic.frequency.value = 1320; // E6 (perfect fifth above A5)
+
+    harmonicGain.gain.setValueAtTime(0.15, ctx.currentTime);
+    harmonicGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+
+    harmonic.connect(harmonicGain).connect(ctx.destination);
+    harmonic.start(ctx.currentTime);
+    harmonic.stop(ctx.currentTime + 0.12);
+  }, [getAudioContext]);
+
   // ========== TASK 28: Game Over Sound ==========
   const playGameOver = useCallback(() => {
     if (isMutedRef.current) return;
@@ -489,6 +525,7 @@ export const useColorReactionSounds = () => {
     playWrongTap,
     playMiss,
     playMatchStart,
+    playGameStart,
 
     // Countdown urgency
     playCountdownTick,

@@ -1,12 +1,17 @@
-// @ts-nocheck
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
-import { useAudio } from '@/contexts/AudioContext';
 import { useGameEffects, GameEffects } from '@/components/media';
+import { useGameMute } from '@/contexts/GameMuteContext';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { useGameTouch } from '@/hooks/useGameTouch';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { GameSEO } from '@/components/seo/GameSEO';
+import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
+import { captureGameArea } from '@/systems/sharing/captureDOM';
+import { generateGameScorecard } from '@/systems/sharing/GameScorecard';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import './WojakRunner.css';
 
 interface Obstacle {
@@ -22,23 +27,21 @@ interface Collectible {
   y: number;
 }
 
-interface LocalLeaderboardEntry {
-  name: string;
-  score: number;
-  date: string;
-}
-
-const _LANES = [0, 1, 2];
 const LANE_WIDTH = 80;
 const PLAYER_SIZE = 50;
 const OBSTACLE_SIZE = 45;
 const COLLECTIBLE_SIZE = 35;
 
-// Sad images for game over screen (1-19)
-const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/Games/games_media/sad_runner_${i + 1}.png`);
+// Background music playlist
+const MUSIC_PLAYLIST = [
+  { src: '/audio/music/wojak-runner/sonic-green-hill-final.mp3', name: 'Green Hill Zone' },
+  { src: '/audio/music/wojak-runner/sonic-chemical-plant-final.mp3', name: 'Chemical Plant' },
+  { src: '/audio/music/wojak-runner/street-fighter-mbison-final.mp3', name: 'M. Bison Stage' },
+  { src: '/audio/music/wojak-runner/street-fighter-vega-final.mp3', name: 'Vega Stage' },
+];
 
 const WojakRunner: React.FC = () => {
-  const { playCollect, playGameOver, startRunning, stopRunning } = useGameSounds();
+  const { playCollect, playGameOver } = useGameSounds();
 
   // Visual effects system
   const {
@@ -65,40 +68,68 @@ const WojakRunner: React.FC = () => {
     isSubmitting,
   } = useLeaderboard('wojak-runner');
 
-  // Background music controls
-  const { isBackgroundMusicPlaying, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
 
-  const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
+  // Arcade frame shared mute state
+  const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
+
+  // Mobile detection for layout adjustments
+  const isMobile = useIsMobile();
+  const navigate = useNavigate();
+
+  // Bottom offset for player position - higher on mobile to clear icon bar
+  const PLAYER_BOTTOM_OFFSET = isMobile ? 90 : 60;
+
+  const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover'>('playing');
 
   // Navigation guard - prevents accidental exits during gameplay
   const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
     isPlaying: gameState === 'playing',
+    onConfirmExit: () => navigate('/games'),
   });
+
+  // Mobile fullscreen mode - hide header during gameplay
+  useEffect(() => {
+    if (isMobile && gameState === 'playing') {
+      document.body.classList.add('game-fullscreen-mode');
+    } else {
+      document.body.classList.remove('game-fullscreen-mode');
+    }
+    return () => {
+      document.body.classList.remove('game-fullscreen-mode');
+    };
+  }, [isMobile, gameState]);
+
   const [playerLane, setPlayerLane] = useState(1);
   const [obstacles, setObstacles] = useState<Obstacle[]>([]);
   const [collectibles, setCollectibles] = useState<Collectible[]>([]);
   const [score, setScore] = useState(0);
   const [distance, setDistance] = useState(0);
-  const [speed, setSpeed] = useState(5);
+  const [speed, setSpeed] = useState(6); // Start moderate, gets harder over time
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('wojakRunnerHighScore') || '0', 10);
   });
-  const [playerName, setPlayerName] = useState('');
-  const [localLeaderboard, setLocalLeaderboard] = useState<LocalLeaderboardEntry[]>(() => {
-    const saved = localStorage.getItem('wojakRunnerLeaderboard');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [sadImage, setSadImage] = useState('');
+  const [gameScreenshot, setGameScreenshot] = useState<string | null>(null);
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
-  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem('wojakRunnerSoundEnabled') !== 'false';
+  });
+
+  // Simple score popup state (backup if GameEffects doesn't work)
+  const [lastScorePopup, setLastScorePopup] = useState<{points: number, id: number} | null>(null);
+  const scorePopupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
   const obstacleIdRef = useRef(0);
   const collectibleIdRef = useRef(0);
-  const touchStartXRef = useRef(0);
   const lastSpawnRef = useRef(0);
+
+  // Fixed timestep for consistent speed across ALL devices (60Hz, 120Hz, etc.)
+  // This ensures fair competition on leaderboards
+  const lastFrameTimeRef = useRef(0);
+  const accumulatorRef = useRef(0); // Accumulates time for fixed timestep
+  const FIXED_TIMESTEP = 16.67; // Physics update every ~16.67ms (60 updates/sec)
 
   // Ref for game loop to check dialog state
   const showExitDialogRef = useRef(false);
@@ -108,11 +139,12 @@ const WojakRunner: React.FC = () => {
   const collectStreakRef = useRef(0);
   const lastDistanceMilestoneRef = useRef(0);
 
+  // Track collected IDs to prevent double sound plays
+  const collectedIdsRef = useRef<Set<number>>(new Set());
+
   // Sound refs for use in game loop
   const playCollectRef = useRef(playCollect);
   const playGameOverRef = useRef(playGameOver);
-  const startRunningRef = useRef(startRunning);
-  const stopRunningRef = useRef(stopRunning);
 
   // Effect refs for use in game loop
   const triggerShockwaveRef = useRef(triggerShockwave);
@@ -126,13 +158,17 @@ const WojakRunner: React.FC = () => {
   const resetComboRef = useRef(resetCombo);
   const addScorePopupRef = useRef(addScorePopup);
 
+  // Player bottom offset ref for game loop (higher on mobile to clear icon bar)
+  const playerBottomOffsetRef = useRef(PLAYER_BOTTOM_OFFSET);
+  useEffect(() => {
+    playerBottomOffsetRef.current = PLAYER_BOTTOM_OFFSET;
+  }, [PLAYER_BOTTOM_OFFSET]);
+
   // Keep refs updated
   useEffect(() => {
     playCollectRef.current = playCollect;
     playGameOverRef.current = playGameOver;
-    startRunningRef.current = startRunning;
-    stopRunningRef.current = stopRunning;
-  }, [playCollect, playGameOver, startRunning, stopRunning]);
+  }, [playCollect, playGameOver]);
 
   // Keep effect refs updated
   useEffect(() => {
@@ -153,22 +189,111 @@ const WojakRunner: React.FC = () => {
     showExitDialogRef.current = showExitDialog;
   }, [showExitDialog]);
 
-  // Start/stop running sound based on game state
-  useEffect(() => {
-    if (gameState === 'playing') {
-      // Start running footsteps at 180 BPM
-      startRunningRef.current(180);
-    } else {
-      stopRunningRef.current();
-    }
-  }, [gameState]);
+  // Background music refs
+  const playlistIndexRef = useRef(Math.floor(Math.random() * MUSIC_PLAYLIST.length));
+  const musicAudioRef = useRef<HTMLAudioElement | null>(null);
+  const gameStateRefForMusic = useRef(gameState);
 
-  // Auto-start game on mount (unified intro from GameModal)
-  useEffect(() => {
-    if (gameState === 'idle') {
-      startGame();
+  // Keep game state ref in sync for music callbacks
+  useEffect(() => { gameStateRefForMusic.current = gameState; }, [gameState]);
+
+  // Sound enabled ref for music callbacks (must be before playTrack)
+  const soundEnabledRef = useRef(soundEnabled);
+  useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
+
+  // Ref for musicManagedExternally (must be before playTrack)
+  const musicManagedExternallyRef = useRef(musicManagedExternally);
+  useEffect(() => { musicManagedExternallyRef.current = musicManagedExternally; }, [musicManagedExternally]);
+
+  // Play specific track
+  const playTrack = useCallback((index: number) => {
+    // Never play game's own music if GameModal manages it
+    if (musicManagedExternallyRef.current) return;
+
+    if (musicAudioRef.current) {
+      musicAudioRef.current.pause();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    playlistIndexRef.current = index;
+    const track = MUSIC_PLAYLIST[index];
+    const music = new Audio(track.src);
+    music.volume = 1.0;
+    music.addEventListener('ended', () => {
+      playlistIndexRef.current = (playlistIndexRef.current + 1) % MUSIC_PLAYLIST.length;
+      if (gameStateRefForMusic.current === 'playing' && soundEnabledRef.current && !musicManagedExternallyRef.current) {
+        playTrack(playlistIndexRef.current);
+      }
+    }, { once: true });
+    musicAudioRef.current = music;
+    music.play().catch(() => {});
+  }, []);
+
+  // Play next song in playlist
+  const playNextSong = useCallback(() => {
+    playTrack(playlistIndexRef.current);
+  }, [playTrack]);
+
+  // Cleanup music on unmount
+  useEffect(() => {
+    return () => {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+        musicAudioRef.current = null;
+      }
+    };
+  }, []);
+
+  // CRITICAL: Stop game's own music if GameModal takes over music management
+  // This handles race conditions where music might start before context propagates
+  useEffect(() => {
+    if (musicManagedExternally && musicAudioRef.current) {
+      musicAudioRef.current.pause();
+      musicAudioRef.current = null;
+    }
+  }, [musicManagedExternally]);
+
+  // Control music based on game state and sound enabled
+  // Skip if GameModal manages the music (check both ref AND context for extra safety)
+  useEffect(() => {
+    // Double-check both ref and context to handle race conditions
+    if (musicManagedExternally || musicManagedExternallyRef.current) return;
+
+    if (gameState === 'playing' && soundEnabled) {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.play().catch(() => {});
+      }
+    } else {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+      }
+    }
+  }, [gameState, soundEnabled, musicManagedExternally]);
+
+  // Sync with arcade frame mute button (from GameMuteContext)
+  // Only control game's own music if NOT managed externally
+  useEffect(() => {
+    // Skip if music is managed externally (check both ref and context)
+    if (musicManagedExternally || musicManagedExternallyRef.current) return;
+
+    setSoundEnabled(!arcadeMuted);
+    if (arcadeMuted) {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+      }
+    } else if (gameState === 'playing') {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.play().catch(() => {});
+      }
+    }
+  }, [arcadeMuted, musicManagedExternally, gameState]);
+
+  // Running footstep sound removed - background music is sufficient
+  // and the footsteps were distracting
+
+  // Auto-start game on mount (arcade frame handles the initial Play button)
+  useEffect(() => {
+    // Initialize game state on mount
+    startGame();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startGame = () => {
@@ -177,45 +302,25 @@ const WojakRunner: React.FC = () => {
     setCollectibles([]);
     setScore(0);
     setDistance(0);
-    setSpeed(5);
+    setSpeed(6); // Start moderate, gets harder over time
     obstacleIdRef.current = 0;
     collectibleIdRef.current = 0;
     lastSpawnRef.current = 0;
     lastDistanceMilestoneRef.current = 0;
-    setPlayerName('');
     setScoreSubmitted(false);
     setIsNewPersonalBest(false);
     // Reset streak and effects
     setCollectStreak(0);
     collectStreakRef.current = 0;
+    collectedIdsRef.current.clear(); // Clear collected IDs to prevent stale checks
+    accumulatorRef.current = 0; // Reset fixed timestep accumulator
     resetAllEffects();
+    // Start music on user gesture (required for mobile browsers)
+    // Skip if GameModal manages the music (check both ref AND context for timing safety)
+    if (soundEnabled && !musicAudioRef.current && !musicManagedExternallyRef.current && !musicManagedExternally) {
+      playNextSong();
+    }
     setGameState('playing');
-  };
-
-  const goToMenu = () => {
-    setGameState('idle');
-    setPlayerName('');
-  };
-
-  // Save score to local leaderboard (for guests)
-  const saveScoreLocal = () => {
-    if (!playerName.trim()) return;
-
-    const finalScore = score + Math.floor(distance / 10);
-    const newEntry: LocalLeaderboardEntry = {
-      name: playerName.trim(),
-      score: finalScore,
-      date: new Date().toISOString().split('T')[0],
-    };
-
-    const updatedLeaderboard = [...localLeaderboard, newEntry]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-
-    setLocalLeaderboard(updatedLeaderboard);
-    localStorage.setItem('wojakRunnerLeaderboard', JSON.stringify(updatedLeaderboard));
-    setPlayerName('');
-    goToMenu();
   };
 
   // Auto-submit score to global leaderboard (for signed-in users)
@@ -237,39 +342,17 @@ const WojakRunner: React.FC = () => {
     }
   }, [isSignedIn, scoreSubmitted, submitScore, distance]);
 
-  const skipSaveScore = () => {
-    setPlayerName('');
-    goToMenu();
-  };
-
-  // Merge global and local leaderboard for display
-  const displayLeaderboard = globalLeaderboard.length > 0
-    ? globalLeaderboard.map(entry => ({
-        name: entry.displayName,
-        score: entry.score,
-        date: entry.date,
-      }))
-    : localLeaderboard;
-
-  // Swipe controls
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartXRef.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (gameState !== 'playing') return;
-
-    const touchEndX = e.changedTouches[0].clientX;
-    const diff = touchEndX - touchStartXRef.current;
-
-    if (Math.abs(diff) > 30) {
-      if (diff > 0 && playerLane < 2) {
-        setPlayerLane(prev => prev + 1);
-      } else if (diff < 0 && playerLane > 0) {
-        setPlayerLane(prev => prev - 1);
+  // Swipe controls using shared hook
+  const touchHandlers = useGameTouch({
+    onSwipe: (direction) => {
+      if (gameState !== 'playing') return;
+      if (direction === 'left') {
+        setPlayerLane(prev => Math.max(0, prev - 1));
+      } else if (direction === 'right') {
+        setPlayerLane(prev => Math.min(2, prev + 1));
       }
-    }
-  };
+    },
+  });
 
   // Keyboard controls
   useEffect(() => {
@@ -291,20 +374,54 @@ const WojakRunner: React.FC = () => {
   useEffect(() => {
     if (gameState !== 'playing') return;
 
-    const gameLoop = () => {
+    // Initialize frame time on start
+    lastFrameTimeRef.current = performance.now();
+
+    const gameLoop = (currentTime: number) => {
       // Pause game loop when exit dialog is shown
       if (showExitDialogRef.current) {
+        lastFrameTimeRef.current = currentTime;
         animationRef.current = requestAnimationFrame(gameLoop);
         return;
       }
 
+      // Calculate delta time
+      const deltaTime = currentTime - lastFrameTimeRef.current;
+      lastFrameTimeRef.current = currentTime;
+
+      // Skip frame if it took way too long (tab was in background, etc.)
+      if (deltaTime > 100) {
+        accumulatorRef.current = 0; // Reset accumulator
+        animationRef.current = requestAnimationFrame(gameLoop);
+        return;
+      }
+
+      // Accumulate time for fixed timestep
+      // This ensures SAME game speed on 60Hz, 120Hz, 30Hz, etc.
+      // Fair for leaderboard competition!
+      accumulatorRef.current += deltaTime;
+
+      // Only update physics when enough time has accumulated
+      // On 120Hz: sometimes 0 updates, sometimes 1
+      // On 60Hz: usually 1 update
+      // On 30Hz: usually 2 updates
+      if (accumulatorRef.current < FIXED_TIMESTEP) {
+        // Not enough time accumulated, just re-render and wait
+        animationRef.current = requestAnimationFrame(gameLoop);
+        return;
+      }
+
+      // Consume one timestep (cap at 3 to prevent spiral of death)
+      const updateCount = Math.min(Math.floor(accumulatorRef.current / FIXED_TIMESTEP), 3);
+      accumulatorRef.current -= updateCount * FIXED_TIMESTEP;
+
       const height = gameAreaRef.current?.offsetHeight || 600;
 
-      // Update distance and speed (no sound on speed increase - silent)
+      // Update distance and speed (runs updateCount times for consistency)
       setDistance(prev => {
-        const newDist = prev + 1;
-        if (newDist % 500 === 0) {
-          setSpeed(s => Math.min(s + 0.5, 15));
+        const newDist = prev + updateCount;
+        if (Math.floor(newDist) % 500 === 0 && Math.floor(prev) % 500 !== 0) {
+          setSpeed(s => Math.min(s + 0.4, 15)); // Gradual increase, max 15
         }
 
         // Distance milestone callouts (every 100m)
@@ -332,8 +449,8 @@ const WojakRunner: React.FC = () => {
         return newDist;
       });
 
-      // Spawn obstacles and collectibles
-      lastSpawnRef.current += 1;
+      // Spawn obstacles and collectibles (fixed timestep)
+      lastSpawnRef.current += updateCount;
       if (lastSpawnRef.current >= 60) {
         lastSpawnRef.current = 0;
 
@@ -365,23 +482,45 @@ const WojakRunner: React.FC = () => {
         }
       }
 
-      // Move obstacles
+      // Move obstacles (fixed timestep for consistent speed across all devices)
       setObstacles(prev =>
         prev
-          .map(o => ({ ...o, y: o.y + speed }))
+          .map(o => ({ ...o, y: o.y + speed * updateCount }))
           .filter(o => o.y < height + OBSTACLE_SIZE)
       );
 
-      // Move collectibles
-      setCollectibles(prev =>
-        prev
-          .map(c => ({ ...c, y: c.y + speed }))
-          .filter(c => c.y < height + COLLECTIBLE_SIZE)
-      );
+      // Move collectibles (fixed timestep for consistent speed across all devices)
+      // Also detect missed oranges to reset combo (unless blocked by obstacle)
+      setCollectibles(prev => {
+        const moved = prev.map(c => ({ ...c, y: c.y + speed * updateCount }));
+        const remaining: Collectible[] = [];
 
-      // Collision detection - player is now at bottom: 60px
-      const playerY = height - 60 - PLAYER_SIZE;
-      const _playerX = playerLane * LANE_WIDTH + LANE_WIDTH / 2;
+        moved.forEach(c => {
+          if (c.y < height + COLLECTIBLE_SIZE) {
+            remaining.push(c);
+          } else {
+            // Orange went off screen - check if it was blocked by an obstacle
+            // An orange is "blocked" if there's an obstacle in the same lane
+            // that would have prevented the player from getting it
+            const wasBlocked = obstacles.some(o =>
+              o.lane === c.lane &&
+              Math.abs(o.y - c.y) < OBSTACLE_SIZE + COLLECTIBLE_SIZE
+            );
+
+            if (!wasBlocked && !collectedIdsRef.current.has(c.id)) {
+              // Missed a gettable orange - reset combo
+              collectStreakRef.current = 0;
+              setCollectStreak(0);
+              resetComboRef.current();
+            }
+          }
+        });
+
+        return remaining;
+      });
+
+      // Collision detection - player position matches CSS (higher on mobile for icon bar)
+      const playerY = height - playerBottomOffsetRef.current - PLAYER_SIZE;
 
       // Check obstacle collision
       obstacles.forEach(obstacle => {
@@ -398,9 +537,18 @@ const WojakRunner: React.FC = () => {
             addFloatingEmojiRef.current('💥');
             resetComboRef.current();
 
-            // Select random sad image
+            // Capture screenshot before game over
+            if (gameAreaRef.current) {
+              captureGameArea(gameAreaRef.current).then(screenshot => {
+                if (screenshot) setGameScreenshot(screenshot);
+              });
+            }
+            // Stop background music immediately on death
+            if (musicAudioRef.current) {
+              musicAudioRef.current.pause();
+              musicAudioRef.current = null;
+            }
             playGameOverRef.current();
-            setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
             setGameState('gameover');
             const finalScore = score + Math.floor(distance / 10);
             if (finalScore > highScore) {
@@ -421,6 +569,12 @@ const WojakRunner: React.FC = () => {
               collectibleY + COLLECTIBLE_SIZE > playerY &&
               collectibleY < playerY + PLAYER_SIZE
             ) {
+              // Prevent double sound - only play if not already collected
+              if (collectedIdsRef.current.has(collectible.id)) {
+                return; // Already collected, skip
+              }
+              collectedIdsRef.current.add(collectible.id);
+
               playCollectRef.current();
 
               // Update streak
@@ -432,10 +586,19 @@ const WojakRunner: React.FC = () => {
               const totalPoints = 10 + streakBonus;
               setScore(s => s + totalPoints);
 
+              // Simple inline score popup (guaranteed to show)
+              // Clear previous timeout to prevent accumulation
+              if (scorePopupTimeoutRef.current) {
+                clearTimeout(scorePopupTimeoutRef.current);
+              }
+              setLastScorePopup({ points: totalPoints, id: Date.now() });
+              scorePopupTimeoutRef.current = setTimeout(() => setLastScorePopup(null), 800);
+
               // Visual effects
               triggerShockwaveRef.current('#ff6b00', 0.6); // Orange shockwave
               triggerSparksRef.current('#ff6b00');
-              addScorePopupRef.current(`+${totalPoints}`);
+              // REMOVED: addScorePopupRef - was causing artifact on sides
+              // We already have wr-inline-score-popup in the center
               updateComboRef.current();
               addFloatingEmojiRef.current('🍊');
 
@@ -467,6 +630,10 @@ const WojakRunner: React.FC = () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      // Clean up score popup timeout
+      if (scorePopupTimeoutRef.current) {
+        clearTimeout(scorePopupTimeoutRef.current);
+      }
     };
   }, [gameState, speed, playerLane, obstacles, score, distance, highScore]);
 
@@ -478,6 +645,50 @@ const WojakRunner: React.FC = () => {
       submitScoreGlobal(totalScore);
     }
   }, [gameState, isSignedIn, totalScore, scoreSubmitted, submitScoreGlobal]);
+
+  // Share handler for game over scorecard
+  const handleShare = useCallback(async () => {
+    try {
+      const blob = await generateGameScorecard({
+        gameName: 'Wojak Runner',
+        gameNameParts: ['WOJAK', 'RUNNER'],
+        score: totalScore,
+        scoreLabel: 'points',
+        bestScore: highScore,
+        isNewRecord: isNewPersonalBest,
+        screenshot: gameScreenshot,
+        accentColor: '#ff6b00', // Orange accent
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `wojak-runner-${totalScore}.png`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      if (navigator.share && navigator.canShare) {
+        const file = new File([blob], 'wojak-runner-score.png', { type: 'image/png' });
+        const shareData = {
+          title: 'Wojak Runner Score',
+          text: `🏃 I scored ${totalScore} points in Wojak Runner! Can you beat me?`,
+          files: [file],
+        };
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to generate share image:', err);
+      const shareText = `🏃 Wojak Runner: ${totalScore} points!\n\nCan you beat my score?\n\nhttps://wojak.ink/games`;
+      if (navigator.share) {
+        await navigator.share({ title: 'Wojak Runner', text: shareText });
+      } else {
+        await navigator.clipboard.writeText(shareText);
+      }
+    }
+  }, [totalScore, highScore, isNewPersonalBest, gameScreenshot]);
+
   const width = gameAreaRef.current?.offsetWidth || 300;
   const laneOffset = (width - LANE_WIDTH * 3) / 2;
 
@@ -493,7 +704,7 @@ const WojakRunner: React.FC = () => {
       {/* PLAYING STATE: Game Layout with Stats Panel on LEFT */}
       {gameState === 'playing' && (
         <div className="game-layout">
-          {/* Stats Panel - LEFT side */}
+          {/* Stats Panel - LEFT side on desktop, TOP on mobile */}
           <div className="stats-panel">
             <div className="stat-item score-stat">
               <span className="stat-label">Score</span>
@@ -513,24 +724,35 @@ const WojakRunner: React.FC = () => {
             </div>
           </div>
 
+
           {/* Lightbox wrapper for game area - RIGHT side */}
           <div className={`lightbox-wrapper ${effects.screenShake ? 'screen-shake' : ''}`}>
-            {/* Music toggle button */}
-            <button
-              className="music-toggle-btn"
-              onClick={() => isBackgroundMusicPlaying ? pauseBackgroundMusic() : playBackgroundMusic()}
-            >
-              {isBackgroundMusicPlaying ? '🔊' : '🔇'}
-            </button>
-
-            {/* Game Effects Layer */}
+            {/* Game Effects Layer - inside lightbox for proper centering on mobile */}
             <GameEffects effects={effects} accentColor="#ff6b00" />
+
+            {/* Simple inline score popup - guaranteed visible */}
+            {lastScorePopup && (
+              <div
+                key={lastScorePopup.id}
+                className="wr-inline-score-popup"
+              >
+                +{lastScorePopup.points}
+              </div>
+            )}
+
+            {/* Inline combo display - guaranteed visible */}
+            {collectStreak > 1 && (
+              <div className="wr-inline-combo">
+                <span className="wr-combo-number">{collectStreak}</span>
+                <span className="wr-combo-label">COMBO</span>
+                {collectStreak >= 5 && <span className="wr-combo-fire">🔥</span>}
+              </div>
+            )}
 
             <div
               ref={gameAreaRef}
               className="runner-area playing"
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
+              {...touchHandlers}
             >
               {/* Road lanes */}
               <div className="road" style={{ left: laneOffset }}>
@@ -585,119 +807,26 @@ const WojakRunner: React.FC = () => {
       {gameState !== 'playing' && (
       <div className="runner-content">
         <div
-          ref={gameState !== 'playing' ? gameAreaRef : undefined}
+          ref={gameAreaRef}
           className="runner-area"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+          {...touchHandlers}
         >
-          {/* Game Over - Save Score Screen */}
+          {/* Game Over - Uses shared component */}
           {gameState === 'gameover' && (
-            <div className="wr-game-over-overlay" onClick={(e) => e.stopPropagation()}>
-              {/* Main Game Over Content - stays fixed */}
-              <div className="wr-game-over-content">
-                <div className="wr-game-over-left">
-                  {sadImage ? (
-                    <img src={sadImage} alt="Game Over" className="wr-sad-image" />
-                  ) : (
-                    <div className="wr-game-over-emoji">💀</div>
-                  )}
-                </div>
-                <div className="wr-game-over-right">
-                  <h2 className="wr-game-over-title">Game Over!</h2>
-
-                  <div className="wr-game-over-reason">
-                    You crashed into an obstacle!
-                  </div>
-
-                  <div className="wr-game-over-score">
-                    <span className="wr-score-value">{totalScore}</span>
-                    <span className="wr-score-label">points</span>
-                  </div>
-
-                  <div className="wr-game-over-stats">
-                    <div className="wr-stat">
-                      <span className="wr-stat-value">{Math.floor(distance / 10)}m</span>
-                      <span className="wr-stat-label">distance</span>
-                    </div>
-                    <div className="wr-stat">
-                      <span className="wr-stat-value">{highScore}</span>
-                      <span className="wr-stat-label">best</span>
-                    </div>
-                  </div>
-
-                  {(isNewPersonalBest || totalScore >= highScore) && totalScore > 0 && (
-                    <div className="wr-new-record">New Personal Best!</div>
-                  )}
-
-                  {isSignedIn && (
-                    <div className="wr-submitted">
-                      {isSubmitting ? 'Saving...' : scoreSubmitted ? `Saved as ${userDisplayName}!` : ''}
-                    </div>
-                  )}
-
-                  {/* Guest name input */}
-                  {!isSignedIn && (
-                    <div className="wr-guest-form">
-                      <input
-                        type="text"
-                        className="wr-name-input"
-                        placeholder="Enter your name"
-                        value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value)}
-                        maxLength={15}
-                        onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
-                      />
-                    </div>
-                  )}
-
-                  {/* Buttons: Play Again + Leaderboard */}
-                  <div className="wr-game-over-buttons">
-                    <button onClick={!isSignedIn && playerName.trim() ? saveScoreLocal : startGame} className="wr-play-btn">
-                      {!isSignedIn && playerName.trim() ? 'Save & Play' : 'Play Again'}
-                    </button>
-                    <button
-                      onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                      className="wr-leaderboard-btn"
-                    >
-                      Leaderboard
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Leaderboard Panel - overlays on top */}
-              {showLeaderboardPanel && (
-                <div className="wr-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
-                  <div className="wr-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
-                    <div className="wr-leaderboard-header">
-                      <h3>Leaderboard</h3>
-                      <button className="wr-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
-                    </div>
-                    <div className="wr-leaderboard-list">
-                      {Array.from({ length: 10 }, (_, index) => {
-                        const entry = displayLeaderboard[index];
-                        const isCurrentUser = entry && totalScore === entry.score;
-                        return (
-                          <div key={index} className={`wr-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
-                            <span className="wr-leaderboard-rank">#{index + 1}</span>
-                            <span className="wr-leaderboard-name">{entry?.name || '---'}</span>
-                            <span className="wr-leaderboard-score">{entry?.score ?? '-'}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Back to Games - positioned in safe area (bottom right) */}
-              <button
-                onClick={() => { window.location.href = '/games'; }}
-                className="wr-back-to-games-btn"
-              >
-                Back to Games
-              </button>
-            </div>
+            <ArcadeGameOverScreen
+              score={totalScore}
+              highScore={highScore}
+              scoreLabel="points"
+              isNewPersonalBest={isNewPersonalBest}
+              isSignedIn={isSignedIn}
+              isSubmitting={isSubmitting}
+              scoreSubmitted={scoreSubmitted}
+              userDisplayName={userDisplayName ?? undefined}
+              leaderboard={globalLeaderboard}
+              onPlayAgain={startGame}
+              onShare={handleShare}
+              accentColor="#ff6b00"
+            />
           )}
         </div>
       </div>

@@ -1,4 +1,14 @@
 @import "tailwindcss";
+@import "./styles/game-container.css";
+@import "./styles/game-colors.css";
+
+/* Safe area insets as CSS variables for JS access */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
 
 /* ============================================
    WOJAK.INK - ENTERPRISE THEME SYSTEM
@@ -185,6 +195,38 @@
   --theme-transition-duration: 300ms;
   --theme-transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
   --glow-intensity-multiplier: 1;
+
+  /* ----------------------------------------
+     GAME-SPECIFIC VARIABLES
+     ---------------------------------------- */
+
+  /* Game backgrounds */
+  --gradient-game-bg: linear-gradient(180deg,
+    var(--color-bg-primary) 0%,
+    var(--color-bg-secondary) 50%,
+    var(--color-bg-primary) 100%
+  );
+
+  /* Game ambient glows */
+  --color-tang-500-10: rgba(255, 107, 0, 0.1);
+  --color-tang-500-20: rgba(255, 107, 0, 0.2);
+  --color-tang-500-30: rgba(255, 107, 0, 0.3);
+
+  /* Game UI colors */
+  --game-btn-bg: rgba(0, 0, 0, 0.5);
+  --game-btn-border: rgba(255, 255, 255, 0.2);
+  --game-btn-hover-bg: var(--color-tang-500-30);
+  --game-btn-hover-border: var(--color-tang-500);
+
+  /* Score/combo colors */
+  --game-score-color: var(--color-tang-400);
+  --game-combo-color: var(--color-neon-500);
+  --game-perfect-color: #ffd700;
+
+  /* Danger states */
+  --game-danger-low: var(--color-tang-500);
+  --game-danger-medium: #ff4444;
+  --game-danger-high: #ff0000;
 }
 
 /* ----------------------------------------
@@ -1184,5 +1226,43 @@ w3m-modal::part(overlay) {
 body > wcm-modal,
 body > w3m-modal {
   z-index: 100000 !important;
+}
+
+/* ============================================
+   GAME FULLSCREEN MODE
+   ============================================
+
+   CRITICAL: These rules hide mobile navigation during gameplay.
+
+   When a game starts on mobile, GameModal adds 'game-fullscreen-mode'
+   class to document.body. This hides the bottom navigation so games
+   can use the full screen height.
+
+   Requirements:
+   1. MobileNavigation component MUST have 'mobile-navigation' class
+   2. Game components should use bottom: 0 (not 94px) since nav is hidden
+   3. The modal uses 100dvh which handles iOS safe areas
+
+   History: Navigation wasn't hiding because MobileNavigation lacked
+   the 'mobile-navigation' class. Fixed 2025-01-24.
+   ============================================ */
+
+body.game-fullscreen-mode .mobile-navigation,
+body.game-fullscreen-mode [class*="mobile-nav"],
+body.game-fullscreen-mode [class*="bottom-nav"] {
+  display: none !important;
+}
+
+/* Hide header on mobile during gameplay for full screen experience */
+body.game-fullscreen-mode header {
+  display: none !important;
+}
+
+/* Adjust main content to use full height when header is hidden */
+body.game-fullscreen-mode ion-content,
+body.game-fullscreen-mode .ion-page {
+  --offset-top: 0px !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
 }
 

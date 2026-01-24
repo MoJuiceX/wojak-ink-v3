@@ -2,13 +2,13 @@
  * InventorySection Component
  *
  * Shows purchased shop items with equip/unequip toggles.
- * Uses actual database categories from shop_items table.
+ * Uses unified items table categories.
  */
 
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, Gift } from 'lucide-react';
 import './Account.css';
 
-// Database item categories
+// Database item categories from unified items table
 type ItemCategory =
   | 'frame'
   | 'title'
@@ -19,18 +19,35 @@ type ItemCategory =
   | 'bigpulp_hat'
   | 'bigpulp_mood'
   | 'bigpulp_accessory'
-  | 'consumable';
+  | 'consumable'
+  // Drawer customization categories
+  | 'font_color'
+  | 'font_style'
+  | 'font_family'
+  | 'page_background'
+  | 'avatar_glow'
+  | 'avatar_size'
+  | 'bigpulp_position'
+  | 'dialogue_style'
+  | 'collection_layout'
+  | 'card_style'
+  | 'entrance_animation'
+  | 'stats_style'
+  | 'tabs_style'
+  | 'visitor_counter';
 
 interface InventoryItem {
   id: string;
   item_id: string;
   name: string;
   category: ItemCategory;
-  rarity: string;
+  tier: 'free' | 'basic' | 'premium';
   css_class: string | null;
+  css_value: string | null;
   emoji: string | null;
   acquired_at: string;
   equipped: boolean;
+  state?: 'owned' | 'equipped' | 'gifted' | 'consumed';
 }
 
 interface InventorySectionProps {
@@ -38,6 +55,7 @@ interface InventorySectionProps {
   isOwnProfile: boolean;
   onEquip?: (itemId: string, category: string) => void;
   onUnequip?: (category: string) => void;
+  onGift?: (itemId: string) => void;
 }
 
 const CATEGORY_LABELS: Record<ItemCategory, string> = {
@@ -51,6 +69,21 @@ const CATEGORY_LABELS: Record<ItemCategory, string> = {
   bigpulp_mood: 'BigPulp Moods',
   bigpulp_accessory: 'BigPulp Accessories',
   consumable: 'Consumables',
+  // Drawer customization
+  font_color: 'Font Colors',
+  font_style: 'Font Styles',
+  font_family: 'Font Families',
+  page_background: 'Page Backgrounds',
+  avatar_glow: 'Avatar Glows',
+  avatar_size: 'Avatar Sizes',
+  bigpulp_position: 'BigPulp Positions',
+  dialogue_style: 'Dialogue Styles',
+  collection_layout: 'Collection Layouts',
+  card_style: 'Card Styles',
+  entrance_animation: 'Entrance Animations',
+  stats_style: 'Stats Styles',
+  tabs_style: 'Tab Styles',
+  visitor_counter: 'Visitor Counters',
 };
 
 const CATEGORY_ORDER: ItemCategory[] = [
@@ -63,17 +96,47 @@ const CATEGORY_ORDER: ItemCategory[] = [
   'bigpulp_hat',
   'bigpulp_mood',
   'bigpulp_accessory',
+  // Drawer customization categories
+  'font_color',
+  'font_style',
+  'font_family',
+  'page_background',
+  'avatar_glow',
+  'avatar_size',
+  'bigpulp_position',
+  'dialogue_style',
+  'collection_layout',
+  'card_style',
+  'entrance_animation',
+  'stats_style',
+  'tabs_style',
+  'visitor_counter',
   'consumable',
 ];
 
 // Categories that can be equipped
-const EQUIPPABLE_CATEGORIES = ['frame', 'title', 'name_effect', 'background', 'celebration'];
+const EQUIPPABLE_CATEGORIES = [
+  'frame', 'title', 'name_effect', 'background', 'celebration',
+  'bigpulp_hat', 'bigpulp_mood', 'bigpulp_accessory',
+  'font_color', 'font_style', 'font_family', 'page_background',
+  'avatar_glow', 'avatar_size', 'bigpulp_position', 'dialogue_style',
+  'collection_layout', 'card_style', 'entrance_animation',
+  'stats_style', 'tabs_style', 'visitor_counter',
+];
+
+// Tier color badges
+const TIER_COLORS: Record<string, string> = {
+  free: '#9ca3af',
+  basic: '#22c55e',
+  premium: '#ffd700',
+};
 
 export function InventorySection({
   items,
   isOwnProfile,
   onEquip,
   onUnequip,
+  onGift,
 }: InventorySectionProps) {
   // Group items by category
   const itemsByCategory = items.reduce((acc, item) => {
@@ -133,36 +196,53 @@ export function InventorySection({
               {categoryItems.map((item) => (
                 <div
                   key={item.id}
-                  className={`inventory-item rarity-${item.rarity} ${item.equipped ? 'equipped' : ''}`}
+                  className={`inventory-item tier-${item.tier} ${item.equipped ? 'equipped' : ''}`}
                 >
                   <div className="item-preview">
                     {renderItemPreview(item)}
                   </div>
                   <div className="item-info">
                     <span className="item-name">{item.name}</span>
-                    <span className="item-rarity">{item.rarity}</span>
+                    <span
+                      className="item-tier"
+                      style={{ color: TIER_COLORS[item.tier] }}
+                    >
+                      {item.tier}
+                    </span>
                   </div>
 
-                  {isOwnProfile && isEquippable && (
-                    <button
-                      className={`equip-button ${item.equipped ? 'equipped' : ''}`}
-                      onClick={() => {
-                        if (item.equipped) {
-                          onUnequip?.(category);
-                        } else {
-                          onEquip?.(item.item_id, category);
-                        }
-                      }}
-                    >
-                      {item.equipped ? (
-                        <>
-                          <Check size={14} /> Equipped
-                        </>
-                      ) : (
-                        'Equip'
-                      )}
-                    </button>
-                  )}
+                  <div className="item-actions">
+                    {isOwnProfile && isEquippable && (
+                      <button
+                        className={`equip-button ${item.equipped ? 'equipped' : ''}`}
+                        onClick={() => {
+                          if (item.equipped) {
+                            onUnequip?.(category);
+                          } else {
+                            onEquip?.(item.item_id, category);
+                          }
+                        }}
+                      >
+                        {item.equipped ? (
+                          <>
+                            <Check size={14} /> Equipped
+                          </>
+                        ) : (
+                          'Equip'
+                        )}
+                      </button>
+                    )}
+
+                    {isOwnProfile && !item.equipped && onGift && (
+                      <button
+                        className="gift-button"
+                        onClick={() => onGift(item.item_id)}
+                        title="Gift this item"
+                      >
+                        <Gift size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

@@ -1,0 +1,139 @@
+/* Item Info Button Styles */
+
+.item-info-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.item-info-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.item-info-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.item-info-tooltip {
+  position: absolute;
+  z-index: 100;
+  width: 220px;
+  padding: 12px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+
+  /* Position tooltip to the left of the button */
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: 8px;
+
+  /* Animation */
+  animation: tooltipFadeIn 0.15s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+/* Arrow pointing to button */
+.item-info-tooltip::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: #333;
+}
+
+.item-info-name {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.item-info-description {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #aaa;
+  line-height: 1.4;
+}
+
+.item-info-effect {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #f97316;
+  line-height: 1.4;
+}
+
+.effect-label {
+  font-weight: 600;
+  color: #fb923c;
+}
+
+.item-info-category {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid #333;
+  font-size: 11px;
+  color: #666;
+  line-height: 1.3;
+}
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+  .item-info-tooltip {
+    width: 180px;
+    padding: 10px;
+
+    /* On mobile, position below the button */
+    right: auto;
+    left: 50%;
+    top: 100%;
+    transform: translateX(-50%);
+    margin-right: 0;
+    margin-top: 8px;
+  }
+
+  .item-info-tooltip::after {
+    right: auto;
+    left: 50%;
+    top: -6px;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-bottom-color: #333;
+  }
+
+  @keyframes tooltipFadeIn {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+}

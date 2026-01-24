@@ -12,9 +12,12 @@ import { useGameHaptics } from '@/systems/haptics';
 import { useGameEffects } from '@/components/media';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { useGameTouch } from '@/hooks/useGameTouch';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LEVELS, generateRandomLevel } from './brickLevels';
 import { GameSEO } from '@/components/seo';
+import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
+import { generateGameScorecard } from '@/systems/sharing/GameScorecard';
 import './BrickBreaker.css';
 
 // =============================================================================
@@ -197,8 +200,17 @@ export default function BrickBreaker() {
     isPlaying: status === 'playing',
   });
 
-  // Leaderboard panel state
-  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
+  // Mobile fullscreen mode - hide header during gameplay
+  useEffect(() => {
+    if (isMobile && status === 'playing') {
+      document.body.classList.add('game-fullscreen-mode');
+    } else {
+      document.body.classList.remove('game-fullscreen-mode');
+    }
+    return () => {
+      document.body.classList.remove('game-fullscreen-mode');
+    };
+  }, [isMobile, status]);
 
   // Game dimensions
   const [gameWidth, setGameWidth] = useState(DESKTOP_WIDTH);
@@ -263,6 +275,7 @@ export default function BrickBreaker() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isNewHighScore, setIsNewHighScore] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [gameScreenshot, setGameScreenshot] = useState<string | null>(null);
 
   // =============================================================================
   // GAME SETUP
@@ -341,12 +354,58 @@ export default function BrickBreaker() {
     setLives(3);
     setIsNewHighScore(false);
     setSubmitted(false);
+    setGameScreenshot(null);
 
     loadLevel(1, gameWidth, gameHeight);
     if (soundEnabled) playBallLaunch();
     statusRef.current = 'playing';
     setStatus('playing');
   }, [gameWidth, gameHeight, loadLevel, soundEnabled, playBallLaunch]);
+
+  // Share handler for game over scorecard
+  const handleShare = useCallback(async () => {
+    try {
+      const highScore = globalLeaderboard[0]?.score || 0;
+      const blob = await generateGameScorecard({
+        gameName: 'Brick Breaker',
+        gameNameParts: ['BRICK', 'BREAKER'],
+        score: score,
+        scoreLabel: 'points',
+        bestScore: highScore,
+        isNewRecord: isNewHighScore,
+        screenshot: gameScreenshot,
+        accentColor: '#ef4444', // Red accent for Brick Breaker
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `brick-breaker-${score}.png`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      // Try Web Share API
+      if (navigator.share && navigator.canShare) {
+        const file = new File([blob], 'brick-breaker-score.png', { type: 'image/png' });
+        const shareData = {
+          title: 'Brick Breaker Score',
+          text: `🧱 I scored ${score} points in Brick Breaker! Can you beat me?`,
+          files: [file],
+        };
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to generate share image:', err);
+      const shareText = `🧱 Brick Breaker: ${score} points!\n\nCan you beat my score?\n\nhttps://wojak.ink/games`;
+      if (navigator.share) {
+        await navigator.share({ title: 'Brick Breaker', text: shareText });
+      } else {
+        await navigator.clipboard.writeText(shareText);
+      }
+    }
+  }, [score, globalLeaderboard, isNewHighScore, gameScreenshot]);
 
   // =============================================================================
   // VISUAL JUICE HELPERS
@@ -865,6 +924,17 @@ export default function BrickBreaker() {
   }, [gameWidth, gameHeight, soundEnabled, playWinSound, hapticBBLevelComplete, showEpicCallout, triggerConfetti, addScorePopup, loadLevel, triggerFreezeFrame]);
 
   const handleGameOver = useCallback(async () => {
+    // CAPTURE SCREENSHOT FIRST - before any visual changes
+    const canvas = canvasRef.current;
+    if (canvas) {
+      try {
+        const screenshot = canvas.toDataURL('image/png');
+        setGameScreenshot(screenshot);
+      } catch (e) {
+        console.warn('[BrickBreaker] Failed to capture screenshot:', e);
+      }
+    }
+
     statusRef.current = 'gameover';
     setStatus('gameover');
 
@@ -1634,8 +1704,8 @@ export default function BrickBreaker() {
   // INPUT HANDLERS
   // =============================================================================
 
-  // Track last input position for delta-based movement
-  const lastInputXRef = useRef<number | null>(null);
+  // Track last mouse X position for delta-based mouse movement
+  const lastMouseXRef = useRef<number | null>(null);
 
   // Move paddle by delta (relative movement)
   const movePaddleByDelta = useCallback((delta: number) => {
@@ -1646,23 +1716,30 @@ export default function BrickBreaker() {
     );
   }, [gameWidth]);
 
-  // Handle mouse/touch input with delta tracking
-  const handleInputMove = useCallback((clientX: number) => {
-    if (lastInputXRef.current !== null) {
-      const delta = clientX - lastInputXRef.current;
+  // Touch handling via useGameTouch hook - provides dx (delta) directly
+  const touchHandlers = useGameTouch({
+    onDrag: (_x, _y, dx, _dy) => {
+      if (statusRef.current === 'playing') {
+        movePaddleByDelta(dx);
+      }
+    },
+    onTap: () => {
+      if (statusRef.current === 'idle') {
+        startGame();
+      }
+    },
+    preventScroll: true,
+  });
+
+  // Mouse handling (still needed for desktop - useGameTouch is touch-only)
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (statusRef.current !== 'playing') return;
+    if (lastMouseXRef.current !== null) {
+      const delta = e.clientX - lastMouseXRef.current;
       movePaddleByDelta(delta);
     }
-    lastInputXRef.current = clientX;
+    lastMouseXRef.current = e.clientX;
   }, [movePaddleByDelta]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    handleInputMove(e.clientX);
-  }, [handleInputMove]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    handleInputMove(e.touches[0].clientX);
-  }, [handleInputMove]);
 
   const handleCanvasClick = useCallback(() => {
     if (statusRef.current === 'idle') {
@@ -1716,42 +1793,36 @@ export default function BrickBreaker() {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      // Clean up combo timeout to prevent memory leaks
+      if (comboTimeoutRef.current) {
+        clearTimeout(comboTimeoutRef.current);
+      }
     };
   }, [status, gameLoop]);
 
-  // Global input tracking - paddle follows mouse/touch anywhere on screen while playing
+  // Global mouse tracking - paddle follows mouse anywhere on screen while playing
+  // (Touch is handled by useGameTouch hook on the container)
   useEffect(() => {
     if (status !== 'playing') {
       // Reset tracking when not playing
-      lastInputXRef.current = null;
+      lastMouseXRef.current = null;
       return;
     }
 
     const handleGlobalMouseMove = (e: MouseEvent) => {
-      handleInputMove(e.clientX);
-    };
-
-    const handleGlobalTouchMove = (e: TouchEvent) => {
-      if (e.touches.length > 0) {
-        handleInputMove(e.touches[0].clientX);
+      if (lastMouseXRef.current !== null) {
+        const delta = e.clientX - lastMouseXRef.current;
+        movePaddleByDelta(delta);
       }
-    };
-
-    const handleGlobalTouchEnd = () => {
-      // Reset tracking when finger lifts so next touch starts fresh
-      lastInputXRef.current = null;
+      lastMouseXRef.current = e.clientX;
     };
 
     window.addEventListener('mousemove', handleGlobalMouseMove);
-    window.addEventListener('touchmove', handleGlobalTouchMove, { passive: true });
-    window.addEventListener('touchend', handleGlobalTouchEnd);
 
     return () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
-      window.removeEventListener('touchmove', handleGlobalTouchMove);
-      window.removeEventListener('touchend', handleGlobalTouchEnd);
     };
-  }, [status, handleInputMove]);
+  }, [status, movePaddleByDelta]);
 
   // Render idle screen
   useEffect(() => {
@@ -1781,6 +1852,7 @@ export default function BrickBreaker() {
     <div
       ref={containerRef}
       className={`brick-breaker-container ${isMobile ? 'mobile' : ''}`}
+      {...touchHandlers}
     >
       <GameSEO
         gameName="Brick Breaker"
@@ -1830,92 +1902,23 @@ export default function BrickBreaker() {
         height={gameHeight}
         className="bb-canvas"
         onMouseMove={handleMouseMove}
-        onTouchMove={handleTouchMove}
         onClick={handleCanvasClick}
       />
 
-      {/* Game over overlay */}
+      {/* Game Over - Uses shared component */}
       {status === 'gameover' && (
-        <div className="bb-game-over-overlay" onClick={(e) => e.stopPropagation()}>
-          {/* Main Game Over Content */}
-          <div className="bb-game-over-content">
-            <div className="bb-game-over-left">
-              <div className="bb-game-over-emoji">💥</div>
-            </div>
-            <div className="bb-game-over-right">
-              <h2 className="bb-game-over-title">GAME OVER</h2>
-
-              <div className="bb-game-over-score">
-                <span className="bb-score-value">{score}</span>
-                <span className="bb-score-label">Final Score</span>
-              </div>
-
-              <div className="bb-game-over-stats">
-                <div className="bb-stat">
-                  <span className="bb-stat-value">{level}</span>
-                  <span className="bb-stat-label">Level</span>
-                </div>
-                <div className="bb-stat">
-                  <span className="bb-stat-value">{totalBricksDestroyedRef.current}</span>
-                  <span className="bb-stat-label">Bricks</span>
-                </div>
-              </div>
-
-              {isNewHighScore && <div className="bb-new-record">NEW HIGH SCORE!</div>}
-              {submitted && (
-                <div className="bb-submitted">
-                  {isSignedIn ? 'Score submitted!' : 'Sign in to save scores'}
-                </div>
-              )}
-
-              {/* Buttons: Play Again + Leaderboard */}
-              <div className="bb-game-over-buttons">
-                <button className="bb-play-btn" onClick={startGame}>
-                  Play Again
-                </button>
-                <button
-                  onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                  className="bb-leaderboard-btn"
-                >
-                  Leaderboard
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Leaderboard Panel - overlays on top */}
-          {showLeaderboardPanel && (
-            <div className="bb-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
-              <div className="bb-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
-                <div className="bb-leaderboard-header">
-                  <h3>Leaderboard</h3>
-                  <button className="bb-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
-                </div>
-                <div className="bb-leaderboard-list">
-                  {Array.from({ length: 10 }, (_, index) => {
-                    const entry = globalLeaderboard[index];
-                    const isCurrentUser = entry && score === entry.score;
-                    return (
-                      <div key={index} className={`bb-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
-                        <span className="bb-leaderboard-rank">#{index + 1}</span>
-                        <span className="bb-leaderboard-name">{entry?.displayName || '---'}</span>
-                        <span className="bb-leaderboard-score">{entry?.score ?? '-'}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Back to Games - positioned in safe area (bottom right) */}
-          <button
-            onClick={() => { window.location.href = '/games'; }}
-            className="bb-back-to-games-btn"
-          >
-            Back to Games
-          </button>
-        </div>
+        <ArcadeGameOverScreen
+          score={score}
+          highScore={globalLeaderboard[0]?.score || 0}
+          scoreLabel="points"
+          isNewPersonalBest={isNewHighScore}
+          isSignedIn={isSignedIn}
+          scoreSubmitted={submitted}
+          leaderboard={globalLeaderboard}
+          onPlayAgain={startGame}
+          onShare={handleShare}
+          accentColor="#ef4444"
+        />
       )}
 
       {/* Exit Game Confirmation Dialog */}

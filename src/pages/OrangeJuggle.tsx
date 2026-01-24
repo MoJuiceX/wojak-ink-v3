@@ -1,13 +1,13 @@
-// @ts-nocheck
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAudio } from '@/contexts/AudioContext';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useGameHaptics } from '@/systems/haptics';
-import { ShareButton } from '@/systems/sharing';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { GameSEO } from '@/components/seo/GameSEO';
+import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
 // import { useMedia } from '@/contexts/MediaContext'; // Temporarily disabled
 import './OrangeJuggle.css';
 
@@ -17,7 +17,6 @@ const PADDLE_SIZE = 150; // Match the sprite display size
 const PADDLE_COLLISION_RADIUS = 50; // Smaller hit area - orange must touch orangutan
 const ORANGE_SIZE = 56; // Bigger oranges for better visibility
 const POWERUP_SIZE = 35;
-const GRAVITY = 0.3;
 const BOUNCE_DAMPING = 0.7;
 const HIT_VELOCITY = -7; // Gentle upward bounce
 
@@ -30,7 +29,6 @@ const POWERUP_FALL_SPEED = 2; // Power-ups fall slowly at constant speed
 const RUMS_FOR_REVERSE = 1; // Number of rums to trigger reversed controls (1 = immediate)
 
 // Orangutan sprite (2 frames: left hands up, right hands up)
-const JUGGLE_SPRITE = '/assets/Games/games_media/juggle.png';
 
 // Combo decay - reset combo if no hits for this duration (ms)
 const COMBO_DECAY_TIME = 2500;
@@ -81,21 +79,15 @@ interface GameObject {
   trail: TrailPoint[]; // Motion trail for oranges
 }
 
-interface LocalLeaderboardEntry {
-  name: string;
-  score: number;
-  level: number;
-  date: string;
-}
-
 type GameState = 'menu' | 'playing' | 'levelComplete' | 'saveScore';
 type GameMode = 'campaign';
 
 const OrangeJuggle: React.FC = () => {
+  const isMobile = useIsMobile();
   // Audio context for sound effects
-  const { isSoundEffectsEnabled, isBackgroundMusicPlaying, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
+  const { isBackgroundMusicPlaying, playBackgroundMusic, pauseBackgroundMusic } = useAudio();
   const {
-    playGameStart, playLevelUp, playGameOver, playWarning, playCombo,
+    playGameStart, playLevelUp, playGameOver,
     // Orange Juggle specific sounds
     playOrangeJuggleHit, playOrangeDrop, playGoldenOrangeHit,
     playBananaCollect, playRumCollect, playCamelWarning, playCamelImpact,
@@ -104,12 +96,11 @@ const OrangeJuggle: React.FC = () => {
     playOrangeJuggleLevelComplete, playArmSwing
   } = useGameSounds();
   const {
-    hapticScore, hapticCombo, hapticHighScore, hapticGameOver, hapticLevelUp, hapticCollision, hapticWarning,
+    hapticScore, hapticCombo, hapticHighScore, hapticGameOver, hapticLevelUp,
     // Orange Juggle specific haptics
     hapticOJOrangeHit, hapticOJGoldenHit, hapticOJOrangeDrop,
     hapticOJBananaCollect, hapticOJRumCollect,
-    hapticOJCamelWarning, hapticOJCamelImpact,
-    hapticOJNearMiss, hapticOJLevelComplete
+    hapticOJCamelWarning, hapticOJCamelImpact, hapticOJLevelComplete
   } = useGameHaptics();
   // const { videoPlayer, musicPlayer } = useMedia(); // Temporarily disabled
 
@@ -122,15 +113,6 @@ const OrangeJuggle: React.FC = () => {
     isSubmitting,
   } = useLeaderboard('orange-juggle');
 
-  // Sad images for camel loss screen
-  const SAD_IMAGES = [
-    '/assets/Games/games_media/sad_1.png',
-    '/assets/Games/games_media/sad_2.png',
-    '/assets/Games/games_media/sad_3.png',
-    '/assets/Games/games_media/sad_4.png',
-    '/assets/Games/games_media/sad_5.png',
-  ];
-
   // Game state
   const [gameState, setGameState] = useState<GameState>('menu');
 
@@ -138,6 +120,18 @@ const OrangeJuggle: React.FC = () => {
   const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
     isPlaying: gameState === 'playing',
   });
+
+  // Mobile fullscreen mode - hide header during gameplay
+  useEffect(() => {
+    if (isMobile && gameState === 'playing') {
+      document.body.classList.add('game-fullscreen-mode');
+    } else {
+      document.body.classList.remove('game-fullscreen-mode');
+    }
+    return () => {
+      document.body.classList.remove('game-fullscreen-mode');
+    };
+  }, [isMobile, gameState]);
 
   const [gameMode, setGameMode] = useState<GameMode | null>(null);
   const [level, setLevel] = useState(1);
@@ -165,24 +159,14 @@ const OrangeJuggle: React.FC = () => {
   const [panicLevel, setPanicLevel] = useState(0); // 0-4 based on falling orange count
   const [landingIndicators, setLandingIndicators] = useState<Array<{ id: number; x: number }>>([]);
   const [lostByCamel, setLostByCamel] = useState(false); // Track if lost by hitting camel
-  const [sadImage, setSadImage] = useState(''); // Random sad image for camel loss
 
 
   // High scores and leaderboard
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('orangeJuggleHighScore') || '0', 10);
   });
-  const [localLeaderboard, setLocalLeaderboard] = useState<LocalLeaderboardEntry[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('orangeJuggleLeaderboard') || '[]');
-    } catch {
-      return [];
-    }
-  });
-  const [playerName, setPlayerName] = useState('');
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
-  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
 
   // Game objects
   const [objects, setObjects] = useState<GameObject[]>([]);
@@ -190,8 +174,6 @@ const OrangeJuggle: React.FC = () => {
   const [paddleY, setPaddleY] = useState(0);
 
   // Power-up effects
-  const [speedModifier, setSpeedModifier] = useState(1); // 1 = normal, >1 = faster, <1 = slower
-  const [activePowerup, setActivePowerup] = useState<'banana' | 'rum' | null>(null);
   const [isReversed, setIsReversed] = useState(false); // UI state for reversed controls indicator
   const [rumCount, setRumCount] = useState(0); // UI state for rum count
   const [bananaCount, setBananaCount] = useState(0); // UI state for banana count
@@ -452,8 +434,6 @@ const OrangeJuggle: React.FC = () => {
     lastHitTimeRef.current = Date.now(); // Start combo decay timer from now
     // Reset power-up state
     speedModifierRef.current = 1;
-    setSpeedModifier(1);
-    setActivePowerup(null);
     rumCountRef.current = 0;
     bananaCountRef.current = 0;
     setRumCount(0);
@@ -497,7 +477,6 @@ const OrangeJuggle: React.FC = () => {
     const nextLevel = level + 1;
     if (nextLevel > 5) {
       // This shouldn't happen normally, but just in case
-      setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
       setGameState('saveScore');
       return;
     }
@@ -513,8 +492,6 @@ const OrangeJuggle: React.FC = () => {
     goldenSpawnTimeRef.current = Date.now() + 15000;
     // Reset power-up state for new level
     speedModifierRef.current = 1;
-    setSpeedModifier(1);
-    setActivePowerup(null);
     rumCountRef.current = 0;
     bananaCountRef.current = 0;
     setRumCount(0);
@@ -902,8 +879,6 @@ const OrangeJuggle: React.FC = () => {
           // Apply stacking speed boost
           const speedIndex = bananaCountRef.current;
           speedModifierRef.current = BANANA_SPEEDS[speedIndex];
-          setSpeedModifier(BANANA_SPEEDS[speedIndex]);
-          setActivePowerup('banana');
         } else {
           // Play rum collect sound/haptic and stop banana ambient if playing
           playRumCollect();
@@ -922,8 +897,6 @@ const OrangeJuggle: React.FC = () => {
           // Apply stacking speed slow
           const speedIndex = rumCountRef.current;
           speedModifierRef.current = RUM_SPEEDS[speedIndex];
-          setSpeedModifier(RUM_SPEEDS[speedIndex]);
-          setActivePowerup('rum');
 
           // 3 rums = reversed controls!
           if (rumCountRef.current >= RUMS_FOR_REVERSE) {
@@ -1066,9 +1039,8 @@ const OrangeJuggle: React.FC = () => {
         stopRumAmbient();
         stopBananaAmbient();
         hapticOJCamelImpact(); // Heavy game over pulse
-        // Set camel loss state and pick random sad image
+        // Set camel loss state
         setLostByCamel(true);
-        setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
         // Reset to level 1 and show save score screen
         setLevel(1);
         setGameState('saveScore');
@@ -1112,7 +1084,6 @@ const OrangeJuggle: React.FC = () => {
             if (level >= 5) {
               // Completed all levels - go to save score screen
               hapticHighScore(); // Victory haptic
-              setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
               setGameState('saveScore');
               if (currentScore > highScore) {
                 setHighScore(currentScore);
@@ -1126,7 +1097,6 @@ const OrangeJuggle: React.FC = () => {
             // Didn't reach target score - game over
             playGameOver();
             hapticGameOver();
-            setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
             setGameState('saveScore'); // Still allow saving score
             if (currentScore > highScore) {
               setHighScore(currentScore);
@@ -1146,35 +1116,6 @@ const OrangeJuggle: React.FC = () => {
     };
   }, [gameState, gameMode, level, highScore]);
 
-
-  const goToMenu = () => {
-    setGameState('menu');
-    setGameMode(null);
-    setLevel(1);
-    setPlayerName('');
-    objectsRef.current = [];
-    setObjects([]);
-    // Stop ambient loops
-    stopRumAmbient();
-    stopBananaAmbient();
-    // Reset power-up state
-    speedModifierRef.current = 1;
-    setSpeedModifier(1);
-    setActivePowerup(null);
-    rumCountRef.current = 0;
-    bananaCountRef.current = 0;
-    setRumCount(0);
-    setBananaCount(0);
-    isReversedRef.current = false;
-    setIsReversed(false);
-    // Reset camel loss state
-    setLostByCamel(false);
-    setSadImage('');
-    if (powerupTimerRef.current) {
-      clearTimeout(powerupTimerRef.current);
-    }
-  };
-
   // Submit score to global leaderboard (for signed-in users)
   const submitScoreGlobal = useCallback(
     async (finalScore: number, finalLevel: number) => {
@@ -1193,44 +1134,6 @@ const OrangeJuggle: React.FC = () => {
     },
     [isSignedIn, scoreSubmitted, submitScore, lostByCamel]
   );
-
-  // Save score locally (for guests)
-  const saveScoreLocal = () => {
-    if (!playerName.trim()) return;
-
-    const newEntry: LocalLeaderboardEntry = {
-      name: playerName.trim(),
-      score: score,
-      level: level,
-      date: new Date().toISOString().split('T')[0],
-    };
-
-    // Add to leaderboard and sort by score (highest first)
-    const updatedLeaderboard = [...localLeaderboard, newEntry]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10); // Keep top 10
-
-    setLocalLeaderboard(updatedLeaderboard);
-    localStorage.setItem('orangeJuggleLeaderboard', JSON.stringify(updatedLeaderboard));
-    setPlayerName('');
-    goToMenu();
-  };
-
-  const skipSaveScore = () => {
-    setPlayerName('');
-    goToMenu();
-  };
-
-  // Display leaderboard: prefer global, fallback to local
-  const displayLeaderboard =
-    globalLeaderboard.length > 0
-      ? globalLeaderboard.map((entry) => ({
-          name: entry.displayName,
-          score: entry.score,
-          level: entry.level,
-          date: entry.date,
-        }))
-      : localLeaderboard;
 
   // Auto-submit score for signed-in users when game ends
   useEffect(() => {
@@ -1440,7 +1343,7 @@ const OrangeJuggle: React.FC = () => {
       {gameState !== 'playing' && (
         <div className="juggle-content">
           <div
-            ref={gameState !== 'playing' ? gameAreaRef : undefined}
+            ref={gameAreaRef}
             className="juggle-area"
           >
             {/* Level Complete */}
@@ -1460,152 +1363,33 @@ const OrangeJuggle: React.FC = () => {
 
             {/* Save Score Screen */}
             {gameState === 'saveScore' && (
-              <div className="game-over-screen">
-                {/* Left side - Image */}
-                <div className="game-over-left">
-                  {sadImage ? (
-                    <img src={sadImage} alt="Sad wojak" className="sad-image-large" />
-                  ) : (
-                    <div className="game-over-emoji">
-                      {level >= 5 && score >= (LEVEL_CONFIG[5].targetScore) ? '🏆' : '🍊'}
-                    </div>
-                  )}
-
-                  {/* Slide-in Leaderboard Panel */}
-                  <div className={`leaderboard-slide-panel ${showLeaderboardPanel ? 'open' : ''}`}>
-                    <div className="leaderboard-panel-header">
-                      <h3>{globalLeaderboard.length > 0 ? 'Global Leaderboard' : 'Leaderboard'}</h3>
-                      <button className="leaderboard-close-btn" onClick={() => setShowLeaderboardPanel(false)}>×</button>
-                    </div>
-                    <div className="leaderboard-panel-list">
-                      {Array.from({ length: 10 }, (_, index) => {
-                        const entry = displayLeaderboard[index];
-                        const isCurrentUser = entry && score === entry.score;
-                        return (
-                          <div key={index} className={`leaderboard-panel-entry ${isCurrentUser ? 'current-user' : ''}`}>
-                            <span className="leaderboard-panel-rank">#{index + 1}</span>
-                            <span className="leaderboard-panel-name">{entry?.name || '---'}</span>
-                            <span className="leaderboard-panel-score">{entry?.score || '-'}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right side - Content */}
-                <div className="game-over-right">
-                  <div className="game-over-title">
-                    {level >= 5 && score >= (LEVEL_CONFIG[5].targetScore)
-                      ? 'You Won!'
-                      : lostByCamel
-                        ? 'Camel Got You!'
-                        : 'Not Enough Points!'}
-                  </div>
-
-                  <div className="game-over-reason">
-                    {level >= 5 && score >= (LEVEL_CONFIG[5].targetScore)
-                      ? 'You completed all levels!'
-                      : lostByCamel
-                        ? 'You touched a camel and lost all progress!'
-                        : `Needed ${LEVEL_CONFIG[level as keyof typeof LEVEL_CONFIG].targetScore.toLocaleString()} points`}
-                  </div>
-
-                  <div className="game-over-score">
-                    <span className="game-over-score-value">{score}</span>
-                    <span className="game-over-level">Level {level}</span>
-                  </div>
-
-                  {/* New Personal Best celebration */}
-                  {(isNewPersonalBest || score >= highScore) && score > 0 && (
-                    <div className="game-over-record">🌟 New Personal Best! 🌟</div>
-                  )}
-
-                  {/* Signed-in users: auto-saved */}
-                  {isSignedIn ? (
-                    <div className="game-over-form">
-                      <div className="game-over-saved">
-                        {isSubmitting ? (
-                          <span>Saving score...</span>
-                        ) : (
-                          <span>Score saved as {userDisplayName}!</span>
-                        )}
-                      </div>
-                      <div className="game-over-buttons">
-                        <button onClick={() => startGame('campaign')} className="game-over-save">
-                          Play Again
-                        </button>
-                        <button onClick={goToMenu} className="game-over-skip">
-                          Menu
-                        </button>
-                      </div>
-                      {/* Leaderboard button */}
-                      <button
-                        className="leaderboard-toggle-btn"
-                        onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                      >
-                        {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
-                      </button>
-                      {/* Share button */}
-                      <ShareButton
-                        scoreData={{
-                          gameId: 'orange-juggle',
-                          gameName: 'Orange Juggle',
-                          score,
-                          highScore,
-                          isNewHighScore: isNewPersonalBest || score > highScore,
-                          rank: undefined
-                        }}
-                        variant="button"
-                      />
-                    </div>
-                  ) : (
-                    /* Guests: name input form */
-                    <div className="game-over-form">
-                      <input
-                        type="text"
-                        className="game-over-input"
-                        placeholder="Enter your name"
-                        value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value)}
-                        maxLength={15}
-                        onKeyDown={(e) => e.key === 'Enter' && saveScoreLocal()}
-                      />
-                      <div className="game-over-buttons">
-                        <button
-                          onClick={saveScoreLocal}
-                          className="game-over-save"
-                          disabled={!playerName.trim()}
-                        >
-                          Save Score
-                        </button>
-                        <button onClick={skipSaveScore} className="game-over-skip">
-                          Skip
-                        </button>
-                      </div>
-                      {/* Leaderboard button */}
-                      <button
-                        className="leaderboard-toggle-btn"
-                        onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                      >
-                        {showLeaderboardPanel ? 'Hide Leaderboard' : 'View Leaderboard'}
-                      </button>
-                      {/* Share button */}
-                      <ShareButton
-                        scoreData={{
-                          gameId: 'orange-juggle',
-                          gameName: 'Orange Juggle',
-                          score,
-                          highScore,
-                          isNewHighScore: isNewPersonalBest || score > highScore,
-                          rank: undefined
-                        }}
-                        variant="button"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
+              <ArcadeGameOverScreen
+                score={score}
+                highScore={highScore}
+                scoreLabel={`Level ${level}`}
+                isNewPersonalBest={isNewPersonalBest || (score >= highScore && score > 0)}
+                isSignedIn={isSignedIn}
+                isSubmitting={isSubmitting}
+                scoreSubmitted={scoreSubmitted}
+                userDisplayName={userDisplayName ?? undefined}
+                leaderboard={globalLeaderboard}
+                onPlayAgain={() => startGame('campaign')}
+                title={
+                  level >= 5 && score >= (LEVEL_CONFIG[5].targetScore)
+                    ? 'You Won!'
+                    : lostByCamel
+                      ? 'Camel Got You!'
+                      : 'Not Enough Points!'
+                }
+                subtitle={
+                  level >= 5 && score >= (LEVEL_CONFIG[5].targetScore)
+                    ? 'You completed all levels!'
+                    : lostByCamel
+                      ? 'You touched a camel!'
+                      : `Needed ${LEVEL_CONFIG[level as keyof typeof LEVEL_CONFIG].targetScore.toLocaleString()} points`
+                }
+                accentColor="#ff6b00"
+              />
             )}
           </div>
         </div>

@@ -1,5 +1,5 @@
 /* ============================================
-   BLOCK PUZZLE GAME STYLES
+   BLOCK PUZZLE GAME STYLES - PREMIUM EDITION
    ============================================ */
 
 .block-puzzle-container {
@@ -9,13 +9,32 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+  /* Premium gradient background with ambient glow */
+  background:
+    radial-gradient(ellipse at 30% 20%, var(--color-tang-500-10) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(100, 50, 255, 0.04) 0%, transparent 50%),
+    var(--gradient-game-bg);
   padding: 12px;
   gap: 12px;
   overflow: hidden;
   position: relative;
-  touch-action: none;
+  /* touch-action: none moved to game grid to allow button touches */
   user-select: none;
+}
+
+/* Subtle ambient glow animation */
+.block-puzzle-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, var(--color-tang-500-10) 0%, transparent 60%);
+  animation: bp-ambient-glow 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes bp-ambient-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
 }
 
 .block-puzzle-container.mobile {
@@ -40,14 +59,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--game-btn-bg);
+  border: 1px solid var(--game-btn-border);
   border-radius: 50%;
   color: white;
   font-size: 22px;
   cursor: pointer;
-  z-index: 50;
+  z-index: 400;
   transition: all 0.2s ease;
+  /* Ensure touch/click works on mobile */
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .bp-back-btn {
@@ -69,8 +93,8 @@
 .bp-back-btn:hover,
 .bp-sound-btn:hover,
 .bp-pause-btn:hover {
-  background: rgba(255, 107, 0, 0.3);
-  border-color: rgba(255, 107, 0, 0.5);
+  background: var(--game-btn-hover-bg);
+  border-color: var(--game-btn-hover-border);
 }
 
 .bp-back-btn:active,
@@ -79,14 +103,47 @@
   transform: scale(0.95);
 }
 
+/* Skip hint animation */
+.bp-skip-hint {
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: #ff6b00;
+  animation: bp-skip-slide 1.5s ease-out forwards;
+}
+
+@keyframes bp-skip-slide {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-10px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(-50%) translateX(5px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) translateX(15px);
+  }
+}
+
 /* Mobile button adjustments */
 @media (max-width: 480px) {
   .bp-back-btn,
   .bp-sound-btn,
   .bp-pause-btn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     font-size: 20px;
+    /* Ensure touch works on mobile - override container's touch-action: none */
+    touch-action: manipulation !important;
+    z-index: 500 !important;
   }
 
   .bp-back-btn {
@@ -96,7 +153,7 @@
 
   .bp-sound-btn {
     top: 8px;
-    left: 56px;
+    left: 60px;
     font-size: 18px;
   }
 
@@ -117,8 +174,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 90;
+  z-index: 600; /* Above game elements, below game over (500) */
   backdrop-filter: blur(4px);
+  pointer-events: auto;
 }
 
 .bp-pause-content {
@@ -127,6 +185,9 @@
   align-items: center;
   gap: 16px;
   text-align: center;
+  /* Ensure touch works on mobile */
+  pointer-events: auto;
+  z-index: 601;
 }
 
 .bp-pause-content h2 {
@@ -151,9 +212,15 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
+  /* Ensure touch/click works */
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
-.bp-resume-btn:hover {
+.bp-resume-btn:hover,
+.bp-resume-btn:active {
   transform: translateY(-2px);
   box-shadow: 0 6px 30px rgba(255, 107, 0, 0.5);
 }
@@ -168,11 +235,36 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  /* Ensure touch/click works */
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
-.bp-quit-btn:hover {
+.bp-quit-btn:hover,
+.bp-quit-btn:active {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Mobile pause overlay - ensure it's clickable */
+@media (max-width: 768px) {
+  .bp-pause-overlay {
+    position: fixed !important;
+    z-index: 9000 !important; /* Very high to be above everything */
+    touch-action: auto !important;
+  }
+
+  .bp-pause-content {
+    touch-action: auto !important;
+  }
+
+  .bp-resume-btn,
+  .bp-quit-btn {
+    min-height: 48px; /* Larger touch target */
+    min-width: 120px;
+  }
 }
 
 /* ============================================
@@ -205,23 +297,139 @@
    SCORE PANEL
    ============================================ */
 
+/* Legacy score panel (kept for backwards compatibility) */
 .bp-score-panel {
+  display: none; /* Replaced by bp-score-column */
+}
+
+/* Score Column - horizontal row of stat boxes on mobile (PREMIUM) */
+.bp-score-column {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 52px; /* Space for control buttons */
+  width: 100%;
+  max-width: 340px;
+}
+
+/* Stat boxes - PREMIUM glassmorphism with FIXED dimensions */
+.bp-stat-box {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 8px 20px;
-  background: rgba(255, 107, 0, 0.1);
+  justify-content: center;
+  padding: 10px 8px;
+  /* FIXED dimensions - never grow or shrink */
+  width: 95px;
+  height: 65px;
+  min-width: 95px;
+  max-width: 95px;
+  min-height: 65px;
+  max-height: 65px;
+  /* Premium glassmorphism */
+  background: linear-gradient(135deg, rgba(20, 20, 30, 0.9) 0%, rgba(10, 10, 20, 0.95) 100%);
   border: 1px solid rgba(255, 107, 0, 0.3);
-  border-radius: 12px;
-  min-width: 150px;
-  margin-top: 52px; /* Space for control buttons */
+  border-radius: 14px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
+/* Value - DYNAMIC font sizing to fit any score */
+.bp-stat-box .bp-stat-value {
+  /* Dynamic sizing: scales down as content gets longer */
+  font-size: clamp(0.8rem, 3.5vw, 1.4rem);
+  font-weight: 800;
+  color: #ff8c00;
+  text-shadow: 0 0 15px rgba(255, 140, 0, 0.5);
+  line-height: 1;
+  white-space: nowrap;
+  /* Ensure it fits in the box */
+  max-width: 85px;
+  overflow: hidden;
+  text-overflow: clip;
+  font-variant-numeric: tabular-nums;
+}
+
+.bp-stat-box .bp-stat-label {
+  font-size: 0.5rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+/* Score box - GOLD emphasis */
+.bp-stat-box.bp-stat-score {
+  border-color: rgba(255, 200, 0, 0.35);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(255, 200, 0, 0.08);
+}
+
+.bp-stat-box.bp-stat-score .bp-stat-value {
+  font-size: clamp(0.9rem, 4vw, 1.5rem);
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+}
+
+/* Streak active glow - PREMIUM fire effect */
+.bp-score-column.streak-active .bp-stat-box {
+  border-color: rgba(255, 150, 0, 0.5);
+  box-shadow:
+    0 0 15px rgba(255, 100, 0, 0.3),
+    0 0 30px rgba(255, 80, 0, 0.15);
+  animation: bp-mobile-fire-glow 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes bp-mobile-fire-glow {
+  0% { box-shadow: 0 0 15px rgba(255, 100, 0, 0.3), 0 0 30px rgba(255, 80, 0, 0.15); }
+  100% { box-shadow: 0 0 25px rgba(255, 150, 0, 0.4), 0 0 45px rgba(255, 100, 0, 0.2); }
+}
+
+.bp-score-column.streak-active .bp-stat-box .bp-stat-value {
+  color: #ffd700;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+}
+
+/* Small mobile - slightly smaller boxes */
 @media (max-width: 480px) {
-  .bp-score-panel {
-    padding: 4px 12px;
+  .bp-score-column {
     margin-top: 48px;
+    gap: 8px;
+    max-width: 300px;
+  }
+
+  .bp-stat-box {
+    width: 85px;
+    height: 58px;
+    min-width: 85px;
+    max-width: 85px;
+    min-height: 58px;
+    max-height: 58px;
+    padding: 8px 6px;
+    border-radius: 12px;
+  }
+
+  .bp-stat-box .bp-stat-value {
+    font-size: clamp(0.75rem, 3vw, 1.2rem);
+    max-width: 75px;
+  }
+
+  .bp-stat-box.bp-stat-score .bp-stat-value {
+    font-size: clamp(0.85rem, 3.5vw, 1.3rem);
+  }
+
+  .bp-stat-box .bp-stat-label {
+    font-size: 0.45rem;
+    letter-spacing: 1px;
   }
 }
 
@@ -229,18 +437,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
 }
 
 .bp-score-main .bp-score-value {
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: 800;
   color: #ff6b00;
   text-shadow: 0 0 20px rgba(255, 107, 0, 0.5);
   line-height: 1;
+  white-space: nowrap;
 }
 
 .bp-score-main .bp-score-label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -248,36 +458,46 @@
 
 .bp-score-secondary {
   display: flex;
-  gap: 16px;
-  font-size: 0.75rem;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.7rem;
   color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  width: 100%;
 }
 
 /* ============================================
    GAME GRID
    ============================================ */
 
+/* PREMIUM Game Grid */
 .bp-game-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
   gap: 2px;
-  background: rgba(255, 107, 0, 0.05);
-  border: 2px solid rgba(255, 107, 0, 0.2);
-  border-radius: 8px;
-  padding: 4px;
+  /* Premium dark interior */
+  background: linear-gradient(135deg, rgba(25, 20, 35, 0.95) 0%, rgba(15, 10, 25, 0.98) 100%);
+  border: 3px solid rgba(255, 107, 0, 0.25);
+  border-radius: 12px;
+  padding: 5px;
+  box-sizing: border-box;
+  /* Neon glow effect */
   box-shadow:
-    0 0 40px rgba(255, 107, 0, 0.1),
-    inset 0 0 20px rgba(0, 0, 0, 0.3);
+    0 0 35px rgba(255, 107, 0, 0.12),
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 0 25px rgba(0, 0, 0, 0.4);
 }
 
-/* Grid active glow when dragging */
+/* Grid active glow when dragging - enhanced neon */
 .bp-game-grid.active {
+  border-color: rgba(255, 107, 0, 0.4);
   box-shadow:
-    0 0 40px rgba(255, 107, 0, 0.2),
+    0 0 50px rgba(255, 107, 0, 0.2),
     0 0 80px rgba(255, 107, 0, 0.1),
-    inset 0 0 20px rgba(0, 0, 0, 0.3);
-  transition: box-shadow 0.3s ease;
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 0 25px rgba(0, 0, 0, 0.4);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 /* Screen shake intensity levels */
@@ -319,19 +539,24 @@
   80% { transform: translateX(2px) translateY(-1px) rotate(0.3deg); }
 }
 
+/* Grid cells - subtle depth */
 .bp-grid-cell {
-  background: rgba(255, 107, 0, 0.08);
-  border-radius: 3px;
+  background: rgba(35, 30, 50, 0.6);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
   transition: background 0.1s ease;
   position: relative;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
+/* Filled cells - premium 3D effect */
 .bp-grid-cell.filled {
   box-shadow:
-    inset 0 -2px 4px rgba(0, 0, 0, 0.3),
-    inset 0 2px 4px rgba(255, 255, 255, 0.1),
-    0 1px 3px rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+    inset 0 -3px 6px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.15),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
 }
 
 /* Ghost preview with pulsing glow */
@@ -444,30 +669,39 @@
    PIECE RACK
    ============================================ */
 
+/* PREMIUM Piece Rack */
 .bp-piece-rack {
   display: flex;
   justify-content: center;
   gap: 12px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  padding: 14px;
+  /* Premium glassmorphism */
+  background: linear-gradient(180deg, rgba(20, 20, 30, 0.85) 0%, rgba(15, 15, 25, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
   width: 100%;
   max-width: 420px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
 }
 
 .mobile .bp-piece-rack {
   gap: 8px;
-  padding: 8px;
+  padding: 10px;
+  border-radius: 14px;
 }
 
+/* PREMIUM Piece Slots */
 .bp-piece-slot {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(20, 20, 35, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  /* Premium slot styling */
+  background: rgba(25, 25, 40, 0.6);
+  border: 2px dashed rgba(255, 107, 0, 0.15);
+  border-radius: 14px;
   cursor: grab;
   transition: all 0.2s ease;
   /* Fixed size for all slots - must fit largest piece (5-wide) */
@@ -475,28 +709,35 @@
   height: 110px;
   flex-shrink: 0;
   overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .mobile .bp-piece-slot {
   width: 95px;
   height: 95px;
+  border-radius: 12px;
 }
 
 .bp-piece-slot:hover {
-  background: rgba(255, 107, 0, 0.1);
-  border-color: rgba(255, 107, 0, 0.3);
-  transform: scale(1.05);
+  background: rgba(255, 107, 0, 0.08);
+  border-color: rgba(255, 107, 0, 0.35);
+  border-style: solid;
+  transform: scale(1.03);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(255, 107, 0, 0.1);
 }
 
 .bp-piece-slot:active {
   cursor: grabbing;
-  transform: scale(0.95);
+  transform: scale(0.97);
 }
 
 .bp-piece-slot.disabled {
-  opacity: 0.3;
+  opacity: 0.25;
   cursor: not-allowed;
   pointer-events: none;
+  filter: grayscale(0.5);
 }
 
 .bp-piece-slot.dragging {
@@ -581,7 +822,7 @@
    ============================================ */
 
 .bp-drag-preview {
-  position: fixed;
+  position: absolute; /* Relative to container (fixed breaks with arcade frame transforms) */
   pointer-events: none;
   z-index: 1000;
   opacity: 0.9;
@@ -612,7 +853,7 @@
   pointer-events: auto;
   padding: 20px;
   animation: bp-game-over-appear 0.5s ease-out;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
 }
 
 @keyframes bp-game-over-appear {
@@ -628,7 +869,7 @@
 
 .bp-game-over-content {
   display: flex;
-  gap: 24px;
+  gap: 32px;
   max-width: 500px;
   width: 100%;
   animation: bp-game-over-content 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
@@ -648,7 +889,7 @@
 .mobile .bp-game-over-content {
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .bp-game-over-left {
@@ -679,14 +920,15 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .bp-game-over-title {
-  font-size: 1.8rem;
+  font-size: 2.4rem;
   font-weight: 800;
   color: #ff6b00;
   margin: 0;
+  text-shadow: 0 2px 10px rgba(255, 107, 0, 0.5);
 }
 
 .bp-game-over-reason {
@@ -698,38 +940,39 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 8px 0;
+  margin: 16px 0;
 }
 
 .bp-game-over-score .bp-score-value {
-  font-size: 3rem;
+  font-size: 5rem;
   font-weight: 800;
   color: #fff;
-  text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+  text-shadow: 0 0 40px rgba(255, 107, 0, 0.6), 0 0 80px rgba(255, 107, 0, 0.3);
   line-height: 1;
   animation: bp-final-score-pulse 2s ease-in-out infinite;
 }
 
 @keyframes bp-final-score-pulse {
   0%, 100% {
-    text-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+    text-shadow: 0 0 40px rgba(255, 107, 0, 0.6), 0 0 80px rgba(255, 107, 0, 0.3);
   }
   50% {
-    text-shadow: 0 0 50px rgba(255, 107, 0, 0.8), 0 0 80px rgba(255, 107, 0, 0.4);
+    text-shadow: 0 0 60px rgba(255, 107, 0, 0.9), 0 0 100px rgba(255, 107, 0, 0.5);
   }
 }
 
 .bp-game-over-score .bp-score-label {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
+  margin-top: 4px;
 }
 
 .bp-game-over-stats {
   display: flex;
-  gap: 24px;
-  margin: 8px 0;
+  gap: 32px;
+  margin: 16px 0;
 }
 
 .bp-stat {
@@ -739,15 +982,16 @@
 }
 
 .bp-stat-value {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #ff6b00;
 }
 
 .bp-stat-label {
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
+  margin-top: 2px;
 }
 
 .bp-new-record {
@@ -770,18 +1014,22 @@
 
 .bp-game-over-buttons {
   display: flex;
-  gap: 12px;
-  margin-top: 12px;
+  gap: 16px;
+  margin-top: 20px;
 }
 
 .bp-play-btn {
-  padding: 12px 32px;
-  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 40px;
+  min-width: 140px;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #fff;
   background: linear-gradient(135deg, #ff6b00, #ff8533);
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4);
@@ -797,13 +1045,17 @@
 }
 
 .bp-leaderboard-btn {
-  padding: 12px 20px;
-  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 24px;
+  min-width: 140px;
+  font-size: 1rem;
   font-weight: 600;
   color: #fff;
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -952,7 +1204,7 @@
    ============================================ */
 
 .bp-floating-score {
-  position: fixed;
+  position: absolute;
   font-size: 1.8rem;
   font-weight: 900;
   color: #ff6b00;
@@ -1133,24 +1385,42 @@
 /* Mobile game over and leaderboard adjustments */
 @media (max-width: 480px) {
   .bp-game-over-title {
-    font-size: 1.5rem;
+    font-size: 2rem;
+    text-shadow: 0 2px 8px rgba(255, 107, 0, 0.4);
   }
 
   .bp-game-over-score .bp-score-value {
-    font-size: 2.5rem;
+    font-size: 4rem;
+  }
+
+  .bp-game-over-score .bp-score-label {
+    font-size: 0.9rem;
+  }
+
+  .bp-stat-value {
+    font-size: 1.6rem;
+  }
+
+  .bp-stat-label {
+    font-size: 0.75rem;
+  }
+
+  .bp-game-over-stats {
+    gap: 24px;
   }
 
   .bp-game-over-buttons {
     flex-direction: row;
     width: 100%;
-    gap: 8px;
+    gap: 12px;
   }
 
   .bp-play-btn,
   .bp-leaderboard-btn {
     flex: 1;
-    padding: 10px 12px;
-    font-size: 0.85rem;
+    padding: 12px 16px;
+    min-width: auto;
+    font-size: 0.95rem;
   }
 
   .bp-back-to-games-btn {
@@ -1284,7 +1554,7 @@
 
 /* TASK 47: Trail particle layer and particles */
 .bp-trail-particle-layer {
-  position: fixed;
+  position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 50;
@@ -2277,4 +2547,507 @@
 .bp-piece-slot.disabled {
   filter: grayscale(0.8) brightness(0.5);
   transform: scale(0.9);
+}
+
+/* ============================================
+   ARCADE FRAME - PREMIUM DESKTOP LAYOUT
+   Polished, juiced-up arcade experience
+   ============================================ */
+
+/* === ANIMATED BACKGROUND === */
+.arcade-screen .block-puzzle-container {
+  padding: 20px 24px !important;
+  gap: 20px !important;
+  flex-direction: row !important;
+  /* CENTER the grid+piece rack in the FULL canvas (score column is absolutely positioned) */
+  justify-content: center !important;
+  align-items: center !important;
+  height: 100% !important;
+  overflow: visible !important;
+  position: relative !important;
+  /* Premium gradient background */
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(255, 100, 0, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(100, 50, 255, 0.06) 0%, transparent 50%),
+    linear-gradient(180deg, #0d0d1a 0%, #1a1a2e 50%, #0f0f1a 100%) !important;
+}
+
+/* Subtle animated glow effect */
+.arcade-screen .block-puzzle-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 107, 0, 0.03) 0%, transparent 70%);
+  animation: bp-ambient-pulse 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes bp-ambient-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.arcade-screen .block-puzzle-container .bp-header {
+  display: none !important;
+}
+
+/* Hide mobile-only buttons on desktop arcade */
+.arcade-screen .bp-back-btn,
+.arcade-screen .bp-sound-btn {
+  display: none !important;
+}
+
+/* === PAUSE BUTTON - Round, positioned over arcade close button === */
+.arcade-screen .bp-pause-btn {
+  position: fixed !important;
+  /* Position over the arcade frame's close button (left: 18.4%, top: 78%) */
+  left: 18.4% !important;
+  top: 78% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  width: 44px !important;
+  height: 44px !important;
+  font-size: 18px !important;
+  z-index: 250 !important; /* Above arcade frame buttons (z-index: 200) */
+  background: rgba(0, 0, 0, 0.8) !important;
+  border: 2px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 50% !important; /* Round button */
+  backdrop-filter: blur(8px) !important;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+.arcade-screen .bp-pause-btn:hover {
+  background: rgba(60, 60, 60, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(255, 255, 255, 0.1) !important;
+  transform: translateX(-50%) scale(1.1) !important;
+}
+
+/* === SCORE COLUMN - Premium glassmorphism === */
+.arcade-screen .bp-score-column {
+  position: absolute !important;
+  left: 20px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  height: auto !important;
+}
+
+/* === STAT BOXES - Premium design with auto-sizing text === */
+.arcade-screen .bp-stat-box {
+  padding: 10px 12px !important;
+  width: 90px !important;
+  height: 60px !important;
+  min-width: 90px !important;
+  max-width: 90px !important;
+  min-height: 60px !important;
+  max-height: 60px !important;
+  flex: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  /* Premium glassmorphism */
+  background: linear-gradient(135deg, rgba(20, 20, 30, 0.9) 0%, rgba(10, 10, 20, 0.95) 100%) !important;
+  border: 1px solid rgba(255, 107, 0, 0.25) !important;
+  border-radius: 14px !important;
+  box-sizing: border-box !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 30px rgba(255, 107, 0, 0.05) !important;
+  overflow: hidden !important;
+  transition: all 0.3s ease !important;
+}
+
+.arcade-screen .bp-stat-box:hover {
+  border-color: rgba(255, 107, 0, 0.4) !important;
+  box-shadow:
+    0 6px 25px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 40px rgba(255, 107, 0, 0.1) !important;
+}
+
+/* Dynamic font sizing - scales down for large numbers */
+.arcade-screen .bp-stat-box .bp-stat-value {
+  font-size: clamp(0.9rem, 4vw, 1.4rem) !important;
+  font-weight: 800 !important;
+  color: #ff8c00 !important;
+  text-shadow: 0 0 20px rgba(255, 140, 0, 0.6) !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  max-width: 80px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.arcade-screen .bp-stat-box .bp-stat-label {
+  font-size: 0.55rem !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+  margin-top: 4px !important;
+  font-weight: 600 !important;
+}
+
+/* Score box - GOLD emphasis */
+.arcade-screen .bp-stat-box.bp-stat-score {
+  border-color: rgba(255, 200, 0, 0.3) !important;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 35px rgba(255, 200, 0, 0.08) !important;
+}
+
+.arcade-screen .bp-stat-box.bp-stat-score .bp-stat-value {
+  color: #ffd700 !important;
+  text-shadow: 0 0 25px rgba(255, 215, 0, 0.7) !important;
+}
+
+/* Hide old score panel in arcade mode */
+.arcade-screen .bp-score-panel {
+  display: none !important;
+}
+
+/* === GAME GRID - Neon glow effect, centered === */
+.arcade-screen .bp-game-grid {
+  gap: 2px !important;
+  flex-shrink: 0 !important;
+  align-self: center !important;
+  /* Premium border glow */
+  border: 3px solid rgba(255, 107, 0, 0.3) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    0 0 40px rgba(255, 107, 0, 0.15),
+    inset 0 0 30px rgba(0, 0, 0, 0.3) !important;
+  background: linear-gradient(135deg, rgba(30, 25, 35, 0.95) 0%, rgba(20, 15, 25, 0.98) 100%) !important;
+  /* EQUAL padding on all sides for consistent border gap */
+  padding: 8px !important;
+  box-sizing: border-box !important;
+  /* Center grid visually - offset to account for left score column */
+  margin-left: 50px !important;
+}
+
+/* Grid cells - EMPTY cells only get dark background */
+.arcade-screen .bp-grid-cell:not(.filled) {
+  border-radius: 4px !important;
+  background: rgba(40, 35, 50, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.03) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Filled cells - KEEP original color from inline style, add depth effect */
+.arcade-screen .bp-grid-cell.filled {
+  border-radius: 5px !important;
+  /* NO background override - the color comes from inline style */
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.3),
+    inset 0 2px 4px rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+/* === PIECE RACK - Premium container, aligned with grid (540px + padding) === */
+.arcade-screen .bp-piece-rack {
+  flex-direction: column !important;
+  width: auto !important;
+  max-width: none !important;
+  margin: 0 0 0 20px !important;
+  padding: 14px 12px !important;
+  gap: 10px !important;
+  /* Premium glassmorphism */
+  background: linear-gradient(180deg, rgba(20, 20, 30, 0.85) 0%, rgba(15, 15, 25, 0.9) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 14px !important;
+  justify-content: space-evenly !important;
+  align-self: center !important;
+  /* Match grid height: 540px grid + 8px*2 padding + 3px*2 border = ~562px */
+  height: 556px !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Piece slots - Premium style */
+.arcade-screen .bp-piece-slot {
+  width: 110px !important;
+  height: 110px !important;
+  background: rgba(30, 30, 40, 0.5) !important;
+  border: 2px dashed rgba(255, 107, 0, 0.2) !important;
+  border-radius: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.arcade-screen .bp-piece-slot:hover {
+  border-color: rgba(255, 107, 0, 0.4) !important;
+  background: rgba(255, 107, 0, 0.05) !important;
+}
+
+/* === COMBO DISPLAY - Floating badge === */
+.arcade-screen .bp-combo-display {
+  position: absolute !important;
+  top: 16px !important;
+  left: 20px !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  flex-direction: row !important;
+  gap: 8px !important;
+  min-width: unset !important;
+  padding: 8px 16px !important;
+  /* Premium gradient background */
+  background: linear-gradient(135deg, rgba(255, 100, 0, 0.9) 0%, rgba(255, 60, 0, 0.95) 100%) !important;
+  border-radius: 25px !important;
+  border: none !important;
+  box-shadow:
+    0 4px 20px rgba(255, 100, 0, 0.4),
+    0 0 30px rgba(255, 100, 0, 0.2) !important;
+  animation: bp-combo-glow-pulse 1s ease-in-out infinite !important;
+}
+
+@keyframes bp-combo-glow-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(255, 100, 0, 0.4), 0 0 30px rgba(255, 100, 0, 0.2); }
+  50% { box-shadow: 0 4px 30px rgba(255, 100, 0, 0.6), 0 0 50px rgba(255, 100, 0, 0.3); }
+}
+
+.arcade-screen .bp-combo-display .bp-combo-multiplier {
+  font-size: 1.3rem !important;
+  color: white !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+  -webkit-text-fill-color: white !important;
+  background: none !important;
+}
+
+.arcade-screen .bp-combo-display .bp-combo-text {
+  font-size: 0.6rem !important;
+  letter-spacing: 1px !important;
+  align-self: center !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* === STREAK METER - Vertical energy bar === */
+.arcade-screen .bp-streak-meter {
+  position: absolute !important;
+  top: 50% !important;
+  left: 130px !important; /* Right of score boxes */
+  right: auto !important;
+  bottom: auto !important;
+  transform: translateY(-50%) !important;
+  width: 16px !important;
+  height: 300px !important;
+  padding: 3px !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  border-radius: 10px !important;
+  /* Premium dark container */
+  background: linear-gradient(180deg, rgba(20, 15, 25, 0.95) 0%, rgba(10, 10, 15, 0.98) 100%) !important;
+  border: 2px solid rgba(255, 100, 0, 0.3) !important;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    inset 0 0 10px rgba(0, 0, 0, 0.5) !important;
+}
+
+.arcade-screen .bp-streak-meter.active {
+  border-color: rgba(255, 150, 0, 0.6) !important;
+  box-shadow:
+    0 4px 25px rgba(255, 100, 0, 0.3),
+    0 0 40px rgba(255, 100, 0, 0.2),
+    inset 0 0 10px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Label - horizontal below the bar */
+.arcade-screen .bp-streak-label {
+  position: absolute !important;
+  bottom: -24px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  right: auto !important;
+  top: auto !important;
+  white-space: nowrap !important;
+  font-size: 10px !important;
+  letter-spacing: 0 !important;
+  margin-bottom: 0 !important;
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+  color: rgba(255, 180, 0, 0.9) !important;
+  text-shadow: 0 0 10px rgba(255, 150, 0, 0.5) !important;
+}
+
+.arcade-screen .bp-streak-bar {
+  width: 100% !important;
+  height: 100% !important;
+  flex-direction: column !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+}
+
+/* Streak fill - glowing energy effect */
+.arcade-screen .bp-streak-fill {
+  width: 100% !important;
+  min-height: 0 !important;
+  border-radius: 6px !important;
+  transition: height 0.3s ease-out !important;
+  /* Premium gradient fill */
+  background: linear-gradient(0deg, #ff4400 0%, #ff8800 50%, #ffcc00 100%) !important;
+  box-shadow:
+    0 0 10px rgba(255, 150, 0, 0.6),
+    0 0 20px rgba(255, 100, 0, 0.3) !important;
+}
+
+.arcade-screen .bp-streak-meter.active .bp-streak-fill {
+  animation: bp-streak-energy-pulse 0.5s ease-in-out infinite alternate !important;
+}
+
+@keyframes bp-streak-energy-pulse {
+  0% { box-shadow: 0 0 10px rgba(255, 150, 0, 0.6), 0 0 20px rgba(255, 100, 0, 0.3); }
+  100% { box-shadow: 0 0 15px rgba(255, 200, 0, 0.8), 0 0 30px rgba(255, 150, 0, 0.5); }
+}
+
+/* Bonus text - premium badge below the bar */
+.arcade-screen .bp-streak-bonus {
+  position: absolute !important;
+  bottom: -44px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  right: auto !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+  color: #ffcc00 !important;
+  text-shadow: 0 0 8px rgba(255, 200, 0, 0.6) !important;
+  animation: bp-bonus-pulse 0.6s ease-in-out infinite alternate !important;
+}
+
+@keyframes bp-bonus-pulse {
+  0% { transform: translateX(-50%) scale(1); }
+  100% { transform: translateX(-50%) scale(1.05); }
+}
+
+/* Moves warning - position on left side */
+.arcade-screen .bp-moves-warning {
+  top: 70px !important;
+  left: 20px !important;
+  right: auto !important;
+  transform: none !important;
+}
+
+/* Streak active glow on stat boxes - premium fire effect */
+.arcade-screen .bp-score-column.streak-active .bp-stat-box {
+  border-color: rgba(255, 150, 0, 0.6) !important;
+  box-shadow:
+    0 0 20px rgba(255, 100, 0, 0.35),
+    0 0 40px rgba(255, 80, 0, 0.15),
+    inset 0 0 20px rgba(255, 100, 0, 0.1) !important;
+  animation: bp-stat-fire-glow 0.8s ease-in-out infinite alternate !important;
+}
+
+@keyframes bp-stat-fire-glow {
+  0% { box-shadow: 0 0 20px rgba(255, 100, 0, 0.35), 0 0 40px rgba(255, 80, 0, 0.15); }
+  100% { box-shadow: 0 0 30px rgba(255, 150, 0, 0.5), 0 0 60px rgba(255, 100, 0, 0.25); }
+}
+
+.arcade-screen .bp-score-column.streak-active .bp-stat-box .bp-stat-value {
+  color: #ffd700 !important;
+  text-shadow: 0 0 15px rgba(255, 215, 0, 0.7) !important;
+}
+
+/* ============================================
+   MOBILE FULLSCREEN MODE
+   Like WojakRunner - fills entire viewport
+   ============================================ */
+
+@media (max-width: 768px) {
+  /* Make container fullscreen */
+  .block-puzzle-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 9999 !important;
+    padding: 8px !important;
+    padding-top: 12px !important;
+  }
+
+  /* Hide GameModal buttons - BlockPuzzle has its own pause/back buttons */
+  .arcade-frame-container .arcade-frame-btn,
+  .arcade-frame-container .arcade-frame-btn-help,
+  .arcade-frame-container .arcade-frame-btn-close,
+  .arcade-frame-container .arcade-frame-btn-mute {
+    display: none !important;
+  }
+
+  /* Fix grid sizing - ensure proper box model */
+  .bp-game-grid {
+    box-sizing: border-box !important;
+    padding: 3px !important;
+  }
+
+  /* Grid cells fill their grid slots (CSS grid handles sizing) */
+  .bp-grid-cell {
+    box-sizing: border-box !important;
+  }
+
+  /* Adjust piece rack to not overflow */
+  .bp-piece-rack {
+    width: calc(100vw - 24px) !important;
+    max-width: 360px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Smaller piece slots on mobile to fit better */
+  .bp-piece-slot {
+    width: 90px !important;
+    height: 90px !important;
+  }
+
+  /* Move combo display to bottom of screen (under piece rack) */
+  .bp-combo-display {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 8px !important;
+    right: auto !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 200 !important;
+  }
+
+  /* Combo shake animation for mobile (bottom position) */
+  .bp-combo-display.shake {
+    animation: bp-combo-shake-mobile 0.3s ease-out !important;
+  }
+
+  /* Also move streak meter to bottom area on mobile */
+  .bp-streak-meter {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 60px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 199 !important;
+  }
+}
+
+@keyframes bp-combo-shake-mobile {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  25% { transform: translateX(-50%) scale(1.15) rotate(-3deg); }
+  50% { transform: translateX(-50%) scale(1.2); }
+  75% { transform: translateX(-50%) scale(1.15) rotate(3deg); }
 }

@@ -10,6 +10,9 @@ import { Howler } from 'howler';
 import { useHowlerSounds } from '@/hooks/useHowlerSounds';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameEffects, GameEffects } from '@/components/media';
+import { ShareButton } from '@/systems/sharing';
+import { captureGameArea } from '@/systems/sharing/captureDOM';
+import { useGameMute } from '@/contexts/GameMuteContext';
 import './Merge2048Game.css';
 
 // Direction type for moves
@@ -44,6 +47,9 @@ interface Tile {
 const GRID_SIZE = 4;
 const WINNING_VALUE = 2048;
 const BIG_MERGE_THRESHOLD = 256; // Trigger screen shake for big merges
+
+// Sad images for game over screen
+const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/Games/games_media/sad_runner_${i + 1}.png`);
 
 // ============================================================================
 // PHASE 1: SOUND FOUNDATION (Tasks 1-18)
@@ -541,10 +547,23 @@ const AnimatedScore: React.FC<{ value: number }> = ({ value }) => {
 };
 
 // ============================================================================
+// BACKGROUND MUSIC PLAYLIST
+// ============================================================================
+const MUSIC_PLAYLIST = [
+  { src: '/audio/music/2048-merge/sf2-chunli-final.mp3', name: 'Chun-Li Stage' },
+  { src: '/audio/music/2048-merge/sf2-blanka-final.mp3', name: 'Blanka Stage' },
+  { src: '/audio/music/2048-merge/sf2-sagat-final.mp3', name: 'Sagat Stage' },
+  { src: '/audio/music/2048-merge/sf2-ending-final.mp3', name: 'SF2 Ending' },
+];
+
+// ============================================================================
 // COMPONENT
 // ============================================================================
 
 const Merge2048Game: React.FC = () => {
+  // Arcade frame mute control (from GameModal)
+  const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
+
   // Game state
   const [tiles, setTiles] = useState<Tile[]>([]);
   const [score, setScore] = useState(0);
@@ -556,6 +575,89 @@ const Merge2048Game: React.FC = () => {
   const [hasWon, setHasWon] = useState(false);
   const [dismissedWin, setDismissedWin] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+
+  // Background music refs (MP3 playlist)
+  const playlistIndexRef = useRef(Math.floor(Math.random() * MUSIC_PLAYLIST.length));
+  const bgMusicAudioRef = useRef<HTMLAudioElement | null>(null);
+  const isMutedRef = useRef(isMuted);
+  const isGameOverRef = useRef(isGameOver);
+
+  // Keep refs in sync
+  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
+  useEffect(() => { isGameOverRef.current = isGameOver; }, [isGameOver]);
+
+  // Ref for musicManagedExternally (to check in startGame)
+  const musicManagedExternallyRef = useRef(musicManagedExternally);
+  useEffect(() => { musicManagedExternallyRef.current = musicManagedExternally; }, [musicManagedExternally]);
+
+  // Sync with arcade frame mute button (from GameMuteContext)
+  // Note: setMuted from Howler is used later, so we call setIsMuted and pause music directly
+  useEffect(() => {
+    // Only sync if NOT managed externally (meaning this game controls its own music)
+    if (!musicManagedExternally) {
+      // Arcade mute button changed - sync local state
+      setIsMuted(arcadeMuted);
+      // Also directly pause/resume music for immediate feedback
+      if (arcadeMuted) {
+        if (bgMusicAudioRef.current) {
+          bgMusicAudioRef.current.pause();
+        }
+      } else if (!isGameOverRef.current) {
+        if (bgMusicAudioRef.current) {
+          bgMusicAudioRef.current.play().catch(() => {});
+        }
+      }
+    }
+  }, [arcadeMuted, musicManagedExternally]);
+
+  // Play specific track
+  const playBgMusicTrack = useCallback((index: number) => {
+    if (bgMusicAudioRef.current) {
+      bgMusicAudioRef.current.pause();
+    }
+    playlistIndexRef.current = index;
+    const track = MUSIC_PLAYLIST[index];
+    const music = new Audio(track.src);
+    music.volume = 1.0;
+    music.addEventListener('ended', () => {
+      playlistIndexRef.current = (playlistIndexRef.current + 1) % MUSIC_PLAYLIST.length;
+      if (!isGameOverRef.current && !isMutedRef.current) {
+        playBgMusicTrack(playlistIndexRef.current);
+      }
+    }, { once: true });
+    bgMusicAudioRef.current = music;
+    if (!isMutedRef.current) {
+      music.play().catch(() => {});
+    }
+  }, []);
+
+  // Play next song in playlist
+  const playNextBgMusicTrack = useCallback(() => {
+    playBgMusicTrack(playlistIndexRef.current);
+  }, [playBgMusicTrack]);
+
+  // Cleanup music on unmount
+  useEffect(() => {
+    return () => {
+      if (bgMusicAudioRef.current) {
+        bgMusicAudioRef.current.pause();
+        bgMusicAudioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Control music based on game over state and mute
+  useEffect(() => {
+    if (!isGameOver && !isMuted) {
+      if (bgMusicAudioRef.current) {
+        bgMusicAudioRef.current.play().catch(() => {});
+      }
+    } else {
+      if (bgMusicAudioRef.current) {
+        bgMusicAudioRef.current.pause();
+      }
+    }
+  }, [isGameOver, isMuted]);
 
   // Visual effects state (local)
   const [scorePopup, setScorePopup] = useState<{ value: number; key: number } | null>(null);
@@ -612,6 +714,13 @@ const Merge2048Game: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareImage, setShareImage] = useState<string | null>(null);
   const [challengeTarget, setChallengeTarget] = useState<number | null>(null);
+
+  // Game over screen state (FlappyOrange style)
+  const [sadImage, setSadImage] = useState<string | null>(null);
+  const [gameScreenshot, setGameScreenshot] = useState<string | null>(null);
+  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
 
   // ============================================================================
   // PHASE 7: NEXT TILE PREVIEW (Tasks 93-100)
@@ -676,8 +785,15 @@ const Merge2048Game: React.FC = () => {
   // Audio hooks
   const { playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver, playClick, setMuted } = useHowlerSounds();
 
+  // Sync Howler mute state with arcade frame mute button
+  useEffect(() => {
+    if (!musicManagedExternally) {
+      setMuted(arcadeMuted);
+    }
+  }, [arcadeMuted, musicManagedExternally, setMuted]);
+
   // Leaderboard hooks
-  const { submitScore, isSignedIn } = useLeaderboard('2048-merge');
+  const { submitScore, isSignedIn, leaderboard: globalLeaderboard, userDisplayName, isSubmitting } = useLeaderboard('2048-merge');
 
   // Universal visual effects system
   const {
@@ -1553,17 +1669,6 @@ const Merge2048Game: React.FC = () => {
   }, []);
 
   /**
-   * Handle mute toggle
-   */
-  const handleMuteToggle = useCallback(() => {
-    setIsMuted((prev) => {
-      const newMuted = !prev;
-      setMuted(newMuted);
-      return newMuted;
-    });
-  }, [setMuted]);
-
-  /**
    * Start a new game
    */
   const handleNewGame = useCallback(() => {
@@ -1603,7 +1708,12 @@ const Merge2048Game: React.FC = () => {
     setDismissedWin(false);
     setScorePopup(null);
     resetAllEffects();
-  }, [playClick, resetAllEffects, initNextTileQueue]);
+    // Start background music on user gesture (required for mobile browsers)
+    // Skip if GameModal manages the music (check both ref AND context for timing safety)
+    if (!bgMusicAudioRef.current && !musicManagedExternallyRef.current && !musicManagedExternally) {
+      playNextBgMusicTrack();
+    }
+  }, [playClick, resetAllEffects, initNextTileQueue, playNextBgMusicTrack, musicManagedExternally]);
 
   /**
    * Move tiles in the specified direction
@@ -1823,6 +1933,19 @@ const Merge2048Game: React.FC = () => {
                 // Check for game over after spawning new tile
                 // TASK 29: Use triggerGameOverHaptic for game over
                 if (checkGameOver(tilesWithNew)) {
+                  // Capture screenshot before game over overlay
+                  const gridEl = document.querySelector('.grid-container') as HTMLElement;
+                  if (gridEl) {
+                    captureGameArea(gridEl).then(screenshot => {
+                      if (screenshot) setGameScreenshot(screenshot);
+                    });
+                  }
+                  setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
+                  // Stop background music immediately on death
+                  if (bgMusicAudioRef.current) {
+                    bgMusicAudioRef.current.pause();
+                    bgMusicAudioRef.current = null;
+                  }
                   setIsGameOver(true);
                   playGameOver();
                   triggerGameOverHaptic();
@@ -1830,8 +1953,11 @@ const Merge2048Game: React.FC = () => {
                   addFloatingEmoji('💀');
                   // Submit score to leaderboard
                   if (isSignedIn) {
+                    setScoreSubmitted(true);
                     submitScore(score + totalScoreGained, undefined, {
                       highestTile: highestTileRef.current,
+                    }).then(result => {
+                      if (result?.isNewHighScore) setIsNewPersonalBest(true);
                     });
                   }
                 }
@@ -1839,14 +1965,30 @@ const Merge2048Game: React.FC = () => {
               }
               // Check game over even without new tile
               if (checkGameOver(prev)) {
+                // Capture screenshot before game over overlay
+                const gridEl = document.querySelector('.grid-container') as HTMLElement;
+                if (gridEl) {
+                  captureGameArea(gridEl).then(screenshot => {
+                    if (screenshot) setGameScreenshot(screenshot);
+                  });
+                }
+                setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
+                // Stop background music immediately on death
+                if (bgMusicAudioRef.current) {
+                  bgMusicAudioRef.current.pause();
+                  bgMusicAudioRef.current = null;
+                }
                 setIsGameOver(true);
                 playGameOver();
                 triggerGameOverHaptic();
                 triggerScreenShake(500);
                 addFloatingEmoji('💀');
                 if (isSignedIn) {
+                  setScoreSubmitted(true);
                   submitScore(score + totalScoreGained, undefined, {
                     highestTile: highestTileRef.current,
+                  }).then(result => {
+                    if (result?.isNewHighScore) setIsNewPersonalBest(true);
                   });
                 }
               }
@@ -2110,9 +2252,7 @@ const Merge2048Game: React.FC = () => {
         >
           {showPreview ? '👁️' : '👁️‍🗨️'}
         </button>
-        <button className="mute-btn" onClick={handleMuteToggle} aria-label={isMuted ? 'Unmute' : 'Mute'}>
-          {isMuted ? '🔇' : '🔊'}
-        </button>
+        {/* Mute button removed - arcade frame handles muting via GameMuteContext */}
         {/* TASK 144: Music toggle button */}
         <button
           className={`music-btn ${musicEnabled ? 'active' : ''}`}
@@ -2182,25 +2322,98 @@ const Merge2048Game: React.FC = () => {
             </span>
           )}
 
-          {/* Game Over overlay */}
-          {/* TASK 134: Add share button to game over screen */}
+          {/* Game Over overlay - FlappyOrange style */}
           {isGameOver && (
-            <div className="game-overlay game-over">
-              <h2>Game Over!</h2>
-              <p>Final Score: {score.toLocaleString()}</p>
-              {challengeTarget && (
-                <p className={score >= challengeTarget ? 'challenge-won' : 'challenge-lost'}>
-                  {score >= challengeTarget ? '🏆 Challenge Beat!' : `Challenge: ${challengeTarget.toLocaleString()}`}
-                </p>
-              )}
-              <div className="overlay-buttons">
-                <button className="overlay-btn" onClick={handleNewGame}>
-                  Try Again
-                </button>
-                <button className="overlay-btn share-btn" onClick={openShareModal}>
-                  📤 Share
-                </button>
+            <div className="m2048-game-over-overlay" onClick={(e) => e.stopPropagation()}>
+              <div className="m2048-game-over-content">
+                <div className="m2048-game-over-left">
+                  {sadImage ? (
+                    <img src={sadImage} alt="Game Over" className="m2048-sad-image" />
+                  ) : (
+                    <div className="m2048-game-over-emoji">🍊</div>
+                  )}
+                </div>
+                <div className="m2048-game-over-right">
+                  <h2 className="m2048-game-over-title">Game Over!</h2>
+
+                  <div className="m2048-game-over-score">
+                    <span className="m2048-score-value">{score.toLocaleString()}</span>
+                    <span className="m2048-score-label">points</span>
+                  </div>
+
+                  <div className="m2048-game-over-stats">
+                    <div className="m2048-stat">
+                      <span className="m2048-stat-value">{bestScore.toLocaleString()}</span>
+                      <span className="m2048-stat-label">best</span>
+                    </div>
+                  </div>
+
+                  {(isNewPersonalBest || score > bestScore) && score > 0 && (
+                    <div className="m2048-new-record">New Personal Best!</div>
+                  )}
+
+                  {isSignedIn && (
+                    <div className="m2048-submitted">
+                      {isSubmitting ? 'Saving...' : scoreSubmitted ? `Saved as ${userDisplayName}!` : ''}
+                    </div>
+                  )}
+
+                  <div className="m2048-game-over-buttons">
+                    <button onClick={handleNewGame} className="m2048-play-btn">
+                      Play Again
+                    </button>
+                    <ShareButton
+                      scoreData={{
+                        gameId: 'merge-2048',
+                        gameName: 'Merge 2048',
+                        score: score,
+                        highScore: bestScore,
+                        isNewHighScore: isNewPersonalBest || score > bestScore,
+                      }}
+                      screenshot={gameScreenshot}
+                      className="m2048-share-btn"
+                    />
+                    <button
+                      onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
+                      className="m2048-leaderboard-btn"
+                    >
+                      Leaderboard
+                    </button>
+                  </div>
+                </div>
               </div>
+
+              {/* Leaderboard Panel */}
+              {showLeaderboardPanel && (
+                <div className="m2048-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
+                  <div className="m2048-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
+                    <div className="m2048-leaderboard-header">
+                      <h3>Leaderboard</h3>
+                      <button className="m2048-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
+                    </div>
+                    <div className="m2048-leaderboard-list">
+                      {Array.from({ length: 10 }, (_, index) => {
+                        const entry = globalLeaderboard[index];
+                        const isCurrentUser = entry && score === entry.score;
+                        return (
+                          <div key={index} className={`m2048-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                            <span className="m2048-leaderboard-rank">#{index + 1}</span>
+                            <span className="m2048-leaderboard-name">{entry?.displayName || '---'}</span>
+                            <span className="m2048-leaderboard-score">{entry?.score ?? '-'}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={() => { window.location.href = '/games'; }}
+                className="m2048-back-to-games-btn"
+              >
+                Back to Games
+              </button>
             </div>
           )}
 
@@ -2234,43 +2447,6 @@ const Merge2048Game: React.FC = () => {
       <div className="merge2048-instructions">
         <p>Swipe to move tiles. Merge matching numbers to reach 2048!</p>
       </div>
-
-      {/* TASK 127: Share Modal */}
-      {showShareModal && (
-        <div className="share-modal-overlay" onClick={() => setShowShareModal(false)}>
-          <div className="share-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="share-header">
-              <h2>Share Your Score!</h2>
-              <button className="share-close" onClick={() => setShowShareModal(false)}>✕</button>
-            </div>
-            {shareImage && (
-              <img src={shareImage} alt="Share preview" className="share-preview-image" />
-            )}
-            <div className="share-buttons">
-              <button className="share-action-btn" onClick={handleNativeShare}>
-                📤 Share
-              </button>
-              <button className="share-action-btn" onClick={handleCopyLink}>
-                🔗 Copy Link
-              </button>
-              <button className="share-action-btn" onClick={handleDownloadImage}>
-                💾 Save
-              </button>
-            </div>
-            {/* TASK 135: Text share */}
-            <div className="share-text-section">
-              <button
-                className="share-text-btn"
-                onClick={() => {
-                  navigator.clipboard.writeText(generateTextShare());
-                }}
-              >
-                📋 Copy Text
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* TASK 42: Character Gallery Modal */}
       {showGallery && (

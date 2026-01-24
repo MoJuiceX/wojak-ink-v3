@@ -8,12 +8,12 @@
 import { useCallback, useState } from 'react';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import type { ShareData, ScoreShareData, SharePlatform } from './types';
-import { generateScoreImage, generateShareText, getShareUrl } from './ShareImageGenerator';
+import { generateScoreImage, generateScoreImageWithScreenshot, generateShareText, getShareUrl } from './ShareImageGenerator';
 
 interface UseShareReturn {
   isSharing: boolean;
   shareSupported: boolean;
-  shareScore: (data: ScoreShareData) => Promise<boolean>;
+  shareScore: (data: ScoreShareData, screenshot?: string | null) => Promise<boolean>;
   shareToPlatform: (platform: SharePlatform, data: ShareData) => Promise<boolean>;
   copyToClipboard: (text: string) => Promise<boolean>;
 }
@@ -25,8 +25,8 @@ export const useShare = (): UseShareReturn => {
   // Check if Web Share API is supported
   const shareSupported = typeof navigator !== 'undefined' && 'share' in navigator;
 
-  // Share a score
-  const shareScore = useCallback(async (data: ScoreShareData): Promise<boolean> => {
+  // Share a score (with optional screenshot)
+  const shareScore = useCallback(async (data: ScoreShareData, screenshot?: string | null): Promise<boolean> => {
     setIsSharing(true);
 
     try {
@@ -43,8 +43,10 @@ export const useShare = (): UseShareReturn => {
       // Try native share with image
       if (navigator.share && navigator.canShare) {
         try {
-          // Generate image
-          const imageBlob = await generateScoreImage(shareData);
+          // Generate image (with screenshot if available)
+          const imageBlob = screenshot
+            ? await generateScoreImageWithScreenshot(shareData, screenshot)
+            : await generateScoreImage(shareData);
           const imageFile = new File([imageBlob], 'wojak-score.png', { type: 'image/png' });
 
           const sharePayload = {

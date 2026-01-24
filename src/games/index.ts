@@ -6,7 +6,7 @@
  */
 
 // Game Components
-export { default as OrangeStack } from './OrangeStack';
+// Note: OrangeStack removed - use BrickByBrick from /src/pages/ instead
 export { default as MemoryMatch } from './MemoryMatch';
 export { default as OrangePong } from './OrangePong';
 export { default as WojakRunner } from './WojakRunner';
@@ -16,7 +16,6 @@ export { default as ColorReaction } from './ColorReaction';
 export { default as Orange2048 } from './Orange2048';
 
 // Game Configs
-export { ORANGE_STACK_CONFIG } from './OrangeStack/config';
 export { MEMORY_MATCH_CONFIG } from './MemoryMatch/config';
 export { ORANGE_PONG_CONFIG } from './OrangePong/config';
 export { WOJAK_RUNNER_CONFIG } from './WojakRunner/config';
@@ -30,7 +29,7 @@ export type { GameConfig, GameState } from '@/systems/game-ui/types';
 
 // All game configs for dynamic loading
 export const ALL_GAME_CONFIGS = [
-  { id: 'orange-stack', name: 'Brick by Brick', emoji: '🧱', component: 'OrangeStack' },
+  { id: 'brick-by-brick', name: 'Brick by Brick', emoji: '🧱', component: 'BrickByBrick' },
   { id: 'memory-match', name: 'Memory Match', emoji: '🧠', component: 'MemoryMatch' },
   { id: 'orange-pong', name: 'Orange Pong', emoji: '🏓', component: 'OrangePong' },
   { id: 'wojak-runner', name: 'Wojak Runner', emoji: '🏃', component: 'WojakRunner' },

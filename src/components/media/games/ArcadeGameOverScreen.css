@@ -1,0 +1,464 @@
+/**
+ * Shared Arcade Game Over Screen Styles
+ *
+ * Used by all arcade games for consistent game over experience.
+ * Based on FlappyOrange's polished implementation.
+ */
+
+/* ============================================
+   GAME OVER OVERLAY
+   ============================================ */
+
+.arcade-gameover-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 500;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: arcade-gameover-appear 0.4s ease-out;
+  /* Support custom accent color via CSS variable */
+  --arcade-accent: #ff6b00;
+}
+
+@keyframes arcade-gameover-appear {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Exit animation */
+.arcade-gameover-overlay.exiting {
+  animation: arcade-gameover-exit 0.3s ease-out forwards;
+  pointer-events: none;
+}
+
+.arcade-gameover-overlay.exiting .arcade-gameover-content {
+  animation: arcade-gameover-content-exit 0.25s ease-in forwards;
+}
+
+@keyframes arcade-gameover-exit {
+  0% {
+    opacity: 1;
+    backdrop-filter: blur(6px);
+  }
+  100% {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+}
+
+@keyframes arcade-gameover-content-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+}
+
+/* ============================================
+   MAIN CONTENT
+   ============================================ */
+
+.arcade-gameover-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 40px 60px;
+  background: linear-gradient(135deg, rgba(30, 30, 40, 0.95) 0%, rgba(20, 20, 30, 0.98) 100%);
+  border: 1px solid rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.3);
+  border-radius: 24px;
+  box-shadow:
+    0 0 60px rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.15),
+    0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: arcade-gameover-content-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+  position: relative;
+  z-index: 100;
+  margin-left: 0;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.arcade-gameover-content.pushed {
+  margin-left: 340px;
+}
+
+@keyframes arcade-gameover-content-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.arcade-gameover-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--arcade-accent);
+  margin: 0 0 8px 0;
+  text-shadow: 0 2px 20px rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.4);
+  letter-spacing: -0.5px;
+}
+
+.arcade-gameover-subtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 8px 0;
+  font-weight: 400;
+}
+
+/* ============================================
+   SCORE DISPLAY
+   ============================================ */
+
+.arcade-gameover-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 8px 0 16px 0;
+}
+
+.arcade-gameover-score-value {
+  font-size: 5rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 40px rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.6);
+  line-height: 1;
+  animation: arcade-gameover-score-pulse 2s ease-in-out infinite;
+}
+
+@keyframes arcade-gameover-score-pulse {
+  0%, 100% {
+    text-shadow: 0 0 40px rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.6);
+  }
+  50% {
+    text-shadow: 0 0 60px rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.9), 0 0 100px rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.5);
+  }
+}
+
+.arcade-gameover-score-label {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-top: 4px;
+}
+
+/* ============================================
+   STATS
+   ============================================ */
+
+.arcade-gameover-stats {
+  display: flex;
+  gap: 32px;
+  margin: 16px 0;
+}
+
+.arcade-gameover-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.arcade-gameover-stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--arcade-accent);
+}
+
+.arcade-gameover-stat-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ============================================
+   NEW RECORD & SUBMITTED
+   ============================================ */
+
+.arcade-gameover-new-record {
+  font-size: 1.1rem;
+  color: #ffd700;
+  font-weight: 700;
+  margin-top: 4px;
+  animation: arcade-gameover-glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes arcade-gameover-glow {
+  from { text-shadow: 0 0 10px #ffd700; }
+  to { text-shadow: 0 0 30px #ffd700, 0 0 60px #ffa500; }
+}
+
+.arcade-gameover-submitted {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  min-height: 1.4em;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+.arcade-gameover-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.arcade-gameover-play-btn {
+  padding: 12px 28px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, var(--arcade-accent), color-mix(in srgb, var(--arcade-accent) 80%, white));
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+}
+
+.arcade-gameover-play-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.5);
+}
+
+.arcade-gameover-play-btn:active {
+  transform: translateY(0);
+}
+
+.arcade-gameover-share-btn {
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, var(--arcade-accent), color-mix(in srgb, var(--arcade-accent) 80%, white));
+  border: none;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.arcade-gameover-share-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.4);
+}
+
+.arcade-gameover-leaderboard-btn {
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.arcade-gameover-leaderboard-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.arcade-gameover-leaderboard-btn.active {
+  background: rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.2);
+  border-color: rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.6);
+  color: var(--arcade-accent);
+}
+
+/* ============================================
+   LEADERBOARD OVERLAY & PANEL
+   ============================================ */
+
+.arcade-gameover-leaderboard-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 340px;
+  background: transparent;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  z-index: 50;
+  pointer-events: none;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.arcade-gameover-leaderboard-overlay.visible {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.arcade-gameover-leaderboard-panel {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(25, 25, 35, 0.98) 0%, rgba(15, 15, 25, 0.99) 100%);
+  border: none;
+  border-right: 1px solid rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.4);
+  border-radius: 0;
+  padding: 20px;
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.arcade-gameover-leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.arcade-gameover-leaderboard-entry {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: background 0.2s ease;
+  flex: 1;
+  min-height: 0;
+}
+
+.arcade-gameover-leaderboard-entry:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.arcade-gameover-leaderboard-entry.current-user {
+  background: rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.2);
+  border: 1px solid rgba(var(--arcade-accent-rgb, 255, 107, 0), 0.5);
+}
+
+.arcade-gameover-leaderboard-rank {
+  width: 32px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+/* Gold, silver, bronze for top 3 */
+.arcade-gameover-leaderboard-entry:nth-child(1) .arcade-gameover-leaderboard-rank { color: #FFD700; }
+.arcade-gameover-leaderboard-entry:nth-child(2) .arcade-gameover-leaderboard-rank { color: #C0C0C0; }
+.arcade-gameover-leaderboard-entry:nth-child(3) .arcade-gameover-leaderboard-rank { color: #CD7F32; }
+
+.arcade-gameover-leaderboard-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 10px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.arcade-gameover-leaderboard-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.arcade-gameover-leaderboard-name {
+  flex: 1;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.arcade-gameover-leaderboard-score {
+  color: var(--arcade-accent);
+  font-weight: 700;
+  min-width: 50px;
+  text-align: right;
+  font-size: 1rem;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 480px) {
+  .arcade-gameover-content {
+    padding: 30px 40px;
+  }
+
+  .arcade-gameover-title {
+    font-size: 1.75rem;
+  }
+
+  .arcade-gameover-score-value {
+    font-size: 3.5rem;
+  }
+
+  .arcade-gameover-score-label {
+    font-size: 0.9rem;
+  }
+
+  .arcade-gameover-stat-value {
+    font-size: 1.6rem;
+  }
+
+  .arcade-gameover-buttons {
+    flex-direction: row;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .arcade-gameover-play-btn,
+  .arcade-gameover-leaderboard-btn,
+  .arcade-gameover-share-btn {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    min-width: auto;
+  }
+
+  .arcade-gameover-leaderboard-panel {
+    width: 300px;
+    height: 100%;
+    padding: 12px 16px;
+  }
+
+  .arcade-gameover-leaderboard-entry {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+
+  .arcade-gameover-content.pushed {
+    margin-left: 0;
+  }
+}

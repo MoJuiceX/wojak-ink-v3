@@ -119,6 +119,8 @@ export function useLeaderboard(gameId: GameId) {
 
       return data;
     },
+    // Don't fetch if gameId is undefined/null
+    enabled: !!gameId,
     ...DATA_CACHE_MAP.leaderboard,
   });
 

@@ -13,7 +13,7 @@
 | OrangeSnake | OrangeSnake.tsx | `osn-` | Snake |
 | BrickBreaker | BrickBreaker.tsx | `bb-` | Breakout |
 | WojakWhack | WojakWhack.tsx | `ww-` | Whack-a-mole |
-| OrangeStack | OrangeStack.tsx | `os-` | Stacking |
+| Brick-by-Brick | BrickByBrick.tsx | `os-` | Stacking |
 | MemoryMatch | MemoryMatch.tsx | `mm-` | Memory |
 | OrangePong | OrangePong.tsx | `pong-` | Pong |
 | WojakRunner | WojakRunner.tsx | `wr-` | Runner |
@@ -333,3 +333,34 @@ useEffect(() => {
 8. [ ] Test mobile touch controls
 9. [ ] Test leaderboard submission
 10. [ ] Tune difficulty for 10-15 sec easy intro
+
+---
+
+## Game Layout Requirements (CRITICAL)
+
+### Desktop (Arcade Frame)
+- Games render inside the arcade frame via `GameModal.tsx`
+- **DO NOT** add `max-width` constraints to game containers in arcade screen
+- Game should fill the available arcade frame width
+- Use percentage-based margins (e.g., 15%) for playable area boundaries
+- The `.arcade-screen` class is added when arcade frame is visible
+
+### Mobile (Fullscreen)
+- When game starts, `GameModal` adds `game-fullscreen-mode` to `document.body`
+- This hides the bottom navigation (see `index.css`)
+- **MobileNavigation MUST have `mobile-navigation` class** for hiding to work
+- Game containers should use `bottom: 0` (not 94px) since nav is hidden
+- The modal uses `100dvh` which handles iOS safe areas automatically
+
+### Files Involved
+| File | Purpose |
+|------|---------|
+| `src/index.css` | Global `game-fullscreen-mode` CSS rules |
+| `src/components/layout/MobileNavigation.tsx` | Must have `mobile-navigation` class |
+| `src/components/media/games/GameModal.tsx` | Adds/removes fullscreen class |
+| `src/pages/[Game].css` | Game-specific styles (no max-width in arcade!) |
+
+### History
+- 2025-01-24: Fixed Brick-by-Brick layout issues (renamed from OrangeStack)
+  - Desktop: Removed `max-width: 350px` constraint that cramped game to left side
+  - Mobile: Added `mobile-navigation` class, set `bottom: 0`, added hiding CSS to index.css

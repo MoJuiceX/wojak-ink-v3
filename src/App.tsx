@@ -56,7 +56,7 @@ const Achievements = lazy(() => import('./pages/Achievements'));
 const Drawer = lazy(() => import('./pages/Drawer'));
 
 // Games
-const OrangeStack = lazy(() => import('./pages/OrangeStack'));
+const BrickByBrick = lazy(() => import('./pages/BrickByBrick'));
 const MemoryMatch = lazy(() => import('./pages/MemoryMatch'));
 const OrangePong = lazy(() => import('./pages/OrangePong'));
 const WojakRunner = lazy(() => import('./pages/WojakRunner'));
@@ -310,7 +310,7 @@ function AppContent() {
                     element={
                       <GameErrorBoundary gameName="Brick by Brick">
                         <Suspense fallback={<GameLoading gameName="Brick by Brick" />}>
-                          <OrangeStack />
+                          <BrickByBrick />
                         </Suspense>
                       </GameErrorBoundary>
                     }

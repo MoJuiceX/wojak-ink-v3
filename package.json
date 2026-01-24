@@ -33,6 +33,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.25.0",
     "howler": "^2.2.4",
+    "html2canvas": "^1.4.1",
     "ionicons": "^8.0.13",
     "jwt-decode": "^4.0.0",
     "lodash": "^4.17.21",

@@ -57,6 +57,8 @@ BigPulp AI uses Claude API. 12 canvas-based mini-games with global leaderboards.
 
 ## Quick Wins (High-Impact Gotchas)
 - Game CSS: Prefix classes with game initials (bp-, fo-, os-) to avoid conflicts
+- **Game layout: NO max-width on `.lightbox-wrapper` in arcade screen** - games must fill frame
+- **Mobile games: MobileNavigation needs `mobile-navigation` class** for fullscreen hiding
 - `AnimatePresence mode="popLayout"` not `"wait"` for smooth transitions
 - Game sounds: Check `soundEnabled` before `play*()` calls
 - Score popups: `addScorePopup()` expects STRING not number - use template literal

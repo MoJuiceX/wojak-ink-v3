@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useMemo } from 'react';
 import {
   IonContent,
@@ -9,14 +8,11 @@ import {
   IonButton,
   IonIcon,
   IonSpinner,
-  IonSegment,
-  IonSegmentButton,
-  IonLabel,
   IonInput,
   IonItem,
 } from '@ionic/react';
 import { arrowBack, lockClosed, refreshOutline, chevronUp, chevronDown } from 'ionicons/icons';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './AdminStats.css';
 
 const WORKER_API_URL = 'https://wojak-mobile-trade-fetcher.abitsolvesthis.workers.dev';
@@ -34,7 +30,7 @@ type SortField = 'name' | 'count';
 type SortDirection = 'asc' | 'desc';
 
 const AdminStats: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -171,7 +167,7 @@ const AdminStats: React.FC = () => {
       <IonPage>
         <IonHeader>
           <IonToolbar>
-            <IonButton slot="start" fill="clear" onClick={() => history.goBack()}>
+            <IonButton slot="start" fill="clear" onClick={() => navigate(-1)}>
               <IonIcon icon={arrowBack} />
             </IonButton>
             <IonTitle>Admin Stats</IonTitle>
@@ -213,7 +209,7 @@ const AdminStats: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonButton slot="start" fill="clear" onClick={() => history.goBack()}>
+          <IonButton slot="start" fill="clear" onClick={() => navigate(-1)}>
             <IonIcon icon={arrowBack} />
           </IonButton>
           <IonTitle>Favorite Stats</IonTitle>

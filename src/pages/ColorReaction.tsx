@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { IonPage, IonContent } from '@ionic/react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Howler } from 'howler';
@@ -9,7 +8,16 @@ import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameHaptics } from '@/systems/haptics';
 import { GameSEO } from '@/components/seo/GameSEO';
+// ShareButton imported but reserved for future share panel feature
+// import { ShareButton } from '@/systems/sharing';
+import { captureGameArea } from '@/systems/sharing/captureDOM';
+import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
+import { generateGameScorecard } from '@/systems/sharing/GameScorecard';
+import { useGameMute } from '@/contexts/GameMuteContext';
 import './ColorReaction.css';
+
+// Sad images for game over screen
+const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/Games/games_media/sad_runner_${i + 1}.png`);
 
 // Color definitions - TASK 91: Expanded with Strawberry & Kiwi
 const COLORS = [
@@ -26,7 +34,7 @@ const MATCH_WINDOW_MS = 1500; // 1.5 seconds to react when colors match
 const BASE_CYCLE_MS = 2500; // Base time between color changes (slow start)
 const MIN_CYCLE_MS = 1000; // Fastest cycle speed
 const GRACE_PERIOD_MS = 800; // Ignore taps after game starts
-const TAP_DEBOUNCE_MS = 100; // Prevent double-tap
+const TAP_DEBOUNCE_MS = 350; // Must be >300ms to catch click event that fires after touchstart on mobile
 
 // Speed increases with score
 const getCycleSpeed = (score: number): number => {
@@ -79,10 +87,21 @@ const calculateScore = (reactionTimeMs: number): { points: number; rating: strin
   return { points: 10, rating: 'SLOW' };
 };
 
+// Background music playlist
+const MUSIC_PLAYLIST = [
+  { src: '/audio/music/color-reaction/smb-main-theme-final.mp3', name: 'SMB Main Theme' },
+  { src: '/audio/music/color-reaction/smw-overworld-final.mp3', name: 'SMW Overworld' },
+  { src: '/audio/music/color-reaction/smb-underground-final.mp3', name: 'SMB Underground' },
+  { src: '/audio/music/color-reaction/smw-title-theme-final.mp3', name: 'SMW Title' },
+];
+
 const ColorReaction: React.FC = () => {
   const isMobile = useIsMobile();
   // TASK 93: Reduced motion mode - respect system preference
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Arcade frame mute control (from GameModal)
+  const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
   const [gameState, setGameState] = useState<GameState>(initialGameState);
   const [screenShake, setScreenShake] = useState(false);
   const [epicCallout, setEpicCallout] = useState<string | null>(null);
@@ -90,11 +109,88 @@ const ColorReaction: React.FC = () => {
   const [playerFlash, setPlayerFlash] = useState<'correct' | 'wrong' | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [matchProgress, setMatchProgress] = useState(0); // 0-100 for countdown ring
+
+  // Background music refs
+  const playlistIndexRef = useRef(Math.floor(Math.random() * MUSIC_PLAYLIST.length));
+  const musicAudioRef = useRef<HTMLAudioElement | null>(null);
+  const gameStatusRefForMusic = useRef(gameState.status);
+  const isMutedRef = useRef(isMuted);
+
+  // Keep refs in sync
+  useEffect(() => { gameStatusRefForMusic.current = gameState.status; }, [gameState.status]);
+  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
+
+  // Ref for musicManagedExternally (to check in startGame)
+  const musicManagedExternallyRef = useRef(musicManagedExternally);
+  useEffect(() => { musicManagedExternallyRef.current = musicManagedExternally; }, [musicManagedExternally]);
+
+  // Play specific track
+  const playMusicTrack = useCallback((index: number) => {
+    if (musicAudioRef.current) {
+      musicAudioRef.current.pause();
+    }
+    playlistIndexRef.current = index;
+    const track = MUSIC_PLAYLIST[index];
+    const music = new Audio(track.src);
+    music.volume = 1.0;
+    music.addEventListener('ended', () => {
+      playlistIndexRef.current = (playlistIndexRef.current + 1) % MUSIC_PLAYLIST.length;
+      if (gameStatusRefForMusic.current === 'playing' && !isMutedRef.current) {
+        playMusicTrack(playlistIndexRef.current);
+      }
+    }, { once: true });
+    musicAudioRef.current = music;
+    if (!isMutedRef.current) {
+      music.play().catch(() => {});
+    }
+  }, []);
+
+  // Play next song in playlist
+  const playNextMusicTrack = useCallback(() => {
+    playMusicTrack(playlistIndexRef.current);
+  }, [playMusicTrack]);
+
+  // Cleanup music on unmount
+  useEffect(() => {
+    return () => {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+        musicAudioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Control music based on game state and mute
+  useEffect(() => {
+    if (gameState.status === 'playing' && !isMuted) {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.play().catch(() => {});
+      }
+    } else {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+      }
+    }
+  }, [gameState.status, isMuted]);
+
+  // Mobile fullscreen mode - hide header during gameplay
+  useEffect(() => {
+    if (isMobile && gameState.status === 'playing') {
+      document.body.classList.add('game-fullscreen-mode');
+    } else {
+      document.body.classList.remove('game-fullscreen-mode');
+    }
+    return () => {
+      document.body.classList.remove('game-fullscreen-mode');
+    };
+  }, [isMobile, gameState.status]);
+
   const [livesWarning, setLivesWarning] = useState<string | null>(null);
 
   // Phase 3: Urgency system state
   const [urgencyLevel, setUrgencyLevel] = useState<'normal' | 'warning' | 'critical'>('normal');
-  const [remainingTimeMs, setRemainingTimeMs] = useState<number | null>(null);
+  // remainingTimeMs was removed - countdown ring provides sufficient visual feedback
+  // const [remainingTimeMs, setRemainingTimeMs] = useState<number | null>(null);
 
   // Phase 4: Perfect celebration state
   const [perfectFlash, setPerfectFlash] = useState(false);
@@ -105,8 +201,10 @@ const ColorReaction: React.FC = () => {
   // Phase 5: Visual juice state
   const [tapSquash, setTapSquash] = useState(false);
   const [impactFlash, setImpactFlash] = useState(false);
-  const [matchGlow, setMatchGlow] = useState(false);
-  const [speedUpCallout, setSpeedUpCallout] = useState(false);
+  // matchGlow handled via CSS class on player-display when isMatchWindow is true
+  // const [matchGlow, setMatchGlow] = useState(false);
+  // speedUpCallout feature was removed - speed increases are subtle and don't need callout
+  // const [speedUpCallout, setSpeedUpCallout] = useState(false);
   const [backgroundPulse, setBackgroundPulse] = useState(false);
   const [streakFire, setStreakFire] = useState(false);
 
@@ -115,19 +213,21 @@ const ColorReaction: React.FC = () => {
   const [highScoreBeat, setHighScoreBeat] = useState(false);
   const [bestTimeBeat, setBestTimeBeat] = useState(false);
   const [currentRating, setCurrentRating] = useState<string | null>(null);
-  const [sessionHighScore, setSessionHighScore] = useState(0);
+  // sessionHighScore tracked via highScore state instead
+  // const [sessionHighScore, setSessionHighScore] = useState(0);
   const [comboMeterFill, setComboMeterFill] = useState(0); // 0-100 for combo meter
 
   // Phase 7: Failure & Warning States
   const [lastLifeWarning, setLastLifeWarning] = useState(false);
-  const [showGameOverStats, setShowGameOverStats] = useState(false);
-  const [showPlayAgain, setShowPlayAgain] = useState(false);
+  // showGameOverStats and showPlayAgain now handled by ArcadeGameOverScreen component
+  const [, setShowGameOverStats] = useState(false);
+  const [, setShowPlayAgain] = useState(false);
   const [floatingX, setFloatingX] = useState(false);
   const [floatingClock, setFloatingClock] = useState(false);
 
   // Phase 8: Near-Miss & Close Call System
-  const [nearMissCallout, setNearMissCallout] = useState<string | null>(null);
-  const [nearMissDelay, setNearMissDelay] = useState<number | null>(null);
+  const [nearMissCallout] = useState<string | null>(null);
+  const [nearMissDelay] = useState<number | null>(null);
   const matchWindowEndTimeRef = useRef<number | null>(null);
 
   // Phase 10: Fever Mode & Advanced Combos
@@ -140,11 +240,26 @@ const ColorReaction: React.FC = () => {
   const [hitStop, setHitStop] = useState(false);
 
   // Phase 12: Viral & Share System
-  const [showSharePanel, setShowSharePanel] = useState(false);
+  // showSharePanel reserved for future share panel feature
+  // const [showSharePanel, setShowSharePanel] = useState(false);
   const bestMomentsRef = useRef<{ type: string; value: number; timestamp: number }[]>([]);
 
-  // Sound hooks - legacy Howler sounds
-  const { playBlockLand, playPerfectBonus, playCombo, playGameOver: playGameOverLegacy, playClick, setMuted: setMutedHowler } = useHowlerSounds();
+  // Hide instruction after 15 seconds of gameplay
+  const [showInstruction, setShowInstruction] = useState(true);
+  const instructionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Game over screen states
+  const [, setSadImage] = useState<string | null>(null);
+  const [gameScreenshot, setGameScreenshot] = useState<string | null>(null);
+  // showLeaderboardPanel now handled by ArcadeGameOverScreen component
+  // const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
+  const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
+  const [highScore, setHighScore] = useState(() => {
+    return parseInt(localStorage.getItem('colorReactionHighScore') || '0', 10);
+  });
+
+  // Sound hooks - legacy Howler sounds (most replaced by Color Reaction procedural sounds)
+  const { setMuted: setMutedHowler } = useHowlerSounds();
 
   // Color Reaction procedural sounds (Web Audio API)
   const {
@@ -160,8 +275,10 @@ const ColorReaction: React.FC = () => {
     playGameOver: playCRGameOver,
     playPerfect: playCRPerfect,
     playStreakMilestone: playCRStreakMilestone,
-    playSpeedUp: playCRSpeedUp,
+    // playSpeedUp reserved for speed increase notifications
+    // playSpeedUp: playCRSpeedUp,
     playTimeDilation: playCRTimeDilation,
+    playGameStart: playCRGameStart,
     setMuted: setMutedCR,
   } = useColorReactionSounds();
 
@@ -171,16 +288,30 @@ const ColorReaction: React.FC = () => {
     setMutedCR(muted);
   }, [setMutedHowler, setMutedCR]);
 
+  // Sync with arcade frame mute button (from GameMuteContext)
+  useEffect(() => {
+    // Only sync if NOT managed externally (meaning this game controls its own music)
+    if (!musicManagedExternally) {
+      // Arcade mute button changed - sync local state
+      setIsMuted(arcadeMuted);
+      setMuted(arcadeMuted);
+      // Also directly pause/resume music for immediate feedback
+      if (arcadeMuted) {
+        if (musicAudioRef.current) {
+          musicAudioRef.current.pause();
+        }
+      } else if (gameStatusRefForMusic.current === 'playing') {
+        if (musicAudioRef.current) {
+          musicAudioRef.current.play().catch(() => {});
+        }
+      }
+    }
+  }, [arcadeMuted, musicManagedExternally, setMuted]);
+
   // Haptic hooks - Color Reaction specific patterns
   const {
-    hapticScore,
-    hapticCombo,
-    hapticHighScore,
+    // Generic haptics (most replaced by Color Reaction specific patterns)
     hapticGameOver,
-    hapticError,
-    hapticWarning,
-    hapticSuccess,
-    hapticUrgencyTick,
     // Color Reaction specific
     hapticCRTap,
     hapticCRPerfect,
@@ -201,7 +332,7 @@ const ColorReaction: React.FC = () => {
   } = useGameHaptics();
 
   // Leaderboard hooks
-  const { submitScore, isSignedIn } = useLeaderboard('color-reaction');
+  const { submitScore, isSignedIn, leaderboard: globalLeaderboard, userDisplayName, isSubmitting } = useLeaderboard('color-reaction');
 
   // Universal visual effects system
   const {
@@ -221,6 +352,7 @@ const ColorReaction: React.FC = () => {
   const matchWindowTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxStreakRef = useRef(0);
+  const gameAreaRef = useRef<HTMLDivElement>(null);
   const gameStartTimeRef = useRef<number>(0);
   const lastTapTimeRef = useRef<number>(0);
 
@@ -230,6 +362,21 @@ const ColorReaction: React.FC = () => {
   const playerColorRef = useRef(1);
   const roundStartTimeRef = useRef<number | null>(null);
   const gameStatusRef = useRef<'idle' | 'playing' | 'gameover'>('idle');
+
+  // Round ID to prevent stale timeouts from causing life loss
+  const currentRoundIdRef = useRef(0);
+
+  // CRITICAL: Simple flag to track if current match has been handled (by tap or timeout)
+  // This prevents ALL race conditions - only one handler can process each match
+  const matchHandledRef = useRef(true); // Start as true (no active match)
+
+  // Prevent double-tap from mobile firing both touchstart and click
+  const lastWrongTapTimeRef = useRef(0);
+  const WRONG_TAP_COOLDOWN_MS = 400; // Prevent double wrong tap penalty
+
+  // CRITICAL: Prevent losing more than 1 life per 500ms no matter what
+  const lastLifeLostTimeRef = useRef(0);
+  const LIFE_LOSS_COOLDOWN_MS = 500;
 
   const displaySize = isMobile ? 150 : 180;
 
@@ -258,6 +405,27 @@ const ColorReaction: React.FC = () => {
       maxStreakRef.current = gameState.streak;
     }
   }, [gameState.streak]);
+
+  // Hide instruction after 15 seconds of gameplay
+  useEffect(() => {
+    if (gameState.status === 'playing' && showInstruction) {
+      // Start 15-second timer to hide instruction
+      instructionTimerRef.current = setTimeout(() => {
+        setShowInstruction(false);
+      }, 15000);
+    } else if (gameState.status === 'idle') {
+      // Reset when game returns to idle
+      setShowInstruction(true);
+      if (instructionTimerRef.current) {
+        clearTimeout(instructionTimerRef.current);
+      }
+    }
+    return () => {
+      if (instructionTimerRef.current) {
+        clearTimeout(instructionTimerRef.current);
+      }
+    };
+  }, [gameState.status, showInstruction]);
 
   // Keep refs in sync with state (for immediate access in event handlers)
   useEffect(() => {
@@ -317,7 +485,6 @@ const ColorReaction: React.FC = () => {
   const startMatchCountdown = useCallback(() => {
     setMatchProgress(100);
     setUrgencyLevel('normal');
-    setRemainingTimeMs(null);
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
 
     // TASK 16: Match window start sound - "Colors match! TAP!"
@@ -345,12 +512,13 @@ const ColorReaction: React.FC = () => {
         setUrgencyLevel('normal');
       }
 
-      // TASK 36: Show remaining time in final 500ms
-      if (remainingMs <= 500 && remainingMs > 0) {
-        setRemainingTimeMs(Math.round(remainingMs));
-      } else {
-        setRemainingTimeMs(null);
-      }
+      // REMOVED: Countdown milliseconds display was confusing users
+      // They thought it was reaction time. The countdown ring is enough visual feedback.
+      // if (remainingMs <= 500 && remainingMs > 0) {
+      //   setRemainingTimeMs(Math.round(remainingMs));
+      // } else {
+      //   setRemainingTimeMs(null);
+      // }
 
       // TASK 8 & 18: Countdown warning haptic + sound at 750ms
       if (!warningTriggered && lastRemainingMs > 750 && remainingMs <= 750) {
@@ -383,13 +551,15 @@ const ColorReaction: React.FC = () => {
       if (remaining <= 0) {
         if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
         setUrgencyLevel('normal');
-        setRemainingTimeMs(null);
       }
-    }, 30);
+    }, 50); // Optimized: 50ms interval (20fps) is smooth enough for progress bar
   }, [hapticCRCountdownWarning, hapticCRCountdownCritical, hapticCRCountdownTick, playCRMatchStart, playCRCountdownWarning, playCRCountdownCritical, playCRCountdownTick]);
 
   // Start a new round
   const startNewRound = useCallback(() => {
+    // CRITICAL: Increment round ID to invalidate any stale timeouts from previous round
+    currentRoundIdRef.current += 1;
+
     // Clear existing timers
     if (roundTimeoutRef.current) clearTimeout(roundTimeoutRef.current);
     if (matchWindowTimeoutRef.current) clearTimeout(matchWindowTimeoutRef.current);
@@ -421,7 +591,9 @@ const ColorReaction: React.FC = () => {
 
         const isMatch = newTargetColor === prev.playerColor;
 
-        // Update refs IMMEDIATELY for tap handler
+        // Update ALL refs IMMEDIATELY for tap handler
+        // CRITICAL: Must sync playerColorRef with state - it changes after correct taps!
+        playerColorRef.current = prev.playerColor;
         targetColorRef.current = newTargetColor;
         isMatchWindowRef.current = isMatch;
         roundStartTimeRef.current = isMatch ? now : null;
@@ -434,31 +606,78 @@ const ColorReaction: React.FC = () => {
         });
 
         if (isMatch) {
+          // CRITICAL: Reset the match handled flag - this match is now active
+          matchHandledRef.current = false;
+
+          // Increment round ID to invalidate any stale timeouts
+          currentRoundIdRef.current += 1;
+          const thisRoundId = currentRoundIdRef.current;
+
           // Start countdown animation
           startMatchCountdown();
 
-          // End match window after duration (but don't penalize - just move on)
+          // End match window after duration - LOSE A LIFE for not tapping in time
+          // Add 200ms buffer to ensure visual countdown reaches 0 before penalty
           matchWindowTimeoutRef.current = setTimeout(() => {
-            isMatchWindowRef.current = false; // Update ref immediately
-            // TASK 83: Track when window ended for near-miss detection
+            // FIRST CHECK: Has this match already been handled by a tap?
+            // This is the PRIMARY guard against race conditions
+            if (matchHandledRef.current) {
+              console.log('[ColorReaction] Timeout ignored - match already handled by tap');
+              return;
+            }
+
+            // SECONDARY CHECK: Round ID (prevents stale timeouts from old rounds)
+            if (thisRoundId !== currentRoundIdRef.current) {
+              console.log('[ColorReaction] Stale timeout ignored (round ID mismatch)');
+              return;
+            }
+
+            // Mark as handled IMMEDIATELY to prevent any race with tap handler
+            matchHandledRef.current = true;
+            isMatchWindowRef.current = false;
             matchWindowEndTimeRef.current = performance.now();
-            // TASK 6: Miss haptic when match window expires without tap
+
+            // Match window expired - LOSE A LIFE for being too slow
+            console.log('[ColorReaction] Match window expired - losing a life!');
+
+            // CRITICAL: Prevent losing more than 1 life per 500ms
+            const timeoutNow = performance.now();
+            if (timeoutNow - lastLifeLostTimeRef.current < LIFE_LOSS_COOLDOWN_MS) {
+              console.log('[ColorReaction] Timeout life loss blocked - cooldown active');
+              return;
+            }
+            lastLifeLostTimeRef.current = timeoutNow;
+
+            // Play feedback
             hapticCRMiss();
-            // TASK 15: Miss sound - whooshing fade when window expires
             playCRMiss();
-            // TASK 78: Floating clock on miss
             setFloatingClock(true);
             setTimeout(() => setFloatingClock(false), 800);
+
             setGameState((p) => {
-              if (p.isMatchWindow) {
-                // Match window expired, start next round
-                console.log('[ColorReaction] Match window expired - no penalty');
-                setTimeout(() => startNewRound(), 100);
-                return { ...p, isMatchWindow: false };
+              // Final safety check - should always pass since we checked matchHandledRef above
+              if (!p.isMatchWindow) {
+                console.log('[ColorReaction] Timeout setGameState: window already closed in state');
+                return p;
               }
-              return p;
+
+              const newLives = p.lives - 1;
+
+              if (newLives <= 0) {
+                gameStatusRef.current = 'gameover';
+                // Stop background music immediately on death
+                if (musicAudioRef.current) {
+                  musicAudioRef.current.pause();
+                  musicAudioRef.current = null;
+                }
+                return { ...p, status: 'gameover', lives: 0, streak: 0, isMatchWindow: false };
+              }
+
+              // Start next round after brief delay
+              setTimeout(() => startNewRound(), 300);
+              return { ...p, lives: newLives, streak: 0, isMatchWindow: false };
             });
-          }, MATCH_WINDOW_MS);
+          }, MATCH_WINDOW_MS + 200); // +200ms buffer for visual sync
         } else {
           // No match, schedule next round
           setTimeout(() => startNewRound(), getCycleSpeed(prev.score) * 0.5);
@@ -485,9 +704,11 @@ const ColorReaction: React.FC = () => {
       const multiplier = newStreak >= 20 ? 4 : newStreak >= 10 ? 3 : newStreak >= 5 ? 2 : 1;
       const actualPoints = points * multiplier;
 
-      // TASK 71: Show rating-colored floating score
-      setCurrentRating(rating);
-      setTimeout(() => setCurrentRating(null), 800);
+      // TASK 71: Show rating for non-PERFECT taps (PERFECT is shown via showReactionTime)
+      if (rating !== 'PERFECT') {
+        setCurrentRating(rating);
+        setTimeout(() => setCurrentRating(null), 800);
+      }
       showFloatingScore(`+${actualPoints}${multiplier > 1 ? ` x${multiplier}` : ''}`, 'correct');
 
       // TASK 70: Score pop effect
@@ -587,8 +808,9 @@ const ColorReaction: React.FC = () => {
       }
 
       if (rating === 'PERFECT') {
-        // TASK 43: PERFECT callout (enhanced)
-        showEpicCallout('PERFECT!');
+        // REMOVED: epicCallout('PERFECT!') - showReactionTime already displays "XXXms PERFECT!"
+        // Having both was redundant and confusing
+
         // TASK 42: Major particle burst for PERFECT
         triggerShockwave('#FFD700', 1.0); // Larger gold shockwave
         triggerSparks('#FFD700'); // Gold sparks
@@ -734,6 +956,10 @@ const ColorReaction: React.FC = () => {
       const newPlayerColor = Math.floor(Math.random() * COLORS.length);
       playerColorRef.current = newPlayerColor;
       gameStatusRef.current = 'playing';
+
+      // Play game start sound
+      playCRGameStart();
+
       setGameState({
         ...initialGameState,
         status: 'playing',
@@ -741,6 +967,11 @@ const ColorReaction: React.FC = () => {
         lastColorChangeTime: now,
       });
       maxStreakRef.current = 0;
+      // Start music on user gesture (required for mobile browsers)
+      // Skip if GameModal manages the music (check both ref AND context for timing safety)
+      if (!musicAudioRef.current && !musicManagedExternallyRef.current && !musicManagedExternally) {
+        playNextMusicTrack();
+      }
       startNewRound();
       return;
     }
@@ -755,22 +986,50 @@ const ColorReaction: React.FC = () => {
 
     const colorsMatch = currentTargetColor === currentPlayerColor;
 
-    if (colorsMatch && currentIsMatchWindow) {
-      // CORRECT TAP - colors match and window is open
-      const reactionTime = now - currentRoundStartTime!;
+    // Calculate elapsed time for scoring
+    // SAFEGUARD: If roundStartTime is not set, use 500ms (GOOD rating) instead of 0 (PERFECT)
+    // This prevents false "PERFECT" ratings when timing data is missing
+    const actualElapsed = currentRoundStartTime ? now - currentRoundStartTime : 500;
+
+    // NEW SIMPLIFIED LOGIC using matchHandledRef:
+    // - If match window is open AND not yet handled → CORRECT TAP (regardless of color check)
+    // - If colors match AND match already handled → LATE TAP (ignore)
+    // - If colors don't match AND window not open → WRONG TAP
+    const matchNotHandled = !matchHandledRef.current;
+
+    // SAFEGUARD: If match window is open, treat as correct tap even if refs seem mismatched
+    // This prevents unfair life loss due to ref/visual desync
+    const isCorrectTap = currentIsMatchWindow && matchNotHandled;
+
+    console.log('[ColorReaction] Tap check:', {
+      colorsMatch,
+      isMatchWindowRef: currentIsMatchWindow,
+      matchHandled: matchHandledRef.current,
+      actualElapsed: Math.round(actualElapsed),
+      isCorrectTap,
+    });
+
+    if (isCorrectTap) {
+      // CORRECT TAP - window is open and not yet handled
+      // IMMEDIATELY mark as handled to prevent timeout from also processing
+      matchHandledRef.current = true;
+
+      // Use actualElapsed for reaction time (with 500ms safeguard fallback)
+      const reactionTime = actualElapsed;
       const { points, rating } = calculateScore(reactionTime);
 
       console.log('[ColorReaction] CORRECT TAP!', { reactionTime, points, rating });
+
+      // Increment round ID to invalidate any pending timeout
+      currentRoundIdRef.current += 1;
 
       // Clear match window timer
       if (matchWindowTimeoutRef.current) clearTimeout(matchWindowTimeoutRef.current);
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
       setMatchProgress(0);
 
-      // Update refs immediately
+      // Update refs
       isMatchWindowRef.current = false;
-      const newPlayerColor = Math.floor(Math.random() * COLORS.length);
-      playerColorRef.current = newPlayerColor;
 
       // Calculate multiplier
       const newStreak = gameState.streak + 1;
@@ -782,13 +1041,11 @@ const ColorReaction: React.FC = () => {
         const newScore = prev.score + actualPoints;
         const newBestTime = Math.min(prev.bestReactionTime, reactionTime);
 
-        // TASK 67: Check for high score beat
-        if (newScore > sessionHighScore) {
-          setSessionHighScore(newScore);
-          if (sessionHighScore > 0 && newScore > sessionHighScore) {
-            setHighScoreBeat(true);
-            setTimeout(() => setHighScoreBeat(false), 1500);
-          }
+        // TASK 67: Check for high score beat - only show ONCE when first beating the stored high score
+        // Not on every subsequent point while already above high score
+        if (newScore > highScore && prev.score <= highScore) {
+          setHighScoreBeat(true);
+          setTimeout(() => setHighScoreBeat(false), 1500);
         }
 
         // TASK 69: Check for best reaction time beat
@@ -797,13 +1054,23 @@ const ColorReaction: React.FC = () => {
           setTimeout(() => setBestTimeBeat(false), 1500);
         }
 
+        // Change player color visually to create a clear break between rounds
+        // This makes it obvious when a new match starts
+        let newPlayerColor = prev.playerColor;
+        do {
+          newPlayerColor = Math.floor(Math.random() * COLORS.length);
+        } while (newPlayerColor === prev.targetColor); // Ensure visually non-matching
+
+        // CRITICAL: Update ref to match state so wrong tap detection works correctly
+        playerColorRef.current = newPlayerColor;
+
         return {
           ...prev,
           score: newScore,
           streak: updatedStreak,
           bestReactionTime: newBestTime,
           isMatchWindow: false,
-          playerColor: newPlayerColor,
+          playerColor: newPlayerColor, // Visual break - shows non-matching colors
           lastColorChangeTime: now,
         };
       });
@@ -813,45 +1080,73 @@ const ColorReaction: React.FC = () => {
       // Clear round timer and start fresh
       if (roundTimeoutRef.current) clearTimeout(roundTimeoutRef.current);
       setTimeout(() => startNewRound(), 400);
-    } else if (colorsMatch && !currentIsMatchWindow) {
-      // LATE TAP - colors match but window expired
-      // TASK 83: Near-miss detection - check if tap was 0-200ms after window
-      const windowEndTime = matchWindowEndTimeRef.current;
-      if (windowEndTime) {
-        const delayMs = now - windowEndTime;
-        if (delayMs <= 200) {
-          // TASK 84 & 86: Near-miss detected! Show encouraging message
-          const messages = ['TOO SLOW!', 'ALMOST!', 'SO CLOSE!', 'JUST MISSED!'];
-          const message = messages[Math.floor(Math.random() * messages.length)];
-          setNearMissCallout(message);
-          setNearMissDelay(Math.round(delayMs));
-          setTimeout(() => {
-            setNearMissCallout(null);
-            setNearMissDelay(null);
-          }, 1200);
-          // TASK 89: Near-miss haptic (softer than wrong, already have gentle warning)
-          hapticWarning();
-          console.log(`[ColorReaction] Near-miss! Delay: ${delayMs}ms`);
-          // Clear the ref so we don't trigger again
-          matchWindowEndTimeRef.current = null;
-        } else {
-          console.log('[ColorReaction] Late tap - too late for near-miss');
-        }
-      }
-      return;
     } else {
-      // WRONG TAP - colors DON'T match, player tapped anyway
-      // This is the ONLY case where we lose a life
+      // Not a correct tap - check why
+
+      // If match was already handled (we just scored), ignore until next round
+      // This prevents double-tap from causing wrong tap after correct tap
+      if (matchHandledRef.current) {
+        console.log('[ColorReaction] Tap ignored - waiting for next round');
+        return;
+      }
+
+      // Check if colors match using refs
+      const colorsMatchRef = targetColorRef.current === playerColorRef.current;
+
+      if (colorsMatchRef) {
+        // Colors match but something else is wrong - ignore
+        console.log('[ColorReaction] Tap ignored - colors match but window issue');
+        return;
+      }
+
+      // WRONG TAP - colors don't match, user tapped when they shouldn't have
+
+      // Prevent double wrong tap (mobile can fire touchstart + click)
+      if (now - lastWrongTapTimeRef.current < WRONG_TAP_COOLDOWN_MS) {
+        console.log('[ColorReaction] Ignoring duplicate wrong tap');
+        return;
+      }
+      lastWrongTapTimeRef.current = now;
+
       console.log('[ColorReaction] WRONG TAP! Colors do not match.', {
-        target: currentTargetColor,
-        player: currentPlayerColor,
+        target: targetColorRef.current,
+        player: playerColorRef.current,
       });
+
+      // CRITICAL: Prevent losing more than 1 life per 500ms
+      const now2 = performance.now();
+      if (now2 - lastLifeLostTimeRef.current < LIFE_LOSS_COOLDOWN_MS) {
+        console.log('[ColorReaction] Life loss blocked - cooldown active');
+        return;
+      }
+      lastLifeLostTimeRef.current = now2;
+
+      // Capture screenshot before game over if this is the last life
+      if (gameState.lives <= 1 && gameAreaRef.current) {
+        setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
+        const currentHighScore = highScore;
+        if (gameState.score > currentHighScore) {
+          setIsNewPersonalBest(true);
+          setHighScore(gameState.score);
+          localStorage.setItem('colorReactionHighScore', String(gameState.score));
+        } else {
+          setIsNewPersonalBest(false);
+        }
+        captureGameArea(gameAreaRef.current).then(screenshot => {
+          if (screenshot) setGameScreenshot(screenshot);
+        });
+      }
+
       setGameState((prev) => {
         const newLives = prev.lives - 1;
         console.log(`[ColorReaction] Lives: ${prev.lives} -> ${newLives}`);
 
         if (newLives <= 0) {
           gameStatusRef.current = 'gameover';
+          if (musicAudioRef.current) {
+            musicAudioRef.current.pause();
+            musicAudioRef.current = null;
+          }
           if (isSignedIn) {
             submitScore(prev.score, undefined, {
               bestReactionTime: prev.bestReactionTime === Infinity ? null : Math.round(prev.bestReactionTime),
@@ -863,7 +1158,7 @@ const ColorReaction: React.FC = () => {
         return { ...prev, lives: newLives, streak: 0 };
       });
     }
-  }, [startNewRound, handleCorrectTap, isSignedIn, submitScore, gameState.streak, hapticCRTap]);
+  }, [startNewRound, handleCorrectTap, gameState.streak, gameState.lives, gameState.score, highScore, isSignedIn, submitScore, hapticCRTap, musicManagedExternally, playNextMusicTrack]);
 
   // Handle game restart - TASK 82: Retry animation (smooth transition)
   const handleRestart = useCallback((e?: React.MouseEvent) => {
@@ -896,8 +1191,56 @@ const ColorReaction: React.FC = () => {
       lastColorChangeTime: now,
     });
     maxStreakRef.current = 0;
+    // Start music on user gesture (required for mobile browsers)
+    // Skip if GameModal manages the music (check both ref AND context for timing safety)
+    if (!musicAudioRef.current && !musicManagedExternallyRef.current && !musicManagedExternally) {
+      playNextMusicTrack();
+    }
     startNewRound();
-  }, [startNewRound, resetAllEffects]);
+  }, [startNewRound, resetAllEffects, playNextMusicTrack, musicManagedExternally]);
+
+  // Share handler for game over scorecard
+  const handleShare = useCallback(async () => {
+    try {
+      const blob = await generateGameScorecard({
+        gameName: 'Color Reaction',
+        gameNameParts: ['COLOR', 'REACTION'],
+        score: gameState.score,
+        scoreLabel: 'points',
+        bestScore: highScore,
+        isNewRecord: isNewPersonalBest,
+        screenshot: gameScreenshot,
+        accentColor: '#ff6b00', // Orange accent
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `color-reaction-${gameState.score}.png`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      if (navigator.share && navigator.canShare) {
+        const file = new File([blob], 'color-reaction-score.png', { type: 'image/png' });
+        const shareData = {
+          title: 'Color Reaction Score',
+          text: `🎨 I scored ${gameState.score} points in Color Reaction! Can you beat me?`,
+          files: [file],
+        };
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to generate share image:', err);
+      const shareText = `🎨 Color Reaction: ${gameState.score} points!\n\nCan you beat my score?\n\nhttps://wojak.ink/games`;
+      if (navigator.share) {
+        await navigator.share({ title: 'Color Reaction', text: shareText });
+      } else {
+        await navigator.clipboard.writeText(shareText);
+      }
+    }
+  }, [gameState.score, highScore, isNewPersonalBest, gameScreenshot]);
 
   // Render lives as hearts
   const renderLives = () => (
@@ -940,17 +1283,7 @@ const ColorReaction: React.FC = () => {
           {/* Universal Game Effects Layer */}
           <GameEffects effects={effects} accentColor={COLORS[gameState.playerColor]?.hex || '#FF6B00'} />
 
-          {/* Mute Button */}
-          <button
-            className="mute-button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsMuted(!isMuted);
-              setMuted(!isMuted);
-            }}
-          >
-            {isMuted ? '🔇' : '🔊'}
-          </button>
+          {/* Mute button removed - arcade frame handles muting via GameMuteContext */}
 
           {/* Stats Panel */}
           <div className="stats-panel">
@@ -992,7 +1325,7 @@ const ColorReaction: React.FC = () => {
           )}
 
           {/* Game Area */}
-          <div className="game-area">
+          <div className="game-area" ref={gameAreaRef}>
             {/* TASK 48: Connection line between circles on PERFECT */}
             {showConnectionLine && (
               <div className="connection-line" />
@@ -1054,24 +1387,23 @@ const ColorReaction: React.FC = () => {
                 >
                   <span className="color-emoji">{COLORS[gameState.playerColor].emoji}</span>
                 </div>
-                {/* TASK 36: Remaining time display in final 500ms */}
-                {remainingTimeMs !== null && (
-                  <div className={`remaining-time urgency-${urgencyLevel}`}>
-                    {remainingTimeMs}ms
-                  </div>
-                )}
+                {/* REMOVED: Countdown milliseconds display was confusing users */}
+              {/* They thought it was reaction time. The countdown ring is enough visual feedback. */}
               </div>
             </div>
           </div>
 
           {/* Tap Instruction - TASK 32: Text urgency with pulsing and color */}
-          <div className={`tap-instruction ${gameState.isMatchWindow ? `urgency-${urgencyLevel}` : ''}`}>
-            {gameState.status === 'idle' && <span>TAP TO START</span>}
-            {gameState.status === 'playing' && !gameState.isMatchWindow && <span>WAIT FOR MATCH...</span>}
-            {gameState.status === 'playing' && gameState.isMatchWindow && (
-              <span className={`tap-now urgency-${urgencyLevel}`}>TAP NOW!</span>
-            )}
-          </div>
+          {/* Tap Instruction - hidden after 15 seconds of gameplay */}
+          {(gameState.status === 'idle' || showInstruction) && (
+            <div className={`tap-instruction ${gameState.isMatchWindow ? `urgency-${urgencyLevel}` : ''}`}>
+              {gameState.status === 'idle' && <span>TAP TO START</span>}
+              {gameState.status === 'playing' && !gameState.isMatchWindow && <span>WAIT FOR MATCH...</span>}
+              {gameState.status === 'playing' && gameState.isMatchWindow && (
+                <span className={`tap-now urgency-${urgencyLevel}`}>TAP NOW!</span>
+              )}
+            </div>
+          )}
 
           {/* Lives Warning */}
           {livesWarning && <div className="lives-warning">{livesWarning}</div>}
@@ -1133,61 +1465,21 @@ const ColorReaction: React.FC = () => {
             <div className="floating-icon floating-clock">⏰</div>
           )}
 
-          {/* Game Over Overlay - TASK 75: Game over sequence */}
+          {/* Game Over - Uses shared component */}
           {gameState.status === 'gameover' && (
-            <div className={`gameover-overlay ${lastLifeWarning ? 'from-danger' : ''}`}>
-              <h2 className="gameover-title">GAME OVER</h2>
-              <div className="final-score">{gameState.score}</div>
-              {/* TASK 76: Animated stats reveal */}
-              {showGameOverStats && (
-                <div className="stats-summary stats-reveal">
-                  <div className="stat-item">
-                    <span className="stat-icon">⚡</span>
-                    Best Time: {gameState.bestReactionTime === Infinity ? '--' : `${Math.round(gameState.bestReactionTime)}ms`}
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-icon">🔥</span>
-                    Max Streak: {maxStreakRef.current}
-                  </div>
-                </div>
-              )}
-              {!isSignedIn && showGameOverStats && <p className="sign-in-prompt">Sign in to save your score!</p>}
-              {/* TASK 113: Share button UI */}
-              {showGameOverStats && (
-                <button
-                  className="share-btn bounce-in"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // TASK 113: Native share API or clipboard
-                    const shareText = `🍊 Color Reaction Score: ${gameState.score}\n⚡ Best Time: ${gameState.bestReactionTime === Infinity ? '--' : Math.round(gameState.bestReactionTime) + 'ms'}\n🔥 Max Streak: ${maxStreakRef.current}\n\nPlay at wojak.ink`;
-                    if (navigator.share) {
-                      navigator.share({ title: 'Color Reaction Score', text: shareText });
-                    } else {
-                      navigator.clipboard.writeText(shareText);
-                      setShowSharePanel(true);
-                      setTimeout(() => setShowSharePanel(false), 2000);
-                    }
-                  }}
-                  onTouchStart={(e) => e.stopPropagation()}
-                >
-                  📤 Share Score
-                </button>
-              )}
-              {/* Share copied notification */}
-              {showSharePanel && (
-                <div className="share-copied">Copied to clipboard!</div>
-              )}
-              {/* TASK 80 & 81: Play again button with delay and animation */}
-              {showPlayAgain && (
-                <button
-                  className="play-again-btn bounce-in"
-                  onClick={handleRestart}
-                  onTouchStart={(e) => e.stopPropagation()}
-                >
-                  Play Again
-                </button>
-              )}
-            </div>
+            <ArcadeGameOverScreen
+              score={gameState.score}
+              highScore={highScore}
+              scoreLabel="points"
+              isNewPersonalBest={isNewPersonalBest}
+              isSignedIn={isSignedIn}
+              isSubmitting={isSubmitting}
+              userDisplayName={userDisplayName ?? undefined}
+              leaderboard={globalLeaderboard}
+              onPlayAgain={handleRestart}
+              onShare={handleShare}
+              accentColor="#ff6b00"
+            />
           )}
         </div>
       </IonContent>

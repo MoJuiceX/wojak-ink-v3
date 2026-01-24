@@ -1,8 +1,7 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IonIcon } from '@ionic/react';
-import { arrowBack, volumeHigh, volumeMute, pause, play } from 'ionicons/icons';
+import { arrowBack, pause, play } from 'ionicons/icons';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
@@ -11,376 +10,78 @@ import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { GameSEO } from '@/components/seo/GameSEO';
+import { useGameMute } from '@/contexts/GameMuteContext';
+import { captureGameArea } from '@/systems/sharing/captureDOM';
+import { generateGameScorecard } from '@/systems/sharing/GameScorecard';
+import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
+import { GameButton } from '@/components/ui/GameButton';
+import {
+  FREEZE_DURATIONS,
+  SHAKE_CONFIG,
+  CLEAR_CALLOUTS,
+  DANGER_THRESHOLDS,
+  DANGER_HAPTIC_INTERVALS,
+  STREAK_CONFIG,
+  PERFECT_CLEAR_BONUS,
+  MUSIC_PLAYLIST,
+  type DangerLevel,
+} from './games/block-puzzle/config';
+import {
+  playComboNote as playComboNoteSound,
+  playLineClearSound as playLineClearSoundFn,
+  playSpawnSound as playSpawnSoundFn,
+  playSnapSound as playSnapSoundFn,
+  playInvalidSound as playInvalidSoundFn,
+  playComboBreakSound as playComboBreakSoundFn,
+  startDangerSound as startDangerSoundFn,
+  stopDangerSound as stopDangerSoundFn,
+  playPerfectClearSound as playPerfectClearSoundFn,
+  playStreakFireSound as playStreakFireSoundFn,
+  type DangerSoundState,
+} from './games/block-puzzle/sounds';
+import {
+  triggerLineClearHaptic,
+  triggerSnapHaptic,
+  triggerInvalidHaptic,
+  triggerDragStartHaptic,
+  triggerPerfectClearHaptic,
+  triggerDangerPulse,
+  triggerStreakFireHaptic,
+} from './games/block-puzzle/haptics';
+import {
+  createLineClearBurstParticles,
+  createPlacementParticles as createPlacementParticlesFn,
+  createPerfectClearParticles,
+  createTrailParticle,
+  createShockwave,
+  updateClearParticles,
+  updateTrailParticles,
+  updateShockwaves,
+} from './games/block-puzzle/effects';
+import type {
+  ClearParticle,
+  TrailParticle,
+  Shockwave,
+  StreakState,
+  Grid,
+  DraggablePiece,
+} from './games/block-puzzle/types';
+import {
+  createEmptyGrid,
+  generateRandomPiece,
+  generateThreePieces,
+  canPlacePiece,
+  canPlaceAnywhere,
+  placePiece,
+  clearLines,
+  isGameOver,
+  getPreviewCells,
+  countFilledCells,
+  checkPerfectClear,
+  countValidMoves,
+  decodeChallenge,
+} from './games/block-puzzle/game-logic';
 import './BlockPuzzle.css';
-
-// ============================================
-// BLOCK SHAPES
-// ============================================
-const BLOCK_SHAPES: Record<string, number[][]> = {
-  // Singles and lines
-  single: [[1]],
-  line2h: [[1, 1]],
-  line3h: [[1, 1, 1]],
-  line4h: [[1, 1, 1, 1]],
-  line5h: [[1, 1, 1, 1, 1]],
-  line2v: [[1], [1]],
-  line3v: [[1], [1], [1]],
-  line4v: [[1], [1], [1], [1]],
-
-  // Squares
-  square2: [[1, 1], [1, 1]],
-  square3: [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
-
-  // L shapes
-  lShape1: [[1, 0], [1, 0], [1, 1]],
-  lShape2: [[0, 1], [0, 1], [1, 1]],
-  lShape3: [[1, 1], [1, 0], [1, 0]],
-  lShape4: [[1, 1], [0, 1], [0, 1]],
-
-  // T shape
-  tShape: [[1, 1, 1], [0, 1, 0]],
-
-  // Corner
-  corner: [[1, 1], [1, 0]],
-};
-
-const SHAPE_KEYS = Object.keys(BLOCK_SHAPES);
-
-// Block colors - distinct and vibrant palette
-const BLOCK_COLORS = [
-  'linear-gradient(135deg, #ff7b00, #e65c00)',  // Orange (brand)
-  'linear-gradient(135deg, #00d68f, #00b377)',  // Bright green/teal
-  'linear-gradient(135deg, #a855f7, #7c3aed)',  // Purple
-  'linear-gradient(135deg, #3b82f6, #2563eb)',  // Blue
-  'linear-gradient(135deg, #f43f5e, #e11d48)',  // Pink/rose
-  'linear-gradient(135deg, #fbbf24, #f59e0b)',  // Yellow/gold
-];
-
-// ============================================
-// PHASE 3: EXPLOSIVE LINE CLEARS CONFIG
-// ============================================
-
-// TASK 28: Freeze frame durations by line count
-const FREEZE_DURATIONS: Record<number, number> = {
-  1: 0,      // No freeze for single line
-  2: 50,     // Brief pause for double
-  3: 80,     // Longer for triple
-  4: 120,    // Maximum for quad+
-};
-
-// TASK 36: Enhanced shake config by line count
-const SHAKE_CONFIG: Record<number, { intensity: number; duration: number; rotation: number }> = {
-  1: { intensity: 3, duration: 150, rotation: 0 },
-  2: { intensity: 6, duration: 250, rotation: 1 },
-  3: { intensity: 10, duration: 350, rotation: 2 },
-  4: { intensity: 15, duration: 450, rotation: 3 },
-};
-
-// TASK 42: Clear callout messages
-const CLEAR_CALLOUTS: Record<number, string> = {
-  2: 'DOUBLE!',
-  3: 'TRIPLE!',
-  4: 'QUAD CLEAR!',
-  5: 'MEGA CLEAR!',
-};
-
-// ============================================
-// PHASE 1: SOUND FOUNDATION CONFIG
-// ============================================
-
-// TASK 1: Musical scale frequencies for combo escalation (C Major)
-const COMBO_SCALE_FREQUENCIES = [
-  261.63, // C4 - Do (combo 1)
-  293.66, // D4 - Re (combo 2)
-  329.63, // E4 - Mi (combo 3)
-  349.23, // F4 - Fa (combo 4)
-  392.00, // G4 - Sol (combo 5+)
-];
-
-const COMBO_SOUND_CONFIG: Record<number, { note: number; volume: number; layers: number }> = {
-  1: { note: 0, volume: 0.4, layers: 1 },
-  2: { note: 1, volume: 0.45, layers: 1 },
-  3: { note: 2, volume: 0.5, layers: 2 },  // Add sparkle
-  4: { note: 3, volume: 0.55, layers: 2 },
-  5: { note: 4, volume: 0.6, layers: 3 },  // Add bass
-};
-
-// TASK 3: Line clear sound configuration
-const LINE_CLEAR_SOUNDS: Record<number, { pitch: number; volume: number; duration: number }> = {
-  1: { pitch: 1.0, volume: 0.4, duration: 200 },
-  2: { pitch: 1.15, volume: 0.5, duration: 250 },
-  3: { pitch: 1.3, volume: 0.6, duration: 300 },
-  4: { pitch: 1.45, volume: 0.7, duration: 400 },
-};
-
-// ============================================
-// PHASE 2: PREMIUM HAPTICS CONFIG
-// ============================================
-
-// TASK 17: Haptic vibration patterns (duration in ms)
-const HAPTIC_PATTERNS = {
-  dragStart: [5],                              // Ultra-light tick
-  snapLock: [15, 30, 15],                      // Double-tap confirmation
-  lineClear1: [20],                            // Single line - short pulse
-  lineClear2: [20, 20, 25],                    // Double line - rhythmic
-  lineClear3: [25, 20, 30, 20, 35],            // Triple line - building
-  lineClear4: [30, 20, 35, 20, 40, 20, 50],    // Quad+ EXPLOSION
-  invalidPlacement: [10, 50, 10],              // Error double-tap
-  comboHit: [15, 15, 20],                      // Combo confirmation
-  perfectClear: [20, 30, 25, 30, 30, 30, 40, 30, 50], // Celebration crescendo
-  dangerPulse: [8],                            // Subtle warning heartbeat
-  streakFire: [15, 20, 25, 30],                // Ignition pattern
-};
-
-// ============================================
-// PHASE 6: DANGER STATE CONFIG
-// ============================================
-
-// TASK 69: Danger thresholds based on percentage of filled cells
-const DANGER_THRESHOLDS = {
-  safe: 0.55,      // < 55% filled
-  warning: 0.65,   // 65% filled
-  critical: 0.78,  // 78% filled
-  imminent: 0.88,  // 88% filled
-};
-
-type DangerLevel = 'safe' | 'warning' | 'critical' | 'imminent';
-
-// Danger haptic intervals (ms)
-const DANGER_HAPTIC_INTERVALS: Record<DangerLevel, number> = {
-  safe: 0,
-  warning: 2500,
-  critical: 1500,
-  imminent: 800,
-};
-
-// ============================================
-// PHASE 7: STREAK FIRE MODE CONFIG
-// ============================================
-
-// TASK 84: Streak configuration
-const STREAK_CONFIG = {
-  activationThreshold: 3,  // 3 consecutive clears to activate fire mode
-  timeout: 6000,           // 6 seconds between clears before reset
-  bonusMultiplier: 1.5,    // 50% bonus during streak
-};
-
-// TASK 96: Perfect clear bonus
-const PERFECT_CLEAR_BONUS = 5000;
-
-// TASK 83: Streak state interface
-interface StreakState {
-  count: number;
-  active: boolean;
-  lastClearTime: number;
-}
-
-// ============================================
-// TYPES
-// ============================================
-interface GridCell {
-  filled: boolean;
-  color: string | null;
-  blockId: string | null;
-}
-
-type Grid = GridCell[][];
-
-interface DraggablePiece {
-  id: string;
-  shape: number[][];
-  color: string;
-}
-
-// TASK 32: Particle interface for line clear bursts
-interface ClearParticle {
-  id: number;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  color: string;
-  alpha: number;
-  rotation: number;
-  rotationSpeed: number;
-}
-
-// Shockwave interface
-interface Shockwave {
-  id: number;
-  x: number;
-  y: number;
-  size: number;
-  maxSize: number;
-  alpha: number;
-}
-
-// TASK 43: Trail particle interface for drag effects
-interface TrailParticle {
-  id: number;
-  x: number;
-  y: number;
-  size: number;
-  color: string;
-  alpha: number;
-}
-
-// Sad images for game over screen
-const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/Games/games_media/sad_runner_${i + 1}.png`);
-
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
-const createEmptyGrid = (): Grid =>
-  Array(8).fill(null).map(() =>
-    Array(8).fill(null).map(() => ({
-      filled: false,
-      color: null,
-      blockId: null
-    }))
-  );
-
-const generateRandomPiece = (): DraggablePiece => {
-  const shapeKey = SHAPE_KEYS[Math.floor(Math.random() * SHAPE_KEYS.length)];
-  const colorIndex = Math.floor(Math.random() * BLOCK_COLORS.length);
-  return {
-    id: `piece-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    shape: BLOCK_SHAPES[shapeKey],
-    color: BLOCK_COLORS[colorIndex],
-  };
-};
-
-const generateThreePieces = (): DraggablePiece[] => {
-  return [generateRandomPiece(), generateRandomPiece(), generateRandomPiece()];
-};
-
-const canPlacePiece = (
-  grid: Grid,
-  shape: number[][],
-  startRow: number,
-  startCol: number
-): boolean => {
-  for (let r = 0; r < shape.length; r++) {
-    for (let c = 0; c < shape[r].length; c++) {
-      if (shape[r][c] === 0) continue;
-
-      const gridRow = startRow + r;
-      const gridCol = startCol + c;
-
-      // Out of bounds
-      if (gridRow < 0 || gridRow >= 8 || gridCol < 0 || gridCol >= 8) {
-        return false;
-      }
-
-      // Cell occupied
-      if (grid[gridRow][gridCol].filled) {
-        return false;
-      }
-    }
-  }
-  return true;
-};
-
-const canPlaceAnywhere = (grid: Grid, piece: DraggablePiece): boolean => {
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      if (canPlacePiece(grid, piece.shape, row, col)) {
-        return true;
-      }
-    }
-  }
-  return false;
-};
-
-const placePiece = (
-  grid: Grid,
-  shape: number[][],
-  startRow: number,
-  startCol: number,
-  color: string
-): { newGrid: Grid; placedCells: string[] } => {
-  const newGrid = grid.map(row => row.map(cell => ({ ...cell })));
-  const blockId = `block-${Date.now()}`;
-  const placedCells: string[] = [];
-
-  for (let r = 0; r < shape.length; r++) {
-    for (let c = 0; c < shape[r].length; c++) {
-      if (shape[r][c] === 1) {
-        newGrid[startRow + r][startCol + c] = {
-          filled: true,
-          color,
-          blockId
-        };
-        placedCells.push(`${startRow + r}-${startCol + c}`);
-      }
-    }
-  }
-
-  return { newGrid, placedCells };
-};
-
-const clearLines = (grid: Grid): {
-  clearedGrid: Grid;
-  linesCleared: number;
-  cellsCleared: Set<string>;
-} => {
-  const cellsToClear = new Set<string>();
-  let rowsCleared = 0;
-  let colsCleared = 0;
-
-  // Check rows
-  for (let row = 0; row < 8; row++) {
-    if (grid[row].every(cell => cell.filled)) {
-      rowsCleared++;
-      for (let col = 0; col < 8; col++) {
-        cellsToClear.add(`${row}-${col}`);
-      }
-    }
-  }
-
-  // Check columns
-  for (let col = 0; col < 8; col++) {
-    let columnFull = true;
-    for (let row = 0; row < 8; row++) {
-      if (!grid[row][col].filled) {
-        columnFull = false;
-        break;
-      }
-    }
-    if (columnFull) {
-      colsCleared++;
-      for (let row = 0; row < 8; row++) {
-        cellsToClear.add(`${row}-${col}`);
-      }
-    }
-  }
-
-  // Clear cells
-  const clearedGrid = grid.map((row, rowIdx) =>
-    row.map((cell, colIdx) => {
-      if (cellsToClear.has(`${rowIdx}-${colIdx}`)) {
-        return { filled: false, color: null, blockId: null };
-      }
-      return cell;
-    })
-  );
-
-  return {
-    clearedGrid,
-    linesCleared: rowsCleared + colsCleared,
-    cellsCleared: cellsToClear
-  };
-};
-
-const isGameOver = (grid: Grid, pieces: DraggablePiece[]): boolean => {
-  for (const piece of pieces) {
-    if (canPlaceAnywhere(grid, piece)) {
-      return false;
-    }
-  }
-  return true;
-};
 
 // ============================================
 // MAIN COMPONENT
@@ -388,8 +89,8 @@ const isGameOver = (grid: Grid, pieces: DraggablePiece[]): boolean => {
 const BlockPuzzle: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { playBlockLand, playPerfectBonus, playCombo, playGameOver, playGameStart } = useGameSounds();
-  const { hapticScore, hapticCombo, hapticHighScore, hapticGameOver, hapticButton, hapticSuccess } = useGameHaptics();
+  const { playGameOver } = useGameSounds();
+  const { hapticGameOver, hapticButton } = useGameHaptics();
 
   // Visual effects
   const {
@@ -408,7 +109,8 @@ const BlockPuzzle: React.FC = () => {
     userDisplayName,
     isSubmitting,
   } = useLeaderboard('block-puzzle');
-  const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
+  // Arcade frame mute control (from GameModal)
+  const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
 
   // Game state
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
@@ -418,8 +120,6 @@ const BlockPuzzle: React.FC = () => {
   const [totalLinesCleared, setTotalLinesCleared] = useState(0);
   const [totalBlocksPlaced, setTotalBlocksPlaced] = useState(0);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
-  // TASK 101: Track perfect clears
-  const [perfectClears, setPerfectClears] = useState(0);
   const [showPerfectClear, setShowPerfectClear] = useState(false);
 
   // PHASE 10: Viral Share System state
@@ -428,6 +128,7 @@ const BlockPuzzle: React.FC = () => {
   // TASK 114: Share modal state
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
+  const [gameScreenshot, setGameScreenshot] = useState<string | null>(null);
   // TASK 116-117: Challenge system
   const [challengeTarget, setChallengeTarget] = useState<number | null>(null);
   const [challengeBeaten, setChallengeBeaten] = useState(false);
@@ -515,8 +216,34 @@ const BlockPuzzle: React.FC = () => {
     return audioContextRef.current;
   }, []);
 
-  // Refs for drag state (to avoid stale closures)
+  // Refs for drag state (to avoid stale closures) - MUST be before useEffect that uses them
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // iOS audio unlock - only check when context exists and isn't running
+  // Optimized to avoid unnecessary work on every touch
+  const audioUnlockedRef = useRef(false);
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      // Skip if already unlocked and running
+      if (audioUnlockedRef.current && audioContextRef.current?.state === 'running') return;
+
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      if (audioContextRef.current.state !== 'running') {
+        audioContextRef.current.resume().then(() => {
+          audioUnlockedRef.current = true;
+        }).catch(() => {});
+      } else {
+        audioUnlockedRef.current = true;
+      }
+    };
+
+    document.addEventListener('touchstart', unlockAudio, { passive: true });
+    return () => document.removeEventListener('touchstart', unlockAudio);
+  }, []);
+
   const draggedPieceIdRef = useRef<string | null>(null);
   const previewPositionRef = useRef<{ row: number; col: number } | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -529,7 +256,6 @@ const BlockPuzzle: React.FC = () => {
   });
   const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
-  const [sadImage, setSadImage] = useState('');
 
   // Sound and pause state
   const [soundEnabled, setSoundEnabled] = useState(() => {
@@ -537,9 +263,103 @@ const BlockPuzzle: React.FC = () => {
   });
   const [isPaused, setIsPaused] = useState(false);
 
+  // Background music refs
+  const playlistIndexRef = useRef(Math.floor(Math.random() * MUSIC_PLAYLIST.length));
+  const musicAudioRef = useRef<HTMLAudioElement | null>(null);
+  const soundEnabledRef = useRef(soundEnabled);
+  const gameStateRef = useRef(gameState);
+
+  // Keep refs in sync
+  useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
+  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+
+  // Ref for musicManagedExternally (to check in startGame)
+  const musicManagedExternallyRef = useRef(musicManagedExternally);
+  useEffect(() => { musicManagedExternallyRef.current = musicManagedExternally; }, [musicManagedExternally]);
+
+  // Sync with arcade frame mute button (from GameMuteContext)
+  useEffect(() => {
+    // Only sync if NOT managed externally (meaning this game controls its own music)
+    if (!musicManagedExternally) {
+      // Arcade mute button changed - sync local state
+      setSoundEnabled(!arcadeMuted);
+      // Also directly pause/resume music for immediate feedback
+      if (arcadeMuted) {
+        if (musicAudioRef.current) {
+          musicAudioRef.current.pause();
+        }
+      } else if (gameStateRef.current === 'playing' && !isPaused) {
+        if (musicAudioRef.current) {
+          musicAudioRef.current.play().catch(() => {});
+        }
+      }
+    }
+  }, [arcadeMuted, musicManagedExternally, isPaused]);
+
+  // Play specific track
+  const playTrack = useCallback((index: number) => {
+    if (musicAudioRef.current) {
+      musicAudioRef.current.pause();
+    }
+    playlistIndexRef.current = index;
+    const track = MUSIC_PLAYLIST[index];
+    const music = new Audio(track.src);
+    music.volume = 1.0;
+    music.addEventListener('ended', () => {
+      playlistIndexRef.current = (playlistIndexRef.current + 1) % MUSIC_PLAYLIST.length;
+      if (gameStateRef.current === 'playing' && soundEnabledRef.current) {
+        playTrack(playlistIndexRef.current);
+      }
+    }, { once: true });
+    musicAudioRef.current = music;
+    music.play().catch(() => {});
+  }, []);
+
+  // Play next song in playlist
+  const playNextSong = useCallback(() => {
+    playTrack(playlistIndexRef.current);
+  }, [playTrack]);
+
+  // Cleanup music on unmount
+  useEffect(() => {
+    return () => {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+        musicAudioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Control music based on game state and pause
+  useEffect(() => {
+    if (gameState === 'playing' && soundEnabled && !isPaused) {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.play().catch(() => {});
+      }
+    } else {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+      }
+    }
+  }, [gameState, soundEnabled, isPaused]);
+
+  // Mobile fullscreen mode - hide header during gameplay
+  useEffect(() => {
+    if (isMobile && gameState === 'playing') {
+      document.body.classList.add('game-fullscreen-mode');
+    } else {
+      document.body.classList.remove('game-fullscreen-mode');
+    }
+
+    return () => {
+      document.body.classList.remove('game-fullscreen-mode');
+    };
+  }, [isMobile, gameState]);
+
   // Navigation guard - prevents accidental exits during gameplay
   const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
     isPlaying: gameState === 'playing',
+    onConfirmExit: () => navigate('/games'),
   });
 
   // Keep refs in sync with state
@@ -560,14 +380,20 @@ const BlockPuzzle: React.FC = () => {
   }, [previewPosition]);
 
   // Calculate cell size based on viewport
-  const GRID_SIZE = isMobile ? Math.min(window.innerWidth - 32, 360) : 400;
-  const CELL_SIZE = GRID_SIZE / 8;
+  // Grid has: 2px border, padding (3px mobile, 4px desktop), 2px gaps between cells
+  // Desktop arcade: larger grid (540px) to fill the screen height better
+  // Mobile: responsive grid based on screen width
+  const GRID_SIZE = isMobile ? Math.min(window.innerWidth - 32, 360) : 540;
+  const GRID_BORDER = 2 * 2; // 4px
+  const GRID_PADDING = isMobile ? 3 * 2 : 4 * 2; // 6px mobile, 8px desktop
+  const GRID_GAPS = 2 * 7; // 14px (7 gaps between 8 cells)
+  // With border-box, GRID_SIZE includes border. Content area is what's left for cells.
+  const CELL_SIZE = (GRID_SIZE - GRID_BORDER - GRID_PADDING - GRID_GAPS) / 8;
   // Piece cell size must fit largest piece (5-wide) in slot: 5*cell + 4 gaps < slot width
-  // Slots: 110px desktop, 95px mobile, 85px small (400px), 75px very small (360px)
+  // Desktop arcade: 90px slots (vertical rack), Mobile: responsive based on width
   const getSlotSize = () => {
-    if (!isMobile) return 110;
-    const width = window.innerWidth;
-    if (width <= 360) return 75;
+    if (!isMobile) return 90; // Matches .arcade-screen .bp-piece-slot CSS
+    const width = window.innerWidth;    if (width <= 360) return 75;
     if (width <= 400) return 85;
     return 95;
   };
@@ -580,17 +406,13 @@ const BlockPuzzle: React.FC = () => {
     return piecesRef.current.find(p => p.id === id);
   }, []);
 
-  // Toggle sound
-  const toggleSound = useCallback(() => {
-    const newState = !soundEnabled;
-    setSoundEnabled(newState);
-    localStorage.setItem('blockPuzzleSoundEnabled', String(newState));
-    hapticButton();
-  }, [soundEnabled, hapticButton]);
-
   // Toggle pause
   const togglePause = useCallback(() => {
     if (gameState !== 'playing') return;
+    // Unlock/resume audio on user gesture (iOS requirement)
+    if (audioContextRef.current) {
+      audioContextRef.current.resume().catch(() => {});
+    }
     setIsPaused(prev => !prev);
     hapticButton();
   }, [gameState, hapticButton]);
@@ -619,41 +441,13 @@ const BlockPuzzle: React.FC = () => {
 
   // TASK 30: Trigger shockwave effect
   const triggerShockwave = useCallback((x: number, y: number, maxSize: number = 300) => {
-    const id = Date.now();
-    setShockwaves(prev => [...prev, { id, x, y, size: 0, maxSize, alpha: 1 }]);
+    const shockwave = createShockwave(x, y, maxSize);
+    setShockwaves(prev => [...prev, shockwave]);
   }, []);
 
   // TASK 32: Create particle burst from cleared cells
   const createLineClearBurst = useCallback((cells: { row: number; col: number }[], color: string) => {
-    const newParticles: ClearParticle[] = [];
-    const baseColor = color.includes('gradient') ? '#ff6b00' : color;
-
-    cells.forEach((cell, cellIndex) => {
-      const cellX = cell.col * CELL_SIZE + CELL_SIZE / 2;
-      const cellY = cell.row * CELL_SIZE + CELL_SIZE / 2;
-
-      // 6-10 particles per cell
-      const particleCount = 6 + Math.floor(Math.random() * 5);
-
-      for (let i = 0; i < particleCount; i++) {
-        const angle = (i / particleCount) * Math.PI * 2 + Math.random() * 0.5;
-        const speed = 3 + Math.random() * 6;
-
-        newParticles.push({
-          id: Date.now() + cellIndex * 100 + i,
-          x: cellX,
-          y: cellY,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 2, // Bias upward
-          size: 4 + Math.random() * 6,
-          color: i % 4 === 0 ? '#ffffff' : baseColor, // Some white sparkles
-          alpha: 1,
-          rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 20,
-        });
-      }
-    });
-
+    const newParticles = createLineClearBurstParticles(cells, color, CELL_SIZE);
     setClearParticles(prev => [...prev, ...newParticles]);
   }, [CELL_SIZE]);
 
@@ -663,680 +457,151 @@ const BlockPuzzle: React.FC = () => {
     setTimeout(() => setScreenFlash(null), 150);
   }, []);
 
-  // TASK 33: Particle animation loop
+  // TASK 33: Particle animation loop - uses pure update function
   useEffect(() => {
     if (clearParticles.length === 0) return;
 
     const interval = setInterval(() => {
-      setClearParticles(prev =>
-        prev
-          .map(p => ({
-            ...p,
-            x: p.x + p.vx,
-            y: p.y + p.vy,
-            vy: p.vy + 0.3, // gravity
-            alpha: p.alpha - 0.025,
-            rotation: p.rotation + p.rotationSpeed,
-            size: p.size * 0.98, // Shrink slightly
-          }))
-          .filter(p => p.alpha > 0)
-      );
+      setClearParticles(updateClearParticles);
     }, 16);
 
     return () => clearInterval(interval);
   }, [clearParticles.length > 0]);
 
-  // Shockwave animation loop
+  // Shockwave animation loop - uses pure update function
   useEffect(() => {
     if (shockwaves.length === 0) return;
 
     const interval = setInterval(() => {
-      setShockwaves(prev =>
-        prev
-          .map(s => ({
-            ...s,
-            size: s.size + 15,
-            alpha: 1 - (s.size / s.maxSize),
-          }))
-          .filter(s => s.size < s.maxSize)
-      );
+      setShockwaves(updateShockwaves);
     }, 16);
 
     return () => clearInterval(interval);
   }, [shockwaves.length > 0]);
 
-  // ============================================
-  // PHASE 1: SOUND FOUNDATION FUNCTIONS
-  // ============================================
-
-  // TASK 2: Play musical combo note (Do-Re-Mi-Fa-Sol)
-  const playComboNote = useCallback((comboLevel: number) => {
+  // Sound wrapper callbacks
+  const dangerSoundStateRef = useRef<DangerSoundState>({ oscillator: null, gain: null });
+  const playComboNote = useCallback(async (comboLevel: number) => {
     if (!soundEnabled) return;
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    const config = COMBO_SOUND_CONFIG[Math.min(comboLevel, 5)];
-    const frequency = COMBO_SCALE_FREQUENCIES[config.note];
-
-    // Main note oscillator
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.frequency.value = frequency;
-    osc.type = 'sine';
-    gain.gain.setValueAtTime(config.volume, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.3);
-
-    // TASK 11: Add sparkle layer for combo 3+
-    if (config.layers >= 2) {
-      const sparkleOsc = ctx.createOscillator();
-      const sparkleGain = ctx.createGain();
-      sparkleOsc.frequency.value = frequency * 2; // Octave up
-      sparkleOsc.type = 'triangle';
-      sparkleGain.gain.setValueAtTime(config.volume * 0.3, ctx.currentTime);
-      sparkleGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-      sparkleOsc.connect(sparkleGain).connect(ctx.destination);
-      sparkleOsc.start();
-      sparkleOsc.stop(ctx.currentTime + 0.15);
-    }
-
-    // Add bass layer for combo 5
-    if (config.layers >= 3) {
-      const bassOsc = ctx.createOscillator();
-      const bassGain = ctx.createGain();
-      bassOsc.frequency.value = frequency / 2; // Octave down
-      bassOsc.type = 'sine';
-      bassGain.gain.setValueAtTime(config.volume * 0.4, ctx.currentTime);
-      bassGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-      bassOsc.connect(bassGain).connect(ctx.destination);
-      bassOsc.start();
-      bassOsc.stop(ctx.currentTime + 0.2);
-    }
+    await playComboNoteSound(getAudioContext(), comboLevel);
   }, [soundEnabled, getAudioContext]);
-
-  // TASK 3: Play line clear sound with pitch variation
   const playLineClearSound = useCallback((linesCleared: number) => {
     if (!soundEnabled) return;
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    const config = LINE_CLEAR_SOUNDS[Math.min(linesCleared, 4)];
-    const baseFreq = 440 * config.pitch;
-
-    // Ascending whoosh
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(baseFreq * 0.5, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(baseFreq, ctx.currentTime + config.duration / 1000);
-    gain.gain.setValueAtTime(config.volume, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + config.duration / 1000);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + config.duration / 1000);
-
-    // Add chime for multi-clears
-    if (linesCleared >= 2) {
-      setTimeout(() => {
-        const chimeOsc = ctx.createOscillator();
-        const chimeGain = ctx.createGain();
-        chimeOsc.frequency.value = baseFreq * 1.5;
-        chimeOsc.type = 'triangle';
-        chimeGain.gain.setValueAtTime(config.volume * 0.5, ctx.currentTime);
-        chimeGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-        chimeOsc.connect(chimeGain).connect(ctx.destination);
-        chimeOsc.start();
-        chimeOsc.stop(ctx.currentTime + 0.2);
-      }, 50);
-    }
+    playLineClearSoundFn(getAudioContext(), linesCleared);
   }, [soundEnabled, getAudioContext]);
-
-  // TASK 4: Play piece spawn sound
   const playSpawnSound = useCallback(() => {
     if (!soundEnabled) return;
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    const pitch = 0.95 + Math.random() * 0.1;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.frequency.value = 600 * pitch;
-    osc.type = 'sine';
-    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.08);
+    playSpawnSoundFn(getAudioContext());
   }, [soundEnabled, getAudioContext]);
-
-  // TASK 5: Play piece snap/lock sound
   const playSnapSound = useCallback(() => {
     if (!soundEnabled) return;
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    // Deep thunk (80Hz bass)
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.frequency.value = 80;
-    osc.type = 'sine';
-    gain.gain.setValueAtTime(0.4, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.1);
-
-    // Click overlay
-    const clickOsc = ctx.createOscillator();
-    const clickGain = ctx.createGain();
-    clickOsc.frequency.value = 400;
-    clickOsc.type = 'square';
-    clickGain.gain.setValueAtTime(0.15, ctx.currentTime);
-    clickGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.03);
-    clickOsc.connect(clickGain).connect(ctx.destination);
-    clickOsc.start();
-    clickOsc.stop(ctx.currentTime + 0.03);
+    playSnapSoundFn(getAudioContext());
   }, [soundEnabled, getAudioContext]);
-
-  // TASK 6: Play invalid placement sound
   const playInvalidSound = useCallback(() => {
     if (!soundEnabled) return;
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    // Short buzz/rejection sound
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.frequency.value = 150;
-    osc.type = 'sawtooth';
-    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.08);
+    playInvalidSoundFn(getAudioContext());
   }, [soundEnabled, getAudioContext]);
-
-  // TASK 7: Play combo break sound
   const playComboBreakSound = useCallback((lostCombo: number) => {
-    if (!soundEnabled || lostCombo < 3) return;
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    // Descending "womp womp"
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.frequency.setValueAtTime(300, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.3);
-    osc.type = 'sine';
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.3);
+    if (!soundEnabled) return;
+    playComboBreakSoundFn(getAudioContext(), lostCombo);
   }, [soundEnabled, getAudioContext]);
-
-  // TASK 8: Start danger heartbeat loop
   const startDangerSound = useCallback(() => {
-    if (!soundEnabled || dangerLoopRef.current) return;
+    if (!soundEnabled || dangerSoundStateRef.current.oscillator) return;
     const ctx = getAudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    // Low frequency pulse
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.frequency.value = 40;
-    osc.type = 'sine';
-    gain.gain.value = 0;
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-
-    // Fade in
-    gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.5);
-
-    dangerLoopRef.current = osc;
-    dangerGainRef.current = gain;
+    const newState = startDangerSoundFn(ctx, dangerSoundStateRef.current);
+    dangerSoundStateRef.current = newState;
+    dangerLoopRef.current = newState.oscillator;
+    dangerGainRef.current = newState.gain;
   }, [soundEnabled, getAudioContext]);
-
   const stopDangerSound = useCallback(() => {
-    if (dangerLoopRef.current && dangerGainRef.current) {
-      const ctx = getAudioContext();
-      dangerGainRef.current.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
-      setTimeout(() => {
-        dangerLoopRef.current?.stop();
-        dangerLoopRef.current = null;
-        dangerGainRef.current = null;
-      }, 300);
-    }
+    const ctx = getAudioContext();
+    const newState = stopDangerSoundFn(ctx, dangerSoundStateRef.current);
+    dangerSoundStateRef.current = newState;
+    dangerLoopRef.current = null;
+    dangerGainRef.current = null;
   }, [getAudioContext]);
-
-  // TASK 9: Play perfect clear fanfare
   const playPerfectClearSound = useCallback(() => {
     if (!soundEnabled) return;
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    // Triumphant ascending arpeggio (C5-E5-G5-C6)
-    const notes = [523.25, 659.25, 783.99, 1046.50];
-    notes.forEach((freq, i) => {
-      setTimeout(() => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.frequency.value = freq;
-        osc.type = 'sine';
-        gain.gain.setValueAtTime(0.35, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.25);
-      }, i * 100);
-    });
+    playPerfectClearSoundFn(getAudioContext());
   }, [soundEnabled, getAudioContext]);
-
-  // TASK 10: Play streak fire activation sound
   const playStreakFireSound = useCallback(() => {
     if (!soundEnabled) return;
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    // Whoosh + ignition
-    const noiseLength = 0.3;
-    const bufferSize = ctx.sampleRate * noiseLength;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
-    }
-
-    const noise = ctx.createBufferSource();
-    const noiseGain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-    noise.buffer = buffer;
-    filter.type = 'bandpass';
-    filter.frequency.value = 1000;
-    noiseGain.gain.setValueAtTime(0.3, ctx.currentTime);
-    noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + noiseLength);
-    noise.connect(filter).connect(noiseGain).connect(ctx.destination);
-    noise.start();
+    playStreakFireSoundFn(getAudioContext());
   }, [soundEnabled, getAudioContext]);
 
-  // ============================================
-  // PHASE 2: PREMIUM HAPTICS FUNCTIONS
-  // ============================================
-
-  // TASK 18: Trigger line-specific haptic patterns
-  const triggerLineClearHaptic = useCallback((linesCleared: number) => {
-    const patterns: Record<number, number[]> = {
-      1: HAPTIC_PATTERNS.lineClear1,
-      2: HAPTIC_PATTERNS.lineClear2,
-      3: HAPTIC_PATTERNS.lineClear3,
-      4: HAPTIC_PATTERNS.lineClear4,
-    };
-    const pattern = patterns[Math.min(linesCleared, 4)];
-    navigator.vibrate?.(pattern);
-  }, []);
-
-  // TASK 19: Trigger snap/lock haptic
-  const triggerSnapHaptic = useCallback(() => {
-    navigator.vibrate?.(HAPTIC_PATTERNS.snapLock);
-  }, []);
-
-  // TASK 20: Trigger invalid placement haptic
-  const triggerInvalidHaptic = useCallback(() => {
-    navigator.vibrate?.(HAPTIC_PATTERNS.invalidPlacement);
-  }, []);
-
-  // TASK 21: Trigger drag start haptic
-  const triggerDragStartHaptic = useCallback(() => {
-    navigator.vibrate?.(HAPTIC_PATTERNS.dragStart);
-  }, []);
-
-  // TASK 22: Trigger perfect clear haptic
-  const triggerPerfectClearHaptic = useCallback(() => {
-    navigator.vibrate?.(HAPTIC_PATTERNS.perfectClear);
-  }, []);
-
-  // TASK 23: Trigger danger pulse haptic
-  const triggerDangerPulse = useCallback(() => {
-    navigator.vibrate?.(HAPTIC_PATTERNS.dangerPulse);
-  }, []);
-
-  // Trigger streak fire haptic
-  const triggerStreakFireHaptic = useCallback(() => {
-    navigator.vibrate?.(HAPTIC_PATTERNS.streakFire);
-  }, []);
-
-  // ============================================
-  // PHASE 4: DRAG & DROP JUICE FUNCTIONS
-  // ============================================
-
-  // TASK 44: Emit trail particles on drag move
+  // Trail particle callbacks
   const emitTrailParticle = useCallback((x: number, y: number, color: string) => {
-    const dx = x - lastTrailPosRef.current.x;
-    const dy = y - lastTrailPosRef.current.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-
-    // Emit particle every 20px of movement
-    if (distance > 20) {
+    const particle = createTrailParticle(x, y, lastTrailPosRef.current, color);
+    if (particle) {
       lastTrailPosRef.current = { x, y };
-
-      // Extract base color from gradient
-      const baseColor = color.includes('gradient') ? '#ff6b00' : color;
-
-      setTrailParticles(prev => [
-        ...prev,
-        {
-          id: Date.now() + Math.random(),
-          x,
-          y,
-          size: 6 + Math.random() * 4,
-          color: baseColor,
-          alpha: 0.5,
-        },
-      ]);
+      setTrailParticles(prev => [...prev, particle]);
     }
   }, []);
-
-  // TASK 49: Clear trail on drag end
   const clearTrailParticles = useCallback(() => {
     setTrailParticles([]);
     lastTrailPosRef.current = { x: 0, y: 0 };
   }, []);
-
-  // TASK 45: Trail particle fade animation loop
   useEffect(() => {
     if (trailParticles.length === 0) return;
-
-    const interval = setInterval(() => {
-      setTrailParticles(prev =>
-        prev
-          .map(p => ({ ...p, alpha: p.alpha - 0.04, size: p.size * 0.92 }))
-          .filter(p => p.alpha > 0)
-      );
-    }, 16);
-
+    const interval = setInterval(() => setTrailParticles(updateTrailParticles), 16);
     return () => clearInterval(interval);
   }, [trailParticles.length > 0]);
 
-  // TASK 52: Magnetic snap detection
-  const SNAP_RADIUS = 0.3; // 30% of cell for easier snapping
-
-  const checkSnapPosition = useCallback((row: number, col: number): boolean => {
-    // Check if position is close enough to snap
-    const rowDiff = Math.abs(row - Math.round(row));
-    const colDiff = Math.abs(col - Math.round(col));
-    return rowDiff < SNAP_RADIUS && colDiff < SNAP_RADIUS;
-  }, []);
-
-  // ============================================
-  // PHASE 5: SNAP & PLACEMENT FEEDBACK FUNCTIONS
-  // ============================================
-
-  // TASK 65: Mini shake for placement feedback
+  // Placement feedback callbacks
   const triggerMiniShake = useCallback(() => {
     setShakeLevel('light');
     setTimeout(() => setShakeLevel('none'), 100);
   }, []);
-
-  // TASK 59: Create corner impact particles on placement
   const createPlacementParticles = useCallback((placedCells: string[], color: string) => {
-    const newParticles: ClearParticle[] = [];
-    const baseColor = color.includes('gradient') ? '#ff6b00' : color;
-
-    // Find corner cells of the placed piece
-    const cellCoords = placedCells.map(key => {
-      const [r, c] = key.split('-').map(Number);
-      return { row: r, col: c };
-    });
-
-    // Get bounding box corners
-    const minRow = Math.min(...cellCoords.map(c => c.row));
-    const maxRow = Math.max(...cellCoords.map(c => c.row));
-    const minCol = Math.min(...cellCoords.map(c => c.col));
-    const maxCol = Math.max(...cellCoords.map(c => c.col));
-
-    // Create particles at corners
-    const corners = [
-      { row: minRow, col: minCol, angle: Math.PI * 1.25 },  // Top-left
-      { row: minRow, col: maxCol, angle: Math.PI * 1.75 },  // Top-right
-      { row: maxRow, col: minCol, angle: Math.PI * 0.75 },  // Bottom-left
-      { row: maxRow, col: maxCol, angle: Math.PI * 0.25 },  // Bottom-right
-    ];
-
-    corners.forEach((corner, cornerIdx) => {
-      const x = corner.col * CELL_SIZE + CELL_SIZE / 2;
-      const y = corner.row * CELL_SIZE + CELL_SIZE / 2;
-
-      // 3 particles per corner
-      for (let i = 0; i < 3; i++) {
-        const angle = corner.angle + (Math.random() - 0.5) * 0.8;
-        const speed = 2 + Math.random() * 2;
-
-        newParticles.push({
-          id: Date.now() + cornerIdx * 10 + i,
-          x,
-          y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          size: 3 + Math.random() * 3,
-          color: i === 0 ? '#ffffff' : baseColor,
-          alpha: 0.8,
-          rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 15,
-        });
-      }
-    });
-
+    const newParticles = createPlacementParticlesFn(placedCells, color, CELL_SIZE);
     setClearParticles(prev => [...prev, ...newParticles]);
   }, [CELL_SIZE]);
 
-  // ============================================
-  // PHASE 6: DANGER STATE EFFECTS
-  // ============================================
-
-  // Helper: Count filled cells
-  const countFilledCells = useCallback((g: Grid): number => {
-    return g.flat().filter(cell => cell.filled).length;
-  }, []);
-
-  // TASK 95: Check if grid is completely empty (perfect clear)
-  const checkPerfectClear = useCallback((g: Grid): boolean => {
-    return g.flat().every(cell => !cell.filled);
-  }, []);
-
-  // TASK 99: Massive confetti for perfect clear
+  // Perfect clear effects
   const triggerMassiveConfetti = useCallback(() => {
-    // Fire confetti bursts in rapid succession
     triggerConfetti();
     setTimeout(() => triggerConfetti(), 150);
     setTimeout(() => triggerConfetti(), 300);
     setTimeout(() => triggerConfetti(), 500);
     setTimeout(() => triggerConfetti(), 750);
   }, [triggerConfetti]);
-
-  // TASK 97: Trigger perfect clear celebration
   const triggerPerfectClear = useCallback(() => {
-    // Sound and haptic
     playPerfectClearSound();
     triggerPerfectClearHaptic();
-
-    // Visual celebration
     setShowPerfectClear(true);
     showEpicCallout('PERFECT CLEAR!');
     triggerMassiveConfetti();
     triggerScreenFlash('#ffffff');
-
-    // Create massive particle explosion from center
-    const centerX = GRID_SIZE / 2;
-    const centerY = GRID_SIZE / 2;
-    const perfectParticles: ClearParticle[] = [];
-
-    for (let i = 0; i < 60; i++) {
-      const angle = (Math.PI * 2 * i) / 60 + Math.random() * 0.3;
-      const speed = 4 + Math.random() * 6;
-      perfectParticles.push({
-        id: Date.now() + i,
-        x: centerX,
-        y: centerY,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        size: 5 + Math.random() * 8,
-        color: ['#ffcc00', '#ff6b00', '#ffffff', '#00ff88'][Math.floor(Math.random() * 4)],
-        alpha: 1,
-        rotation: Math.random() * 360,
-        rotationSpeed: (Math.random() - 0.5) * 20,
-      });
-    }
+    const perfectParticles = createPerfectClearParticles(GRID_SIZE);
     setClearParticles(prev => [...prev, ...perfectParticles]);
 
-    // Hide overlay after animation
     setTimeout(() => setShowPerfectClear(false), 2500);
   }, [playPerfectClearSound, triggerPerfectClearHaptic, showEpicCallout, triggerMassiveConfetti, triggerScreenFlash, GRID_SIZE]);
 
-  // ============================================
-  // PHASE 10: VIRAL SHARE SYSTEM
-  // ============================================
-
-  // TASK 127: Toast notification helper
+  // Share system callbacks
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 2500);
   }, []);
-
-  // TASK 113: Generate share image using canvas
   const generateShareImage = useCallback(async (): Promise<string> => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 600;
-    canvas.height = 400;
-    const ctx = canvas.getContext('2d')!;
+    const blob = await generateGameScorecard({
+      gameName: 'Block Puzzle',
+      gameNameParts: ['BLOCK', 'PUZZLE'],
+      score,
+      scoreLabel: 'points',
+      bestScore: highScore,
+      isNewRecord: isNewPersonalBest,
+      screenshot: gameScreenshot,
+      accentColor: '#ff6b00', // Orange accent
+    });
 
-    // Background gradient
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, '#1a1a2e');
-    gradient.addColorStop(1, '#16213e');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 600, 400);
-
-    // Orange accent border
-    ctx.strokeStyle = '#ff6b00';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(10, 10, 580, 380);
-
-    // Title
-    ctx.fillStyle = '#ff8c1a';
-    ctx.font = 'bold 36px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('BLOCK PUZZLE', 300, 60);
-
-    // Score
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 72px system-ui, sans-serif';
-    ctx.fillText(score.toLocaleString(), 300, 160);
-    ctx.fillStyle = '#888888';
-    ctx.font = '24px system-ui, sans-serif';
-    ctx.fillText('POINTS', 300, 195);
-
-    // Stats row
-    ctx.fillStyle = '#ffcc00';
-    ctx.font = 'bold 28px system-ui, sans-serif';
-    const statsY = 260;
-    ctx.fillText(`${totalLinesCleared}`, 150, statsY);
-    ctx.fillText(`${bestCombo}x`, 300, statsY);
-    ctx.fillText(`${perfectClears}`, 450, statsY);
-
-    ctx.fillStyle = '#888888';
-    ctx.font = '16px system-ui, sans-serif';
-    ctx.fillText('Lines', 150, statsY + 25);
-    ctx.fillText('Best Combo', 300, statsY + 25);
-    ctx.fillText('Perfect', 450, statsY + 25);
-
-    // Call to action
-    ctx.fillStyle = '#ff6b00';
-    ctx.font = 'bold 20px system-ui, sans-serif';
-    ctx.fillText('Can you beat my score?', 300, 340);
-
-    // Branding
-    ctx.fillStyle = '#666666';
-    ctx.font = '14px system-ui, sans-serif';
-    ctx.fillText('wojak.ink/games', 300, 375);
-
-    return canvas.toDataURL('image/png');
-  }, [score, totalLinesCleared, bestCombo, perfectClears]);
-
-  // TASK 116: Encode challenge link
-  const encodeChallenge = useCallback((targetScore: number): string => {
-    const encoded = btoa(JSON.stringify({ s: targetScore, t: Date.now() }));
-    return `${window.location.origin}${window.location.pathname}?challenge=${encoded}`;
-  }, []);
-
-  // TASK 116: Decode challenge from URL
-  const decodeChallenge = useCallback((encoded: string): number | null => {
-    try {
-      const decoded = JSON.parse(atob(encoded));
-      return decoded.s || null;
-    } catch {
-      return null;
-    }
-  }, []);
-
-  // TASK 120: Create text share format
-  const createShareText = useCallback((): string => {
-    const lines = [
-      `🧩 Block Puzzle Score: ${score.toLocaleString()}`,
-      `📊 Lines: ${totalLinesCleared} | Best Combo: ${bestCombo}x${perfectClears > 0 ? ` | Perfect: ${perfectClears}` : ''}`,
-      ``,
-      `Can you beat my score?`,
-      `🎮 Play at wojak.ink/games`
-    ];
-    return lines.join('\n');
-  }, [score, totalLinesCleared, bestCombo, perfectClears]);
-
-  // TASK 115: Native share
-  const handleNativeShare = useCallback(async () => {
-    const shareData = {
-      title: 'Block Puzzle Score',
-      text: createShareText(),
-      url: encodeChallenge(score),
-    };
-
-    if (navigator.share && navigator.canShare?.(shareData)) {
-      try {
-        await navigator.share(shareData);
-        showToast('Shared successfully!');
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          showToast('Share failed', 'error');
-        }
-      }
-    } else {
-      // Fallback to copy
-      handleCopyLink();
-    }
-  }, [createShareText, encodeChallenge, score, showToast]);
-
-  // TASK 121: Copy to clipboard
-  const handleCopyLink = useCallback(async () => {
-    hapticButton();
-    const challengeUrl = encodeChallenge(score);
-    try {
-      await navigator.clipboard.writeText(challengeUrl);
-      showToast('Challenge link copied!');
-    } catch {
-      showToast('Copy failed', 'error');
-    }
-  }, [encodeChallenge, score, showToast, hapticButton]);
-
-  // TASK 121: Copy text to clipboard
-  const handleCopyText = useCallback(async () => {
-    hapticButton();
-    try {
-      await navigator.clipboard.writeText(createShareText());
-      showToast('Copied to clipboard!');
-    } catch {
-      showToast('Copy failed', 'error');
-    }
-  }, [createShareText, showToast, hapticButton]);
+    // Convert blob to data URL
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+  }, [score, highScore, isNewPersonalBest, gameScreenshot]);
 
   // TASK 122: Download share image
   const handleDownloadImage = useCallback(async () => {
@@ -1365,21 +630,6 @@ const BlockPuzzle: React.FC = () => {
     triggerPerfectClearHaptic();
   }, [showEpicCallout, triggerMassiveConfetti, playPerfectClearSound, triggerPerfectClearHaptic]);
 
-  // Helper: Count valid moves for all pieces
-  const countValidMoves = useCallback((g: Grid, p: DraggablePiece[]): number => {
-    let count = 0;
-    p.forEach(piece => {
-      for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
-          if (canPlacePiece(g, piece.shape, row, col)) {
-            count++;
-          }
-        }
-      }
-    });
-    return count;
-  }, []);
-
   // TASK 70: Update danger level based on grid fill
   useEffect(() => {
     if (gameState !== 'playing') return;
@@ -1397,7 +647,7 @@ const BlockPuzzle: React.FC = () => {
     }
 
     setDangerLevel(newLevel);
-  }, [grid, gameState, countFilledCells]);
+  }, [grid, gameState]);
 
   // TASK 73: Calculate valid placement cells when in danger
   useEffect(() => {
@@ -1475,7 +725,7 @@ const BlockPuzzle: React.FC = () => {
     } else {
       setMovesLeft(null);
     }
-  }, [grid, pieces, dangerLevel, gameState, countValidMoves]);
+  }, [grid, pieces, dangerLevel, gameState]);
 
   // ============================================
   // PHASE 7: STREAK FIRE MODE FUNCTIONS
@@ -1602,7 +852,7 @@ const BlockPuzzle: React.FC = () => {
       // Clean URL without reload
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [decodeChallenge]);
+  }, []);
 
   // TASK 125: Track best combo
   useEffect(() => {
@@ -1620,8 +870,22 @@ const BlockPuzzle: React.FC = () => {
 
   // Start new game
   const startGame = useCallback(() => {
-    if (soundEnabled) playGameStart();
+    // CRITICAL: Unlock WebAudio on game start (user gesture required on iOS)
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    audioContextRef.current.resume().catch(() => {});
+
     hapticButton();
+    // Start/resume music on user gesture (required for mobile browsers)
+    // Skip if GameModal manages the music (check both ref AND context for timing safety)
+    if (soundEnabled && !musicManagedExternallyRef.current && !musicManagedExternally) {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.play().catch(() => {});
+      } else {
+        playNextSong();
+      }
+    }
     const newGrid = createEmptyGrid();
     const newPieces = generateThreePieces();
     setGrid(newGrid);
@@ -1679,7 +943,6 @@ const BlockPuzzle: React.FC = () => {
       streakTimeoutRef.current = null;
     }
     // Reset Phase 8 perfect clear states
-    setPerfectClears(0);
     setShowPerfectClear(false);
     // Reset Phase 9 combo visualization states
     setComboTimeLeft(100);
@@ -1690,11 +953,12 @@ const BlockPuzzle: React.FC = () => {
     setBestCombo(0);
     setShowShareModal(false);
     setShareImageUrl(null);
+    setGameScreenshot(null);
     setChallengeBeaten(false);
     // Note: Don't reset challengeTarget - keep the challenge active across games
     resetAllEffects();
     setGameState('playing');
-  }, [soundEnabled, playGameStart, hapticButton, resetAllEffects, stopDangerSound]);
+  }, [soundEnabled, hapticButton, resetAllEffects, stopDangerSound, playNextSong]);
 
   // Auto-start on mount
   useEffect(() => {
@@ -1714,7 +978,7 @@ const BlockPuzzle: React.FC = () => {
     }
 
     setScoreSubmitted(true);
-    const result = await submitScore(finalScore, null, {
+    const result = await submitScore(finalScore, undefined, {
       linesCleared: totalLinesCleared,
       blocksPlaced: totalBlocksPlaced,
       playTime: Date.now() - gameStartTime,
@@ -1726,31 +990,31 @@ const BlockPuzzle: React.FC = () => {
   }, [isSignedIn, scoreSubmitted, submitScore, highScore, totalLinesCleared, totalBlocksPlaced, gameStartTime]);
 
   // Handle game over
-  const handleGameOver = useCallback((currentScore: number) => {
+  const handleGameOver = useCallback(async (currentScore: number) => {
+    // CAPTURE SCREENSHOT FIRST - before any visual changes
+    // This captures the grid state at the moment of game over for sharing
+    if (gridRef.current) {
+      try {
+        const screenshot = await captureGameArea(gridRef.current);
+        setGameScreenshot(screenshot);
+      } catch (e) {
+        console.warn('[BlockPuzzle] Failed to capture screenshot:', e);
+      }
+    }
+
+    // Stop background music immediately on death
+    if (musicAudioRef.current) {
+      musicAudioRef.current.pause();
+      musicAudioRef.current = null;
+    }
     if (soundEnabled) playGameOver();
     hapticGameOver();
-    setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
     setGameState('gameover');
 
     if (isSignedIn && currentScore > 0) {
       submitScoreGlobal(currentScore);
     }
   }, [soundEnabled, playGameOver, hapticGameOver, isSignedIn, submitScoreGlobal]);
-
-  // Get cells that would be covered by piece at preview position
-  const getPreviewCells = useCallback((row: number, col: number, piece: DraggablePiece | undefined): Set<string> => {
-    const cells = new Set<string>();
-    if (!piece) return cells;
-
-    for (let r = 0; r < piece.shape.length; r++) {
-      for (let c = 0; c < piece.shape[r].length; c++) {
-        if (piece.shape[r][c] === 1) {
-          cells.add(`${row + r}-${col + c}`);
-        }
-      }
-    }
-    return cells;
-  }, []);
 
   // Place piece on grid
   const attemptPlacement = useCallback((pieceId: string, row: number, col: number) => {
@@ -1893,10 +1157,9 @@ const BlockPuzzle: React.FC = () => {
 
         // TASK 98: Check for perfect clear after line clears
         if (checkPerfectClear(clearedGrid)) {
-          // TASK 96 & 101: Award bonus and track perfect clear
+          // TASK 96: Award bonus for perfect clear
           newScore += PERFECT_CLEAR_BONUS;
           setScore(s => s + PERFECT_CLEAR_BONUS);
-          setPerfectClears(prev => prev + 1);
           triggerPerfectClear();
 
           // Show perfect clear bonus in floating score
@@ -1929,9 +1192,7 @@ const BlockPuzzle: React.FC = () => {
           triggerLineClearHaptic(1);
           triggerBigMoment({
             shockwave: true,
-            score: totalPoints,
-            x: 50,
-            y: 50,
+            score: `+${totalPoints}`,
           });
         } else if (linesCleared === 2) {
           triggerLineClearHaptic(2);
@@ -1940,10 +1201,8 @@ const BlockPuzzle: React.FC = () => {
             shockwave: true,
             sparks: true,
             shake: true,
-            score: totalPoints,
+            score: `+${totalPoints}`,
             emoji: '🔥',
-            x: 50,
-            y: 50,
           });
         } else if (linesCleared === 3) {
           triggerLineClearHaptic(3);
@@ -1954,10 +1213,8 @@ const BlockPuzzle: React.FC = () => {
             sparks: true,
             shake: true,
             vignette: true,
-            score: totalPoints,
+            score: `+${totalPoints}`,
             emoji: '💥',
-            x: 50,
-            y: 50,
           });
         } else if (linesCleared >= 4) {
           triggerLineClearHaptic(4);
@@ -1968,10 +1225,8 @@ const BlockPuzzle: React.FC = () => {
             sparks: true,
             shake: true,
             vignette: true,
-            score: totalPoints,
+            score: `+${totalPoints}`,
             emoji: '⚡',
-            x: 50,
-            y: 50,
           });
         }
       }, 500 + freezeDuration);
@@ -2029,7 +1284,7 @@ const BlockPuzzle: React.FC = () => {
     }, linesCleared > 0 ? 600 : 100);
 
     return true;
-  }, [score, combo, soundEnabled, getPieceById, playSnapSound, playLineClearSound, playComboNote, playSpawnSound, playComboBreakSound, triggerSnapHaptic, triggerLineClearHaptic, triggerMiniShake, createPlacementParticles, triggerBigMoment, triggerConfetti, showEpicCallout, showFloatingScore, handleGameOver, triggerFreezeFrame, triggerScreenFlash, createLineClearBurst, triggerShockwave, updateStreak, calculateStreakBonus, checkPerfectClear, triggerPerfectClear, CELL_SIZE]);
+  }, [score, combo, soundEnabled, getPieceById, playSnapSound, playLineClearSound, playComboNote, playSpawnSound, playComboBreakSound, triggerSnapHaptic, triggerLineClearHaptic, triggerMiniShake, createPlacementParticles, triggerBigMoment, triggerConfetti, showEpicCallout, showFloatingScore, handleGameOver, triggerFreezeFrame, triggerScreenFlash, createLineClearBurst, triggerShockwave, updateStreak, calculateStreakBonus, triggerPerfectClear, CELL_SIZE]);
 
   // Calculate grid position from screen coordinates
   const calculateGridPosition = useCallback((clientX: number, clientY: number, pieceId: string | null) => {
@@ -2043,12 +1298,28 @@ const BlockPuzzle: React.FC = () => {
     const pieceWidth = piece.shape[0].length;
     const pieceHeight = piece.shape.length;
 
+    // Grid has border (2px) and padding (4px) that are also scaled by any CSS transforms
+    // Calculate scale factor from rendered vs CSS size
+    const scaleFactor = rect.width / GRID_SIZE;
+    const borderPadding = (2 + 4) * scaleFactor; // (border + padding) scaled
+
+    // Content area is the grid minus border and padding on both sides
+    const contentWidth = rect.width - borderPadding * 2;
+
+    // Cell slot size = content area divided by 8 cells
+    // (This includes cell width + gap, distributed evenly)
+    const actualCellSlot = contentWidth / 8;
+
+    // Calculate relative position within the content area (after border/padding)
+    const relativeX = clientX - rect.left - borderPadding;
+    const relativeY = clientY - rect.top - borderPadding;
+
     // Calculate which cell the center of the piece would be in
-    const col = Math.floor((clientX - rect.left) / CELL_SIZE - pieceWidth / 2 + 0.5);
-    const row = Math.floor((clientY - rect.top) / CELL_SIZE - pieceHeight / 2 + 0.5);
+    const col = Math.floor(relativeX / actualCellSlot - pieceWidth / 2 + 0.5);
+    const row = Math.floor(relativeY / actualCellSlot - pieceHeight / 2 + 0.5);
 
     return { row, col };
-  }, [CELL_SIZE, getPieceById]);
+  }, [getPieceById, GRID_SIZE]);
 
   // ============================================
   // TOUCH HANDLERS
@@ -2058,6 +1329,10 @@ const BlockPuzzle: React.FC = () => {
 
     const piece = getPieceById(pieceId);
     if (!piece || !canPlaceAnywhere(gridStateRef.current, piece)) return;
+
+    // Resume audio context on touch (iOS requires user gesture)
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
     // Don't preventDefault on touchstart - it's passive by default
     // preventDefault is handled in native touchmove/touchend listeners
@@ -2117,6 +1392,7 @@ const BlockPuzzle: React.FC = () => {
     const handleTouchEnd = (e: TouchEvent) => {
       const pieceId = draggedPieceIdRef.current;
       const pos = previewPositionRef.current;
+
 
       if (pieceId && pos && gameState === 'playing') {
         e.preventDefault();
@@ -2265,27 +1541,34 @@ const BlockPuzzle: React.FC = () => {
         genre="Puzzle"
         difficulty="Medium"
       />
-      {/* Control Buttons */}
-      <button
-        className="bp-back-btn"
-        onClick={() => navigate('/games')}
-        aria-label="Back to games"
-      >
-        <IonIcon icon={arrowBack} />
-      </button>
+      {/* Control Buttons - Back button only on mobile (desktop uses arcade frame X) */}
+      {isMobile && (
+        <button
+          className="bp-back-btn"
+          onClick={() => navigate('/games')}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            navigate('/games');
+          }}
+          aria-label="Back to games"
+        >
+          <IonIcon icon={arrowBack} />
+        </button>
+      )}
 
-      <button
-        className="bp-sound-btn"
-        onClick={toggleSound}
-        aria-label={soundEnabled ? 'Mute sounds' : 'Unmute sounds'}
-      >
-        <IonIcon icon={soundEnabled ? volumeHigh : volumeMute} />
-      </button>
+      {/* Mute button removed - arcade frame handles muting via GameMuteContext */}
 
+      {/* Pause button - shown during gameplay */}
       {gameState === 'playing' && (
         <button
           className="bp-pause-btn"
           onClick={togglePause}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            togglePause();
+          }}
           aria-label={isPaused ? 'Resume game' : 'Pause game'}
         >
           <IonIcon icon={isPaused ? play : pause} />
@@ -2298,12 +1581,32 @@ const BlockPuzzle: React.FC = () => {
           <div className="bp-pause-content">
             <h2>Paused</h2>
             <div className="bp-pause-score">Score: {score}</div>
-            <button onClick={togglePause} className="bp-resume-btn">
+            <GameButton
+              variant="primary"
+              size="lg"
+              onClick={togglePause}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                togglePause();
+              }}
+              className="bp-resume-btn"
+            >
               Resume
-            </button>
-            <button onClick={() => navigate('/games')} className="bp-quit-btn">
+            </GameButton>
+            <GameButton
+              variant="secondary"
+              size="lg"
+              onClick={() => navigate('/games')}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate('/games');
+              }}
+              className="bp-quit-btn"
+            >
               Quit Game
-            </button>
+            </GameButton>
           </div>
         </div>
       )}
@@ -2311,131 +1614,38 @@ const BlockPuzzle: React.FC = () => {
       {/* Visual Effects */}
       <GameEffects effects={effects} accentColor="#ff6b00" />
 
-      {/* Game Over Screen */}
+      {/* Game Over - Uses shared component */}
       {gameState === 'gameover' && (
-        <div className="bp-game-over-overlay" onClick={(e) => e.stopPropagation()}>
-          {/* Main Game Over Content - stays fixed */}
-          <div className="bp-game-over-content">
-            <div className="bp-game-over-left">
-              {sadImage ? (
-                <img src={sadImage} alt="Game Over" className="bp-sad-image" />
-              ) : (
-                <div className="bp-game-over-emoji">🧩</div>
-              )}
-            </div>
-            <div className="bp-game-over-right">
-              <h2 className="bp-game-over-title">Game Over!</h2>
-              <div className="bp-game-over-reason">No moves left</div>
-
-              <div className="bp-game-over-score">
-                <span className="bp-score-value">{score}</span>
-                <span className="bp-score-label">points</span>
-              </div>
-
-              <div className="bp-game-over-stats">
-                <div className="bp-stat">
-                  <span className="bp-stat-value">{totalLinesCleared}</span>
-                  <span className="bp-stat-label">lines</span>
-                </div>
-                <div className="bp-stat">
-                  <span className="bp-stat-value">{totalBlocksPlaced}</span>
-                  <span className="bp-stat-label">blocks</span>
-                </div>
-                {/* Show best combo if achieved */}
-                {bestCombo >= 2 && (
-                  <div className="bp-stat bp-stat-combo">
-                    <span className="bp-stat-value">{bestCombo}x</span>
-                    <span className="bp-stat-label">combo</span>
-                  </div>
-                )}
-                {/* TASK 102: Show perfect clears in game over */}
-                {perfectClears > 0 && (
-                  <div className="bp-stat bp-stat-perfect">
-                    <span className="bp-stat-value">{perfectClears}</span>
-                    <span className="bp-stat-label">perfect</span>
-                  </div>
-                )}
-              </div>
-              {/* Play time */}
-              <div className="bp-game-over-time">
-                {Math.floor((Date.now() - gameStartTime) / 60000)}:{String(Math.floor(((Date.now() - gameStartTime) % 60000) / 1000)).padStart(2, '0')}
-              </div>
-
-              {(isNewPersonalBest || score > highScore) && score > 0 && (
-                <div className="bp-new-record">New Personal Best!</div>
-              )}
-
-              {isSignedIn && (
-                <div className="bp-submitted">
-                  {isSubmitting ? 'Saving...' : scoreSubmitted ? `Saved as ${userDisplayName}!` : ''}
-                </div>
-              )}
-
-              {/* Buttons: Play Again + Share + Leaderboard */}
-              <div className="bp-game-over-buttons">
-                <button onClick={startGame} className="bp-play-btn">
-                  Play Again
-                </button>
-                {/* TASK 124: Share button */}
-                <button onClick={openShareModal} className="bp-share-btn">
-                  Share
-                </button>
-                <button
-                  onClick={() => setShowLeaderboardPanel(!showLeaderboardPanel)}
-                  className="bp-leaderboard-btn"
-                >
-                  Leaderboard
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Leaderboard Panel - overlays on top */}
-          {showLeaderboardPanel && (
-            <div className="bp-leaderboard-overlay" onClick={() => setShowLeaderboardPanel(false)}>
-              <div className="bp-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
-                <div className="bp-leaderboard-header">
-                  <h3>Leaderboard</h3>
-                  <button className="bp-leaderboard-close" onClick={() => setShowLeaderboardPanel(false)}>×</button>
-                </div>
-                <div className="bp-leaderboard-list">
-                  {Array.from({ length: 10 }, (_, index) => {
-                    const entry = globalLeaderboard[index];
-                    const isCurrentUser = entry && score === entry.score;
-                    return (
-                      <div key={index} className={`bp-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
-                        <span className="bp-leaderboard-rank">#{index + 1}</span>
-                        <span className="bp-leaderboard-name">{entry?.displayName || '---'}</span>
-                        <span className="bp-leaderboard-score">{entry?.score ?? '-'}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Back to Games - positioned in safe area (bottom right) */}
-          <button
-            onClick={() => { window.location.href = '/games'; }}
-            className="bp-back-to-games-btn"
-          >
-            Back to Games
-          </button>
-        </div>
+        <ArcadeGameOverScreen
+          score={score}
+          highScore={highScore}
+          scoreLabel="points"
+          isNewPersonalBest={isNewPersonalBest}
+          isSignedIn={isSignedIn}
+          isSubmitting={isSubmitting}
+          scoreSubmitted={scoreSubmitted}
+          userDisplayName={userDisplayName ?? undefined}
+          leaderboard={globalLeaderboard}
+          onPlayAgain={startGame}
+          onShare={openShareModal}
+          accentColor="#ff6b00"
+        />
       )}
 
-      {/* Score Panel */}
+      {/* Score Panel - Three separate boxes */}
       {gameState === 'playing' && (
-        <div className={`bp-score-panel ${streakState.active ? 'streak-active' : ''}`}>
-          <div className="bp-score-main">
-            <span className="bp-score-value">{score}</span>
-            <span className="bp-score-label">Score</span>
+        <div className={`bp-score-column ${streakState.active ? 'streak-active' : ''}`}>
+          <div className="bp-stat-box bp-stat-score">
+            <span className="bp-stat-value">{score}</span>
+            <span className="bp-stat-label">Score</span>
           </div>
-          <div className="bp-score-secondary">
-            <span>Lines: {totalLinesCleared}</span>
-            {bestCombo >= 2 && <span>Combo: {bestCombo}x</span>}
-            <span>Best: {Math.max(highScore, score)}</span>
+          <div className="bp-stat-box bp-stat-lines">
+            <span className="bp-stat-value">{totalLinesCleared}</span>
+            <span className="bp-stat-label">Lines</span>
+          </div>
+          <div className="bp-stat-box bp-stat-best">
+            <span className="bp-stat-value">{Math.max(highScore, score)}</span>
+            <span className="bp-stat-label">Best</span>
           </div>
         </div>
       )}
@@ -2449,7 +1659,10 @@ const BlockPuzzle: React.FC = () => {
           <div className="bp-streak-bar">
             <div
               className="bp-streak-fill"
-              style={{ width: `${Math.min(100, (streakState.count / STREAK_CONFIG.activationThreshold) * 100)}%` }}
+              style={{
+                width: `${Math.min(100, (streakState.count / STREAK_CONFIG.activationThreshold) * 100)}%`,
+                height: `${Math.min(100, (streakState.count / STREAK_CONFIG.activationThreshold) * 100)}%`
+              }}
             />
           </div>
           {streakState.active && (
@@ -2484,9 +1697,9 @@ const BlockPuzzle: React.FC = () => {
                     isPreview ? (previewValid ? 'preview' : 'preview-invalid') : ''
                   } ${isClearing ? 'clearing' : ''} ${isJustPlaced ? 'just-placed' : ''} ${isValidPlacement ? 'valid-placement' : ''}`}
                   style={{
-                    width: CELL_SIZE - 2,
-                    height: CELL_SIZE - 2,
-                    background: cell.filled ? cell.color : undefined,
+                    width: CELL_SIZE,
+                    height: CELL_SIZE,
+                    background: cell.filled ? (cell.color ?? undefined) : undefined,
                   }}
                 />
               );
@@ -2632,76 +1845,97 @@ const BlockPuzzle: React.FC = () => {
       )}
 
       {/* TASK 46: Trail Particle Layer */}
-      {trailParticles.length > 0 && (
-        <div className="bp-trail-particle-layer">
-          {trailParticles.map(p => (
-            <div
-              key={p.id}
-              className="bp-trail-particle"
-              style={{
-                left: p.x,
-                top: p.y,
-                width: p.size,
-                height: p.size,
-                backgroundColor: p.color,
-                opacity: p.alpha,
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {trailParticles.length > 0 && (() => {
+        // Convert viewport coords to container-relative (arcade frame has transforms)
+        const containerRect = containerRef.current?.getBoundingClientRect();
+        return (
+          <div className="bp-trail-particle-layer">
+            {trailParticles.map(p => {
+              const relX = containerRect ? p.x - containerRect.left : p.x;
+              const relY = containerRect ? p.y - containerRect.top : p.y;
+              return (
+                <div
+                  key={p.id}
+                  className="bp-trail-particle"
+                  style={{
+                    left: relX,
+                    top: relY,
+                    width: p.size,
+                    height: p.size,
+                    backgroundColor: p.color,
+                    opacity: p.alpha,
+                  }}
+                />
+              );
+            })}
+          </div>
+        );
+      })()}
 
-      {/* Floating Drag Preview */}
-      {draggedPieceId && (
-        <div
-          className={`bp-drag-preview ${isSnapped ? 'snapped' : ''}`}
-          style={{
-            left: dragPosition.x,
-            top: dragPosition.y,
-            transform: 'translate(-50%, -50%)',
-          }}
-        >
-          {(() => {
-            const piece = getPieceById(draggedPieceId);
-            if (!piece) return null;
-            return (
-              <div className="bp-piece-preview floating">
-                {piece.shape.map((row, rowIdx) => (
-                  <div key={rowIdx} className="bp-piece-row">
-                    {row.map((cell, colIdx) => (
-                      <div
-                        key={colIdx}
-                        className={`bp-piece-cell ${cell ? 'filled' : ''}`}
-                        style={{
-                          width: CELL_SIZE - 4,
-                          height: CELL_SIZE - 4,
-                          background: cell ? piece.color : 'transparent',
-                        }}
-                      />
-                    ))}
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
-      )}
+      {/* Floating Drag Preview - positioned relative to container */}
+      {draggedPieceId && (() => {
+        // Calculate position relative to container (needed because arcade frame has transforms)
+        const containerRect = containerRef.current?.getBoundingClientRect();
+        const relativeX = containerRect ? dragPosition.x - containerRect.left : dragPosition.x;
+        const relativeY = containerRect ? dragPosition.y - containerRect.top : dragPosition.y;
+
+        const piece = getPieceById(draggedPieceId);
+        if (!piece) return null;
+
+        // Use same cell size as grid for visual consistency
+        const previewCellSize = CELL_SIZE;
+
+        return (
+          <div
+            className={`bp-drag-preview ${isSnapped ? 'snapped' : ''}`}
+            style={{
+              left: relativeX,
+              top: relativeY,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <div className="bp-piece-preview floating" style={{ gap: '2px' }}>
+              {piece.shape.map((row, rowIdx) => (
+                <div key={rowIdx} className="bp-piece-row" style={{ gap: '2px' }}>
+                  {row.map((cell, colIdx) => (
+                    <div
+                      key={colIdx}
+                      className={`bp-piece-cell ${cell ? 'filled' : ''}`}
+                      style={{
+                        width: previewCellSize,
+                        height: previewCellSize,
+                        background: cell ? piece.color : 'transparent',
+                      }}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Floating Scores */}
-      {floatingScores.map(score => (
-        <div
-          key={score.id}
-          className={`bp-floating-score ${score.isBig ? 'big' : ''}`}
-          style={{
-            left: score.x,
-            top: score.y,
-          }}
-        >
-          +{score.value}
-          {/* TASK 107: Show multiplier if present */}
-          {score.multiplier && <span className="bp-floating-multiplier">{score.multiplier}</span>}
-        </div>
-      ))}
+      {floatingScores.map(score => {
+        // Convert viewport coords to container-relative (arcade frame has transforms)
+        const containerRect = containerRef.current?.getBoundingClientRect();
+        const relX = containerRect ? score.x - containerRect.left : score.x;
+        const relY = containerRect ? score.y - containerRect.top : score.y;
+        return (
+          <div
+            key={score.id}
+            className={`bp-floating-score ${score.isBig ? 'big' : ''}`}
+            style={{
+              left: relX,
+              top: relY,
+            }}
+          >
+            +{score.value}
+            {/* TASK 107: Show multiplier if present */}
+            {score.multiplier && <span className="bp-floating-multiplier">{score.multiplier}</span>}
+          </div>
+        );
+      })}
 
       {/* TASK 118: Challenge Target Banner */}
       {challengeTarget && gameState === 'playing' && !challengeBeaten && (
@@ -2726,7 +1960,7 @@ const BlockPuzzle: React.FC = () => {
         <div className="bp-share-modal-overlay" onClick={() => setShowShareModal(false)}>
           <div className="bp-share-modal" onClick={(e) => e.stopPropagation()}>
             <button className="bp-share-close" onClick={() => setShowShareModal(false)}>×</button>
-            <h2 className="bp-share-title">Share Your Score</h2>
+            <h2 className="bp-share-title">Your Score Card</h2>
 
             {/* Preview image */}
             {shareImageUrl && (
@@ -2735,27 +1969,11 @@ const BlockPuzzle: React.FC = () => {
               </div>
             )}
 
-            {/* Share buttons */}
+            {/* Download button */}
             <div className="bp-share-actions">
-              {navigator.share && (
-                <button onClick={handleNativeShare} className="bp-share-action-btn primary">
-                  📤 Share
-                </button>
-              )}
-              <button onClick={handleCopyLink} className="bp-share-action-btn">
-                🔗 Copy Link
-              </button>
-              <button onClick={handleCopyText} className="bp-share-action-btn">
-                📋 Copy Text
-              </button>
-              <button onClick={handleDownloadImage} className="bp-share-action-btn">
-                💾 Save Image
-              </button>
-            </div>
-
-            {/* Challenge link preview */}
-            <div className="bp-share-challenge-info">
-              <p>Challenge your friends to beat your score!</p>
+              <GameButton variant="primary" size="lg" onClick={handleDownloadImage} className="bp-share-action-btn">
+                Download Image
+              </GameButton>
             </div>
           </div>
         </div>

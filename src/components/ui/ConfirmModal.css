@@ -149,3 +149,22 @@
     filter: none;
   }
 }
+
+/* ===== ARCADE FRAME FIX ===== */
+/* CSS transforms break position: fixed - use absolute positioning instead */
+/* The arcade frame has transform: translate(-50%, -50%) which makes fixed */
+/* behave like absolute relative to the transformed ancestor */
+
+.arcade-screen .confirm-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 800;
+}
+
+.arcade-screen .confirm-modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 801;
+}
