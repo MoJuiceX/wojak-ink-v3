@@ -272,6 +272,22 @@ export const onRequest: PagesFunction<Env> = async (context) => {
            VALUES (?, ?, 'owned', 'purchase', datetime("now"), ?, ?)`
         ).bind(auth.userId, itemId, item.price_oranges, item.consumable_quantity || 10)
       );
+
+      // ALSO update user_consumables table (used by voting system)
+      // Map item_id to consumable_type
+      const consumableType = itemId === 'consumable-donuts-10' ? 'donut' :
+                             itemId === 'consumable-poop-10' ? 'poop' : null;
+
+      if (consumableType) {
+        statements.push(
+          env.DB.prepare(
+            `INSERT INTO user_consumables (user_id, consumable_type, quantity, updated_at)
+             VALUES (?, ?, ?, datetime('now'))
+             ON CONFLICT(user_id, consumable_type)
+             DO UPDATE SET quantity = quantity + ?, updated_at = datetime('now')`
+          ).bind(auth.userId, consumableType, item.consumable_quantity || 10, item.consumable_quantity || 10)
+        );
+      }
     } else {
       // Add regular item to user_items
       statements.push(
