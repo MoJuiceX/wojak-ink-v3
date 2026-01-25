@@ -1,0 +1,196 @@
+/**
+ * Your Position Peek Styles (Mobile)
+ * Collapsible bar at bottom of screen
+ */
+
+.your-position-peek {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, rgba(20, 20, 35, 0.98), rgba(30, 30, 50, 0.95));
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(249, 115, 22, 0.3);
+  z-index: 100;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+/* Glow effect */
+.your-position-peek::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(249, 115, 22, 0.5) 20%,
+    rgba(249, 115, 22, 0.8) 50%,
+    rgba(249, 115, 22, 0.5) 80%,
+    transparent
+  );
+}
+
+/* Collapsed state */
+.peek-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.peek-collapsed:active {
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.peek-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.peek-rank {
+  font-size: 16px;
+  font-weight: 700;
+  color: #F97316;
+  flex-shrink: 0;
+}
+
+.peek-divider {
+  color: rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.peek-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.peek-chevron {
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+
+/* Expanded state */
+.peek-expanded {
+  overflow: hidden;
+}
+
+.peek-details {
+  padding: 0 16px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.peek-score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.peek-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.peek-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+}
+
+/* Rival section */
+.peek-rival-section {
+  padding-top: 12px;
+}
+
+.peek-rival-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.peek-rival-header:active {
+  background: rgba(249, 115, 22, 0.15);
+}
+
+.peek-rival-header .avatar {
+  width: 36px;
+  height: 36px;
+  border: 2px solid rgba(249, 115, 22, 0.4);
+}
+
+.peek-rival-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.peek-rival-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.peek-rival-score {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.peek-rival-message {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
+  padding: 10px;
+  background: rgba(249, 115, 22, 0.1);
+  border-radius: 8px;
+  border-left: 3px solid #F97316;
+}
+
+/* Champion state */
+.peek-champion-section {
+  padding: 16px 0 8px;
+  text-align: center;
+}
+
+.peek-champion-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #FFD700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+/* Only show on mobile */
+@media (min-width: 769px) {
+  .your-position-peek {
+    display: none;
+  }
+}
+
+/* Animation pulse for urgent gap */
+.your-position-peek.urgent .peek-text {
+  animation: urgentPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes urgentPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}

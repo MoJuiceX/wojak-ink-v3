@@ -7,6 +7,8 @@ import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useAudio } from '@/contexts/AudioContext';
 import { useGameMute } from '@/contexts/GameMuteContext';
+import { useArcadeLights } from '@/contexts/ArcadeLightsContext';
+import { GAME_COMBO_TIERS } from '@/config/arcade-light-mappings';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -88,6 +90,20 @@ const BrickByBrick: React.FC = () => {
 
   // Arcade frame mute control (from GameModal)
   const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
+
+  // Arcade lights control
+  const { triggerEvent, setGameId } = useArcadeLights();
+
+  // Ref for triggerEvent to use in animation loop (avoids stale closure)
+  const triggerEventRef = useRef(triggerEvent);
+  useEffect(() => {
+    triggerEventRef.current = triggerEvent;
+  }, [triggerEvent]);
+
+  // Register this game for per-game light overrides
+  useEffect(() => {
+    setGameId('orange-stack');
+  }, [setGameId]);
 
   // Music playlist - quieter songs that don't overpower sound effects
   const MUSIC_PLAYLIST = [
@@ -269,6 +285,8 @@ const BrickByBrick: React.FC = () => {
   useEffect(() => {
     if (isDangerZone && gameState === 'playing' && !dangerZoneIntervalRef.current) {
       // Start pulsing warning feedback
+      // Arcade lights: Danger zone warning
+      triggerEvent('damage:light');
       dangerZoneIntervalRef.current = setInterval(() => {
         hapticWarning();
         playWarning();
@@ -517,6 +535,8 @@ const BrickByBrick: React.FC = () => {
 
     spawnNewBlock(baseBlock.width);
     setGameState('playing');
+    // Arcade lights: Game started
+    triggerEvent('play:active');
   };
 
   const startNextLevel = () => {
@@ -561,15 +581,19 @@ const BrickByBrick: React.FC = () => {
     setLastDropBonus('');
     spawnNewBlock(baseBlock.width);
     setGameState('playing');
+    // Arcade lights: Next level started
+    triggerEvent('play:active');
   };
 
   // Auto-submit score to global leaderboard (for signed-in users)
   const submitScoreGlobal = useCallback(async (finalScore: number, finalLevel: number) => {
-    if (!isSignedIn || scoreSubmitted || finalScore === 0) return;
+    // Check minimum actions: 3 blocks dropped for leaderboard
+    if (!isSignedIn || scoreSubmitted || finalScore === 0 || dropCountRef.current < 3) return;
 
     setScoreSubmitted(true);
     const result = await submitScore(finalScore, finalLevel, {
       blocksStacked: levelScore,
+      blocksDropped: dropCountRef.current,
     });
 
     if (result.success) {
@@ -661,6 +685,12 @@ const BrickByBrick: React.FC = () => {
         // No shield - game over
         playGameOver();
         hapticGameOver();
+        // Arcade lights: Game over (missed block)
+        if (score > highScore) {
+          triggerEvent('game:highScore');
+        } else {
+          triggerEvent('game:over');
+        }
         setGameState('gameover');
         if (score > highScore) {
           setHighScore(score);
@@ -690,9 +720,12 @@ const BrickByBrick: React.FC = () => {
 
     // Calculate bounce penalty (use ref for accurate count during animation)
     const bouncePenalty = bounceCountRef.current * SCORING.bounceMultiplier;
+    
+    // NEW: Wall bounces also break combo (in addition to penalty)
+    const hadBounces = bounceCountRef.current > 0;
 
-    // Update combo
-    const newCombo = isGoodDrop ? combo + 1 : 0;
+    // Update combo - bounces now break combo along with bad drops
+    const newCombo = (isGoodDrop && !hadBounces) ? combo + 1 : 0;
     const comboMultiplier = 1 + (newCombo * SCORING.comboMultiplier);
 
     // Calculate total points for this drop
@@ -713,6 +746,8 @@ const BrickByBrick: React.FC = () => {
       bonusText = 'PERFECT! ';
       playPerfectBonus();
       hapticHighScore(); // Strong haptic for perfect
+      // Arcade lights: Perfect placement
+      triggerEvent('perfect:hit');
       // Trigger screen shake on perfect (desktop only)
       if (!isMobile) {
         setShowScreenShake(true);
@@ -723,6 +758,13 @@ const BrickByBrick: React.FC = () => {
       bonusText = 'Great! ';
       playBlockLand();
       hapticScore(); // Light haptic for good drops
+      // Arcade lights: Near-perfect placement
+      triggerEvent('score:large');
+    } else if (isGoodDrop) {
+      playBlockLand();
+      hapticScore(); // Light haptic for normal drops
+      // Arcade lights: Good drop (debounced by pattern system)
+      triggerEvent('score:small');
     } else {
       playBlockLand();
       hapticScore(); // Light haptic for normal drops
@@ -757,6 +799,10 @@ const BrickByBrick: React.FC = () => {
       // Milestone text only - no confetti or epic callout
       setShowMilestone(newCombo);
       setTimeout(() => setShowMilestone(null), 1500);
+
+      // Arcade lights: Combo milestone using native thresholds
+      const comboTier = GAME_COMBO_TIERS['orange-stack'](newCombo);
+      triggerEvent(`combo:${comboTier}` as any);
     }
 
     // ====== POWER-UP ACTIVATION ======
@@ -764,6 +810,8 @@ const BrickByBrick: React.FC = () => {
       const powerUp = POWER_UPS[pendingPowerUp];
       setPowerUpNotification(`${powerUp.emoji} ${powerUp.name}!`);
       setTimeout(() => setPowerUpNotification(null), 2000);
+      // Arcade lights: Power-up collected
+      triggerEvent('collect:powerup');
 
       switch (pendingPowerUp) {
         case 'magnet':
@@ -818,11 +866,24 @@ const BrickByBrick: React.FC = () => {
       if (level < MAX_LEVEL) {
         playWinSound();
         hapticLevelUp(); // Level complete haptic
+        // Arcade lights: Escalating level complete celebration
+        if (level <= 3) {
+          // Early levels (1-3): quick flash
+          triggerEvent('level:up');
+        } else if (level <= 7) {
+          // Mid levels (4-7): bigger blaze
+          triggerEvent('progress:complete');
+        } else {
+          // Late levels (8-9): full fireworks (level 10 is game:win)
+          triggerEvent('game:win');
+        }
         setGameState('levelComplete');
       } else {
         // Won the game at level 10!
         playWinSound();
         hapticHighScore(); // Epic win haptic
+        // Arcade lights: Game won (final level)
+        triggerEvent('game:win');
         setGameState('gameover');
         if (newScore > highScore) {
           setHighScore(newScore);
@@ -836,6 +897,12 @@ const BrickByBrick: React.FC = () => {
     if (overlapWidth < config.minBlockWidth) {
       playGameOver();
       hapticGameOver();
+      // Arcade lights: Game over (block too small)
+      if (newScore > highScore) {
+        triggerEvent('game:highScore');
+      } else {
+        triggerEvent('game:over');
+      }
       setGameState('gameover');
       if (newScore > highScore) {
         setHighScore(newScore);
@@ -846,7 +913,7 @@ const BrickByBrick: React.FC = () => {
 
     // Spawn next block
     spawnNewBlock(overlapWidth);
-  }, [gameState, score, levelScore, level, highScore, spawnNewBlock, bounceCount, combo, playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver, hasMagnet, hasShield, isSlowMo, pendingPowerUp]);
+  }, [gameState, score, levelScore, level, highScore, spawnNewBlock, bounceCount, combo, playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver, hasMagnet, hasShield, isSlowMo, pendingPowerUp, triggerEvent]);
 
   // Clear bonus text after a short time
   useEffect(() => {
@@ -898,10 +965,14 @@ const BrickByBrick: React.FC = () => {
         newX = bounceRight - block.width;
         directionRef.current = -1;
         bounceCountRef.current += 1;
+        // Arcade lights: Wall bounce left (block hit right wall)
+        triggerEventRef.current('progress:backward');
       } else if (newX < bounceLeft) {
         newX = bounceLeft;
         directionRef.current = 1;
         bounceCountRef.current += 1;
+        // Arcade lights: Wall bounce right (block hit left wall)
+        triggerEventRef.current('progress:forward');
       }
 
       // Update ref directly (no setState = no re-render)
@@ -1008,15 +1079,19 @@ const BrickByBrick: React.FC = () => {
   // Show last 12 blocks for rendering (anything below camera offset will be off-screen)
   const visibleBlocks = blocks.slice(-12);
 
-  // Parallax background offset - creates "climbing higher" effect from block 1
-  // Each block contributes to the background offset for immediate visual feedback
-  // Plus additional movement from camera scrolling at higher stacks
-  const PARALLAX_BLOCK_RATE = 15; // Pixels of background shift per block stacked
+  // Parallax with acceleration - reaches sky faster as tower grows
+  // Higher base rate + exponential acceleration creates smooth "climbing into sky" effect
+  const PARALLAX_BASE_RATE = 25; // Base pixels per block (was 15)
+  const PARALLAX_ACCELERATION = 0.8; // Extra pixels per block^1.3 (accelerates climb)
   const PARALLAX_CAMERA_RATE = 0.4; // Additional shift based on camera movement
-  const MAX_BACKGROUND_OFFSET = 350; // Max pixels to shift (must stay within CSS top: -400px)
+  const MAX_BACKGROUND_OFFSET = 450; // Increased travel to reach sky (was 350)
   const blocksStacked = blocks.length;
+
+  // Accelerating formula: starts at base rate, speeds up with height
+  const blockContribution = (blocksStacked * PARALLAX_BASE_RATE) + 
+    (Math.pow(blocksStacked, 1.3) * PARALLAX_ACCELERATION);
   const backgroundOffset = Math.min(
-    (blocksStacked * PARALLAX_BLOCK_RATE) + (cameraOffset * PARALLAX_CAMERA_RATE),
+    blockContribution + (cameraOffset * PARALLAX_CAMERA_RATE),
     MAX_BACKGROUND_OFFSET
   );
 
@@ -1615,6 +1690,8 @@ const BrickByBrick: React.FC = () => {
               leaderboard={globalLeaderboard}
               onPlayAgain={startGame}
               accentColor="#ff6b00"
+              meetsMinimumActions={dropCountRef.current >= 3}
+              minimumActionsMessage="Drop at least 3 blocks to be on the leaderboard"
             />
           )}
         </div>

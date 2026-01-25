@@ -2,6 +2,9 @@
  * Cloudflare Pages Function - /api/leaderboard/submit
  *
  * POST: Submit a score to the global leaderboard (authenticated)
+ *
+ * Uses atomic db.batch() operations to ensure data integrity.
+ * Supports idempotency keys to prevent duplicate submissions.
  */
 
 import { authenticateRequest } from '../../lib/auth';
@@ -16,6 +19,7 @@ interface SubmitScoreRequest {
   score: number;
   level?: number;
   metadata?: Record<string, unknown>;
+  idempotencyKey?: string; // Client-generated UUID to prevent duplicates
 }
 
 // Valid game IDs
@@ -46,145 +50,157 @@ const corsHeaders = {
 };
 
 /**
- * Ensure user exists in users table (upsert)
+ * Check if an idempotency key already exists
+ * Returns the existing score ID if found, null otherwise
  */
-async function ensureUser(db: D1Database, userId: string): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO users (id, created_at, updated_at)
-       VALUES (?, datetime('now'), datetime('now'))
-       ON CONFLICT(id) DO UPDATE SET updated_at = datetime('now')`
-    )
-    .bind(userId)
-    .run();
-}
-
-/**
- * Update user's play streak
- * Returns the new streak count
- * Note: Returns defaults if streak columns don't exist yet
- */
-async function updateStreak(db: D1Database, userId: string): Promise<{ currentStreak: number; isNewDay: boolean }> {
-  try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-
-    // Get current streak info
-    const profile = await db
-      .prepare('SELECT current_streak, longest_streak, last_played_date FROM profiles WHERE user_id = ?')
-      .bind(userId)
-      .first<{ current_streak: number | null; longest_streak: number | null; last_played_date: string | null }>();
-
-    if (!profile) {
-      // No profile yet, will be created with streak = 1
-      return { currentStreak: 1, isNewDay: true };
-    }
-
-    const lastPlayed = profile.last_played_date;
-    let newStreak = profile.current_streak || 0;
-    let isNewDay = false;
-
-    if (lastPlayed === today) {
-      // Already played today, no change
-      return { currentStreak: newStreak, isNewDay: false };
-    }
-
-    // Check if yesterday
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-    if (lastPlayed === yesterdayStr) {
-      // Consecutive day! Increment streak
-      newStreak += 1;
-      isNewDay = true;
-    } else {
-      // Streak broken, reset to 1
-      newStreak = 1;
-      isNewDay = true;
-    }
-
-    // Update longest streak if needed
-    const longestStreak = Math.max(newStreak, profile.longest_streak || 0);
-
-    // Update profile with new streak
-    await db
-      .prepare(`
-        UPDATE profiles
-        SET current_streak = ?, longest_streak = ?, last_played_date = ?
-        WHERE user_id = ?
-      `)
-      .bind(newStreak, longestStreak, today, userId)
-      .run();
-
-    return { currentStreak: newStreak, isNewDay };
-  } catch (error) {
-    // Streak columns might not exist yet - return defaults
-    console.log('[Leaderboard] Streak columns not available, skipping streak update');
-    return { currentStreak: 0, isNewDay: false };
-  }
-}
-
-/**
- * Get user's current high score for a game
- */
-async function getUserHighScore(
+async function checkIdempotencyKey(
   db: D1Database,
-  userId: string,
-  gameId: string
-): Promise<number | null> {
+  idempotencyKey: string
+): Promise<{ id: number; score: number; game_id: string } | null> {
   const result = await db
-    .prepare(
-      'SELECT MAX(score) as high_score FROM leaderboard_scores WHERE user_id = ? AND game_id = ?'
-    )
-    .bind(userId, gameId)
-    .first<{ high_score: number | null }>();
+    .prepare('SELECT id, score, game_id FROM leaderboard_scores WHERE idempotency_key = ?')
+    .bind(idempotencyKey)
+    .first<{ id: number; score: number; game_id: string }>();
 
-  return result?.high_score ?? null;
+  return result || null;
 }
 
 /**
- * Insert a new score
+ * Calculate streak values based on last played date
  */
-async function insertScore(
+function calculateStreak(
+  profile: { current_streak: number | null; longest_streak: number | null; last_played_date: string | null } | null,
+  today: string
+): { newStreak: number; longestStreak: number; isNewDay: boolean } {
+  if (!profile) {
+    return { newStreak: 1, longestStreak: 1, isNewDay: true };
+  }
+
+  const lastPlayed = profile.last_played_date;
+  let newStreak = profile.current_streak || 0;
+  let isNewDay = false;
+
+  if (lastPlayed === today) {
+    // Already played today, no change
+    return {
+      newStreak,
+      longestStreak: profile.longest_streak || newStreak,
+      isNewDay: false,
+    };
+  }
+
+  // Check if yesterday
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+  if (lastPlayed === yesterdayStr) {
+    // Consecutive day! Increment streak
+    newStreak += 1;
+    isNewDay = true;
+  } else {
+    // Streak broken, reset to 1
+    newStreak = 1;
+    isNewDay = true;
+  }
+
+  const longestStreak = Math.max(newStreak, profile.longest_streak || 0);
+
+  return { newStreak, longestStreak, isNewDay };
+}
+
+/**
+ * Submit score atomically using db.batch()
+ * This ensures all operations succeed or fail together
+ */
+async function submitScoreAtomic(
   db: D1Database,
   userId: string,
   data: SubmitScoreRequest
-): Promise<number> {
-  const result = await db
-    .prepare(
-      `INSERT INTO leaderboard_scores (user_id, game_id, score, level, metadata, created_at)
-       VALUES (?, ?, ?, ?, ?, datetime('now'))
-       RETURNING id`
-    )
-    .bind(
+): Promise<{
+  scoreId: number;
+  rank: number;
+  isNewHighScore: boolean;
+  previousHighScore: number | null;
+  currentStreak: number;
+  isNewDay: boolean;
+}> {
+  const today = new Date().toISOString().split('T')[0];
+
+  // Step 1: Get current state (profile and high score) - these can be batched
+  const [profileResult, highScoreResult] = await db.batch([
+    db.prepare('SELECT current_streak, longest_streak, last_played_date FROM profiles WHERE user_id = ?').bind(userId),
+    db.prepare('SELECT MAX(score) as high_score FROM leaderboard_scores WHERE user_id = ? AND game_id = ?').bind(userId, data.gameId),
+  ]);
+
+  const profile = profileResult.results[0] as { current_streak: number | null; longest_streak: number | null; last_played_date: string | null } | undefined;
+  const previousHighScore = (highScoreResult.results[0] as { high_score: number | null } | undefined)?.high_score ?? null;
+
+  // Calculate streak
+  const streakCalc = calculateStreak(profile || null, today);
+
+  // Step 2: Perform all writes atomically
+  const writeStatements: D1PreparedStatement[] = [
+    // Ensure user exists
+    db.prepare(
+      `INSERT INTO users (id, created_at, updated_at)
+       VALUES (?, datetime('now'), datetime('now'))
+       ON CONFLICT(id) DO UPDATE SET updated_at = datetime('now')`
+    ).bind(userId),
+
+    // Insert the score
+    db.prepare(
+      `INSERT INTO leaderboard_scores (user_id, game_id, score, level, metadata, idempotency_key, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`
+    ).bind(
       userId,
       data.gameId,
       data.score,
       data.level ?? null,
-      data.metadata ? JSON.stringify(data.metadata) : null
-    )
-    .first<{ id: number }>();
+      data.metadata ? JSON.stringify(data.metadata) : null,
+      data.idempotencyKey ?? null
+    ),
+  ];
 
-  return result?.id ?? 0;
-}
+  // Add streak update if it's a new day
+  if (streakCalc.isNewDay) {
+    writeStatements.push(
+      db.prepare(`
+        UPDATE profiles
+        SET current_streak = ?, longest_streak = ?, last_played_date = ?
+        WHERE user_id = ?
+      `).bind(streakCalc.newStreak, streakCalc.longestStreak, today, userId)
+    );
+  }
 
-/**
- * Get rank for a score in a game
- */
-async function getScoreRank(
-  db: D1Database,
-  gameId: string,
-  score: number
-): Promise<number> {
-  const result = await db
-    .prepare(
+  // Execute all writes atomically
+  await db.batch(writeStatements);
+
+  // Step 3: Get the inserted score ID and rank (read operations after commit)
+  const [scoreIdResult, rankResult] = await db.batch([
+    db.prepare(
+      `SELECT id FROM leaderboard_scores
+       WHERE user_id = ? AND game_id = ? AND score = ?
+       ORDER BY created_at DESC LIMIT 1`
+    ).bind(userId, data.gameId, data.score),
+    db.prepare(
       `SELECT COUNT(*) + 1 as rank FROM leaderboard_scores
        WHERE game_id = ? AND score > ?`
-    )
-    .bind(gameId, score)
-    .first<{ rank: number }>();
+    ).bind(data.gameId, data.score),
+  ]);
 
-  return result?.rank ?? 1;
+  const scoreId = (scoreIdResult.results[0] as { id: number } | undefined)?.id ?? 0;
+  const rank = (rankResult.results[0] as { rank: number } | undefined)?.rank ?? 1;
+  const isNewHighScore = previousHighScore === null || data.score > previousHighScore;
+
+  return {
+    scoreId,
+    rank,
+    isNewHighScore,
+    previousHighScore,
+    currentStreak: streakCalc.newStreak,
+    isNewDay: streakCalc.isNewDay,
+  };
 }
 
 /**
@@ -279,33 +295,47 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       );
     }
 
-    // Ensure user exists
-    await ensureUser(env.DB, userId);
+    // Check idempotency key if provided (prevents duplicate submissions)
+    if (data.idempotencyKey) {
+      const existing = await checkIdempotencyKey(env.DB, data.idempotencyKey);
+      if (existing) {
+        // Return the existing score info - this is a duplicate request
+        const rankResult = await env.DB
+          .prepare('SELECT COUNT(*) + 1 as rank FROM leaderboard_scores WHERE game_id = ? AND score > ?')
+          .bind(existing.game_id, existing.score)
+          .first<{ rank: number }>();
 
-    // Get user's previous high score
-    const previousHighScore = await getUserHighScore(env.DB, userId, data.gameId);
+        const highScoreResult = await env.DB
+          .prepare('SELECT MAX(score) as high_score FROM leaderboard_scores WHERE user_id = ? AND game_id = ?')
+          .bind(userId, existing.game_id)
+          .first<{ high_score: number | null }>();
 
-    // Insert the new score
-    const scoreId = await insertScore(env.DB, userId, data);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            scoreId: existing.id,
+            rank: rankResult?.rank ?? 1,
+            isNewHighScore: false, // Already submitted, so not "new"
+            previousHighScore: highScoreResult?.high_score ?? null,
+            duplicate: true, // Flag to indicate this was a duplicate
+          }),
+          { status: 200, headers: corsHeaders }
+        );
+      }
+    }
 
-    // Get rank for this score
-    const rank = await getScoreRank(env.DB, data.gameId, data.score);
-
-    // Determine if this is a new high score
-    const isNewHighScore = previousHighScore === null || data.score > previousHighScore;
-
-    // Update play streak
-    const streakInfo = await updateStreak(env.DB, userId);
+    // Submit score atomically
+    const result = await submitScoreAtomic(env.DB, userId, data);
 
     return new Response(
       JSON.stringify({
         success: true,
-        scoreId,
-        rank,
-        isNewHighScore,
-        previousHighScore,
-        currentStreak: streakInfo.currentStreak,
-        isNewDay: streakInfo.isNewDay,
+        scoreId: result.scoreId,
+        rank: result.rank,
+        isNewHighScore: result.isNewHighScore,
+        previousHighScore: result.previousHighScore,
+        currentStreak: result.currentStreak,
+        isNewDay: result.isNewDay,
       }),
       { status: 200, headers: corsHeaders }
     );

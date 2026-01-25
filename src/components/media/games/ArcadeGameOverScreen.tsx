@@ -7,13 +7,9 @@
 
 import { useState, useEffect } from 'react';
 import { GameButton } from '@/components/ui/GameButton';
+import { Avatar } from '@/components/Avatar/Avatar';
+import type { LeaderboardEntry } from '@/hooks/data/useLeaderboard';
 import './ArcadeGameOverScreen.css';
-
-interface LeaderboardEntry {
-  displayName: string;
-  score: number;
-  rank?: number;
-}
 
 interface ArcadeGameOverScreenProps {
   // Score data
@@ -43,11 +39,13 @@ interface ArcadeGameOverScreenProps {
   title?: string;
   // Optional subtitle for context (e.g., "Needed 5000 points")
   subtitle?: string;
+  
+  // Minimum actions for leaderboard eligibility
+  meetsMinimumActions?: boolean; // Whether player met the minimum action threshold
+  minimumActionsMessage?: string; // Message to show when below threshold
 }
 
-// Mock data for empty leaderboard slots
-const MOCK_NAMES = ['OrangeKing', 'FlappyMaster', 'PipeDreamer', 'SkyHopper', 'CitrusNinja', 'WojakPro', 'JuicyPlayer', 'AirBender', 'PipeWizard', 'CloudSurfer'];
-const MOCK_SCORES = [156, 142, 128, 115, 98, 87, 72, 65, 54, 41];
+// No mock data - only show real leaderboard entries
 
 export function ArcadeGameOverScreen({
   score,
@@ -65,6 +63,8 @@ export function ArcadeGameOverScreen({
   isExiting = false,
   title = 'Game Over!',
   subtitle,
+  meetsMinimumActions = true, // Default true for backwards compatibility
+  minimumActionsMessage = 'Earn more points to be on the leaderboard',
 }: ArcadeGameOverScreenProps) {
   const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
   // Prevent accidental button presses from lingering touch events on game over
@@ -84,22 +84,37 @@ export function ArcadeGameOverScreen({
       style={accentColor ? { '--arcade-accent': accentColor } as React.CSSProperties : undefined}
     >
       {/* Leaderboard Panel - slides in from left */}
+      {/* Backdrop for mobile - click to close */}
+      {showLeaderboardPanel && (
+        <div
+          className="arcade-gameover-leaderboard-backdrop"
+          onClick={(e) => { e.stopPropagation(); setShowLeaderboardPanel(false); }}
+          onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); setShowLeaderboardPanel(false); }}
+        />
+      )}
       <div className={`arcade-gameover-leaderboard-overlay ${showLeaderboardPanel ? 'visible' : ''}`}>
         <div className="arcade-gameover-leaderboard-panel" onClick={(e) => e.stopPropagation()}>
           <div className="arcade-gameover-leaderboard-list">
             {Array.from({ length: 10 }, (_, index) => {
               const entry = leaderboard[index];
               const isCurrentUser = entry && score === entry.score;
-              const displayName = entry?.displayName || MOCK_NAMES[index];
-              const displayScore = entry?.score ?? MOCK_SCORES[index];
+              const hasEntry = !!entry;
               return (
-                <div key={index} className={`arcade-gameover-leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}>
+                <div key={index} className={`arcade-gameover-leaderboard-entry ${isCurrentUser ? 'current-user' : ''} ${!hasEntry ? 'empty' : ''}`}>
                   <span className="arcade-gameover-leaderboard-rank">#{index + 1}</span>
-                  <div className="arcade-gameover-leaderboard-avatar">
-                    <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${displayName}`} alt="" />
-                  </div>
-                  <span className="arcade-gameover-leaderboard-name">{displayName}</span>
-                  <span className="arcade-gameover-leaderboard-score">{displayScore}</span>
+                  {hasEntry ? (
+                    <Avatar
+                      avatar={entry.avatar || { type: 'emoji', value: '🎮', source: 'default' }}
+                      size="small"
+                      showBadge={false}
+                    />
+                  ) : (
+                    <div className="arcade-gameover-leaderboard-avatar-placeholder" />
+                  )}
+                  <span className={`arcade-gameover-leaderboard-name ${entry?.equipped?.nameEffect?.css_class || ''}`}>
+                    {entry?.displayName || '---'}
+                  </span>
+                  <span className="arcade-gameover-leaderboard-score">{entry?.score ?? '-'}</span>
                 </div>
               );
             })}
@@ -124,13 +139,20 @@ export function ArcadeGameOverScreen({
           </div>
         </div>
 
-        {(isNewPersonalBest || score > highScore) && score > 0 && (
+        {(isNewPersonalBest || score > highScore) && score > 0 && meetsMinimumActions && (
           <div className="arcade-gameover-new-record">New Personal Best!</div>
         )}
 
-        {isSignedIn && (
+        {isSignedIn && meetsMinimumActions && (
           <div className="arcade-gameover-submitted">
             {isSubmitting ? 'Saving...' : scoreSubmitted ? `Saved as ${userDisplayName}!` : ''}
+          </div>
+        )}
+        
+        {/* Show minimum actions message when player doesn't meet threshold */}
+        {!meetsMinimumActions && (
+          <div className="arcade-gameover-minimum-actions">
+            {minimumActionsMessage}
           </div>
         )}
 
@@ -139,6 +161,7 @@ export function ArcadeGameOverScreen({
           <GameButton
             variant="primary"
             size="lg"
+            onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); if (interactable) onPlayAgain(); }}
             onClick={(e) => { e.stopPropagation(); if (interactable) onPlayAgain(); }}
             className="arcade-gameover-play-btn"
             style={{ opacity: interactable ? 1 : 0.7 }}
@@ -149,6 +172,7 @@ export function ArcadeGameOverScreen({
             <GameButton
               variant="secondary"
               size="md"
+              onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); if (interactable) onShare(); }}
               onClick={(e) => { e.stopPropagation(); if (interactable) onShare(); }}
               className="arcade-gameover-share-btn"
               style={{ opacity: interactable ? 1 : 0.7 }}
@@ -159,6 +183,7 @@ export function ArcadeGameOverScreen({
           <GameButton
             variant="ghost"
             size="md"
+            onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); if (interactable) setShowLeaderboardPanel(!showLeaderboardPanel); }}
             onClick={(e) => { e.stopPropagation(); if (interactable) setShowLeaderboardPanel(!showLeaderboardPanel); }}
             className={`arcade-gameover-leaderboard-btn ${showLeaderboardPanel ? 'active' : ''}`}
             style={{ opacity: interactable ? 1 : 0.7 }}

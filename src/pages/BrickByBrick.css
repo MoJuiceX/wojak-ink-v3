@@ -38,7 +38,7 @@
     background-color: #87CEEB; /* Sky blue to fill any gaps at top */
     bottom: 0;
     top: -500px;
-    height: calc(100% + 500px);
+    height: calc(100% + 600px);
   }
 }
 
@@ -54,12 +54,12 @@
 /* Parallax Background - stays fixed, no parallax effect to avoid header issues */
 .stack-content .parallax-background {
   position: absolute;
-  /* Extend beyond container to allow parallax movement */
-  top: -400px;
+  /* Extend beyond container to allow parallax movement (supports 450px max offset) */
+  top: -500px;
   left: 0;
   right: 0;
   bottom: -100px;
-  height: calc(100% + 500px);
+  height: calc(100% + 600px);
   background-image: url('/assets/Games/backgrounds/BACKGROUND_Orange Grove_brick.png');
   background-size: cover;
   background-position: center 100%; /* Start at very bottom showing ground */

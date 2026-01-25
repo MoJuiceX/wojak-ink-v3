@@ -1,0 +1,76 @@
+/**
+ * Mobile Game Controls Styles
+ *
+ * Small, subtle buttons in top-right corner.
+ * Uses safe-area-inset for notched devices.
+ */
+
+.mobile-game-controls {
+  position: fixed;
+  /* Top right with safe area for notch */
+  top: max(12px, env(safe-area-inset-top, 12px));
+  right: max(12px, env(safe-area-inset-right, 12px));
+  z-index: 110;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+/* Base button style - small and subtle */
+.mobile-game-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  /* Ensure minimum touch target even though button is small */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  /* Expand touch target without changing visual size */
+  position: relative;
+}
+
+/* Expanded touch target (44px minimum per Apple HIG) */
+.mobile-game-btn::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  bottom: -6px;
+  left: -6px;
+  /* This creates a 44px touch target */
+}
+
+/* Hover/active states */
+.mobile-game-btn:hover {
+  background: rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.mobile-game-btn:active {
+  transform: scale(0.95);
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* Close button specific styling */
+.mobile-game-btn-close {
+  /* Slightly more visible as primary action */
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* Landscape orientation - move buttons slightly lower to avoid camera cutout */
+@media (orientation: landscape) and (max-height: 500px) {
+  .mobile-game-controls {
+    top: max(8px, env(safe-area-inset-top, 8px));
+    right: max(50px, env(safe-area-inset-right, 50px));
+  }
+}

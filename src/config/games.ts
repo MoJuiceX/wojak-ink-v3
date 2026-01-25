@@ -130,8 +130,8 @@ export const MINI_GAMES: MiniGame[] = [
     id: 'color-reaction',
     name: 'Color Reaction',
     emoji: '🎨',
-    description: 'Test your reflexes! Tap when colors match.',
-    shortDescription: 'Tap when colors match! 3 misses and it\'s game over.',
+    description: 'Tap when fruit AND color match! Test your reaction time.',
+    shortDescription: 'Tap when both match! 3 lives. Build streaks for bonus.',
     status: 'available',
     route: '/media/games/color-reaction',
     accentColor: '#06b6d4',
@@ -147,14 +147,14 @@ export const MINI_GAMES: MiniGame[] = [
       pauseAnytime: false,
     },
     instructions: [
-      { step: 1, text: 'Watch the TARGET color circle' },
-      { step: 2, text: 'Tap when it matches YOUR color!' },
+      { step: 1, text: 'Watch the TARGET fruit and color' },
+      { step: 2, text: 'Tap when BOTH match YOUR fruit and color!' },
       { step: 3, text: 'Faster reaction = more points' },
-      { step: 4, text: '3 misses and it\'s game over' },
-      { step: 5, text: 'Build streaks for bonus effects!' },
+      { step: 4, text: '3 lives — wrong tap or miss costs 1' },
+      { step: 5, text: 'Build streaks for bonus points!' },
     ],
     controls: [
-      { input: 'Tap / Click', action: 'React when colors match' },
+      { input: 'Tap / Click', action: 'React when both match' },
     ],
   },
   {
@@ -198,7 +198,6 @@ export const MINI_GAMES: MiniGame[] = [
     accentColor: '#a855f7',
     hasHighScores: true,
     difficulty: 'medium',
-    hasOwnControls: true, // Has own back/pause buttons on mobile
     estimatedPlayTime: '5-15 min',
     accessibilityFeatures: {
       keyboardPlayable: false,

@@ -26,6 +26,8 @@ export interface CoinUpdateResult {
   /** Coins that were just collected (for triggering effects) */
   collectedCoins: Coin[];
   scoreGained: number;
+  /** Coins that went off-screen without being collected (for combo break) */
+  missedCoins: Coin[];
 }
 
 export interface GamePhysicsResult {
@@ -115,7 +117,11 @@ export function shouldSpawnPipe(
 /**
  * Update coin positions and check for collection.
  * Returns updated coins and info about which were collected.
- * Does NOT handle: sounds, floating scores.
+ * Also tracks missed coins (went off-screen without collection) for combo breaking.
+ * Does NOT handle: sounds, floating scores, combo calculation.
+ * 
+ * NOTE: Score calculation is now done by the caller using combo multiplier.
+ * scoreGained returns the RAW number of coins collected (not points).
  */
 export function updateCoinPositions(
   coins: Coin[],
@@ -125,12 +131,20 @@ export function updateCoinPositions(
   birdY: number
 ): CoinUpdateResult {
   const collectedCoins: Coin[] = [];
+  const missedCoins: Coin[] = [];
   let scoreGained = 0;
 
   // Update positions
   coins.forEach(coin => {
     coin.x -= speed;
     coin.rotation += 0.08 * deltaTime;
+  });
+
+  // Check for missed coins (went off-screen without being collected)
+  coins.forEach(coin => {
+    if (coin.x <= -30 && !coin.collected) {
+      missedCoins.push(coin);
+    }
   });
 
   // Filter off-screen coins
@@ -146,13 +160,13 @@ export function updateCoinPositions(
 
       if (distance < collisionRadius) {
         coin.collected = true;
-        scoreGained += 1;
+        scoreGained += 1; // Raw coin count (caller applies combo)
         collectedCoins.push(coin);
       }
     }
   });
 
-  return { coins: filteredCoins, collectedCoins, scoreGained };
+  return { coins: filteredCoins, collectedCoins, scoreGained, missedCoins };
 }
 
 /**

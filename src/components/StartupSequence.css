@@ -339,3 +339,59 @@
     font-size: 11px;
   }
 }
+
+/* Skip Intro Button for logo/loading stages */
+.startup-skip-button {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100000000;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-family: 'MS Sans Serif', 'Segoe UI', sans-serif;
+  font-size: 13px;
+  opacity: 0.35;
+  cursor: pointer;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s ease;
+  animation: startupSkipFadeIn 0.5s ease-out both;
+}
+
+.startup-skip-button:hover,
+.startup-skip-button:active {
+  opacity: 0.7;
+}
+
+.startup-skip-button:active {
+  transform: translateX(-50%) scale(0.98);
+}
+
+.startup-skip-icon {
+  font-size: 11px;
+  letter-spacing: -2px;
+}
+
+@keyframes startupSkipFadeIn {
+  from { 
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to { 
+    opacity: 0.35;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 479px) {
+  .startup-skip-button {
+    bottom: 24px;
+    font-size: 12px;
+    padding: 10px 18px;
+  }
+}

@@ -53,6 +53,7 @@ export const TANGY_BOOT_LINES = [
 interface BootSequenceProps {
   lines?: string[]
   onDone?: () => void
+  onSkip?: () => void
   showOnce?: boolean
   maxVisibleLines?: number
   typingSpeed?: number
@@ -63,6 +64,7 @@ interface BootSequenceProps {
 export default function BootSequence({
   lines = TANGY_BOOT_LINES,
   onDone,
+  onSkip,
   showOnce = true,
   maxVisibleLines = 18,
   typingSpeed = 10,
@@ -206,6 +208,11 @@ export default function BootSequence({
     setSequenceStarted(true)
   }
 
+  const handleSkip = (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent triggering the click prompt
+    onSkip?.()
+  }
+
   return (
     <div className={`boot-sequence ${isFading ? 'fade-out' : ''}`}>
       {showClickPrompt && (
@@ -221,6 +228,14 @@ export default function BootSequence({
           </div>
         </div>
       )}
+
+      {/* Skip Intro Button - always visible, subtle at bottom */}
+      {onSkip && !isFading && (
+        <button className="boot-skip-button" onClick={handleSkip}>
+          Skip Intro <span className="boot-skip-icon">››</span>
+        </button>
+      )}
+
       <div className="boot-sequence-container" ref={containerRef}>
         {visibleLines.slice(-maxVisibleLines).map((line, displayIndex) => {
           const actualIndex = Math.max(0, visibleLines.length - maxVisibleLines) + displayIndex

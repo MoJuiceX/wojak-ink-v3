@@ -86,12 +86,13 @@ export type GameId =
   | 'orange-juggle'
   | 'knife-game'
   | 'color-reaction'
-  | 'orange-2048'
+  | '2048-merge'
   | 'block-puzzle'
   | 'flappy-orange'
   | 'citrus-drop'
   | 'orange-snake'
-  | 'brick-breaker';
+  | 'brick-breaker'
+  | 'wojak-whack';
 
 export const GAME_NAMES: Record<GameId, string> = {
   'orange-stack': 'Brick by Brick',
@@ -101,12 +102,35 @@ export const GAME_NAMES: Record<GameId, string> = {
   'orange-juggle': 'Orange Juggle',
   'knife-game': 'The Knife Game',
   'color-reaction': 'Color Reaction',
-  'orange-2048': '2048 Merge',
+  '2048-merge': '2048 Merge',
   'block-puzzle': 'Block Puzzle',
   'flappy-orange': 'Flappy Orange',
   'citrus-drop': 'Citrus Drop',
   'orange-snake': 'Orange Snake',
   'brick-breaker': 'Brick Breaker',
+  'wojak-whack': 'Wojak Whack',
 };
+
+// Active games (not disabled) - shown prominently
+export const ACTIVE_GAME_IDS: GameId[] = [
+  'orange-stack',
+  'memory-match',
+  'flappy-orange',
+  'wojak-runner',
+  'color-reaction',
+  '2048-merge',
+  'block-puzzle',
+];
+
+// Disabled games (coming soon) - greyed out
+export const DISABLED_GAME_IDS: GameId[] = [
+  'orange-pong',
+  'orange-juggle',
+  'knife-game',
+  'citrus-drop',
+  'orange-snake',
+  'brick-breaker',
+  'wojak-whack',
+];
 
 export const GAME_IDS = Object.keys(GAME_NAMES) as GameId[];

@@ -125,6 +125,7 @@ export function useLeaderboard(gameId: GameId) {
   });
 
   // Submit score to leaderboard (authenticated users only)
+  // Uses idempotency key to prevent duplicate submissions from retries
   const submitScore = useCallback(
     async (
       score: number,
@@ -137,10 +138,14 @@ export function useLeaderboard(gameId: GameId) {
 
       setIsSubmitting(true);
 
+      // Generate idempotency key to prevent duplicate submissions
+      // This ensures network retries don't create duplicate scores
+      const idempotencyKey = crypto.randomUUID();
+
       try {
         const response = await authenticatedFetch('/api/leaderboard/submit', {
           method: 'POST',
-          body: JSON.stringify({ gameId, score, level, metadata }),
+          body: JSON.stringify({ gameId, score, level, metadata, idempotencyKey }),
         });
 
         if (!response.ok) {
@@ -156,13 +161,15 @@ export function useLeaderboard(gameId: GameId) {
         // Invalidate leaderboard cache to show updated rankings
         queryClient.invalidateQueries({ queryKey: leaderboardKeys.game(gameId) });
 
-        // Record game for achievements
-        recordGamePlayed(gameId, score);
-        if (result.rank) {
-          recordLeaderboardRank(result.rank);
+        // Record game for achievements (skip if duplicate submission)
+        if (!result.duplicate) {
+          recordGamePlayed(gameId, score);
+          if (result.rank) {
+            recordLeaderboardRank(result.rank);
+          }
+          // Check if any achievements were unlocked
+          checkAchievements();
         }
-        // Check if any achievements were unlocked
-        checkAchievements();
 
         return {
           success: true,
@@ -180,7 +187,7 @@ export function useLeaderboard(gameId: GameId) {
         setIsSubmitting(false);
       }
     },
-    [isSignedIn, authenticatedFetch, gameId, queryClient]
+    [isSignedIn, authenticatedFetch, gameId, queryClient, recordGamePlayed, recordLeaderboardRank, checkAchievements]
   );
 
   // Fetch extended leaderboard (top 100)

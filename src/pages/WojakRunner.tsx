@@ -4,6 +4,8 @@ import { useGameSounds } from '@/hooks/useGameSounds';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameMute } from '@/contexts/GameMuteContext';
+import { useArcadeLights } from '@/contexts/ArcadeLightsContext';
+// import { GAME_COMBO_TIERS } from '@/config/arcade-light-mappings';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { useGameTouch } from '@/hooks/useGameTouch';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -71,6 +73,14 @@ const WojakRunner: React.FC = () => {
 
   // Arcade frame shared mute state
   const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
+
+  // Arcade lights control
+  const { triggerEvent, setGameId } = useArcadeLights();
+
+  // Register this game for per-game light overrides
+  useEffect(() => {
+    setGameId('wojak-runner');
+  }, [setGameId]);
 
   // Mobile detection for layout adjustments
   const isMobile = useIsMobile();
@@ -145,6 +155,7 @@ const WojakRunner: React.FC = () => {
   // Sound refs for use in game loop
   const playCollectRef = useRef(playCollect);
   const playGameOverRef = useRef(playGameOver);
+  const triggerEventRef = useRef(triggerEvent);
 
   // Effect refs for use in game loop
   const triggerShockwaveRef = useRef(triggerShockwave);
@@ -168,7 +179,8 @@ const WojakRunner: React.FC = () => {
   useEffect(() => {
     playCollectRef.current = playCollect;
     playGameOverRef.current = playGameOver;
-  }, [playCollect, playGameOver]);
+    triggerEventRef.current = triggerEvent;
+  }, [playCollect, playGameOver, triggerEvent]);
 
   // Keep effect refs updated
   useEffect(() => {
@@ -239,6 +251,32 @@ const WojakRunner: React.FC = () => {
         musicAudioRef.current.pause();
         musicAudioRef.current = null;
       }
+    };
+  }, []);
+
+  // Visibility change handling - pause music when browser goes to background (mobile)
+  const wasPlayingBeforeHiddenRef = useRef(false);
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Page is hidden - remember if music was playing and pause it
+        wasPlayingBeforeHiddenRef.current = !!(musicAudioRef.current && !musicAudioRef.current.paused);
+        if (musicAudioRef.current) {
+          musicAudioRef.current.pause();
+        }
+      } else {
+        // Page became visible - resume music if it was playing before
+        if (wasPlayingBeforeHiddenRef.current && gameStateRefForMusic.current === 'playing' && soundEnabledRef.current && !musicManagedExternallyRef.current) {
+          if (musicAudioRef.current) {
+            musicAudioRef.current.play().catch(() => {});
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -321,15 +359,19 @@ const WojakRunner: React.FC = () => {
       playNextSong();
     }
     setGameState('playing');
+    // Arcade lights: Game started
+    triggerEvent('play:active');
   };
 
   // Auto-submit score to global leaderboard (for signed-in users)
-  const submitScoreGlobal = useCallback(async (finalScore: number) => {
-    if (!isSignedIn || scoreSubmitted || finalScore === 0) return;
+  const submitScoreGlobal = useCallback(async (finalScore: number, orangesCollected: number) => {
+    // Check minimum actions: need 3 oranges collected for leaderboard
+    if (!isSignedIn || scoreSubmitted || finalScore === 0 || orangesCollected < 3) return;
 
     setScoreSubmitted(true);
     const result = await submitScore(finalScore, undefined, {
       distance: distance,
+      orangesCollected,
     });
 
     if (result.success) {
@@ -431,18 +473,28 @@ const WojakRunner: React.FC = () => {
           lastDistanceMilestoneRef.current = distanceInMeters;
           if (distanceInMeters === 100) {
             showEpicCalloutRef.current('100m!');
+            // Arcade lights: First distance milestone
+            triggerEventRef.current('progress:forward');
           } else if (distanceInMeters === 250) {
             showEpicCalloutRef.current('250m!');
             triggerConfettiRef.current();
+            // Arcade lights: Minor milestone
+            triggerEventRef.current('progress:forward');
           } else if (distanceInMeters === 500) {
             showEpicCalloutRef.current('HALFWAY LEGEND!');
             triggerConfettiRef.current();
+            // Arcade lights: Major milestone
+            triggerEventRef.current('progress:complete');
           } else if (distanceInMeters === 1000) {
             showEpicCalloutRef.current('1KM MASTER!');
             triggerConfettiRef.current();
+            // Arcade lights: Epic milestone
+            triggerEventRef.current('progress:complete');
           } else if (distanceInMeters % 500 === 0) {
             showEpicCalloutRef.current(`${distanceInMeters}m!`);
             triggerConfettiRef.current();
+            // Arcade lights: Major milestone
+            triggerEventRef.current('progress:complete');
           }
         }
 
@@ -508,6 +560,10 @@ const WojakRunner: React.FC = () => {
             );
 
             if (!wasBlocked && !collectedIdsRef.current.has(c.id)) {
+              // Arcade lights: Combo broken (check BEFORE resetting)
+              if (collectStreakRef.current >= 3) {
+                triggerEventRef.current('combo:break');
+              }
               // Missed a gettable orange - reset combo
               collectStreakRef.current = 0;
               setCollectStreak(0);
@@ -549,8 +605,14 @@ const WojakRunner: React.FC = () => {
               musicAudioRef.current = null;
             }
             playGameOverRef.current();
-            setGameState('gameover');
+            // Arcade lights: Game over (collision)
             const finalScore = score + Math.floor(distance / 10);
+            if (finalScore > highScore) {
+              triggerEventRef.current('game:highScore');
+            } else {
+              triggerEventRef.current('game:over');
+            }
+            setGameState('gameover');
             if (finalScore > highScore) {
               setHighScore(finalScore);
               localStorage.setItem('wojakRunnerHighScore', String(finalScore));
@@ -576,13 +638,15 @@ const WojakRunner: React.FC = () => {
               collectedIdsRef.current.add(collectible.id);
 
               playCollectRef.current();
+              // Arcade lights: Orange collected (debounced)
+              triggerEventRef.current('collect:coin');
 
               // Update streak
               collectStreakRef.current += 1;
               setCollectStreak(collectStreakRef.current);
 
-              // Calculate bonus based on streak
-              const streakBonus = Math.min(collectStreakRef.current - 1, 5) * 2;
+              // Calculate bonus based on streak (NO CAP - rewards sustained streaks)
+              const streakBonus = (collectStreakRef.current - 1) * 2;
               const totalPoints = 10 + streakBonus;
               setScore(s => s + totalPoints);
 
@@ -605,12 +669,18 @@ const WojakRunner: React.FC = () => {
               // Streak milestones
               if (collectStreakRef.current === 5) {
                 showEpicCalloutRef.current('ORANGE FRENZY!');
+                // Arcade lights: 5x streak
+                triggerEventRef.current('combo:mid');
               } else if (collectStreakRef.current === 10) {
                 showEpicCalloutRef.current('UNSTOPPABLE!');
                 triggerConfettiRef.current();
+                // Arcade lights: 10x streak
+                triggerEventRef.current('combo:high');
               } else if (collectStreakRef.current === 15) {
                 showEpicCalloutRef.current('LEGENDARY!');
                 triggerConfettiRef.current();
+                // Arcade lights: 15x streak (max)
+                triggerEventRef.current('combo:max');
               }
 
               return; // Don't add to remaining
@@ -642,7 +712,7 @@ const WojakRunner: React.FC = () => {
   // Auto-submit score for signed-in users when game ends
   useEffect(() => {
     if (gameState === 'gameover' && isSignedIn && totalScore > 0 && !scoreSubmitted) {
-      submitScoreGlobal(totalScore);
+      submitScoreGlobal(totalScore, collectedIdsRef.current.size);
     }
   }, [gameState, isSignedIn, totalScore, scoreSubmitted, submitScoreGlobal]);
 
@@ -826,6 +896,8 @@ const WojakRunner: React.FC = () => {
               onPlayAgain={startGame}
               onShare={handleShare}
               accentColor="#ff6b00"
+              meetsMinimumActions={collectedIdsRef.current.size >= 3}
+              minimumActionsMessage="Collect at least 3 oranges to be on the leaderboard"
             />
           )}
         </div>

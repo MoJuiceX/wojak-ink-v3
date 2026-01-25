@@ -6,6 +6,8 @@ import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useAudio } from '@/contexts/AudioContext';
 import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameMute } from '@/contexts/GameMuteContext';
+import { useArcadeLights } from '@/contexts/ArcadeLightsContext';
+import { GAME_COMBO_TIERS } from '@/config/arcade-light-mappings';
 import { useTimeUrgency, getUrgencyClass } from '@/hooks/useTimeUrgency';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -175,6 +177,14 @@ const MemoryMatch: React.FC = () => {
   // Arcade frame shared mute state
   const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
 
+  // Arcade lights control
+  const { triggerEvent, setGameId } = useArcadeLights();
+
+  // Register this game for per-game light overrides
+  useEffect(() => {
+    setGameId('memory-match');
+  }, [setGameId]);
+
   const [gameState, setGameState] = useState<'idle' | 'loading' | 'playing' | 'roundComplete' | 'gameover'>('idle');
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
@@ -188,6 +198,17 @@ const MemoryMatch: React.FC = () => {
   // Progressive rounds
   const [round, setRound] = useState(1);
   const [totalScore, setTotalScore] = useState(0);
+  
+  // NEW: Real-time scoring within current round
+  const [roundScore, setRoundScore] = useState(0);
+  
+  // NEW: Track total matches across all rounds for leaderboard minimum check
+  const [totalMatchesFound, setTotalMatchesFound] = useState(0);
+  
+  // NEW: Track which NFT IDs have been seen (for known-pair penalty)
+  // When both cards of a pair have been seen, mismatching with either = penalty
+  const seenCardsRef = useRef<Set<number>>(new Set());
+  const knownPairsRef = useRef<Set<number>>(new Set()); // NFT IDs where both cards have been seen
 
   // Streak tracking for combo effects
   const [streak, setStreak] = useState(0);
@@ -296,6 +317,32 @@ const MemoryMatch: React.FC = () => {
         musicAudioRef.current.pause();
         musicAudioRef.current = null;
       }
+    };
+  }, []);
+
+  // Visibility change handling - pause music when browser goes to background (mobile)
+  const wasPlayingBeforeHiddenRef = useRef(false);
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Page is hidden - remember if music was playing and pause it
+        wasPlayingBeforeHiddenRef.current = !!(musicAudioRef.current && !musicAudioRef.current.paused);
+        if (musicAudioRef.current) {
+          musicAudioRef.current.pause();
+        }
+      } else {
+        // Page became visible - resume music if it was playing before
+        if (wasPlayingBeforeHiddenRef.current && gameStateRefForMusic.current === 'playing' && soundEnabledRef.current && !musicManagedExternallyRef.current) {
+          if (musicAudioRef.current) {
+            musicAudioRef.current.play().catch(() => {});
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -541,6 +588,7 @@ const MemoryMatch: React.FC = () => {
     setDevMode(false); // Disable dev mode for normal gameplay
     setRound(1);
     setTotalScore(0);
+    setTotalMatchesFound(0); // NEW: Reset for leaderboard minimum check
     setScoreSubmitted(false);
     setIsNewPersonalBest(false);
     await startRound(1, true);
@@ -575,7 +623,15 @@ const MemoryMatch: React.FC = () => {
     setStreak(0);
     setLastMatchTime(null);
     resetAllEffects();
+    
+    // NEW: Reset round-specific tracking for scoring
+    setRoundScore(0);
+    seenCardsRef.current = new Set();
+    knownPairsRef.current = new Set();
+    
     setGameState('playing');
+    // Arcade lights: Round started
+    triggerEvent('play:active');
 
     // Preload next round in background
     const currentNftIds = [...new Set(newCards.map(c => c.nftId))];
@@ -593,38 +649,62 @@ const MemoryMatch: React.FC = () => {
     await startRound(newRound);
   };
 
-  // Calculate round score: points for matches + time bonus + round completion bonus
-  const calculateRoundScore = () => {
-    const matchPoints = matches * 10;
-    const timeBonus = timeLeft * 5;
-    const roundBonus = round * 100; // Bonus for completing higher rounds
-    return matchPoints + timeBonus + roundBonus;
+  // Calculate round completion bonuses (time + completion)
+  // NOTE: Match points are now added in real-time, so this only calculates BONUSES
+  const calculateCompletionBonuses = () => {
+    // Percentage-based time bonus: % of time remaining = % bonus on round score
+    const timePercentage = timeLeft / roundTotalTime;
+    const timeBonus = Math.floor(roundScore * timePercentage);
+    
+    // Completion bonus: 10% of round score
+    const completionBonus = Math.floor(roundScore * 0.1);
+    
+    return { timeBonus, completionBonus, total: timeBonus + completionBonus };
   };
-
-  // Add round score to total when round is completed
+  
+  // Add completion bonuses to total when round is completed
   const completeRound = () => {
     playWinSound();
     hapticHighScore(); // Strong haptic for round completion
+    // Arcade lights: Escalating round complete celebration
+    if (round <= 5) {
+      // Early rounds (1-5): quick flash
+      triggerEvent('game:win');
+    } else if (round <= 10) {
+      // Mid rounds (6-10): bigger explode
+      triggerEvent('progress:complete');
+    } else {
+      // Late rounds (11-15): full fireworks
+      triggerEvent('level:up');
+    }
     triggerConfetti();
     showEpicCallout('🧠 PERFECT MEMORY!');
-    const roundScore = calculateRoundScore();
-    setTotalScore(prev => prev + roundScore);
+    
+    // Calculate and apply completion bonuses
+    const bonuses = calculateCompletionBonuses();
+    setTotalScore(prev => prev + bonuses.total);
+    
     setGameState('roundComplete');
   };
 
   // Auto-submit score to global leaderboard (for signed-in users)
-  const submitScoreGlobal = useCallback(async (finalScore: number, finalRound: number) => {
-    if (!isSignedIn || scoreSubmitted || finalScore === 0) return;
+  const submitScoreGlobal = useCallback(async (finalScore: number, finalRound: number, matchesFound: number) => {
+    // NEW: Check minimum actions (3 matches) for leaderboard eligibility
+    if (!isSignedIn || scoreSubmitted || matchesFound < 3) return;
 
-    // Update local high score
-    if (finalScore > highScore) {
+    // Update local high score (only if positive score)
+    if (finalScore > highScore && finalScore > 0) {
       setHighScore(finalScore);
       localStorage.setItem('memoryMatchHighScore', String(finalScore));
     }
 
+    // Don't submit negative or zero scores to leaderboard
+    if (finalScore <= 0) return;
+
     setScoreSubmitted(true);
     const result = await submitScore(finalScore, finalRound, {
       roundsCompleted: finalRound - 1,
+      matchesFound,
     });
 
     if (result.success) {
@@ -755,6 +835,8 @@ const MemoryMatch: React.FC = () => {
     // Play flip sound + haptic
     playCardFlip();
     hapticButton();
+    // Arcade lights: Card flip (subtle)
+    triggerEvent('score:tiny');
 
     // Update ref IMMEDIATELY (synchronous)
     const newFlipped = [...currentFlipped, cardId];
@@ -765,6 +847,17 @@ const MemoryMatch: React.FC = () => {
       prev.map(c => (c.id === cardId ? { ...c, isFlipped: true } : c))
     );
     setFlippedCards(newFlipped);
+    
+    // NEW: Track that this card's NFT has been seen
+    // If both cards of a pair have been seen, add to knownPairs
+    const nftId = card.nftId;
+    if (seenCardsRef.current.has(nftId)) {
+      // Second card of this pair has been revealed - it's now a "known pair"
+      knownPairsRef.current.add(nftId);
+    } else {
+      // First time seeing this NFT
+      seenCardsRef.current.add(nftId);
+    }
 
     // Enhancement 11: Squash animation when flip lands (after flip transition)
     setTimeout(() => addCardAnimation(cardId, 'flip-landed', 120), 250);
@@ -840,11 +933,23 @@ const MemoryMatch: React.FC = () => {
         const pairsForMilestone = Math.floor(totalPairs * 0.75);
         // Calculate new streak before setTimeout to use in sound
         const newStreak = streak + 1;
+        
+        // NEW: Calculate points immediately (not at round end)
+        // Base: +10 per match, Streak bonus: +2 per streak level
+        const streakBonus = newStreak * 2;
+        const matchPoints = 10 + streakBonus;
 
         setTimeout(() => {
           try {
             playMatchFound(newStreak); // Pass streak for escalating sounds
             hapticCombo(newStreak); // Streak-based escalating haptic
+            // Arcade lights: Match found with streak tier
+            const streakTier = GAME_COMBO_TIERS['memory-match'](newStreak);
+            if (streakTier !== 'start') {
+              triggerEvent(`combo:${streakTier}` as any);
+            } else {
+              triggerEvent('score:medium'); // Base match
+            }
           } catch (e) {
             // Sound/haptic errors shouldn't break the game
           }
@@ -874,6 +979,14 @@ const MemoryMatch: React.FC = () => {
             // Update streak and combo
             setStreak(newStreak);
             updateCombo();
+            
+            // NEW: Update round score and total score in REAL-TIME
+            setRoundScore(prev => prev + matchPoints);
+            setTotalScore(prev => prev + matchPoints);
+            setTotalMatchesFound(prev => prev + 1);
+            
+            // Remove this NFT from knownPairs since it's now matched
+            knownPairsRef.current.delete(firstCard.nftId);
 
             // Calculate time bonus for fast matches
             const now = Date.now();
@@ -889,12 +1002,14 @@ const MemoryMatch: React.FC = () => {
                 shake: newStreak >= 4,
                 vignette: newStreak >= 5,
                 emoji: newStreak >= 3 ? '🔥' : '✨',
-                score: isFastMatch ? `FAST +${10 + (newStreak * 5)}` : `+${10 + (newStreak * 5)}`,
+                score: isFastMatch ? `FAST +${matchPoints}` : `+${matchPoints}`,
               });
 
               // Fast match bonus callout and sound
               if (isFastMatch) {
                 playFastMatchBonus(); // Extra "zing" sound layer
+                // Arcade lights: Fast match bonus
+                triggerEvent('score:large');
                 if (newStreak >= 2) {
                   setTimeout(() => showEpicCallout('⚡ SPEED BONUS!'), 400);
                 }
@@ -957,10 +1072,33 @@ const MemoryMatch: React.FC = () => {
         // No match - play mismatch sound/haptic immediately, then flip back
         playMismatch();
         hapticMismatch(); // Double-pulse error pattern
+        // Arcade lights: Mismatch warning
+        triggerEvent('miss:light');
 
         // Enhancement 14: Wobble animation before flip back (faster for snappy feel)
         addCardAnimation(firstId, 'mismatch-wobble', 200);
         addCardAnimation(secondId, 'mismatch-wobble', 200);
+        
+        // NEW: Known-pair penalty - if either card's NFT is a "known pair" (both cards seen), apply -1
+        // This means the player saw both cards of a pair at some point but still mismatched
+        const firstIsKnown = knownPairsRef.current.has(firstCard.nftId);
+        const secondIsKnown = knownPairsRef.current.has(secondCard.nftId);
+        if (firstIsKnown || secondIsKnown) {
+          // Apply -1 penalty immediately - negative scores are allowed
+          setRoundScore(prev => prev - 1);
+          setTotalScore(prev => prev - 1);
+          
+          // Visual feedback for penalty
+          try {
+            triggerBigMoment({
+              shake: true,
+              emoji: '😬',
+              score: '-1',
+            });
+          } catch (e) {
+            // Visual effects errors shouldn't break the game
+          }
+        }
 
         // Reset streak on mismatch immediately
         setStreak(0);
@@ -1033,6 +1171,12 @@ const MemoryMatch: React.FC = () => {
           }
           playGameOver();
           hapticGameOver();
+          // Arcade lights: Game over (check for high score)
+          if (totalScore > highScore) {
+            triggerEvent('game:highScore');
+          } else {
+            triggerEvent('game:over');
+          }
           setGameState('gameover');
           return 0;
         }
@@ -1040,6 +1184,12 @@ const MemoryMatch: React.FC = () => {
         if (prev === 10 || prev <= 5) {
           playWarning();
           hapticWarning();
+          // Arcade lights: Timer warnings
+          if (prev === 10) {
+            triggerEvent('timer:warning');
+          } else if (prev <= 5) {
+            triggerEvent('timer:critical');
+          }
         }
         // Subtle urgency tick haptic in final 5 seconds
         if (prev <= 5) {
@@ -1050,14 +1200,14 @@ const MemoryMatch: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameState, devMode, showExitDialog, playGameOver, playWarning, hapticGameOver, hapticWarning]);
+  }, [gameState, devMode, showExitDialog, playGameOver, playWarning, hapticGameOver, hapticWarning, triggerEvent, totalScore, highScore]);
 
   // Auto-submit score for signed-in users when game ends
   useEffect(() => {
-    if (gameState === 'gameover' && isSignedIn && totalScore > 0 && !scoreSubmitted) {
-      submitScoreGlobal(totalScore, round);
+    if (gameState === 'gameover' && isSignedIn && !scoreSubmitted) {
+      submitScoreGlobal(totalScore, round, totalMatchesFound);
     }
-  }, [gameState, isSignedIn, totalScore, round, scoreSubmitted, submitScoreGlobal]);
+  }, [gameState, isSignedIn, totalScore, round, totalMatchesFound, scoreSubmitted, submitScoreGlobal]);
 
   // Enhancement 18-20: Anticipation states for remaining unmatched cards
   // OPTIMIZED: Only run DOM manipulation when anticipation mode actually changes
@@ -1248,7 +1398,9 @@ const MemoryMatch: React.FC = () => {
 
           {/* Round Complete Screen */}
           {gameState === 'roundComplete' && (() => {
-            const currentScore = totalScore + calculateRoundScore();
+            const bonuses = calculateCompletionBonuses();
+            // totalScore already includes bonuses from completeRound()
+            const currentScore = totalScore;
             // Find where current score would rank
             const sortedLeaderboard = [...(globalLeaderboard || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
             let rank = sortedLeaderboard.findIndex(entry => currentScore > (entry.score || 0));
@@ -1261,7 +1413,11 @@ const MemoryMatch: React.FC = () => {
                 <div className="mm-round-complete-content">
                   <div className="mm-round-complete-emoji">🎉</div>
                   <div className="mm-round-complete-title">Round {round} Complete!</div>
-                  <div className="mm-round-complete-points">+{calculateRoundScore()} points</div>
+                  <div className="mm-round-complete-points">
+                    <div>Match points: {roundScore}</div>
+                    <div>Time bonus ({Math.round((timeLeft / roundTotalTime) * 100)}%): +{bonuses.timeBonus}</div>
+                    <div>Completion bonus (10%): +{bonuses.completionBonus}</div>
+                  </div>
                   <div className="mm-round-complete-score">
                     <span className="mm-score-value">{currentScore}</span>
                     <span className="mm-score-label">total score</span>
@@ -1318,6 +1474,8 @@ const MemoryMatch: React.FC = () => {
               onPlayAgain={startGame}
               onShare={handleShare}
               accentColor="#10b981"
+              meetsMinimumActions={totalMatchesFound >= 3}
+              minimumActionsMessage="Find at least 3 matches to be on the leaderboard"
             />
           )}
 
@@ -1378,14 +1536,8 @@ const MemoryMatch: React.FC = () => {
             const needsScroll = false;
 
             return (
-              <div className={`mm-game-layout ${effects.screenShake ? 'screen-shake' : ''} ${isFrozen ? 'frozen' : ''}`}>
-                {/* Visual Effects Layer */}
-                <GameEffects effects={effects} accentColor="#8b5cf6" />
-
-                {/* Enhancement 16: Near-win shimmer overlay */}
-                <div className={`mm-near-win-shimmer ${showNearWinShimmer ? 'active' : ''}`} />
-
-                {/* Stats Panel - floating overlay at top-left */}
+              <>
+                {/* Stats Panel - floating overlay at top (OUTSIDE mm-game-layout to avoid transform issues) */}
                 <div className="mm-stats-overlay">
                   <div className={`mm-stat round-stat`}>
                     <span className="mm-stat-label">Round</span>
@@ -1405,54 +1557,7 @@ const MemoryMatch: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Card Grid - centered in lightbox, adapts to orientation */}
-                <div
-                  className="mm-cards-grid"
-                  style={{
-                    width: needsScroll ? `${availableWidth}px` : `${gridWidth}px`,
-                    height: needsScroll ? `${availableHeight}px` : `${gridHeight}px`,
-                    gridTemplateColumns: `repeat(${cols}, ${cardSize}px)`,
-                    gridTemplateRows: `repeat(${rows}, ${cardSize}px)`,
-                    gap: `${gap}px`,
-                    overflowY: needsScroll ? 'auto' : 'hidden',
-                    overflowX: 'hidden',
-                  } as React.CSSProperties}
-                >
-                  {cards.map(card => (
-                    <div
-                      key={card.id}
-                      data-card-id={card.id}
-                      className={`mm-card ${card.isFlipped ? 'flipped' : ''} ${card.isMatched ? 'matched' : ''}`}
-                      onClick={() => handleCardClick(card.id)}
-                      onMouseEnter={() => {
-                        // Only play hover sound/haptic for unflipped, unmatched cards
-                        if (!card.isFlipped && !card.isMatched) {
-                          playCardHover();
-                          hapticHover(); // Ultra-light 5ms tap
-                        }
-                      }}
-                    >
-                      <div className="mm-card-inner">
-                        <div className="mm-card-front">
-                          <img
-                            src="/assets/Games/games_media/Memory_card.png"
-                            alt=""
-                            className="mm-card-img"
-                          />
-                        </div>
-                        <div className="mm-card-back">
-                          <img
-                            src={card.image}
-                            alt={card.name}
-                            className="mm-card-img"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Timeline Bar - fills left to right as time passes */}
+                {/* Timeline Bar - fills left to right (OUTSIDE mm-game-layout to avoid transform issues) */}
                 <div className={`mm-timeline ${getUrgencyClass(urgencyLevel)} ${timelineCelebrating ? 'pulse-celebration' : ''}`}>
                   <div
                     className="mm-timeline-progress"
@@ -1463,7 +1568,62 @@ const MemoryMatch: React.FC = () => {
                   />
                   <div className="mm-timeline-glow" />
                 </div>
-              </div>
+
+                <div className={`mm-game-layout ${effects.screenShake ? 'screen-shake' : ''} ${isFrozen ? 'frozen' : ''}`}>
+                  {/* Visual Effects Layer */}
+                  <GameEffects effects={effects} accentColor="#8b5cf6" />
+
+                  {/* Enhancement 16: Near-win shimmer overlay */}
+                  <div className={`mm-near-win-shimmer ${showNearWinShimmer ? 'active' : ''}`} />
+
+                  {/* Card Grid - centered in lightbox, adapts to orientation */}
+                  <div
+                    className="mm-cards-grid"
+                    style={{
+                      width: needsScroll ? `${availableWidth}px` : `${gridWidth}px`,
+                      height: needsScroll ? `${availableHeight}px` : `${gridHeight}px`,
+                      gridTemplateColumns: `repeat(${cols}, ${cardSize}px)`,
+                      gridTemplateRows: `repeat(${rows}, ${cardSize}px)`,
+                      gap: `${gap}px`,
+                      overflowY: needsScroll ? 'auto' : 'hidden',
+                      overflowX: 'hidden',
+                    } as React.CSSProperties}
+                  >
+                    {cards.map(card => (
+                      <div
+                        key={card.id}
+                        data-card-id={card.id}
+                        className={`mm-card ${card.isFlipped ? 'flipped' : ''} ${card.isMatched ? 'matched' : ''}`}
+                        onClick={() => handleCardClick(card.id)}
+                        onMouseEnter={() => {
+                          // Only play hover sound/haptic for unflipped, unmatched cards
+                          if (!card.isFlipped && !card.isMatched) {
+                            playCardHover();
+                            hapticHover(); // Ultra-light 5ms tap
+                          }
+                        }}
+                      >
+                        <div className="mm-card-inner">
+                          <div className="mm-card-front">
+                            <img
+                              src="/assets/Games/games_media/Memory_card.png"
+                              alt=""
+                              className="mm-card-img"
+                            />
+                          </div>
+                          <div className="mm-card-back">
+                            <img
+                              src={card.image}
+                              alt={card.name}
+                              className="mm-card-img"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
             );
           })()}
         </div>

@@ -54,6 +54,30 @@ const KnifeGame: React.FC = () => {
     }
   }, [volume, musicEnabled]);
 
+  // Visibility change handling - pause audio when browser goes to background (mobile)
+  const wasPlayingBeforeHiddenRef = useRef(false);
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Page is hidden - remember if audio was playing and pause it
+        wasPlayingBeforeHiddenRef.current = isPlaying;
+        if (audioRef.current && isPlaying) {
+          audioRef.current.pause();
+        }
+      } else {
+        // Page became visible - resume audio if it was playing before
+        if (wasPlayingBeforeHiddenRef.current && audioRef.current) {
+          audioRef.current.play().catch(() => {});
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isPlaying]);
+
   const togglePlay = () => {
     if (!audioRef.current) return;
 

@@ -459,8 +459,9 @@
 .category-tabs {
   display: flex;
   gap: 8px;
-  padding: 0 16px 16px;
+  padding: 12px 16px 16px;
   overflow-x: auto;
+  overflow-y: visible;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }

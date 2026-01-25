@@ -1,0 +1,218 @@
+/**
+ * CRT Overlay Effect Styles
+ *
+ * Creates a retro CRT monitor aesthetic with:
+ * - Horizontal scanlines
+ * - Vignette darkening at edges
+ * - Animated noise/grain
+ * - Subtle screen curvature highlight
+ * - Optional chromatic aberration
+ *
+ * EXPERIMENTAL - CRT overlay is test-only; remove if disliked.
+ */
+
+/* ============================================
+   MAIN OVERLAY CONTAINER
+   ============================================ */
+
+.crt-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50; /* Above game content, below UI controls */
+  overflow: hidden;
+  /* Allow intensity control via CSS variable */
+  --crt-intensity: 1;
+}
+
+/* ============================================
+   SCANLINES
+   Horizontal lines that simulate CRT phosphor rows
+   ============================================ */
+
+.crt-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 1px,
+    rgba(0, 0, 0, 0.08) 1px,
+    rgba(0, 0, 0, 0.08) 2px
+  );
+  /* Scale scanlines with intensity - reduced for subtlety */
+  opacity: calc(0.35 * var(--crt-intensity));
+  /* Slight animation for "live" feel */
+  animation: crt-flicker 0.15s infinite linear;
+}
+
+/* Very subtle flicker */
+@keyframes crt-flicker {
+  0%, 100% {
+    opacity: calc(0.35 * var(--crt-intensity));
+  }
+  50% {
+    opacity: calc(0.32 * var(--crt-intensity));
+  }
+}
+
+/* ============================================
+   VIGNETTE
+   Darkening around the edges of the screen
+   ============================================ */
+
+.crt-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 85% 75% at 50% 50%,
+    transparent 55%,
+    rgba(0, 0, 0, 0.12) 80%,
+    rgba(0, 0, 0, 0.25) 100%
+  );
+  opacity: var(--crt-intensity);
+}
+
+/* ============================================
+   NOISE / GRAIN
+   Animated static for analog feel
+   ============================================ */
+
+.crt-noise {
+  position: absolute;
+  inset: -50%; /* Oversized to allow movement */
+  width: 200%;
+  height: 200%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 150px 150px;
+  opacity: calc(0.02 * var(--crt-intensity));
+  mix-blend-mode: overlay;
+  animation: crt-noise-move 0.8s steps(6) infinite;
+}
+
+@keyframes crt-noise-move {
+  0% {
+    transform: translate(0, 0);
+  }
+  10% {
+    transform: translate(-5%, -5%);
+  }
+  20% {
+    transform: translate(-10%, 5%);
+  }
+  30% {
+    transform: translate(5%, -10%);
+  }
+  40% {
+    transform: translate(-5%, 15%);
+  }
+  50% {
+    transform: translate(-10%, 5%);
+  }
+  60% {
+    transform: translate(15%, 0);
+  }
+  70% {
+    transform: translate(0, 10%);
+  }
+  80% {
+    transform: translate(-15%, 0);
+  }
+  90% {
+    transform: translate(10%, 5%);
+  }
+  100% {
+    transform: translate(5%, 0);
+  }
+}
+
+/* ============================================
+   SCREEN GLARE
+   Subtle highlight suggesting curved glass
+   ============================================ */
+
+.crt-screen-glare {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.015) 0%,
+    transparent 35%,
+    transparent 65%,
+    rgba(255, 255, 255, 0.005) 100%
+  );
+  opacity: var(--crt-intensity);
+}
+
+/* ============================================
+   CHROMATIC ABERRATION (Optional)
+   RGB color fringing at edges
+   ============================================ */
+
+.crt-chromatic {
+  /* Apply subtle RGB shift to the container itself */
+  /* This affects child elements' colors at the edges */
+}
+
+.crt-chromatic::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Red channel shift - leftward */
+  box-shadow:
+    inset 2px 0 4px rgba(255, 0, 0, 0.05),
+    inset -2px 0 4px rgba(0, 255, 255, 0.05);
+  opacity: var(--crt-intensity);
+  pointer-events: none;
+}
+
+/* Edge color fringing */
+.crt-chromatic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg,
+      rgba(255, 0, 0, 0.02) 0%,
+      transparent 3%,
+      transparent 97%,
+      rgba(0, 255, 255, 0.02) 100%
+    ),
+    linear-gradient(0deg,
+      rgba(255, 0, 0, 0.01) 0%,
+      transparent 3%,
+      transparent 97%,
+      rgba(0, 255, 255, 0.01) 100%
+    );
+  opacity: var(--crt-intensity);
+  pointer-events: none;
+}
+
+/* ============================================
+   REDUCED MOTION
+   Disable animations for accessibility
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .crt-scanlines {
+    animation: none;
+    opacity: calc(0.3 * var(--crt-intensity));
+  }
+
+  .crt-noise {
+    animation: none;
+  }
+}
+
+/* ============================================
+   PERFORMANCE OPTIMIZATION
+   Reduce effects on lower-end devices
+   ============================================ */
+
+@media (max-width: 768px) {
+  /* Simplify noise on mobile for performance */
+  .crt-noise {
+    opacity: calc(0.015 * var(--crt-intensity));
+    animation-duration: 1.2s;
+  }
+}

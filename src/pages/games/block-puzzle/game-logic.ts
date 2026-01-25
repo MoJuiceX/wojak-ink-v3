@@ -263,6 +263,58 @@ export const getPreviewCells = (
 };
 
 // ============================================
+// SAME-COLOR LINE DETECTION (NEW)
+// ============================================
+
+/**
+ * Check if cleared rows/columns are same-color (100% one color)
+ * Returns the count of same-color lines for bonus calculation
+ */
+export const checkSameColorLines = (grid: Grid): {
+  sameColorRows: number[];
+  sameColorCols: number[];
+  totalSameColorLines: number;
+} => {
+  const sameColorRows: number[] = [];
+  const sameColorCols: number[] = [];
+
+  // Check rows for same-color (all filled cells must be same color)
+  for (let row = 0; row < GRID_SIZE; row++) {
+    const rowCells = grid[row].filter(cell => cell.filled);
+    if (rowCells.length === GRID_SIZE) {
+      // Row is full, check if all same color
+      const firstColor = rowCells[0].color;
+      if (firstColor && rowCells.every(cell => cell.color === firstColor)) {
+        sameColorRows.push(row);
+      }
+    }
+  }
+
+  // Check columns for same-color
+  for (let col = 0; col < GRID_SIZE; col++) {
+    const colCells: Array<{ filled: boolean; color: string | null }> = [];
+    for (let row = 0; row < GRID_SIZE; row++) {
+      if (grid[row][col].filled) {
+        colCells.push(grid[row][col]);
+      }
+    }
+    if (colCells.length === GRID_SIZE) {
+      // Column is full, check if all same color
+      const firstColor = colCells[0].color;
+      if (firstColor && colCells.every(cell => cell.color === firstColor)) {
+        sameColorCols.push(col);
+      }
+    }
+  }
+
+  return {
+    sameColorRows,
+    sameColorCols,
+    totalSameColorLines: sameColorRows.length + sameColorCols.length,
+  };
+};
+
+// ============================================
 // SCORE CALCULATIONS
 // ============================================
 

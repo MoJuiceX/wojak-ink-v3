@@ -208,6 +208,17 @@
   min-height: 1.4em;
 }
 
+.arcade-gameover-minimum-actions {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 8px 16px;
+  margin-top: 8px;
+  text-align: center;
+}
+
 /* ============================================
    BUTTONS
    ============================================ */
@@ -296,6 +307,11 @@
    LEADERBOARD OVERLAY & PANEL
    ============================================ */
 
+/* Backdrop for mobile - covers screen behind panel */
+.arcade-gameover-leaderboard-backdrop {
+  display: none;
+}
+
 .arcade-gameover-leaderboard-overlay {
   position: absolute;
   top: 0;
@@ -330,6 +346,7 @@
   pointer-events: auto;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .arcade-gameover-leaderboard-list {
@@ -390,6 +407,25 @@
   object-fit: cover;
 }
 
+.arcade-gameover-leaderboard-avatar-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  margin-right: 10px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Style Avatar component within leaderboard entries */
+.arcade-gameover-leaderboard-entry .avatar {
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.arcade-gameover-leaderboard-entry.empty {
+  opacity: 0.5;
+}
+
 .arcade-gameover-leaderboard-name {
   flex: 1;
   color: #fff;
@@ -447,12 +483,6 @@
     min-width: auto;
   }
 
-  .arcade-gameover-leaderboard-panel {
-    width: 300px;
-    height: 100%;
-    padding: 12px 16px;
-  }
-
   .arcade-gameover-leaderboard-entry {
     padding: 10px 12px;
     font-size: 0.9rem;
@@ -460,5 +490,27 @@
 
   .arcade-gameover-content.pushed {
     margin-left: 0;
+  }
+
+  /* Backdrop for mobile - semi-transparent overlay behind panel */
+  .arcade-gameover-leaderboard-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 140;
+    pointer-events: auto;
+  }
+
+  /* On mobile, leaderboard needs higher z-index to show above content (content doesn't push) */
+  .arcade-gameover-leaderboard-overlay {
+    z-index: 150;
+    width: 85%;
+    max-width: 320px;
+  }
+
+  .arcade-gameover-leaderboard-panel {
+    width: 100%;
+    border-radius: 0 16px 16px 0;
   }
 }

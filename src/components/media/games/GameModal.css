@@ -731,6 +731,25 @@
   object-fit: cover;
 }
 
+.arcade-leaderboard-avatar-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  margin-right: 10px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Style Avatar component within leaderboard entries */
+.arcade-leaderboard-entry .avatar {
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.arcade-leaderboard-entry.empty {
+  opacity: 0.5;
+}
+
 /* Player name */
 .arcade-leaderboard-name {
   flex: 1;

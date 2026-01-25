@@ -11,6 +11,7 @@ import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useGameMute } from '@/contexts/GameMuteContext';
+import { useArcadeLights } from '@/contexts/ArcadeLightsContext';
 import { GameSEO } from '@/components/seo/GameSEO';
 import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
 import { getFlappyOrangeScorecardDataUrl, type FlappyScorecardData } from '@/systems/sharing/FlappyOrangeScorecard';
@@ -198,6 +199,23 @@ const FlappyOrange: React.FC = () => {
   // Arcade frame mute control (from GameModal)
   const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
 
+  // Arcade lights control (from GameModal)
+  // NEW: Using event-based API for better pattern management
+  const {
+    triggerEvent,
+    setGameId,
+    // Legacy methods kept for backward compatibility
+    setSequence: setLightSequence,
+    triggerPipePass,
+    triggerCoinCollect,
+    clearCombo: clearLightCombo,
+  } = useArcadeLights();
+
+  // Register this game for per-game light overrides
+  useEffect(() => {
+    setGameId('flappy-orange');
+  }, [setGameId]);
+
   // Use real or dummy based on mode
   const { playBlockLand, playPerfectBonus, playCombo, playGameOver } = BARE_BONES_MODE
     ? { playBlockLand: () => {}, playPerfectBonus: () => {}, playCombo: () => {}, playGameOver: () => {} }
@@ -305,6 +323,11 @@ const FlappyOrange: React.FC = () => {
 
   // Coin collectibles (coins add to main score)
   const coinsRef = useRef<Coin[]>([]);
+  
+  // NEW: Coin combo tracking for scoring system
+  // Combo increments on collect, resets on miss
+  const coinComboRef = useRef(1);
+  const pipesPassed = useRef(0); // Track for minimum actions
 
   // Fireflies for night mode
   const firefliesRef = useRef<Array<{ x: number; y: number; phase: number; speed: number }>>([]);
@@ -1021,10 +1044,23 @@ const FlappyOrange: React.FC = () => {
       setTookSpotMessage(result.tookSpotMessage);
       if (result.beatenRankCallout) showEpicCallout(result.beatenRankCallout);
       setTimeout(() => setTookSpotMessage(null), 3000);
+      
+      // Arcade lights: Victory lap pattern (wave + rise sequence)
+      triggerEvent('progress:forward');  // waveRight
+      setTimeout(() => triggerEvent('progress:up'), 350);  // rise after wave
     }
 
     // Update next target
     setNextTarget(result.nextTarget);
+
+    // Arcade lights: Trigger pipe pass with progressive intensity
+    // NEW: Using event-based API - pattern is determined by arcade-light-mappings.ts
+    triggerEvent('progress:forward');
+
+    // Arcade lights: Coin collect celebration on special milestones (every 10)
+    if (newScore % 10 === 0 && newScore > 0) {
+      triggerEvent('collect:coin');
+    }
 
     // In ultra performance mode, skip ALL effects including sound
     if (ULTRA_PERFORMANCE_MODE) return;
@@ -1087,7 +1123,7 @@ const FlappyOrange: React.FC = () => {
     if (intervalType === 'big') {
       hapticCombo(2);
     }
-  }, [soundEnabled, playBlockLand, playCombo, playPerfectBonus, hapticScore, hapticCombo, hapticHighScore, showEpicCallout, triggerBigMoment, triggerConfetti, BIRD_X, playPassNote, spawnPassParticles, globalLeaderboard]);
+  }, [soundEnabled, playBlockLand, playCombo, playPerfectBonus, hapticScore, hapticCombo, hapticHighScore, showEpicCallout, triggerBigMoment, triggerConfetti, BIRD_X, playPassNote, spawnPassParticles, globalLeaderboard, triggerEvent]);
 
   // Handle game over
   const handleGameOver = useCallback(async () => {
@@ -1098,6 +1134,9 @@ const FlappyOrange: React.FC = () => {
     if (musicAudioRef.current) musicAudioRef.current.pause();
     playGameOver();
 
+    // Clear combo lights on death
+    clearLightCombo();
+
     // Update scores and submit to leaderboard
     const updateScores = () => {
       setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
@@ -1105,10 +1144,18 @@ const FlappyOrange: React.FC = () => {
       if (result.isNewHighScore) {
         setHighScore(result.newHighScore);
         setIsNewPersonalBest(true);
+        // Trigger high score celebration after game over sequence
+        setTimeout(() => {
+          triggerEvent('game:highScore');
+        }, 1600); // After gameOver animation (1500ms)
       }
-      if (isSignedIn && state.score > 0) {
+      // Only submit score if minimum actions met (3 pipes passed)
+      if (isSignedIn && state.score > 0 && pipesPassed.current >= 3) {
         setScoreSubmitted(true);
-        submitScore(state.score, undefined, { playTime: Date.now() - gameStartTimeRef.current });
+        submitScore(state.score, undefined, { 
+          playTime: Date.now() - gameStartTimeRef.current,
+          pipesPassed: pipesPassed.current,
+        });
       }
     };
 
@@ -1116,6 +1163,7 @@ const FlappyOrange: React.FC = () => {
     if (ULTRA_PERFORMANCE_MODE) {
       state.gameState = 'gameover';
       setGameState('gameover');
+      triggerEvent('game:over');
       updateScores();
       return;
     }
@@ -1125,10 +1173,11 @@ const FlappyOrange: React.FC = () => {
     setTimeout(() => {
       state.gameState = 'gameover';
       setGameState('gameover');
+      triggerEvent('game:over');
       hapticGameOver();
       updateScores();
     }, JUICE_CONFIG.FREEZE_DURATION + JUICE_CONFIG.SLOW_MO_DURATION + 200);
-  }, [playGameOver, hapticGameOver, highScore, isSignedIn, submitScore, triggerDeathFreeze]);
+  }, [playGameOver, hapticGameOver, highScore, isSignedIn, submitScore, triggerDeathFreeze, clearLightCombo, triggerEvent]);
 
   // Check collision - wrapper for imported pure function
   const checkCollisionWrapper = useCallback((bird: Bird, pipes: Pipe[]): boolean => {
@@ -1150,6 +1199,10 @@ const FlappyOrange: React.FC = () => {
     let newScore = pipeResult.newScore;
 
     // Handle pipe pass effects (sound, floating score)
+    // Also track pipes passed for minimum actions requirement
+    if (pipeResult.passedPipes.length > 0) {
+      pipesPassed.current += pipeResult.passedPipes.length;
+    }
     for (const { pipe, birdY: passedBirdY } of pipeResult.passedPipes) {
       if (ULTRA_PERFORMANCE_MODE) {
         onScorePoint(newScore);
@@ -1170,9 +1223,23 @@ const FlappyOrange: React.FC = () => {
     // Use helper for coin positions and collection
     const coinResult = updateCoinPositions(coinsRef.current, speed, deltaTime, BIRD_X, birdY);
     coinsRef.current = coinResult.coins.filter(c => !c.collected);
-    newScore += coinResult.scoreGained;
+    
+    // NEW: Check for missed coins - reset combo
+    if (coinResult.missedCoins.length > 0) {
+      coinComboRef.current = 1; // Reset combo on missed coin
+    }
+    
+    // NEW: Calculate score with combo system (+5 base × combo)
+    let coinScoreTotal = 0;
+    for (let i = 0; i < coinResult.collectedCoins.length; i++) {
+      const coinScore = 5 * coinComboRef.current; // +5 × combo
+      coinScoreTotal += coinScore;
+      coinComboRef.current++; // Increment combo for next coin
+    }
+    newScore += coinScoreTotal;
 
     // Handle coin collection effects (sound, floating score)
+    let comboForDisplay = coinComboRef.current - coinResult.collectedCoins.length; // Combo at time of first collect
     for (const coin of coinResult.collectedCoins) {
       playCoinSound();
       const canvasRect = canvasRef.current?.getBoundingClientRect();
@@ -1182,7 +1249,10 @@ const FlappyOrange: React.FC = () => {
         const canvasOffsetY = canvasRect.top - containerRect.top;
         const scaleX = canvasRect.width / CANVAS_WIDTH;
         const scaleY = canvasRect.height / CANVAS_HEIGHT;
-        showFloatingScore('+1', canvasOffsetX + coin.x * scaleX, canvasOffsetY + (coin.y - 20) * scaleY);
+        const coinPoints = 5 * comboForDisplay;
+        const comboText = comboForDisplay > 1 ? ` 🔥${comboForDisplay}x` : '';
+        showFloatingScore(`+${coinPoints}${comboText}`, canvasOffsetX + coin.x * scaleX, canvasOffsetY + (coin.y - 20) * scaleY);
+        comboForDisplay++;
       }
     }
 
@@ -1229,6 +1299,8 @@ const FlappyOrange: React.FC = () => {
         state.stars = generateStarsPure(CANVAS_WIDTH, CANVAS_HEIGHT);  // Generate stars for night sky
         gameStartTimeRef.current = Date.now();
         setGameState('playing');
+        console.log('[FlappyOrange] Setting light sequence: play:active');
+        triggerEvent('play:active');
       }
       if (state.gameState === 'playing') {
         state.bird.velocity = PHYSICS.JUMP_VELOCITY;
@@ -1244,6 +1316,8 @@ const FlappyOrange: React.FC = () => {
         state.stars = generateStarsPure(CANVAS_WIDTH, CANVAS_HEIGHT);  // Generate stars for night sky
         gameStartTimeRef.current = Date.now();
         setGameState('playing');
+        console.log('[FlappyOrange] Setting light sequence: play:active');
+        triggerEvent('play:active');
       }
       if (state.gameState === 'playing') {
         state.bird.velocity = PHYSICS.JUMP_VELOCITY;
@@ -1259,6 +1333,8 @@ const FlappyOrange: React.FC = () => {
       state.stars = generateStarsPure(CANVAS_WIDTH, CANVAS_HEIGHT);
       gameStartTimeRef.current = Date.now();
       setGameState('playing');
+      console.log('[FlappyOrange] Setting light sequence: play:active');
+      triggerEvent('play:active');
       // Removed playGameStart beep - background music plays instead
     }
 
@@ -1278,7 +1354,7 @@ const FlappyOrange: React.FC = () => {
       if (soundEnabled) playBlockLand();
       hapticButton();
     }
-  }, [soundEnabled, playBlockLand, hapticButton, applyFlapDeformation, spawnWingParticles, triggerHaptic, BIRD_X, CANVAS_WIDTH, CANVAS_HEIGHT]);
+  }, [soundEnabled, playBlockLand, hapticButton, applyFlapDeformation, spawnWingParticles, triggerHaptic, BIRD_X, CANVAS_WIDTH, CANVAS_HEIGHT, triggerEvent]);
 
   // Reset game
   const resetGame = useCallback(() => {
@@ -1302,8 +1378,10 @@ const FlappyOrange: React.FC = () => {
     lightningRef.current = null;
     setLightningAlpha(0);
 
-    // Reset coins (but keep total collected)
+    // Reset coins and combo tracking
     coinsRef.current = [];
+    coinComboRef.current = 1; // Reset coin combo to 1
+    pipesPassed.current = 0; // Reset pipes passed for minimum actions
 
     // Clear timeouts
     if (freezeTimeoutRef.current) clearTimeout(freezeTimeoutRef.current);
@@ -1970,6 +2048,8 @@ const FlappyOrange: React.FC = () => {
           onShare={openShareModal}
           accentColor="#ff6b00"
           isExiting={isGameOverExiting}
+          meetsMinimumActions={pipesPassed.current >= 3}
+          minimumActionsMessage="Pass at least 3 pipes to be on the leaderboard"
         />
       )}
 

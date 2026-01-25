@@ -75,6 +75,62 @@
   font-style: italic;
 }
 
+/* Skip Intro Button - subtle, bottom center */
+.boot-skip-button {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000001;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-family: 'MS Sans Serif', 'Segoe UI', sans-serif;
+  font-size: 13px;
+  opacity: 0.35;
+  cursor: pointer;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s ease;
+  animation: skipFadeIn 0.5s ease-out 0.3s both;
+}
+
+.boot-skip-button:hover,
+.boot-skip-button:active {
+  opacity: 0.7;
+}
+
+.boot-skip-button:active {
+  transform: translateX(-50%) scale(0.98);
+}
+
+.boot-skip-icon {
+  font-size: 11px;
+  letter-spacing: -2px;
+}
+
+@keyframes skipFadeIn {
+  from { 
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to { 
+    opacity: 0.35;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Responsive adjustments for skip button */
+@media (max-width: 479px) {
+  .boot-skip-button {
+    bottom: 24px;
+    font-size: 12px;
+    padding: 10px 18px;
+  }
+}
+
 .boot-sequence-container {
   width: 100%;
   max-width: 100%;

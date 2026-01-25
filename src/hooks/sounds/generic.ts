@@ -10,18 +10,36 @@
 // Local audio context singleton
 let audioContext: AudioContext | null = null;
 let volumeMultiplier = 1;
+let visibilityHandlerSetup = false;
 
 export const getAudioContext = () => {
   if (!audioContext) {
     try {
       audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Set up visibility change handler once to suspend/resume audio context
+      // This ensures synthesized sounds stop when browser goes to background on mobile
+      if (!visibilityHandlerSetup) {
+        visibilityHandlerSetup = true;
+        document.addEventListener('visibilitychange', () => {
+          if (audioContext) {
+            if (document.hidden) {
+              // Suspend audio context when page is hidden (stops all oscillators)
+              audioContext.suspend();
+            } else {
+              // Resume audio context when page becomes visible
+              audioContext.resume();
+            }
+          }
+        });
+      }
     } catch (e) {
       console.warn('Web Audio API not supported');
       return null;
     }
   }
   // Resume if suspended (browsers require user interaction)
-  if (audioContext.state === 'suspended') {
+  if (audioContext.state === 'suspended' && !document.hidden) {
     audioContext.resume();
   }
   return audioContext;

@@ -9,13 +9,18 @@
 
 import { HelpCircle, X, Volume2, VolumeX } from 'lucide-react';
 import './ArcadeFrame.css';
-import { ArcadeButtonLights, type LightSequence } from './ArcadeButtonLights';
+import { ArcadeButtonLights, type LightSequence, type LightOptions, type PatternName } from './ArcadeButtonLights';
 import { useIsMobile } from '@/hooks/useMediaQuery';
+import { CRTOverlay } from './arcade/CRTOverlay';
 
 interface ArcadeFrameProps {
   children: React.ReactNode;
   variant?: 'standard' | 'wide';
+  /** NEW: Pattern name from pattern library (preferred) */
+  lightPattern?: PatternName | null;
+  /** LEGACY: Sequence name */
   lightSequence?: LightSequence;
+  lightOptions?: LightOptions;
   onLightSequenceComplete?: () => void;
   showIntroButtons?: boolean;
   onHelpClick?: () => void;
@@ -31,7 +36,9 @@ interface ArcadeFrameProps {
 export function ArcadeFrame({
   children,
   variant = 'standard',
+  lightPattern,
   lightSequence = 'off',
+  lightOptions,
   onLightSequenceComplete,
   showIntroButtons = false,
   onHelpClick,
@@ -55,6 +62,8 @@ export function ArcadeFrame({
       {/* Game renders in the screen area - positioned to match PNG transparency */}
       <div className="arcade-screen">
         {children}
+        {/* CRT overlay is experimental; remove if disliked. Enabled via ?crt=1, localStorage, or env var */}
+        <CRTOverlay />
       </div>
 
       {/* Frame PNG overlays on top - clicks pass through to game */}
@@ -68,7 +77,9 @@ export function ArcadeFrame({
 
       {/* Button light overlays - CSS-only glow effects */}
       <ArcadeButtonLights
+        pattern={lightPattern}
         sequence={lightSequence}
+        options={lightOptions}
         onSequenceComplete={onLightSequenceComplete}
       />
 

@@ -18,10 +18,47 @@ import { useIsMobile } from '@/hooks/useMediaQuery';
 import { LeaderboardOverlay } from './LeaderboardOverlay';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import type { GameId } from '@/config/query/queryKeys';
+import { Avatar } from '@/components/Avatar/Avatar';
 import { ArcadeFrame } from '@/components/ArcadeFrame';
-import type { LightSequence } from '@/components/ArcadeButtonLights';
+import type { LightSequence, LightOptions, PatternName } from '@/components/ArcadeButtonLights';
 import { GameMuteContext } from '@/contexts/GameMuteContext';
+import { ArcadeLightsProvider, useArcadeLights, GAME_LIGHT_INTENSITY } from '@/contexts/ArcadeLightsContext';
+import { MobileGameControls } from './MobileGameControls';
+import { CRTOverlay } from '@/components/arcade/CRTOverlay';
 import './GameModal.css';
+
+/**
+ * Bridge component that syncs ArcadeLightsContext state to GameModal's state.
+ * This allows games to control the arcade lights via useArcadeLights hook.
+ *
+ * Supports both:
+ * - NEW API: triggerEvent() which sets `pattern` directly
+ * - LEGACY API: setSequence() which sets both `sequence` and `pattern`
+ */
+function ArcadeLightsBridge({
+  onStateChange,
+}: {
+  onStateChange: (sequence: LightSequence, options: LightOptions, pattern: PatternName | null) => void;
+}) {
+  const { sequence, options, pattern } = useArcadeLights();
+
+  // Sync context state to GameModal state whenever it changes
+  useEffect(() => {
+    // NEW API: If pattern is set, always sync (games using triggerEvent)
+    // LEGACY API: If sequence is a game-set value, sync
+    const isGameSequence = sequence === 'playing' || sequence === 'score' || sequence === 'combo' ||
+        sequence === 'gameOver' || sequence === 'highScore' || sequence === 'win' ||
+        sequence === 'pipePass' || sequence === 'coinCollect';
+
+    // Sync if pattern is set OR if sequence is a game-set value
+    if (pattern !== null || isGameSequence) {
+      console.log('[ArcadeLightsBridge] Syncing:', { sequence, pattern, options });
+      onStateChange(sequence as LightSequence, options as LightOptions, pattern);
+    }
+  }, [sequence, options, pattern, onStateChange]);
+
+  return null; // This component just syncs state, renders nothing
+}
 
 // Lazy load game components
 const BrickByBrick = lazy(() => import('@/pages/BrickByBrick'));
@@ -136,7 +173,10 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [_gameReady, setGameReady] = useState(false);
-  const [lightSequence, setLightSequence] = useState<LightSequence>('off');
+  // Initialize with idle/breathe so lights show immediately on intro screen
+  const [lightSequence, setLightSequence] = useState<LightSequence>('idle');
+  const [lightOptions, setLightOptions] = useState<LightOptions>({});
+  const [lightPattern, setLightPattern] = useState<PatternName | null>('breathe');
   const [isMuted, setIsMuted] = useState(false);
   const isMobile = useIsMobile();
 
@@ -209,8 +249,16 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
         (document as any).webkitExitFullscreen?.();
       }
     } else {
-      // Go directly to idle for testing (skip startup for now)
+      // Go directly to idle pattern for intro screen
+      // Use the new pattern system (not legacy sequence) for consistent positioning
       setLightSequence('idle');
+      // Game-specific idle/attract patterns
+      if (game?.id === 'orange-stack') {
+        // Brick-by-Brick: Smooth perimeter flow wave
+        setLightPattern('perimeterFlow');
+      } else {
+        setLightPattern('breathe');
+      }
       // Start game music immediately when modal opens
       if (game?.id && GAME_MUSIC[game.id]) {
         playGameMusic(game.id);
@@ -243,20 +291,50 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
     }
   }, [isOpen, game?.id]);
 
-  // Transition from startup to idle
+  // Transition from startup to idle, from gameStart to playing
   const handleLightSequenceComplete = () => {
     if (lightSequence === 'startup') {
       setLightSequence('idle');
+      setLightPattern('breathe');
     } else if (lightSequence === 'gameStart') {
-      // After game start burst, turn off (game is now in focus)
-      setLightSequence('off');
+      // After game start burst, transition to playing state with ambient glow
+      // Use glow pattern for consistent positioning (new pattern system)
+      setLightSequence('playing');
+      setLightPattern('glow');
+      // lightOptions already set in handlePlayClick with game-specific intensity
+    } else if (lightSequence === 'highScore') {
+      // After high score celebration, return to idle/breathe
+      setLightSequence('idle');
+      setLightPattern('breathe');
+      setLightOptions({});
+    } else if (lightSequence === 'gameOver') {
+      // After game over, return to idle/breathe for the game over screen
+      setLightSequence('idle');
+      setLightPattern('breathe');
+      setLightOptions({});
     }
   };
 
+  // Callback for ArcadeLightsBridge to sync context state to GameModal state
+  const handleLightContextChange = useCallback((newSequence: LightSequence, newOptions: LightOptions, newPattern: PatternName | null) => {
+    setLightSequence(newSequence);
+    setLightOptions(newOptions);
+    setLightPattern(newPattern);
+  }, []);
+
   // Handle play button click with light sequence
   const handlePlayClick = () => {
+    // Use explode pattern for game start (consistent positioning with new pattern system)
+    setLightPattern('explode');
     setLightSequence('gameStart');
     setGameStarted(true);
+
+    // Set playing intensity based on game after gameStart sequence completes
+    // The handleLightSequenceComplete will transition to 'playing' with the right intensity
+    if (game?.id) {
+      const intensity = GAME_LIGHT_INTENSITY[game.id] || 'low';
+      setLightOptions({ intensity });
+    }
 
     // Request fullscreen on mobile for immersive gameplay
     if (isMobile) {
@@ -353,73 +431,11 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
             exit="exit"
           />
 
-          {/* External buttons - only show for mobile or coming soon (arcade frame has its own buttons) */}
-          {/* Skip if game has its own controls (e.g., Block Puzzle has back/pause buttons) */}
-          {(isMobile || isComingSoon) && (gameStarted || isComingSoon) && !game.hasOwnControls && (
-            <div
-              className="fixed z-[110] flex flex-col gap-3"
-              style={{ top: '16px', right: '12px', pointerEvents: 'auto' }}
-            >
-              {/* Help button - only during gameplay on mobile */}
-              {gameStarted && !isComingSoon && (
-                <motion.button
-                  className="rounded-full flex items-center justify-center"
-                  style={{
-                    width: 44,
-                    height: 44,
-                    background: 'rgba(0, 0, 0, 0.7)',
-                    border: '2px solid rgba(255, 255, 255, 0.3)',
-                    color: 'rgba(255, 255, 255, 0.9)',
-                    touchAction: 'manipulation',
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                  onTouchEnd={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowInstructions(!showInstructions);
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowInstructions(!showInstructions);
-                  }}
-                  aria-label="Show instructions"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                >
-                  <HelpCircle size={22} />
-                </motion.button>
-              )}
-
-              {/* Close button */}
-              <motion.button
-                className="rounded-full flex items-center justify-center"
-                style={{
-                  width: 44,
-                  height: 44,
-                  background: 'rgba(0, 0, 0, 0.7)',
-                  border: '2px solid rgba(255, 255, 255, 0.3)',
-                  color: 'rgba(255, 255, 255, 0.9)',
-                  touchAction: 'manipulation',
-                  WebkitTapHighlightColor: 'transparent',
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onClose();
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClose();
-                }}
-                aria-label="Close game"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-              >
-                <X size={22} />
-              </motion.button>
-            </div>
+          {/* Mobile game controls - shared component for all games */}
+          {/* Shows on mobile during gameplay (not for coming soon on intro screen) */}
+          {/* Games with hasOwnControls still use their own UI (e.g., Block Puzzle) */}
+          {isMobile && gameStarted && !isComingSoon && !game.hasOwnControls && (
+            <MobileGameControls onClose={onClose} />
           )}
 
           {/* Modal content - centering wrapper */}
@@ -453,7 +469,9 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
                   >
                     <ArcadeFrame
                       variant={frameVariant}
+                      lightPattern={lightPattern}
                       lightSequence={lightSequence}
+                      lightOptions={lightOptions}
                       onLightSequenceComplete={handleLightSequenceComplete}
                       showIntroButtons={true}
                       onHelpClick={() => setShowInstructions(prev => !prev)}
@@ -470,28 +488,32 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
                           pointerEvents: gameStarted ? 'auto' : 'none',
                         }}
                       >
-                        <GameMuteContext.Provider value={{ isMuted, setIsMuted, toggleMute: () => setIsMuted(prev => !prev), musicManagedExternally: !!GAME_MUSIC[game.id], gameStarted }}>
-                          <Suspense
-                            fallback={
-                              <div
-                                className="w-full h-full flex items-center justify-center"
-                                style={{ background: '#000' }}
-                              >
-                                <div className="text-center">
-                                  <div className="text-4xl mb-4">{game.emoji}</div>
-                                  <p style={{ color: 'var(--color-text-muted)' }}>Loading...</p>
+                        <ArcadeLightsProvider>
+                          {/* Bridge syncs context state to GameModal for ArcadeFrame */}
+                          <ArcadeLightsBridge onStateChange={handleLightContextChange} />
+                          <GameMuteContext.Provider value={{ isMuted, setIsMuted, toggleMute: () => setIsMuted(prev => !prev), musicManagedExternally: !!GAME_MUSIC[game.id], gameStarted }}>
+                            <Suspense
+                              fallback={
+                                <div
+                                  className="w-full h-full flex items-center justify-center"
+                                  style={{ background: '#000' }}
+                                >
+                                  <div className="text-center">
+                                    <div className="text-4xl mb-4">{game.emoji}</div>
+                                    <p style={{ color: 'var(--color-text-muted)' }}>Loading...</p>
+                                  </div>
                                 </div>
-                              </div>
-                            }
-                          >
-                            {GAME_COMPONENTS[game.id] ? (
-                              (() => {
-                                const GameComponent = GAME_COMPONENTS[game.id];
-                                return <GameComponent />;
-                              })()
-                            ) : null}
-                          </Suspense>
-                        </GameMuteContext.Provider>
+                              }
+                            >
+                              {GAME_COMPONENTS[game.id] ? (
+                                (() => {
+                                  const GameComponent = GAME_COMPONENTS[game.id];
+                                  return <GameComponent />;
+                                })()
+                              ) : null}
+                            </Suspense>
+                          </GameMuteContext.Provider>
+                        </ArcadeLightsProvider>
                       </div>
 
                       {/* Intro Screen - only render when game hasn't started */}
@@ -516,18 +538,23 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
                               <div className="arcade-leaderboard-list">
                                 {Array.from({ length: 10 }, (_, index) => {
                                   const entry = introLeaderboard[index];
-                                  const mockNames = ['OrangeKing', 'FlappyMaster', 'PipeDreamer', 'SkyHopper', 'CitrusNinja', 'WojakPro', 'JuicyPlayer', 'AirBender', 'PipeWizard', 'CloudSurfer'];
-                                  const mockScores = [156, 142, 128, 115, 98, 87, 72, 65, 54, 41];
-                                  const displayName = entry?.displayName || mockNames[index];
-                                  const displayScore = entry?.score ?? mockScores[index];
+                                  const hasEntry = !!entry;
                                   return (
-                                    <div key={index} className="arcade-leaderboard-entry">
+                                    <div key={index} className={`arcade-leaderboard-entry ${!hasEntry ? 'empty' : ''}`}>
                                       <span className="arcade-leaderboard-rank">#{index + 1}</span>
-                                      <div className="arcade-leaderboard-avatar">
-                                        <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${displayName}`} alt="" />
-                                      </div>
-                                      <span className="arcade-leaderboard-name">{displayName}</span>
-                                      <span className="arcade-leaderboard-score">{displayScore}</span>
+                                      {hasEntry ? (
+                                        <Avatar
+                                          avatar={entry.avatar || { type: 'emoji', value: '🎮', source: 'default' }}
+                                          size="small"
+                                          showBadge={false}
+                                        />
+                                      ) : (
+                                        <div className="arcade-leaderboard-avatar-placeholder" />
+                                      )}
+                                      <span className={`arcade-leaderboard-name ${entry?.equipped?.nameEffect?.css_class || ''}`}>
+                                        {entry?.displayName || '---'}
+                                      </span>
+                                      <span className="arcade-leaderboard-score">{entry?.score ?? '-'}</span>
                                     </div>
                                   );
                                 })}
@@ -818,37 +845,44 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
               {gameStarted && !isComingSoon && (
                 <div className="w-full h-full overflow-hidden" style={{ position: 'relative' }}>
                   {/* CRITICAL: Mobile needs GameMuteContext.Provider too! Without it, musicManagedExternally is false and games start their own music */}
-                  <GameMuteContext.Provider value={{ isMuted, setIsMuted, toggleMute: () => setIsMuted(prev => !prev), musicManagedExternally: !!GAME_MUSIC[game.id], gameStarted }}>
-                    <Suspense
-                      fallback={
-                        <div
-                          className="w-full h-full flex items-center justify-center"
-                          style={{ background: 'var(--color-glass-bg)' }}
-                        >
-                          <div className="text-center">
-                            <div className="text-4xl mb-4">{game.emoji}</div>
-                            <p style={{ color: 'var(--color-text-muted)' }}>Loading game...</p>
+                  {/* ArcadeLightsProvider wraps for consistency, though lights are hidden on mobile */}
+                  <ArcadeLightsProvider>
+                    {/* Bridge syncs context state (mobile - no visible effect but keeps API consistent) */}
+                    <ArcadeLightsBridge onStateChange={handleLightContextChange} />
+                    <GameMuteContext.Provider value={{ isMuted, setIsMuted, toggleMute: () => setIsMuted(prev => !prev), musicManagedExternally: !!GAME_MUSIC[game.id], gameStarted }}>
+                      <Suspense
+                        fallback={
+                          <div
+                            className="w-full h-full flex items-center justify-center"
+                            style={{ background: 'var(--color-glass-bg)' }}
+                          >
+                            <div className="text-center">
+                              <div className="text-4xl mb-4">{game.emoji}</div>
+                              <p style={{ color: 'var(--color-text-muted)' }}>Loading game...</p>
+                            </div>
                           </div>
-                        </div>
-                      }
-                    >
-                      {GAME_COMPONENTS[game.id] ? (
-                        (() => {
-                          const GameComponent = GAME_COMPONENTS[game.id];
-                          return <GameComponent />;
-                        })()
-                      ) : (
-                        <div
-                          className="w-full h-full flex items-center justify-center"
-                          style={{ background: 'var(--color-glass-bg)' }}
-                        >
-                          <p style={{ color: 'var(--color-text-muted)' }}>
-                            Game not available
-                          </p>
-                        </div>
-                      )}
-                    </Suspense>
-                  </GameMuteContext.Provider>
+                        }
+                      >
+                        {GAME_COMPONENTS[game.id] ? (
+                          (() => {
+                            const GameComponent = GAME_COMPONENTS[game.id];
+                            return <GameComponent />;
+                          })()
+                        ) : (
+                          <div
+                            className="w-full h-full flex items-center justify-center"
+                            style={{ background: 'var(--color-glass-bg)' }}
+                          >
+                            <p style={{ color: 'var(--color-text-muted)' }}>
+                              Game not available
+                            </p>
+                          </div>
+                        )}
+                      </Suspense>
+                    </GameMuteContext.Provider>
+                  </ArcadeLightsProvider>
+                  {/* CRT overlay for mobile - experimental; remove if disliked */}
+                  <CRTOverlay />
                 </div>
               )}
             </div>

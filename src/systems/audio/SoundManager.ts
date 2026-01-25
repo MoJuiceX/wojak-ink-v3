@@ -69,9 +69,28 @@ class SoundManagerClass {
   private isInitialized: boolean = false;
   private pendingSounds: Array<{ name: SoundName; volume: number }> = [];
   private loadedSounds: Set<SoundName> = new Set();
+  private visibilityHandlerSetup: boolean = false;
 
   constructor() {
     this.loadPreferences();
+    this.setupVisibilityHandler();
+  }
+
+  /**
+   * Set up visibility change handler to pause/stop sounds when browser goes to background
+   * This is critical for mobile where closing the browser should stop all audio
+   */
+  private setupVisibilityHandler(): void {
+    if (this.visibilityHandlerSetup) return;
+    this.visibilityHandlerSetup = true;
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        // Stop all sounds when page is hidden
+        this.stopAll();
+      }
+      // Note: We don't resume sounds when visible - SFX are short and would be confusing to resume
+    });
   }
 
   /**

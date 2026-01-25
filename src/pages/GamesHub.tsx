@@ -310,9 +310,10 @@ export default function GamesHub() {
           className={activeMode ? 'flick-mode-active' : ''}
           style={{
             padding: contentPadding,
-            height: 'calc(100vh - 64px)',
-            maxHeight: 'calc(100dvh - 64px)',
-            overflow: 'hidden',
+            // Use minHeight instead of height to prevent clipping when DevTools shrinks viewport
+            minHeight: 'calc(100vh - 64px)',
+            // Allow content to scroll if it doesn't fit (e.g., with DevTools open)
+            overflow: 'auto',
             display: 'flex',
             flexDirection: 'column',
           }}
@@ -327,10 +328,13 @@ export default function GamesHub() {
               maxWidth: '1400px',
               margin: '0 auto',
               width: '100%',
+              // Align content to start, not center, to prevent top clipping
+              alignContent: 'start',
             }}
           >
             <LeaderboardPanel />
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 0 }}>
+            {/* Remove justifyContent: 'center' - causes top row to be pushed up when viewport shrinks */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', minHeight: 0, paddingTop: '8px' }}>
               {gamesGridWithVoting}
             </div>
             {/* Right column: Stats + Voting Panel */}

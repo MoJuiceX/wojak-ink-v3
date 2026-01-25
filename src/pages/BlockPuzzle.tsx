@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IonIcon } from '@ionic/react';
-import { arrowBack, pause, play } from 'ionicons/icons';
+import { pause, play } from 'ionicons/icons';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
@@ -11,6 +11,8 @@ import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { GameSEO } from '@/components/seo/GameSEO';
 import { useGameMute } from '@/contexts/GameMuteContext';
+import { useArcadeLights } from '@/contexts/ArcadeLightsContext';
+import { getLineClearTier, GAME_COMBO_TIERS } from '@/config/arcade-light-mappings';
 import { captureGameArea } from '@/systems/sharing/captureDOM';
 import { generateGameScorecard } from '@/systems/sharing/GameScorecard';
 import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
@@ -74,6 +76,7 @@ import {
   canPlaceAnywhere,
   placePiece,
   clearLines,
+  checkSameColorLines,
   isGameOver,
   getPreviewCells,
   countFilledCells,
@@ -111,6 +114,14 @@ const BlockPuzzle: React.FC = () => {
   } = useLeaderboard('block-puzzle');
   // Arcade frame mute control (from GameModal)
   const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
+
+  // Arcade lights control
+  const { triggerEvent, setGameId } = useArcadeLights();
+
+  // Register this game for per-game light overrides
+  useEffect(() => {
+    setGameId('block-puzzle');
+  }, [setGameId]);
 
   // Game state
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
@@ -329,6 +340,32 @@ const BlockPuzzle: React.FC = () => {
       }
     };
   }, []);
+
+  // Visibility change handling - pause music when browser goes to background (mobile)
+  const wasPlayingBeforeHiddenRef = useRef(false);
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Page is hidden - remember if music was playing and pause it
+        wasPlayingBeforeHiddenRef.current = !!(musicAudioRef.current && !musicAudioRef.current.paused);
+        if (musicAudioRef.current) {
+          musicAudioRef.current.pause();
+        }
+      } else {
+        // Page became visible - resume music if it was playing before
+        if (wasPlayingBeforeHiddenRef.current && gameStateRef.current === 'playing' && soundEnabledRef.current && !musicManagedExternallyRef.current && !isPaused) {
+          if (musicAudioRef.current) {
+            musicAudioRef.current.play().catch(() => {});
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isPaused]);
 
   // Control music based on game state and pause
   useEffect(() => {
@@ -958,7 +995,9 @@ const BlockPuzzle: React.FC = () => {
     // Note: Don't reset challengeTarget - keep the challenge active across games
     resetAllEffects();
     setGameState('playing');
-  }, [soundEnabled, hapticButton, resetAllEffects, stopDangerSound, playNextSong]);
+    // Arcade lights: Game started (zen mode - simmer)
+    triggerEvent('play:active');
+  }, [soundEnabled, hapticButton, resetAllEffects, stopDangerSound, playNextSong, triggerEvent]);
 
   // Auto-start on mount
   useEffect(() => {
@@ -969,7 +1008,8 @@ const BlockPuzzle: React.FC = () => {
 
   // Submit score
   const submitScoreGlobal = useCallback(async (finalScore: number) => {
-    if (!isSignedIn || scoreSubmitted || finalScore === 0) return;
+    // Check minimum actions: 3 pieces placed for leaderboard
+    if (!isSignedIn || scoreSubmitted || finalScore === 0 || totalBlocksPlaced < 3) return;
 
     if (finalScore > highScore) {
       setHighScore(finalScore);
@@ -1009,12 +1049,18 @@ const BlockPuzzle: React.FC = () => {
     }
     if (soundEnabled) playGameOver();
     hapticGameOver();
+    // Arcade lights: Game over (check for high score)
+    if (currentScore > highScore) {
+      triggerEvent('game:highScore');
+    } else {
+      triggerEvent('game:over');
+    }
     setGameState('gameover');
 
     if (isSignedIn && currentScore > 0) {
       submitScoreGlobal(currentScore);
     }
-  }, [soundEnabled, playGameOver, hapticGameOver, isSignedIn, submitScoreGlobal]);
+  }, [soundEnabled, playGameOver, hapticGameOver, isSignedIn, submitScoreGlobal, triggerEvent, highScore]);
 
   // Place piece on grid
   const attemptPlacement = useCallback((pieceId: string, row: number, col: number) => {
@@ -1041,6 +1087,8 @@ const BlockPuzzle: React.FC = () => {
     // TASK 12 & 19: Play snap sound and double-tap haptic confirmation
     playSnapSound();
     triggerSnapHaptic();
+    // Arcade lights: Block placed (subtle)
+    triggerEvent('score:tiny');
 
     // PHASE 5: Placement feedback
     // TASK 64: Mini screen shake on placement
@@ -1062,6 +1110,9 @@ const BlockPuzzle: React.FC = () => {
       showFloatingScore(basePoints, gridRect.left + gridRect.width / 2, gridRect.top + gridRect.height / 2, false);
     }
 
+    // NEW: Check for same-color lines BEFORE clearing (need the colors)
+    const { totalSameColorLines } = checkSameColorLines(newGrid);
+    
     // Check for line clears
     const { clearedGrid, linesCleared, cellsCleared } = clearLines(newGrid);
 
@@ -1077,7 +1128,19 @@ const BlockPuzzle: React.FC = () => {
       setCombo(newCombo);
       setShowCombo(true);
 
-      // TASK 103 & 110: Reset combo timer and trigger shake on increment
+      // Arcade lights: Line clear with tier based on count
+      const lineClearTier = getLineClearTier(linesCleared);
+      triggerEvent(`score:${lineClearTier}` as any);
+
+      // Arcade lights: Combo milestone using native thresholds
+      if (newCombo >= 2) {
+        const comboTier = GAME_COMBO_TIERS['block-puzzle'](newCombo);
+        if (comboTier !== 'start') {
+          triggerEvent(`combo:${comboTier}` as any);
+        }
+      }
+
+      // TASK 103 & 110: Combo persists as long as lines are cleared (NO timeout)
       comboStartTimeRef.current = Date.now();
       setComboTimeLeft(100);
       if (newCombo >= 2) {
@@ -1085,27 +1148,26 @@ const BlockPuzzle: React.FC = () => {
         setTimeout(() => setComboShake(false), 300);
       }
 
-      // Clear combo timer and set new one
+      // NEW: No timeout - combo only breaks on piece placed without clearing
+      // Clear any existing timeout (backward compat)
       if (comboTimeoutRef.current) {
         clearTimeout(comboTimeoutRef.current);
+        comboTimeoutRef.current = null;
       }
-      // TASK 16: Combo timeout with break sound
-      comboTimeoutRef.current = setTimeout(() => {
-        playComboBreakSound(newCombo);
-        // TASK 111: Show lost combo notification
-        if (newCombo >= 2) {
-          setLostCombo(newCombo);
-          setTimeout(() => setLostCombo(null), 1500);
-        }
-        setCombo(0);
-        setShowCombo(false);
-      }, 3000);
 
-      // Calculate points with combo multiplier
-      const linePoints = linesCleared * 100;
+      // Calculate points with combo multiplier (reduced base: 50 per line)
+      const linePoints = linesCleared * 50; // Was 100, now 50
       const lineComboMultiplier = linesCleared >= 2 ? linesCleared : 1;
       const comboBonus = newCombo >= 2 ? Math.min(newCombo, 5) : 1;
-      let totalPoints = linePoints * lineComboMultiplier * comboBonus;
+      
+      // NEW: Same-color line bonus - 2x for each same-color line (stacks with combo)
+      const sameColorMultiplier = totalSameColorLines > 0 ? 2 : 1;
+      let totalPoints = linePoints * lineComboMultiplier * comboBonus * sameColorMultiplier;
+      
+      // Show same-color bonus callout
+      if (totalSameColorLines > 0) {
+        showEpicCallout(`🌈 ${totalSameColorLines}x SAME COLOR! 2x BONUS!`);
+      }
 
       // TASK 85 & 87: Update streak and apply bonus
       updateStreak(true);
@@ -1161,6 +1223,8 @@ const BlockPuzzle: React.FC = () => {
           newScore += PERFECT_CLEAR_BONUS;
           setScore(s => s + PERFECT_CLEAR_BONUS);
           triggerPerfectClear();
+          // Arcade lights: Perfect clear (rare achievement!)
+          triggerEvent('perfect:hit');
 
           // Show perfect clear bonus in floating score
           if (gridRect) {
@@ -1235,24 +1299,27 @@ const BlockPuzzle: React.FC = () => {
       setGrid(newGrid);
       gridStateRef.current = newGrid;
     } else {
-      // Reset combo if no lines cleared
+      // NEW: IMMEDIATE combo break on piece placed without clearing (no timeout)
+      // This gives player unlimited time to plan, but must keep clearing lines
       if (comboTimeoutRef.current) {
         clearTimeout(comboTimeoutRef.current);
+        comboTimeoutRef.current = null;
       }
-      // TASK 16: Combo timeout with break sound (only if combo was active)
+      
+      // Break combo immediately if it was active
       const currentCombo = combo;
-      comboTimeoutRef.current = setTimeout(() => {
-        if (currentCombo > 0) {
-          playComboBreakSound(currentCombo);
-          // TASK 111: Show lost combo notification
-          if (currentCombo >= 2) {
-            setLostCombo(currentCombo);
-            setTimeout(() => setLostCombo(null), 1500);
-          }
+      if (currentCombo > 0) {
+        playComboBreakSound(currentCombo);
+        // TASK 111: Show lost combo notification
+        if (currentCombo >= 2) {
+          setLostCombo(currentCombo);
+          setTimeout(() => setLostCombo(null), 1500);
+          // Arcade lights: Combo broken
+          triggerEvent('combo:break');
         }
-        setCombo(0);
-        setShowCombo(false);
-      }, 3000);
+      }
+      setCombo(0);
+      setShowCombo(false);
 
       // TASK 85: Reset streak on placement without clear
       updateStreak(false);
@@ -1541,34 +1608,12 @@ const BlockPuzzle: React.FC = () => {
         genre="Puzzle"
         difficulty="Medium"
       />
-      {/* Control Buttons - Back button only on mobile (desktop uses arcade frame X) */}
-      {isMobile && (
-        <button
-          className="bp-back-btn"
-          onClick={() => navigate('/games')}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            navigate('/games');
-          }}
-          aria-label="Back to games"
-        >
-          <IonIcon icon={arrowBack} />
-        </button>
-      )}
-
-      {/* Mute button removed - arcade frame handles muting via GameMuteContext */}
-
-      {/* Pause button - shown during gameplay */}
-      {gameState === 'playing' && (
+      {/* Control buttons removed on mobile - using shared MobileGameControls (X and ?) from GameModal */}
+      {/* Pause button - only on desktop (mobile uses shared controls) */}
+      {!isMobile && gameState === 'playing' && (
         <button
           className="bp-pause-btn"
           onClick={togglePause}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            togglePause();
-          }}
           aria-label={isPaused ? 'Resume game' : 'Pause game'}
         >
           <IonIcon icon={isPaused ? play : pause} />
@@ -1629,6 +1674,8 @@ const BlockPuzzle: React.FC = () => {
           onPlayAgain={startGame}
           onShare={openShareModal}
           accentColor="#ff6b00"
+          meetsMinimumActions={totalBlocksPlaced >= 3}
+          minimumActionsMessage="Place at least 3 pieces to be on the leaderboard"
         />
       )}
 
@@ -1752,16 +1799,20 @@ const BlockPuzzle: React.FC = () => {
       {/* TASK 103 & 105: Enhanced Combo Display with Timeout Bar */}
       {showCombo && combo >= 2 && gameState === 'playing' && (
         <div className={`bp-combo-display combo-${Math.min(combo, 5)} ${comboShake ? 'shake' : ''}`}>
-          <div className="bp-combo-multiplier">{combo}x</div>
-          <div className="bp-combo-text">COMBO</div>
-          {/* TASK 105: Show multiplier bonus */}
-          <div className="bp-combo-bonus">×{Math.min(combo, 5)} pts</div>
-          {/* TASK 103: Timeout bar */}
-          <div className="bp-combo-timeout-bar">
-            <div
-              className="bp-combo-timeout-fill"
-              style={{ width: `${comboTimeLeft}%` }}
-            />
+          {/* Left side: multiplier */}
+          <div className="bp-combo-left">
+            <div className="bp-combo-multiplier">{combo}x</div>
+            <div className="bp-combo-text">COMBO</div>
+          </div>
+          {/* Right side: bonus + timeout bar */}
+          <div className="bp-combo-right">
+            <div className="bp-combo-bonus">×{Math.min(combo, 5)} pts</div>
+            <div className="bp-combo-timeout-bar">
+              <div
+                className="bp-combo-timeout-fill"
+                style={{ width: `${comboTimeLeft}%` }}
+              />
+            </div>
           </div>
         </div>
       )}

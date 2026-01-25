@@ -5,7 +5,6 @@
  */
 
 import { Volume2, VolumeX, Volume1 } from 'lucide-react';
-import { Toggle } from '@/components/ui/Toggle';
 import { Slider } from '@/components/ui/Slider';
 
 interface VolumeSliderProps {
@@ -72,12 +71,26 @@ export function VolumeSlider({
           </div>
         </div>
 
-        <Toggle
-          id={`${id}-toggle`}
-          checked={enabled}
-          onChange={onToggle}
-          size="small"
-        />
+        {/* Simple toggle matching Gyroscope Parallax style */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          aria-label={`Toggle ${label}`}
+          onClick={() => onToggle(!enabled)}
+          className="w-12 h-7 rounded-full relative cursor-pointer transition-colors"
+          style={{
+            background: enabled ? 'var(--color-brand-primary)' : 'var(--color-border)',
+          }}
+        >
+          <div
+            className="absolute top-1 w-5 h-5 rounded-full transition-all duration-200"
+            style={{
+              background: enabled ? '#fff' : 'var(--color-text-muted)',
+              left: enabled ? 'calc(100% - 1.25rem - 0.25rem)' : '0.25rem',
+            }}
+          />
+        </button>
       </div>
 
       {/* Volume slider */}

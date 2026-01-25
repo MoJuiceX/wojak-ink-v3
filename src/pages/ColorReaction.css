@@ -107,6 +107,7 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  position: relative;
 }
 
 .color-label {
@@ -117,10 +118,10 @@
   font-weight: 700;
 }
 
-/* Color Display Circles - Mobile sizes (bigger for better playability) */
+/* Color Display Circles - Mobile sizes (20% bigger for better playability) */
 .color-display {
-  width: 195px;
-  height: 195px;
+  width: 234px;  /* 195 * 1.2 = 234 */
+  height: 234px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -130,15 +131,21 @@
 }
 
 .color-emoji {
-  font-size: 78px;
+  font-size: 130px;  /* 40% bigger circles need bigger emoji */
 }
 
 .target-display {
-  border: 4px solid rgba(255, 255, 255, 0.2);
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  /* CRITICAL: Ensure target background color is always same brightness as player */
+  filter: brightness(1);
+  opacity: 1;
 }
 
 .player-display {
-  border: 4px solid rgba(255, 255, 255, 0.4);
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  /* CRITICAL: Ensure player background color is always same brightness as target */
+  filter: brightness(1);
+  opacity: 1;
 }
 
 /* Player circle wrapper for countdown ring */
@@ -149,22 +156,22 @@
   justify-content: center;
   /* Prevent layout shifts during animations */
   contain: layout;
-  width: 215px;
-  height: 215px;
+  width: 254px;  /* 20% bigger: 215 * 1.18 ≈ 254 to match circle */
+  height: 254px;
 }
 
 /* Desktop: ensure wrapper matches circle size for proper alignment */
 @media (min-width: 768px) {
   .player-circle-wrapper {
-    width: 220px;
-    height: 220px;
+    width: 260px;
+    height: 260px;
   }
 }
 
-/* Arcade screen wrapper size */
+/* Arcade screen wrapper size - 30% bigger */
 .arcade-screen .player-circle-wrapper {
-  width: 260px !important;
-  height: 260px !important;
+  width: 332px !important;  /* 312 + 20 for ring */
+  height: 332px !important;
 }
 
 /* Countdown ring SVG */
@@ -689,6 +696,7 @@
   animation: high-score-entrance 1.5s ease-out forwards;
   text-transform: uppercase;
   letter-spacing: 3px;
+  white-space: nowrap;
 }
 
 @keyframes high-score-entrance {
@@ -701,7 +709,7 @@
 /* TASK 69: Best time notification */
 .best-time-notification {
   position: absolute;
-  top: 25%;
+  top: 18%;
   left: 50%;
   transform: translateX(-50%);
   font-size: 18px;
@@ -712,6 +720,7 @@
   animation: best-time-entrance 1.5s ease-out forwards;
   text-transform: uppercase;
   letter-spacing: 2px;
+  white-space: nowrap;
 }
 
 @keyframes best-time-entrance {
@@ -735,15 +744,39 @@
 /* TASK 71: Rating color coding */
 .rating-display {
   position: absolute;
-  bottom: 25%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 28px;
+  /* Position just under the score box, on the right */
+  top: 18%;
+  right: 15%;
+  font-size: 16px;
   font-weight: 900;
   z-index: 60;
-  animation: rating-entrance 0.8s ease-out forwards;
+  animation: rating-slide-in 0.4s ease-out forwards;
   text-transform: uppercase;
-  letter-spacing: 4px;
+  letter-spacing: 2px;
+}
+
+/* Desktop: YOUR is on the right side */
+@media (min-width: 768px) {
+  .rating-display {
+    top: 20%;
+    right: 12%;
+    font-size: 20px;
+  }
+}
+
+@keyframes rating-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-40px) scale(0.7);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(8px) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
 }
 
 .rating-perfect {
@@ -1300,7 +1333,7 @@
   }
 
   .color-emoji {
-    font-size: 120px;
+    font-size: 168px;  /* 40% bigger */
   }
 
   .stats-panel {
@@ -1402,6 +1435,28 @@
   animation: flash-wrong 0.3s ease-out;
 }
 
+/* Arcade: TOO LATE feedback (grey flash + tiny shake, no life loss) */
+.player-display.too-late-flash {
+  animation: too-late-flash 0.4s ease-out;
+}
+
+@keyframes too-late-flash {
+  0%, 100% { filter: brightness(1); transform: scale(1); }
+  15% { filter: brightness(1.4); }
+  30% { filter: brightness(0.85); transform: translateX(-2px); }
+  45% { filter: brightness(1); transform: translateX(2px); }
+  60% { transform: translateX(-1px); }
+  75% { transform: translateX(1px); }
+}
+
+/* Arcade: wrong-tap mismatch highlight */
+.player-display.mismatch-color {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.8);
+}
+.color-emoji.mismatch-fruit {
+  filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.9));
+}
+
 /* Tap Instruction - always centered */
 .tap-instruction {
   font-size: 14px;
@@ -1410,6 +1465,7 @@
   letter-spacing: 2px;
   font-weight: 600;
   text-align: center;
+  white-space: nowrap;
   /* FIXED: Use absolute positioning so removal doesn't shift circles */
   position: absolute;
   bottom: 20px;
@@ -2046,42 +2102,107 @@
 /* Floating Score Animation */
 @keyframes float-up-score {
   0% {
-    transform: translate(-50%, 0) scale(1);
+    transform: translate(-50%, -50%) scale(1);
     opacity: 1;
   }
   100% {
-    transform: translate(-50%, -80px) scale(0.8);
+    transform: translate(-50%, calc(-50% - 80px)) scale(0.8);
     opacity: 0;
   }
 }
 
 .floating-score {
   position: absolute;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: bold;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
   z-index: 50;
   pointer-events: none;
   animation: float-up-score 1s ease-out forwards;
   white-space: nowrap;
+  /* Center exactly between circles */
+  transform: translate(-50%, -50%);
 }
 
-/* Desktop: position floating score centered between circles, higher up */
+/* Reaction Time Popup - centered under YOUR circle, overlapping bottom */
+.reaction-time-popup {
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.9);
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 100;
+  animation: reaction-popup-enter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  pointer-events: none;
+}
+
+.reaction-time-value {
+  font-family: 'SF Mono', 'Roboto Mono', 'Consolas', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  color: #2ecc71;
+  letter-spacing: -1px;
+  text-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+}
+
+.reaction-time-unit {
+  font-family: 'SF Mono', 'Roboto Mono', 'Consolas', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  margin-left: 2px;
+}
+
+@keyframes reaction-popup-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(0.7);
+  }
+  60% {
+    transform: translateX(-50%) translateY(-3px) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* Desktop/Arcade - bigger reaction time popup */
+@media (min-width: 768px) {
+  .reaction-time-popup {
+    bottom: 10px;
+    padding: 6px 14px;
+  }
+  
+  .reaction-time-value {
+    font-size: 32px;
+  }
+  
+  .reaction-time-unit {
+    font-size: 15px;
+  }
+}
+
+/* Desktop/Arcade: position floating score centered between circles */
 @media (min-width: 768px) {
   .floating-score {
-    left: 50% !important;
-    top: 35% !important;
-    font-size: 36px;
+    font-size: 40px;
     animation: float-up-score-desktop 1s ease-out forwards;
   }
 
   @keyframes float-up-score-desktop {
     0% {
-      transform: translateX(-50%) scale(1);
+      transform: translate(-50%, -50%) scale(1);
       opacity: 1;
     }
     100% {
-      transform: translateX(-50%) translateY(-80px) scale(0.8);
+      transform: translate(-50%, calc(-50% - 60px)) scale(0.8);
       opacity: 0;
     }
   }
@@ -2118,9 +2239,9 @@
 .epic-callout {
   position: absolute;
   top: 40%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 32px;
+  left: 10%;
+  transform: translateY(-50%);
+  font-size: 28px;
   font-weight: bold;
   color: #ffd700;
   text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
@@ -2212,7 +2333,7 @@
   }
 
   .color-emoji {
-    font-size: 52px;
+    font-size: 73px;  /* 40% bigger */
   }
 
   .player-circle-wrapper {
@@ -2331,55 +2452,56 @@
 .arcade-screen .stats-panel {
   /* Position on the left side */
   position: absolute;
-  left: 10px;
+  left: 15px;
   top: 50%;
   transform: translateY(-50%);
   /* Vertical layout */
   flex-direction: column;
   width: auto;
-  max-width: 80px;
-  padding: 12px 8px;
-  gap: 12px;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 107, 0, 0.3);
+  max-width: 110px;
+  padding: 18px 14px;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 107, 0, 0.4);
+  border-radius: 12px;
 }
 
 .arcade-screen .stat {
-  gap: 2px;
+  gap: 4px;
 }
 
 .arcade-screen .stat-label {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.5px;
 }
 
 .arcade-screen .stat-value {
-  font-size: 16px;
+  font-size: 24px;
 }
 
 .arcade-screen .heart {
-  font-size: 14px;
+  font-size: 18px;
 }
 
 /* Horizontal game area in arcade frame */
 .arcade-screen .game-area {
   flex-direction: row;
-  gap: 60px;
+  gap: 80px;  /* Increased gap for bigger circles */
   width: 100%;
-  padding-left: 90px;
-  padding-right: 90px;
+  padding-left: 120px;
+  padding-right: 120px;
   align-items: center;
   justify-content: center;
 }
 
-/* Circles in arcade view - bigger */
+/* Circles in arcade view - 40% bigger for desktop */
 .arcade-screen .color-display {
-  width: 240px !important;
-  height: 240px !important;
+  width: 350px !important;  /* 40% bigger */
+  height: 350px !important;
 }
 
 .arcade-screen .color-emoji {
-  font-size: 100px;
+  font-size: 180px;  /* 40% bigger circles */
 }
 
 /* Arcade: color sections - label ABOVE circle */
@@ -2425,4 +2547,46 @@
 .arcade-screen .connection-line {
   width: 100px;
   height: 6px;
+}
+
+/* Debug HUD */
+.debug-hud {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 107, 0, 0.5);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: #fff;
+  z-index: 10000;
+  max-width: 150px;
+  pointer-events: none;
+  user-select: text;
+}
+
+.debug-section {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.debug-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.debug-label {
+  margin: 2px 0;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.debug-label:first-child {
+  font-weight: bold;
+  color: #ff6b00;
+  margin-bottom: 4px;
 }

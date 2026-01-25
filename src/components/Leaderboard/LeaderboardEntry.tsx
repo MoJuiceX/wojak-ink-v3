@@ -58,11 +58,20 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
   };
 
   if (isPodium) {
+    // Scale and position for podium cards
+    const baseScale = podiumPosition === 1 ? 1.12 : 1;
+    const baseY = podiumPosition === 1 ? -6 : 0;
+    
     return (
       <motion.div
         className={`podium-card position-${podiumPosition} ${entry.isCurrentUser ? 'is-current-user' : ''}`}
-        whileHover={prefersReducedMotion ? {} : { y: -4 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+        initial={{ scale: baseScale, y: baseY }}
+        animate={{ scale: baseScale, y: baseY }}
+        whileHover={prefersReducedMotion ? {} : { 
+          scale: podiumPosition === 1 ? 1.15 : 1.03,
+          y: podiumPosition === 1 ? -12 : -6
+        }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
         onClick={handleClick}
         style={{ cursor: 'pointer' }}
       >
@@ -79,7 +88,7 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
         <div className="podium-rank">{getRankDisplay()}</div>
         <Avatar
           avatar={entry.avatar}
-          size="large"
+          size={podiumPosition === 1 ? 'xlarge' : 'large'}
           isNftHolder={entry.avatar.type === 'nft'}
         />
         <div className="podium-info">
@@ -101,9 +110,7 @@ export const LeaderboardEntry: React.FC<LeaderboardEntryProps> = ({
       initial={prefersReducedMotion ? {} : { opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.05, duration: 0.3 }}
-      whileHover={prefersReducedMotion ? {} : { x: 4, backgroundColor: 'rgba(249, 115, 22, 0.1)' }}
       onClick={handleClick}
-      style={{ cursor: 'pointer' }}
     >
       <div className={`row-rank ${rankClass}`}>
         {entry.rank <= 3 ? (

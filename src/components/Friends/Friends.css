@@ -119,6 +119,11 @@
   color: #ef4444;
 }
 
+.action-button.compare-stats:hover {
+  background: rgba(249, 115, 22, 0.15);
+  color: #F97316;
+}
+
 /* ============ User Browser ============ */
 .user-browser {
   display: flex;

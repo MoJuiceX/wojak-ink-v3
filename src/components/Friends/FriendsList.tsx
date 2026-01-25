@@ -1,17 +1,29 @@
 /**
  * FriendsList Component
  *
- * Displays current friends with options to view profile or remove.
+ * Displays current friends with options to view profile, compare stats, or remove.
  */
 
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { UserMinus, ExternalLink } from 'lucide-react';
+import { UserMinus, ExternalLink, BarChart2 } from 'lucide-react';
 import { useFriends } from '@/contexts/FriendsContext';
 import { Avatar } from '@/components/Avatar/Avatar';
+import { CompareStats } from '@/components/Profile/CompareStats';
 import './Friends.css';
+
+interface SelectedFriend {
+  id: string;
+  name: string;
+  avatar: {
+    type: 'emoji' | 'nft';
+    value: string;
+  };
+}
 
 export function FriendsList() {
   const { friends, friendProfiles, removeFriend, isLoading, profilesLoaded } = useFriends();
+  const [compareTarget, setCompareTarget] = useState<SelectedFriend | null>(null);
 
   // Show loading only while actively loading
   if (isLoading && !profilesLoaded) {
@@ -44,34 +56,63 @@ export function FriendsList() {
     );
   }
 
-  return (
-    <div className="friends-list">
-      {friendProfiles.map((friend) => (
-        <div key={friend.id} className="friend-card">
-          <Link to={`/profile/${friend.id}`} className="friend-info">
-            <Avatar avatar={friend.avatar as any} size="medium" showBadge={false} />
-            <span className="friend-name">{friend.displayName}</span>
-          </Link>
+  const handleCompare = (friend: typeof friendProfiles[0]) => {
+    setCompareTarget({
+      id: friend.id,
+      name: friend.displayName,
+      avatar: friend.avatar as { type: 'emoji' | 'nft'; value: string },
+    });
+  };
 
-          <div className="friend-actions">
-            <Link
-              to={`/profile/${friend.id}`}
-              className="action-button view-profile"
-              title="View profile"
-            >
-              <ExternalLink size={16} />
+  return (
+    <>
+      <div className="friends-list">
+        {friendProfiles.map((friend) => (
+          <div key={friend.id} className="friend-card">
+            <Link to={`/profile/${friend.id}`} className="friend-info">
+              <Avatar avatar={friend.avatar as any} size="medium" showBadge={false} />
+              <span className="friend-name">{friend.displayName}</span>
             </Link>
 
-            <button
-              className="action-button remove-friend"
-              onClick={() => removeFriend(friend.id)}
-              title="Remove friend"
-            >
-              <UserMinus size={16} />
-            </button>
+            <div className="friend-actions">
+              <button
+                className="action-button compare-stats"
+                onClick={() => handleCompare(friend)}
+                title="Compare stats"
+              >
+                <BarChart2 size={16} />
+              </button>
+
+              <Link
+                to={`/profile/${friend.id}`}
+                className="action-button view-profile"
+                title="View profile"
+              >
+                <ExternalLink size={16} />
+              </Link>
+
+              <button
+                className="action-button remove-friend"
+                onClick={() => removeFriend(friend.id)}
+                title="Remove friend"
+              >
+                <UserMinus size={16} />
+              </button>
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      {/* Compare Stats Modal */}
+      {compareTarget && (
+        <CompareStats
+          isOpen={true}
+          onClose={() => setCompareTarget(null)}
+          friendId={compareTarget.id}
+          friendName={compareTarget.name}
+          friendAvatar={compareTarget.avatar}
+        />
+      )}
+    </>
   );
 }

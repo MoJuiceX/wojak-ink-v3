@@ -14,8 +14,53 @@ export default function StartupSequence({ onComplete }: StartupSequenceProps) {
   const [loadingFading, setLoadingFading] = useState(false)
   const [bootDone, setBootDone] = useState(false)
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 480)
+  const [isSkipping, setIsSkipping] = useState(false)
   const ps1AudioRef = useRef<HTMLAudioElement | null>(null)
   const bootAudioRef = useRef<HTMLAudioElement | null>(null)
+
+  // Handle skip intro - fade out audio and complete immediately
+  const handleSkipIntro = () => {
+    if (isSkipping) return
+    setIsSkipping(true)
+
+    // Fade out boot audio smoothly over 500ms
+    if (bootAudioRef.current) {
+      const gainNode = (bootAudioRef.current as any)?._gainNode
+      if (gainNode) {
+        const currentTime = gainNode.context.currentTime
+        const currentGain = gainNode.gain.value
+        gainNode.gain.setValueAtTime(currentGain, currentTime)
+        gainNode.gain.linearRampToValueAtTime(0, currentTime + 0.5)
+        setTimeout(() => {
+          bootAudioRef.current?.pause()
+        }, 500)
+      } else {
+        bootAudioRef.current.pause()
+      }
+    }
+
+    // Fade out PS1 audio if it's playing
+    if (ps1AudioRef.current) {
+      const gainNode = (ps1AudioRef.current as any)?._gainNode
+      if (gainNode) {
+        const currentTime = gainNode.context.currentTime
+        const currentGain = gainNode.gain.value
+        gainNode.gain.setValueAtTime(currentGain, currentTime)
+        gainNode.gain.linearRampToValueAtTime(0, currentTime + 0.5)
+        setTimeout(() => {
+          ps1AudioRef.current?.pause()
+        }, 500)
+      } else {
+        ps1AudioRef.current.pause()
+      }
+    }
+
+    // Skip to app after brief fade
+    setStage('complete')
+    setTimeout(() => {
+      onComplete()
+    }, 300)
+  }
 
   // Track screen size for responsive loading bar
   useEffect(() => {
@@ -133,6 +178,7 @@ export default function StartupSequence({ onComplete }: StartupSequenceProps) {
       {stage === 'boot' && (
         <BootSequence
           onDone={() => setBootDone(true)}
+          onSkip={handleSkipIntro}
           lines={TANGY_BOOT_LINES}
           showOnce={true}
           maxVisibleLines={18}
@@ -147,6 +193,13 @@ export default function StartupSequence({ onComplete }: StartupSequenceProps) {
 
       {(stage === 'logo' || stage === 'loading' || stage === 'complete') && (
         <>
+          {/* Skip button for logo/loading stages */}
+          {!isSkipping && stage !== 'complete' && (
+            <button className="startup-skip-button" onClick={handleSkipIntro}>
+              Skip Intro <span className="startup-skip-icon">››</span>
+            </button>
+          )}
+
           {stage === 'logo' && (
             <div className={`startup-logo-screen ${logoFading ? 'fade-out' : ''}`}>
               <div className="startup-logo">

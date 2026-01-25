@@ -230,6 +230,38 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
     SoundManager.setSfxVolume(sfxVolume);
   }, [sfxVolume]);
 
+  // Track if music was playing before page was hidden (for resuming on mobile)
+  const wasPlayingBeforeHiddenRef = useRef(false);
+
+  // Visibility change handling - pause/resume background music when browser goes to background
+  // This is critical for mobile where closing the browser tab should stop music
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Page is hidden (user switched tabs, closed browser, etc.)
+        wasPlayingBeforeHiddenRef.current = isBackgroundMusicPlaying;
+        if (bgMusicRef.current && isBackgroundMusicPlaying) {
+          bgMusicRef.current.pause();
+        }
+        // Also pause SoundManager
+        SoundManager.stopAll();
+      } else {
+        // Page became visible again
+        // Resume background music if it was playing before
+        if (wasPlayingBeforeHiddenRef.current && bgMusicRef.current && isBackgroundMusicEnabled) {
+          bgMusicRef.current.play().catch(() => {
+            // Autoplay may be blocked, user will need to interact
+          });
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isBackgroundMusicPlaying, isBackgroundMusicEnabled]);
+
   return (
     <AudioContext.Provider
       value={{

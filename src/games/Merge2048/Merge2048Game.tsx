@@ -13,6 +13,8 @@ import { useGameEffects, GameEffects } from '@/components/media';
 import { ShareButton } from '@/systems/sharing';
 import { captureGameArea } from '@/systems/sharing/captureDOM';
 import { useGameMute } from '@/contexts/GameMuteContext';
+import { useArcadeLights } from '@/contexts/ArcadeLightsContext';
+import { getMergeTier, GAME_COMBO_TIERS } from '@/config/arcade-light-mappings';
 import './Merge2048Game.css';
 
 // Direction type for moves
@@ -807,6 +809,14 @@ const Merge2048Game: React.FC = () => {
     resetAllEffects,
   } = useGameEffects();
 
+  // Arcade lights control
+  const { triggerEvent, setGameId } = useArcadeLights();
+
+  // Register this game for per-game light overrides
+  useEffect(() => {
+    setGameId('merge-2048');
+  }, [setGameId]);
+
   // Refs
   const nextTileIdRef = useRef(1);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -814,6 +824,7 @@ const Merge2048Game: React.FC = () => {
   const gridWrapperRef = useRef<HTMLDivElement>(null);
   const scorePopupKeyRef = useRef(0);
   const highestTileRef = useRef(2); // Track highest tile achieved
+  const totalMergesRef = useRef(0); // NEW: Track total merges for minimum actions
 
   // TASK 6: Track milestones reached for signature sound
   const milestonesReachedRef = useRef<Set<number>>(new Set());
@@ -1579,8 +1590,10 @@ const Merge2048Game: React.FC = () => {
     if (MILESTONE_VALUES.includes(highestMerged) && !milestonesReachedRef.current.has(highestMerged)) {
       milestonesReachedRef.current.add(highestMerged);
       playSignatureChime();
+      // Arcade lights: Milestone tile created
+      triggerEvent('progress:complete');
     }
-  }, [playSignatureChime]);
+  }, [playSignatureChime, triggerEvent]);
 
   // TASK 41: Unlock bio when reaching new tile value
   const unlockBio = useCallback((value: number) => {
@@ -1677,6 +1690,7 @@ const Merge2048Game: React.FC = () => {
     setTiles(newTiles);
     nextTileIdRef.current = newNextId;
     highestTileRef.current = 2;
+    totalMergesRef.current = 0; // NEW: Reset total merges for minimum actions
     // TASK 18: Reset milestone tracking on new game
     milestonesReachedRef.current = new Set();
     // TASK 78: Clean up danger state on new game
@@ -1713,7 +1727,9 @@ const Merge2048Game: React.FC = () => {
     if (!bgMusicAudioRef.current && !musicManagedExternallyRef.current && !musicManagedExternally) {
       playNextBgMusicTrack();
     }
-  }, [playClick, resetAllEffects, initNextTileQueue, playNextBgMusicTrack, musicManagedExternally]);
+    // Arcade lights: Game started
+    triggerEvent('play:active');
+  }, [playClick, resetAllEffects, initNextTileQueue, playNextBgMusicTrack, musicManagedExternally, triggerEvent]);
 
   /**
    * Move tiles in the specified direction
@@ -1833,6 +1849,7 @@ const Merge2048Game: React.FC = () => {
             consecutiveMergesRef.current++;
             lastMergeTimeRef.current = Date.now();
             setStreakCount(consecutiveMergesRef.current);
+            totalMergesRef.current++; // NEW: Track total merges for minimum actions
 
             // TASK 103: Increment combo counter
             incrementCombo();
@@ -1840,12 +1857,26 @@ const Merge2048Game: React.FC = () => {
             // TASK 83: Trigger fever on consecutive merge threshold
             if (!feverState.active && consecutiveMergesRef.current >= FEVER_CONFIG.activationThreshold) {
               activateFeverMode();
+              // Arcade lights: Fever mode activated
+              triggerEvent('combo:max');
+            } else if (consecutiveMergesRef.current >= 3 && consecutiveMergesRef.current < FEVER_CONFIG.activationThreshold) {
+              // Arcade lights: Building toward fever
+              const comboTier = GAME_COMBO_TIERS['merge-2048'](consecutiveMergesRef.current);
+              if (comboTier !== 'start') {
+                triggerEvent(`combo:${comboTier}` as any);
+              }
             }
 
             // TASK 84: Apply score multiplier in fever mode
+            // NEW: Add combo multiplier (conservative tiers: 1.1x at 5, 1.2x at 9, 1.3x at 13)
+            const comboMultiplier = 
+              comboState.count >= 13 ? 1.3 :
+              comboState.count >= 9 ? 1.2 :
+              comboState.count >= 5 ? 1.1 : 1.0;
+            
             const finalScore = feverState.active
-              ? Math.floor(totalScoreGained * feverState.multiplier)
-              : totalScoreGained;
+              ? Math.floor(totalScoreGained * feverState.multiplier * comboMultiplier)
+              : Math.floor(totalScoreGained * comboMultiplier);
 
             setScore((prev) => prev + finalScore);
             showScorePopup(finalScore);
@@ -1861,6 +1892,9 @@ const Merge2048Game: React.FC = () => {
             checkMilestone(highestMerged);
             // TASK 41: Unlock bio for new tile values
             unlockBio(highestMerged);
+            // Arcade lights: Merge with value-based tier (debounced)
+            const mergeTier = getMergeTier(highestMerged);
+            triggerEvent(`score:${mergeTier}` as any);
           }
 
           // TASK 28: Use premium merge haptic based on value
@@ -1903,6 +1937,8 @@ const Merge2048Game: React.FC = () => {
             triggerConfetti();
             showEpicCallout('YOU WIN!');
             triggerShockwave('#FFD700', 1.0);
+            // Arcade lights: 2048 reached - WIN!
+            triggerEvent('game:win');
           }
 
           // Spawn new tile after animation delay
@@ -1951,11 +1987,19 @@ const Merge2048Game: React.FC = () => {
                   triggerGameOverHaptic();
                   triggerScreenShake(500);
                   addFloatingEmoji('💀');
-                  // Submit score to leaderboard
-                  if (isSignedIn) {
+                  // Arcade lights: Game over (check for high score)
+                  const finalScore = score + totalScoreGained;
+                  if (finalScore > bestScore) {
+                    triggerEvent('game:highScore');
+                  } else {
+                    triggerEvent('game:over');
+                  }
+                  // Submit score to leaderboard (only if minimum 3 merges)
+                  if (isSignedIn && totalMergesRef.current >= 3) {
                     setScoreSubmitted(true);
-                    submitScore(score + totalScoreGained, undefined, {
+                    submitScore(finalScore, undefined, {
                       highestTile: highestTileRef.current,
+                      totalMerges: totalMergesRef.current,
                     }).then(result => {
                       if (result?.isNewHighScore) setIsNewPersonalBest(true);
                     });
@@ -1983,10 +2027,19 @@ const Merge2048Game: React.FC = () => {
                 triggerGameOverHaptic();
                 triggerScreenShake(500);
                 addFloatingEmoji('💀');
-                if (isSignedIn) {
+                // Arcade lights: Game over (check for high score)
+                const finalScoreNoNewTile = score + totalScoreGained;
+                if (finalScoreNoNewTile > bestScore) {
+                  triggerEvent('game:highScore');
+                } else {
+                  triggerEvent('game:over');
+                }
+                // Submit score to leaderboard (only if minimum 3 merges)
+                if (isSignedIn && totalMergesRef.current >= 3) {
                   setScoreSubmitted(true);
-                  submitScore(score + totalScoreGained, undefined, {
+                  submitScore(finalScoreNoNewTile, undefined, {
                     highestTile: highestTileRef.current,
+                    totalMerges: totalMergesRef.current,
                   }).then(result => {
                     if (result?.isNewHighScore) setIsNewPersonalBest(true);
                   });
@@ -2348,13 +2401,20 @@ const Merge2048Game: React.FC = () => {
                     </div>
                   </div>
 
-                  {(isNewPersonalBest || score > bestScore) && score > 0 && (
+                  {(isNewPersonalBest || score > bestScore) && score > 0 && totalMergesRef.current >= 3 && (
                     <div className="m2048-new-record">New Personal Best!</div>
                   )}
 
-                  {isSignedIn && (
+                  {isSignedIn && totalMergesRef.current >= 3 && (
                     <div className="m2048-submitted">
                       {isSubmitting ? 'Saving...' : scoreSubmitted ? `Saved as ${userDisplayName}!` : ''}
+                    </div>
+                  )}
+                  
+                  {/* Show minimum actions message when player doesn't meet threshold */}
+                  {totalMergesRef.current < 3 && (
+                    <div className="m2048-minimum-actions">
+                      Make at least 3 merges to be on the leaderboard
                     </div>
                   )}
 

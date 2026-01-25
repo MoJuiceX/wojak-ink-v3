@@ -2033,25 +2033,7 @@
    PHASE 9: COMBO VISUALIZATION
    ============================================ */
 
-/* TASK 104: Combo timeout bar */
-.bp-combo-timeout-bar {
-  width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  margin-top: 6px;
-  overflow: hidden;
-}
-
-.bp-combo-timeout-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #ff6b00, #ffcc00);
-  border-radius: 2px;
-  transition: width 0.05s linear;
-  box-shadow: 0 0 8px rgba(255, 150, 0, 0.6);
-}
-
-/* TASK 106: Enhanced combo display */
+/* TASK 106: Enhanced combo display - horizontal layout */
 .bp-combo-display {
   position: absolute;
   top: 50px;
@@ -2064,6 +2046,10 @@
   z-index: 150;
   border: 2px solid rgba(255, 107, 0, 0.6);
   min-width: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
 .bp-combo-display.combo-2 { border-color: rgba(255, 140, 0, 0.7); }
@@ -2083,11 +2069,27 @@
   75% { transform: translateX(-50%) scale(1.15) rotate(3deg); }
 }
 
+/* Left side container: multiplier + COMBO text */
+.bp-combo-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Right side container: bonus text + timeout bar */
+.bp-combo-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
 .bp-combo-multiplier {
   font-size: 28px;
   font-weight: 900;
   color: #ff8c1a;
   text-shadow: 0 2px 8px rgba(255, 107, 0, 0.5);
+  line-height: 1;
 }
 
 .bp-combo-display.combo-3 .bp-combo-multiplier,
@@ -2110,8 +2112,25 @@
   font-size: 10px;
   font-weight: bold;
   color: #ffaa00;
-  margin-top: 4px;
   opacity: 0.9;
+}
+
+/* TASK 104: Combo timeout bar */
+.bp-combo-timeout-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.bp-combo-timeout-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b00, #ffcc00);
+  border-radius: 2px;
+  transition: width 0.05s linear;
+  box-shadow: 0 0 8px rgba(255, 150, 0, 0.6);
 }
 
 /* TASK 107: Floating score multiplier */
@@ -3018,36 +3037,80 @@
     height: 90px !important;
   }
 
-  /* Move combo display to bottom of screen (under piece rack) */
+  /* Hide streak meter on mobile - combo box already has timeout bar */
+  .bp-streak-meter {
+    display: none !important;
+  }
+
+  /* Position combo display just below piece rack with appropriate padding */
   .bp-combo-display {
     position: fixed !important;
     top: auto !important;
-    bottom: 8px !important;
+    bottom: 100px !important; /* Just below piece rack */
     right: auto !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
     z-index: 200 !important;
+    /* Horizontal layout on mobile */
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 8px 16px !important;
+    min-width: 200px !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  /* Left side: multiplier + COMBO text stacked */
+  .bp-combo-left {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: baseline !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .bp-combo-display .bp-combo-multiplier {
+    font-size: 24px !important;
+    line-height: 1 !important;
+  }
+
+  .bp-combo-display .bp-combo-text {
+    font-size: 10px !important;
+    margin-top: 0 !important;
+  }
+
+  /* Right side: bonus + timeout bar */
+  .bp-combo-right {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .bp-combo-display .bp-combo-bonus {
+    font-size: 11px !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .bp-combo-display .bp-combo-timeout-bar {
+    flex: 1 !important;
+    margin-top: 0 !important;
+    height: 6px !important;
+    min-width: 60px !important;
   }
 
   /* Combo shake animation for mobile (bottom position) */
   .bp-combo-display.shake {
     animation: bp-combo-shake-mobile 0.3s ease-out !important;
   }
-
-  /* Also move streak meter to bottom area on mobile */
-  .bp-streak-meter {
-    position: fixed !important;
-    top: auto !important;
-    bottom: 60px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    z-index: 199 !important;
-  }
 }
 
 @keyframes bp-combo-shake-mobile {
   0%, 100% { transform: translateX(-50%) scale(1); }
-  25% { transform: translateX(-50%) scale(1.15) rotate(-3deg); }
-  50% { transform: translateX(-50%) scale(1.2); }
-  75% { transform: translateX(-50%) scale(1.15) rotate(3deg); }
+  25% { transform: translateX(-50%) scale(1.12) rotate(-2deg); }
+  50% { transform: translateX(-50%) scale(1.15); }
+  75% { transform: translateX(-50%) scale(1.12) rotate(2deg); }
 }
