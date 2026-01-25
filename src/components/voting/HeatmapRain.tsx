@@ -55,6 +55,7 @@ export function HeatmapRain({ votes, type, containerRef, onComplete }: HeatmapRa
   const [isComplete, setIsComplete] = useState(false);
 
   // Calculate absolute positions from percentages
+  // Returns the exact click position - offsets for centering emojis are applied at render time
   const getAbsolutePosition = (xPercent: number, yPercent: number, targetId: string) => {
     const container = containerRef.current;
     if (!container) return { x: 0, y: 0 };
@@ -71,6 +72,7 @@ export function HeatmapRain({ votes, type, containerRef, onComplete }: HeatmapRa
     }
 
     const targetRect = targetElement.getBoundingClientRect();
+    // Return the exact position where the user clicked
     return {
       x: targetRect.left + (xPercent / 100) * targetRect.width,
       y: targetRect.top + (yPercent / 100) * targetRect.height,
@@ -98,17 +100,21 @@ export function HeatmapRain({ votes, type, containerRef, onComplete }: HeatmapRa
     return () => clearTimeout(cleanupTimer);
   }, [votes, onComplete]);
 
-  // Handle emoji landing
+  // Handle emoji landing - position exactly where user clicked with slight pile offset
   const handleLand = (vote: VotePosition, clusterKey: string) => {
     const cluster = clusters.get(clusterKey) || [];
     const indexInCluster = cluster.findIndex(v => v.id === vote.id);
     const pos = getAbsolutePosition(vote.xPercent, vote.yPercent, vote.targetId);
 
+    // Piled emoji size is 24px, so offset by 12px to center on click position
+    const emojiHalfSize = 12;
+    
     setPiledEmojis(prev => {
       const newEmoji: PiledEmoji = {
         id: vote.id,
-        x: pos.x + (Math.random() - 0.5) * 20,
-        y: pos.y - indexInCluster * 8,
+        // Center on click position with small random spread for pile effect
+        x: pos.x - emojiHalfSize + (Math.random() - 0.5) * 16,
+        y: pos.y - emojiHalfSize - indexInCluster * 6,
         scale: 0.5 + Math.random() * 0.2,
         rotation: (Math.random() - 0.5) * 40,
         zIndex: prev.length,
@@ -148,6 +154,9 @@ export function HeatmapRain({ votes, type, containerRef, onComplete }: HeatmapRa
           const clusterKey = `${vote.targetId}-${cellX}-${cellY}`;
           const endPos = getAbsolutePosition(vote.xPercent, vote.yPercent, vote.targetId);
 
+          // Falling emoji size is 36px, center it on the click position
+          const emojiHalfSize = 18;
+
           return (
             <motion.div
               key={vote.id}
@@ -159,15 +168,17 @@ export function HeatmapRain({ votes, type, containerRef, onComplete }: HeatmapRa
                 filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3))',
               }}
               initial={{
-                x: endPos.x - 18 + (Math.random() - 0.5) * 100,
+                // Start from slightly randomized x position above the viewport
+                x: endPos.x - emojiHalfSize + (Math.random() - 0.5) * 80,
                 y: -60,
                 scale: 1.2,
                 rotate: Math.random() * 360,
                 opacity: 1,
               }}
               animate={{
-                x: endPos.x - 18,
-                y: endPos.y - 18,
+                // Land exactly at click position (centered)
+                x: endPos.x - emojiHalfSize,
+                y: endPos.y - emojiHalfSize,
                 scale: [1.2, 1.1, 0.6],
                 rotate: Math.random() * 720 - 360,
                 opacity: 1,
@@ -187,14 +198,14 @@ export function HeatmapRain({ votes, type, containerRef, onComplete }: HeatmapRa
         })}
       </AnimatePresence>
 
-      {/* Piled emojis (landed) */}
+      {/* Piled emojis (landed) - already positioned with centering in handleLand */}
       {piledEmojis.map(item => (
         <motion.div
           key={`piled-${item.id}`}
           style={{
             position: 'fixed',
-            left: item.x - 12,
-            top: item.y - 12,
+            left: item.x,
+            top: item.y,
             fontSize: '24px',
             pointerEvents: 'none',
             zIndex: 9100 + item.zIndex,
