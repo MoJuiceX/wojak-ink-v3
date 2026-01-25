@@ -163,7 +163,7 @@ export const MINI_GAMES: MiniGame[] = [
     emoji: '🍊',
     description: 'Slide and merge citrus tiles to reach 2048!',
     shortDescription: 'Slide and merge citrus tiles to reach 2048!',
-    status: 'available',
+    status: 'coming-soon',
     route: '/media/games/merge-2048',
     accentColor: '#eab308',
     hasHighScores: true,
