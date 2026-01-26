@@ -373,7 +373,7 @@ export const createMismatchSound = () => {
     osc.frequency.exponentialRampToValueAtTime(endFreq, ctx.currentTime + 0.08);
     osc.type = 'sine';
 
-    gain.gain.setValueAtTime(0.08 * volumeMultiplier, ctx.currentTime);
+    gain.gain.setValueAtTime(0.06 * volumeMultiplier, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01 * volumeMultiplier, ctx.currentTime + 0.1);
 
     osc.start(ctx.currentTime);

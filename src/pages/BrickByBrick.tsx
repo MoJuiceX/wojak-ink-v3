@@ -7,6 +7,7 @@ import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useAudio } from '@/contexts/AudioContext';
 import { useGameMute } from '@/contexts/GameMuteContext';
+import { useMobileGameFullscreen } from '@/hooks/useMobileGameFullscreen';
 import { useArcadeLights } from '@/contexts/ArcadeLightsContext';
 import { GAME_COMBO_TIERS } from '@/config/arcade-light-mappings';
 import { useIsMobile } from '@/hooks/useMediaQuery';
@@ -14,6 +15,8 @@ import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { GameSEO } from '@/components/seo/GameSEO';
 import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
+import { useGameEffects } from '@/components/media/games/effects/useGameEffects';
+import { GAME_OVER_SEQUENCE } from '@/lib/juice/brandConstants';
 import './BrickByBrick.css';
 
 interface Block {
@@ -55,8 +58,9 @@ const SCORING = {
 };
 
 const BrickByBrick: React.FC = () => {
-  const { playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver, playLevelUp, playWarning } = useGameSounds();
+  const { playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver, playLevelUp, playWarning, playWojakChime } = useGameSounds();
   const { hapticScore, hapticCombo, hapticHighScore, hapticGameOver, hapticLevelUp, hapticWarning } = useGameHaptics();
+  const { triggerScreenShake, triggerVignette } = useGameEffects();
   const isMobile = useIsMobile();
 
   // Global leaderboard hook
@@ -72,7 +76,7 @@ const BrickByBrick: React.FC = () => {
   useAudio();
 
   // Arcade frame mute control (from GameModal)
-  const { isMuted: arcadeMuted, musicManagedExternally, gameStarted } = useGameMute();
+  const { isMuted: arcadeMuted, musicManagedExternally, gameStarted, isPaused: isContextPaused } = useGameMute();
 
   // Arcade lights control
   const { triggerEvent, setGameId } = useArcadeLights();
@@ -213,6 +217,10 @@ const BrickByBrick: React.FC = () => {
   const INITIAL_WIDTH_RESPONSIVE = isMobile ? Math.floor(viewportSize.width * 0.5) : Math.min(220, GAME_WIDTH_RESPONSIVE * 0.35);
 
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'levelComplete' | 'gameover'>('idle');
+
+  // Mobile fullscreen mode - hide navigation and lock scroll for all active game states
+  const isActiveGameState = gameState !== 'idle';
+  useMobileGameFullscreen(isActiveGameState, isMobile);
 
   // Navigation guard - prevents accidental exits during gameplay
   const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
@@ -605,9 +613,13 @@ const BrickByBrick: React.FC = () => {
       // No overlap - game over
       playGameOver();
       hapticGameOver();
+      // Unified game-over effects
+      triggerScreenShake(GAME_OVER_SEQUENCE.shakeDuration);
+      triggerVignette(GAME_OVER_SEQUENCE.vignetteColor);
       // Arcade lights: Game over (missed block)
       if (score > highScore) {
         triggerEvent('game:highScore');
+        playWojakChime(); // Signature chime on new high score
       } else {
         triggerEvent('game:over');
       }
@@ -767,6 +779,7 @@ const BrickByBrick: React.FC = () => {
         if (newScore > highScore) {
           setHighScore(newScore);
           localStorage.setItem('brickByBrickHighScore', String(newScore));
+          playWojakChime(); // Signature chime on new high score
         }
       }
       return;
@@ -776,9 +789,13 @@ const BrickByBrick: React.FC = () => {
     if (overlapWidth < config.minBlockWidth) {
       playGameOver();
       hapticGameOver();
+      // Unified game-over effects
+      triggerScreenShake(GAME_OVER_SEQUENCE.shakeDuration);
+      triggerVignette(GAME_OVER_SEQUENCE.vignetteColor);
       // Arcade lights: Game over (block too small)
       if (newScore > highScore) {
         triggerEvent('game:highScore');
+        playWojakChime(); // Signature chime on new high score
       } else {
         triggerEvent('game:over');
       }
@@ -858,8 +875,8 @@ const BrickByBrick: React.FC = () => {
     };
 
     const animate = (currentTime: number) => {
-      // Pause animation when exit dialog is shown or game is paused
-      if (showExitDialogRef.current || isPaused) {
+      // Pause animation when exit dialog is shown, game is paused, or quit dialog shown
+      if (showExitDialogRef.current || isPaused || isContextPaused) {
         animationRef.current = requestAnimationFrame(animate);
         return;
       }
@@ -900,7 +917,7 @@ const BrickByBrick: React.FC = () => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [gameState, currentBlock?.id, showExitDialog, isPaused, GAME_WIDTH_RESPONSIVE, isMobile]);
+  }, [gameState, currentBlock?.id, showExitDialog, isPaused, isContextPaused, GAME_WIDTH_RESPONSIVE, isMobile]);
 
   // Handle tap/click with debounce to prevent double-firing on mobile
   const handleTap = () => {
@@ -1477,6 +1494,7 @@ const BrickByBrick: React.FC = () => {
         >
           {gameState === 'levelComplete' && (
             <div className="game-menu">
+              <div className="bb-game-title-header">BRICK BY BRICK</div>
               <div className="game-title">Level {level} Complete!</div>
               <div className="final-score">
                 <span className="score-label">Score</span>

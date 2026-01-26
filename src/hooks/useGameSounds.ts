@@ -532,6 +532,66 @@ const stopRunningLoop = () => {
 
 
 /**
+ * Wojak Chime: Signature brand sound for new high scores
+ * Triumphant, celebratory, and memorable
+ * A magical ascending arpeggio with sparkle layer
+ */
+const createWojakChimeSound = () => {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    // Main triumphant arpeggio (C-E-G-C in major)
+    const melody = [523, 659, 784, 1047]; // C5, E5, G5, C6
+    const duration = 0.15;
+
+    melody.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.1);
+
+      // Bright attack, smooth decay
+      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.1);
+      gain.gain.linearRampToValueAtTime(0.25 * volumeMultiplier, ctx.currentTime + i * 0.1 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.01 * volumeMultiplier, ctx.currentTime + i * 0.1 + duration);
+
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.1);
+      osc.stop(ctx.currentTime + i * 0.1 + duration);
+    });
+
+    // Sparkle layer - high harmonic shimmer
+    const sparkle = ctx.createOscillator();
+    const sparkleGain = ctx.createGain();
+    sparkle.type = 'sine';
+    sparkle.frequency.setValueAtTime(2093, ctx.currentTime + 0.3); // C7
+    sparkle.frequency.linearRampToValueAtTime(2637, ctx.currentTime + 0.5); // E7
+    sparkleGain.gain.setValueAtTime(0.08 * volumeMultiplier, ctx.currentTime + 0.3);
+    sparkleGain.gain.exponentialRampToValueAtTime(0.01 * volumeMultiplier, ctx.currentTime + 0.6);
+
+    sparkle.connect(sparkleGain).connect(ctx.destination);
+    sparkle.start(ctx.currentTime + 0.3);
+    sparkle.stop(ctx.currentTime + 0.6);
+
+    // Final resonant bass note for satisfying "completion" feel
+    const bass = ctx.createOscillator();
+    const bassGain = ctx.createGain();
+    bass.type = 'sine';
+    bass.frequency.setValueAtTime(131, ctx.currentTime + 0.35); // C3
+    bassGain.gain.setValueAtTime(0.15 * volumeMultiplier, ctx.currentTime + 0.35);
+    bassGain.gain.exponentialRampToValueAtTime(0.01 * volumeMultiplier, ctx.currentTime + 0.7);
+
+    bass.connect(bassGain).connect(ctx.destination);
+    bass.start(ctx.currentTime + 0.35);
+    bass.stop(ctx.currentTime + 0.7);
+  } catch (e) {
+    // Silently fail
+  }
+};
+
+/**
  * Game Over: Gentle descending hum + soft "aww"
  * NOT punishing - light-hearted like Candy Crush fail
  * We want players to try again, not feel bad
@@ -1454,6 +1514,13 @@ export function useGameSounds() {
     createGameOverSound();
   }, [isSoundEffectsEnabled]);
 
+  // Signature brand chime for new high scores
+  const playWojakChime = useCallback(() => {
+    if (!isSoundEffectsEnabled) return;
+    SoundManager.play('high-score');
+    createWojakChimeSound();
+  }, [isSoundEffectsEnabled]);
+
   // Running footstep loop for continuous movement sound
   const startRunning = useCallback((bpm: number = 180) => {
     if (isSoundEffectsEnabled) startRunningLoop(bpm);
@@ -1693,6 +1760,9 @@ export function useGameSounds() {
 
     // Game over
     playGameOver,
+
+    // Signature brand chime (high score only)
+    playWojakChime,
 
     // New MP3-based sounds
     playGameStart,

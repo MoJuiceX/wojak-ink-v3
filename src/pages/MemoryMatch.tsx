@@ -7,6 +7,7 @@ import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameMute } from '@/contexts/GameMuteContext';
 import { useArcadeLights } from '@/contexts/ArcadeLightsContext';
 import { GAME_COMBO_TIERS } from '@/config/arcade-light-mappings';
+import { GAME_OVER_SEQUENCE } from '@/lib/juice/brandConstants';
 import { useTimeUrgency, getUrgencyClass } from '@/hooks/useTimeUrgency';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -175,7 +176,7 @@ const getThemedCallout = (attributes?: { trait_type: string; value: string }[]):
 };
 
 const MemoryMatch: React.FC = () => {
-  const { playCardHover, playCardFlip, playMatchFound, playMismatch, playNearCompletion, playFastMatchBonus, playWinSound, playGameOver, playLevelUp, playWarning } = useGameSounds();
+  const { playCardHover, playCardFlip, playMatchFound, playMismatch, playNearCompletion, playFastMatchBonus, playWinSound, playGameOver, playLevelUp, playWarning, playWojakChime } = useGameSounds();
   const { hapticCombo, hapticHighScore, hapticGameOver, hapticLevelUp, hapticMismatch, hapticHover, hapticUrgencyTick, hapticWarning, hapticButton } = useGameHaptics();
   const isMobile = useIsMobile();
 
@@ -188,6 +189,8 @@ const MemoryMatch: React.FC = () => {
     triggerConfetti,
     showEpicCallout,
     resetAllEffects,
+    triggerScreenShake: triggerGlobalScreenShake,
+    triggerVignette,
   } = useGameEffects();
 
   // Global leaderboard hook
@@ -202,8 +205,8 @@ const MemoryMatch: React.FC = () => {
   // Background music controls (useAudio provides global audio state)
   useAudio();
 
-  // Arcade frame shared mute state
-  const { isMuted: arcadeMuted, musicManagedExternally, gameStarted } = useGameMute();
+  // Arcade frame shared mute state and pause state (for quit dialog)
+  const { isMuted: arcadeMuted, musicManagedExternally, gameStarted, isPaused: isContextPaused } = useGameMute();
 
   // Arcade lights control
   const { triggerEvent, setGameId } = useArcadeLights();
@@ -356,8 +359,19 @@ const MemoryMatch: React.FC = () => {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also handle pagehide for when tab/browser is closed (especially on iOS Safari)
+    const handlePageHide = () => {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+        musicAudioRef.current = null;
+      }
+    };
+    window.addEventListener('pagehide', handlePageHide);
+    
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
     };
   }, []);
 
@@ -409,15 +423,31 @@ const MemoryMatch: React.FC = () => {
     isPlaying: gameState === 'playing',
   });
 
-  // Mobile fullscreen mode - hide header during gameplay
+  // Mobile fullscreen mode - hide navigation and lock scroll for all active game states
+  // This includes: loading, playing, roundComplete, gameover (everything except idle)
   useEffect(() => {
-    if (isMobile && gameState === 'playing') {
+    const isActiveGameState = gameState !== 'idle';
+    if (isMobile && isActiveGameState) {
       document.body.classList.add('game-fullscreen-mode');
+      // Lock body scroll during gameplay to prevent accidental scrolling
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
     } else {
       document.body.classList.remove('game-fullscreen-mode');
+      // Restore body scroll
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
     }
     return () => {
       document.body.classList.remove('game-fullscreen-mode');
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
     };
   }, [isMobile, gameState]);
 
@@ -1202,9 +1232,9 @@ const MemoryMatch: React.FC = () => {
     }
   }, [matches, gameState, round]);
 
-  // Timer - time out = game over (pause when exit dialog shown or tab hidden)
+  // Timer - time out = game over (pause when exit dialog shown, quit dialog shown, or tab hidden)
   useEffect(() => {
-    if (gameState !== 'playing' || showExitDialog || isPaused) return;
+    if (gameState !== 'playing' || showExitDialog || isPaused || isContextPaused) return;
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -1242,9 +1272,13 @@ const MemoryMatch: React.FC = () => {
           }
           playGameOver();
           hapticGameOver();
+          // Unified game-over effects
+          triggerGlobalScreenShake(GAME_OVER_SEQUENCE.shakeDuration);
+          triggerVignette(GAME_OVER_SEQUENCE.vignetteColor);
           // Arcade lights: Game over (check for high score using refs to avoid dependency)
           if (totalScoreRef.current > highScoreRef.current) {
             triggerEvent('game:highScore');
+            playWojakChime(); // Signature chime on new high score
           } else {
             triggerEvent('game:over');
           }
@@ -1272,7 +1306,7 @@ const MemoryMatch: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameState, showExitDialog, isPaused, playGameOver, playWarning, hapticGameOver, hapticWarning, triggerEvent, hapticUrgencyTick]);
+  }, [gameState, showExitDialog, isPaused, isContextPaused, playGameOver, playWarning, playWojakChime, hapticGameOver, hapticWarning, triggerEvent, triggerGlobalScreenShake, triggerVignette, hapticUrgencyTick]);
 
   // Auto-submit score for signed-in users when game ends
   useEffect(() => {
@@ -1424,6 +1458,7 @@ const MemoryMatch: React.FC = () => {
             return (
               <div className="mm-round-complete">
                 <div className="mm-round-complete-content">
+                  <div className="mm-game-title-header">Memory Match</div>
                   <div className="mm-round-complete-emoji">🎉</div>
                   <div className="mm-round-complete-title">Round {round} Complete!</div>
                   <div className="mm-round-complete-points">

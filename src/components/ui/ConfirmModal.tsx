@@ -3,9 +3,11 @@
  *
  * Confirmation dialog for destructive or important actions.
  * Supports danger, warning, and default variants.
+ * Uses Portal to render at document.body level for correct positioning.
  */
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import './ConfirmModal.css';
 
@@ -47,7 +49,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     onClose();
   };
 
-  return (
+  // Use Portal to render at document.body level for correct positioning
+  // This ensures the modal is not affected by parent transforms
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -124,7 +128,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

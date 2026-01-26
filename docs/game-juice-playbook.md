@@ -1,2167 +1,2597 @@
 # Game Juice Playbook
 
-> Universal engagement principles for all Wojak.ink games. Apply these learnings to create satisfying, addictive game experiences that feel polished and professional.
+> The definitive guide to game feel for Wojak.ink. Comprehensive, practical, performance-conscious.
 
-**Last Updated:** January 2026
-**Applies To:** All 15 games in the Wojak.ink ecosystem
-**Learnings From:** Memory Match, Brick Breaker, Orange Juggle, Color Reaction, 2048 Merge, Block Puzzle, Flappy Orange, Citrus Drop
+**Version**: 2.1 | **Updated**: January 2026 | **Applies to**: All 15 Wojak.ink games
 
 ---
 
 ## Table of Contents
 
-1. [Core Philosophy](#core-philosophy)
-2. [Sound Design](#sound-design)
-3. [Haptic Feedback](#haptic-feedback)
-4. [Visual Juice](#visual-juice)
-5. [Collision & Impact Systems](#collision--impact-systems)
-6. [Combo & Streak Systems](#combo--streak-systems)
-7. [Anticipation & Tension](#anticipation--tension)
-8. [Powerup & Collectible Feedback](#powerup--collectible-feedback)
-9. [Debuff & Negative Effect Systems](#debuff--negative-effect-systems)
-10. [Enemy Warning & Hazard Systems](#enemy-warning--hazard-systems)
-11. [Multi-Object Chaos Management](#multi-object-chaos-management)
-12. [Character-Based Player Feedback](#character-based-player-feedback)
-13. [Timer & Urgency Systems](#timer--urgency-systems)
-14. [Scoring & Progression](#scoring--progression)
-15. [Near-Miss & Close Call Feedback](#near-miss--close-call-feedback)
-16. [Feedback Timing](#feedback-timing)
-17. [Reaction Time Games](#reaction-time-games)
-18. [Time Dilation & Slow Motion](#time-dilation--slow-motion)
-19. [Countdown Urgency Systems](#countdown-urgency-systems)
-20. [Fever Mode & Bonus States](#fever-mode--bonus-states)
-21. [Camera Effects](#camera-effects)
-22. [Viral & Share Mechanics](#viral--share-mechanics)
-23. [Signature Sound Design](#signature-sound-design)
-24. [Tile & Grid Game Juice](#tile--grid-game-juice)
-25. [Character Personality on Objects](#character-personality-on-objects)
-26. [Next Item Preview Systems](#next-item-preview-systems)
-27. [Drag & Drop Juice](#drag--drop-juice)
-28. [Line Clear & Cascade Systems](#line-clear--cascade-systems)
-29. [Musical Combo Escalation](#musical-combo-escalation)
-30. [Squash & Stretch Animation](#squash--stretch-animation)
-31. [Death Sequence Design](#death-sequence-design)
-32. [Near-Miss Bonus Systems](#near-miss-bonus-systems)
-33. [Accessibility Considerations](#accessibility-considerations)
-34. [NFT Integration Opportunities](#nft-integration-opportunities)
-35. [Implementation Checklist](#implementation-checklist)
-36. [Reusable Code Libraries](#reusable-code-libraries)
+1. [Quick Start](#part-1-quick-start)
+2. [Foundations](#part-2-foundations)
+   - Accessibility Requirements
+   - User Juice Preferences
+3. [Audio](#part-3-audio)
+   - Sound Design Principles
+   - Audio Mix Management
+   - Signature Sound Branding
+   - Mobile Audio Compatibility (iOS/Safari)
+4. [Haptics](#part-4-haptics)
+5. [Visuals](#part-5-visuals)
+   - Animation Principles
+   - Particle Systems
+   - Screen Effects
+   - Camera Systems
+   - **Shader Effects & Post-Processing** *(expanded)*
+6. [Game Feel Systems](#part-6-game-feel-systems)
+7. [Input & Interaction](#part-7-input--interaction)
+8. [UI/UX Juice](#part-8-uiux-juice)
+9. [Advanced Topics](#part-9-advanced-topics)
+10. [Reference](#part-10-reference)
+    - Implementation Checklist
+    - Quick Reference Card
+    - Troubleshooting Guide
+    - Calibration Methodology
+    - Error-Resilient Patterns
 
 ---
 
-## Reusable Code Libraries
+# PART 1: QUICK START
 
-> **NEW:** All juice patterns in this playbook have been implemented as reusable TypeScript libraries. Use these instead of reimplementing patterns for each game.
+## 5-Minute Juice Checklist
 
-### Library Structure
-
-```
-src/lib/
-├── juice/                 # Game feel & effects
-│   ├── particles.ts       # Particle systems, presets, ring effects
-│   ├── animations.ts      # Easing functions, tweens, springs, timers
-│   ├── effects.ts         # Screen shake, flash, vignette, time dilation
-│   ├── audio.ts           # Web Audio API, procedural sounds, haptics
-│   ├── camera.ts          # Camera zoom, shake, follow, coordinate conversion
-│   └── index.ts           # Barrel export
-│
-├── utils/                 # General utilities
-│   ├── math.ts            # Clamp, random, vectors, collision detection
-│   ├── color.ts           # Color conversion, interpolation, palettes
-│   ├── mobile.ts          # Touch handling, gestures, device detection
-│   └── index.ts           # Barrel export
-│
-├── canvas/                # Drawing helpers
-│   ├── drawing.ts         # Shapes, gradients, shadows, transforms
-│   ├── parallax.ts        # Multi-layer parallax system
-│   ├── text.ts            # Floating text, score display, text effects
-│   └── index.ts           # Barrel export
-```
-
-### Quick Import Examples
+Add these 5 things to any game for immediate improvement:
 
 ```typescript
-// Juice effects
-import {
-  createParticleSystem,
-  spawnBurstParticles,
-  PARTICLE_PRESETS
-} from '@/lib/juice';
+// 1. SQUASH & STRETCH - Objects compress on impact
+const applySquash = (obj, isHorizontal) => {
+  obj.scaleX = isHorizontal ? 0.7 : 1.3;
+  obj.scaleY = isHorizontal ? 1.3 : 0.7;
+};
 
-// Screen effects
-import {
-  createScreenShake,
-  createScreenFlash,
-  drawVignette
-} from '@/lib/juice';
+// 2. IMPACT FEEDBACK - Every collision has sound + visual
+const onCollision = (x, y) => {
+  playSound('pop', 0.4);
+  spawnParticles(x, y, 8);
+  triggerHaptic(15);
+};
 
-// Animations
-import {
-  easeOutCubic,
-  createTween,
-  lerp,
-  createSpring
-} from '@/lib/juice';
+// 3. SCREEN SHAKE - Big moments shake the screen
+const shake = (intensity = 5, duration = 150) => {
+  shakeRef.current = { intensity, duration, start: Date.now() };
+};
 
-// Audio & haptics
-import {
-  createAudioManager,
-  playTone,
-  triggerHaptic,
-  FEEDBACK_PRESETS
-} from '@/lib/juice';
+// 4. SCORE ANIMATION - Count up, don't just set
+const animateScore = (from, to) => {
+  const start = performance.now();
+  const update = (now) => {
+    const t = Math.min((now - start) / 300, 1);
+    setDisplayScore(Math.floor(from + (to - from) * easeOutCubic(t)));
+    if (t < 1) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+};
 
-// Camera system
-import {
-  createCamera,
-  applyCameraTransform,
-  shakeCamera
-} from '@/lib/juice';
-
-// Canvas drawing
-import {
-  roundRect,
-  withShadow,
-  setupHiDPICanvas
-} from '@/lib/canvas';
-
-// Parallax
-import {
-  createPremiumParallaxSystem,
-  updateParallax,
-  drawParallaxSystem
-} from '@/lib/canvas';
-
-// Utilities
-import { clamp, randomInRange, distance } from '@/lib/utils';
-import { lerpColor, GAME_PALETTES } from '@/lib/utils';
-import { isMobile, detectGesture, getThumbZone } from '@/lib/utils';
+// 5. COMBO ESCALATION - Streaks feel increasingly rewarding
+const getComboFeedback = (streak) => ({
+  pitch: 1 + streak * 0.05,
+  particles: 8 + streak * 2,
+  shake: streak >= 5 ? 3 : 0,
+});
 ```
 
-### Related Documentation
+## Priority Matrix
 
-| Document | Description |
-|----------|-------------|
-| `docs/research/retention-patterns.md` | Daily rewards, streaks, progression systems |
-| `docs/research/viral-patterns.md` | Sharing, challenges, referrals, leaderboards |
-| `docs/testing/juice-testing-checklist.md` | Comprehensive testing guide for all juice |
-| `templates/canvas-game-starter/` | Ready-to-use game template with hooks |
+| Technique | Impact | Effort | Priority |
+|-----------|--------|--------|----------|
+| Squash & stretch | 🟢 High | 🟢 Low | **P0** |
+| Sound on every action | 🟢 High | 🟢 Low | **P0** |
+| Particle bursts | 🟢 High | 🟢 Low | **P0** |
+| Screen shake | 🟢 High | 🟢 Low | **P0** |
+| Haptic feedback | 🟡 Medium | 🟢 Low | **P1** |
+| Combo systems | 🟢 High | 🟡 Medium | **P1** |
+| Freeze frames | 🟡 Medium | 🟢 Low | **P1** |
+| Trail effects | 🟡 Medium | 🟡 Medium | **P2** |
+| Camera systems | 🟡 Medium | 🟡 Medium | **P2** |
+| Procedural animation | 🟡 Medium | 🔴 High | **P3** |
+| Shader effects | 🟡 Medium | 🔴 High | **P3** |
 
-### Game-Specific Implementation Guides
+## Starter Kit Imports
 
-| Game | Guide |
-|------|-------|
-| Flappy Orange | `docs/FLAPPY-ORANGE-JUICE-IMPLEMENTATION.md` |
-| Color Reaction | `docs/research/COLOR-REACTION-GAME-RESEARCH.md` |
-| Block Puzzle | `docs/research/BLOCK-PUZZLE-GAME-RESEARCH.md` |
-| 2048 Merge | `docs/research/MERGE-2048-GAME-RESEARCH.md` |
-| Citrus Drop | `docs/research/CITRUS-DROP-GAME-RESEARCH.md` |
+```typescript
+// All juice utilities in one import
+import {
+  // Particles
+  spawnBurstParticles, createParticleSystem, PARTICLE_PRESETS,
+  // Screen effects
+  createScreenShake, triggerScreenFlash, drawVignette,
+  // Animation
+  easeOutCubic, easeInOutQuad, lerp, createSpring,
+  // Audio
+  playTone, createAudioManager, SOUND_PRESETS,
+  // Haptics
+  triggerHaptic, HAPTIC_PATTERNS,
+  // Camera
+  createCamera, shakeCamera,
+} from '@/lib/juice';
+
+import { clamp, randomInRange, distance } from '@/lib/utils';
+import { setupHiDPICanvas, roundRect } from '@/lib/canvas';
+```
 
 ---
+
+# PART 2: FOUNDATIONS
 
 ## Core Philosophy
 
-### What is "Game Juice"?
+### What is Game Juice?
 
-> "A juicy game element will bounce and wiggle and squirt and make a little noise when you touch it. A juicy game feels alive and responds to everything you do—tons of cascading action and response for minimal user input."
+> "A juicy game feels alive and responds to everything you do—tons of cascading action and response for minimal user input."
 
-**Game juice** (also called "game feel") refers to the non-essential visual, audio, and haptic effects that enhance the player's experience. These elements don't change gameplay rules but dramatically change how the game *feels*.
+Game juice is the non-essential feedback that makes games feel satisfying. It doesn't change rules—it changes *feel*.
 
 ### The Golden Rule
 
-**Every player action should have immediate, multi-sensory feedback.**
+**Every player action needs immediate, multi-sensory feedback:**
+- **See** it (visual)
+- **Hear** it (audio)
+- **Feel** it (haptic)
 
-When a player does something:
-- They should **see** a response (visual)
-- They should **hear** a response (audio)
-- They should **feel** a response (haptic)
+Missing any channel feels incomplete.
 
-Missing any channel makes the experience feel incomplete.
+### Six Principles
 
-### Key Principles
-
-1. **Responsiveness over realism** — Exaggerated feedback feels better than realistic feedback
-2. **Consistency** — If one action has juice, all similar actions need juice
-3. **Restraint** — Overuse leads to fatigue; save the big effects for big moments
-4. **Layering** — Combine subtle effects for normal actions, stack effects for special moments
-5. **Differentiation** — Different events need distinct feedback signatures
+1. **Responsiveness > Realism** — Exaggerated feedback feels better than realistic
+2. **Consistency** — If one action has juice, all similar actions need it
+3. **Restraint** — Overuse causes fatigue; save big effects for big moments
+4. **Layering** — Stack subtle effects for normal actions, pile on for special moments
+5. **Differentiation** — Different events need distinct signatures
 6. **Escalation** — Repeated successes should feel increasingly rewarding
 
 ---
 
-## Sound Design
+## Feedback State Machine
 
-### Fundamental Rules
+### Problem: Conflicting Effects
 
-1. **Every interaction needs audio feedback** — Silence feels broken
-2. **Create sound variations** — 3-4 variations per sound type prevents fatigue
-3. **Layer complexity with importance** — Simple sounds for common actions, rich sounds for achievements
-4. **Audio must match visual timing exactly** — Desync destroys immersion
-5. **Differentiate by context** — Same action in different contexts can have different sounds
+Without management, multiple simultaneous events cause chaos:
+- Two screen shakes override each other
+- Sounds stack and clip
+- Particles explode everywhere
 
-### Sound Categories Every Game Needs
+### Solution: Priority Queue
 
-| Category | Examples | Notes |
-|----------|----------|-------|
-| **Interaction sounds** | Button press, card flip, tile tap, paddle hit | Short (50-150ms), crisp, satisfying |
-| **Success sounds** | Match found, brick destroyed, goal scored | Rewarding, musical, can be slightly longer |
-| **Failure sounds** | Mismatch, miss, ball lost | Soft, non-punishing, informative |
-| **Streak/combo sounds** | Consecutive successes | Escalating pitch/intensity with each hit |
-| **Warning sounds** | Low time, low health, danger | Attention-grabbing but not annoying |
-| **Celebration sounds** | Level complete, high score, achievement | Big, satisfying, memorable |
-| **Ambient/UI sounds** | Menu navigation, hover states | Subtle, unobtrusive |
-| **Collision sounds** | Wall hit, surface bounce, deflect | Context-specific, material-appropriate |
-| **Powerup sounds** | Spawn, collect, activate, expire | Distinct per powerup type |
-| **Anticipation sounds** | Near completion, final target | Tension-building, loopable |
+```typescript
+interface FeedbackEvent {
+  type: 'shake' | 'flash' | 'sound' | 'haptic';
+  priority: number;  // Higher = more important
+  duration: number;
+  params: any;
+}
 
-### ASMR Sound Design (NEW - Citrus Drop)
+class FeedbackManager {
+  private queue: FeedbackEvent[] = [];
+  private active: Map<string, FeedbackEvent> = new Map();
 
-**Source:** Citrus Drop research + ASMR mobile game analysis (January 2026)
-
-ASMR (Autonomous Sensory Meridian Response) sounds trigger pleasant tingles and create addictive gameplay. Key principles:
-
-#### Sound Styles for Different Game Types
-
-| Style | Sound Character | Best For |
-|-------|-----------------|----------|
-| **Juicy Squish** | Wet, organic pop/squish | Fruit games, merge puzzles |
-| **Crisp Pop** | Clean bubble-pop | Casual puzzles, tap games |
-| **Deep Thud** | Weighty impact + resonance | Physics games, heavy objects |
-| **Musical Chimes** | Melodic, harmonizing | Zen games, match-3 |
-
-#### Layered ASMR Sounds
-
-Create rich sounds by layering multiple frequencies:
-
-```javascript
-// Juicy squish merge sound (Citrus Drop style)
-const playMergeSquish = (tier: number) => {
-  const baseFreq = 300 - (tier * 30); // Lower pitch for bigger objects
-  const duration = 80 + (tier * 25);
-
-  // Layer 1: Pop attack (instant)
-  playTone(audioManager, baseFreq * 2, 0.15, 30, 'sine');
-
-  // Layer 2: Squish body (sustain)
-  playTone(audioManager, baseFreq * 0.5, 0.1, duration, 'triangle');
-
-  // Layer 3: Splash tail (bigger objects)
-  if (tier >= 2) {
-    setTimeout(() => {
-      playTone(audioManager, baseFreq * 1.5, 0.05, 50, 'sine');
-    }, 20);
+  emit(event: FeedbackEvent) {
+    const current = this.active.get(event.type);
+    
+    // Only override if higher priority or current is finished
+    if (!current || event.priority >= current.priority) {
+      this.active.set(event.type, event);
+      this.execute(event);
+    } else {
+      // Queue for later if lower priority
+      this.queue.push(event);
+    }
   }
 
-  // Layer 4: Wet resonance (largest objects)
-  if (tier >= 4) {
+  private execute(event: FeedbackEvent) {
+    switch (event.type) {
+      case 'shake':
+        this.screenShake(event.params);
+        break;
+      case 'sound':
+        this.playSound(event.params);
+        break;
+      // ...
+    }
+    
+    // Clear after duration
     setTimeout(() => {
-      playTone(audioManager, baseFreq * 0.3, 0.08, 100, 'sine');
-    }, 40);
+      this.active.delete(event.type);
+      this.processQueue(event.type);
+    }, event.duration);
   }
-};
+
+  private processQueue(type: string) {
+    const next = this.queue.find(e => e.type === type);
+    if (next) {
+      this.queue = this.queue.filter(e => e !== next);
+      this.emit(next);
+    }
+  }
+}
 ```
 
-#### Soft Physics Bump Sounds
+### Priority Guidelines
 
-For ASMR-like tactile feedback during physics simulations:
-
-```javascript
-const playBumpSound = (velocity: number, objectSize: number) => {
-  if (velocity < 1.5) return; // Only significant impacts
-
-  const volume = Math.min(velocity / 15, 0.08); // Subtle, not jarring
-  const pitch = 400 - (objectSize * 40);        // Smaller = higher
-
-  // Soft tap
-  playTone(audioManager, pitch, volume, 40, 'sine');
-
-  // Micro haptic on mobile
-  if (velocity > 3) triggerHaptic('tap');
-};
-
-// Throttle to prevent audio spam
-let lastBumpTime = 0;
-const onCollision = (velocity, size) => {
-  if (Date.now() - lastBumpTime < 50) return;
-  lastBumpTime = Date.now();
-  playBumpSound(velocity, size);
-};
-```
-
-### Collision Sound Differentiation
-
-**Critical learning from Brick Breaker:** Different surfaces and objects need distinct sounds.
-
-| Collision Type | Sound Character | Volume | Example |
-|----------------|-----------------|--------|---------|
-| Soft surface (paddle, card) | Rubbery thwack, boing | 0.45 | Ball hitting paddle |
-| Hard surface (wall, border) | Clean ping, click | 0.25 | Ball hitting wall |
-| Breakable object (brick, tile) | Pop, crunch, shatter | 0.50 | Brick destruction |
-| Unbreakable object | Metallic clang, thud | 0.40 | Indestructible barrier |
-| Damaged but not destroyed | Crack, chip | 0.45 | Multi-hit object first hit |
-
-### Sound Variation Technique
-
-Instead of one sound per event, create a family:
-
-```
-brickDestroy_1.mp3  (base)
-brickDestroy_2.mp3  (base + 5% pitch)
-brickDestroy_3.mp3  (base + 10% pitch)
-brickDestroy_4.mp3  (base - 5% pitch)
-```
-
-Randomly select from the family AND add slight pitch variation:
-
-```javascript
-const playWithVariation = (sounds: string[], baseVolume: number) => {
-  const sound = sounds[Math.floor(Math.random() * sounds.length)];
-  const pitch = 0.95 + Math.random() * 0.1; // ±5% additional variation
-  play(sound, { volume: baseVolume, rate: pitch });
-};
-```
-
-### Positional Sound Variation
-
-For games with spatial elements, vary sound based on position:
-
-```javascript
-// Pitch varies by where ball hits paddle (edges = higher pitch)
-const playPaddleHit = (hitPosition: number) => {
-  // hitPosition: 0 = left edge, 0.5 = center, 1 = right edge
-  const basePitch = 1.0;
-  const pitchVariation = Math.abs(hitPosition - 0.5) * 0.3;
-  play('paddle_hit.mp3', { rate: basePitch + pitchVariation });
-};
-```
-
-### Ambient Sound Loops
-
-For active states (powerups, danger modes), use looping ambient sounds:
-
-```javascript
-// Fireball mode ambient loop
-const startAmbientLoop = (soundFile: string, volume: number = 0.2) => {
-  const loop = new Howl({
-    src: [soundFile],
-    loop: true,
-    volume: 0,
-  });
-  loop.play();
-  loop.fade(0, volume, 300); // Fade in
-  return loop;
-};
-
-const stopAmbientLoop = (loop: Howl) => {
-  loop.fade(loop.volume(), 0, 500);
-  setTimeout(() => loop.stop(), 500);
-};
-```
-
-### Streak Sound Escalation
-
-For combo/streak systems, escalate audio excitement:
-
-| Streak | Sound Modification |
-|--------|-------------------|
-| 1 | Base sound |
-| 2 | +10% pitch |
-| 3 | +15% pitch, add sparkle layer |
-| 4 | +20% pitch, add bass hit |
-| 5+ | Full celebration sound, distinct from base |
-
-### Dynamic Music Layering
-
-For games with background music, consider stem-based mixing:
-
-- **Base layer:** Always playing, calm
-- **Intensity layer:** Fades in during action/streaks
-- **Urgency layer:** Fades in when time pressure increases
-- **Victory swell:** Brief overlay when near completion
-
-This creates a soundtrack that responds to gameplay without jarring transitions.
-
-### Technical Specifications
-
-- **Format:** MP3 or WebM for web, AAC for mobile
-- **Sample rate:** 44.1kHz standard
-- **Bit depth:** 16-bit minimum
-- **Loudness:** Normalize to -14 LUFS for consistency
-- **Attack time:** <10ms for responsive feel
+| Event | Priority | Notes |
+|-------|----------|-------|
+| Death/Game Over | 100 | Always plays |
+| Level Complete | 90 | High importance |
+| Achievement | 80 | Significant |
+| Combo milestone (5+) | 70 | Notable |
+| Power-up collect | 60 | Rewarding |
+| Normal success | 50 | Base level |
+| UI interaction | 30 | Background |
+| Ambient effects | 10 | Lowest |
 
 ---
 
-## Haptic Feedback
+## Performance Budgeting
 
-### Platform Considerations
+### The 60 FPS Contract
 
-- **iOS:** Rich haptic support via Taptic Engine and Core Haptics
-- **Android:** Varies significantly by device; use HapticFeedbackConstants for consistency
-- **Web:** Limited; use Vibration API where available
+At 60 FPS, you have **16.67ms per frame**. Budget it wisely:
 
-### Haptic Design Principles
+| System | Budget | Notes |
+|--------|--------|-------|
+| Game logic | 4ms | Physics, collision |
+| Rendering | 8ms | Draw calls, canvas |
+| Juice effects | 2ms | Particles, shake |
+| Audio | 1ms | Sound triggers |
+| Buffer | 1.67ms | Safety margin |
 
-1. **Crisp over buzzy** — Short, clean pulses (10-25ms) feel premium; long buzzes feel cheap
-2. **Match the action weight** — Light actions get light haptics, heavy actions get heavy haptics
-3. **Use patterns for meaning** — Different patterns = different information
-4. **Test on real devices** — Haptics feel different on every device
-5. **Differentiate by material/context** — Different surfaces feel different
+### Performance Tiers
 
-### Haptic Pattern Library
+Detect device capability and adjust:
 
-| Event Type | Pattern | Duration | Intensity |
-|------------|---------|----------|-----------|
-| **Light tap** (hover, small item) | Single pulse | 5-10ms | Ultra-light |
-| **Button tap** | Single pulse | 10-15ms | Light |
-| **Success** (match, destroy) | Single pulse | 20-25ms | Medium |
-| **Heavy impact** (strong object) | Single pulse | 30-35ms | Heavy |
-| **Failure/Error** | Double pulse (tap-gap-tap) | 10ms-50ms-10ms | Light |
-| **Combo hit** | Escalating (tap-tap-tap) | 10ms each, tightening gaps | Medium→Heavy |
-| **Warning** | Triple pulse | 15ms each, 100ms gaps | Medium |
-| **Critical alert** | Continuous short pulses | 8ms every 500ms | Light |
-| **Achievement/Powerup** | Pattern burst | 10ms-20ms-8ms-20ms-6ms | Medium |
-| **Loss/Drop** | Long single pulse | 50ms | Heavy |
-| **Game over** | Long pulse + fade | 50ms | Heavy |
+```typescript
+const getPerformanceTier = (): 'high' | 'medium' | 'low' => {
+  // Check device memory (if available)
+  const memory = (navigator as any).deviceMemory;
+  if (memory && memory < 4) return 'low';
+  
+  // Check hardware concurrency
+  const cores = navigator.hardwareConcurrency;
+  if (cores && cores < 4) return 'low';
+  if (cores && cores < 8) return 'medium';
+  
+  // Check if mobile
+  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+  if (isMobile) return 'medium';
+  
+  return 'high';
+};
+
+const JUICE_CONFIG = {
+  high: {
+    maxParticles: 200,
+    particlesPerBurst: 20,
+    trailLength: 15,
+    shaderEffects: true,
+  },
+  medium: {
+    maxParticles: 100,
+    particlesPerBurst: 12,
+    trailLength: 8,
+    shaderEffects: false,
+  },
+  low: {
+    maxParticles: 40,
+    particlesPerBurst: 6,
+    trailLength: 4,
+    shaderEffects: false,
+  },
+};
+```
+
+### Particle Pooling
+
+Never create/destroy particles at runtime:
+
+```typescript
+class ParticlePool {
+  private pool: Particle[] = [];
+  private active: Particle[] = [];
+  
+  constructor(maxSize: number) {
+    // Pre-allocate all particles
+    for (let i = 0; i < maxSize; i++) {
+      this.pool.push(this.createParticle());
+    }
+  }
+  
+  spawn(x: number, y: number, config: ParticleConfig): Particle | null {
+    const particle = this.pool.pop();
+    if (!particle) return null; // Pool exhausted
+    
+    // Reset and configure
+    particle.x = x;
+    particle.y = y;
+    particle.vx = config.vx;
+    particle.vy = config.vy;
+    particle.alpha = 1;
+    particle.active = true;
+    
+    this.active.push(particle);
+    return particle;
+  }
+  
+  update() {
+    for (let i = this.active.length - 1; i >= 0; i--) {
+      const p = this.active[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.alpha -= 0.02;
+      
+      if (p.alpha <= 0) {
+        p.active = false;
+        this.active.splice(i, 1);
+        this.pool.push(p); // Return to pool
+      }
+    }
+  }
+}
+```
+
+### Frame Skip Detection
+
+Disable juice when frames are dropping:
+
+```typescript
+let lastFrameTime = 0;
+let consecutiveSlowFrames = 0;
+let juiceEnabled = true;
+
+const gameLoop = (timestamp: number) => {
+  const delta = timestamp - lastFrameTime;
+  lastFrameTime = timestamp;
+  
+  // Detect slow frames (>20ms = <50fps)
+  if (delta > 20) {
+    consecutiveSlowFrames++;
+    if (consecutiveSlowFrames > 10) {
+      juiceEnabled = false; // Disable juice
+      console.warn('Performance: Juice disabled due to frame drops');
+    }
+  } else {
+    consecutiveSlowFrames = 0;
+  }
+  
+  update(delta);
+  if (juiceEnabled) updateJuice(delta);
+  render();
+  
+  requestAnimationFrame(gameLoop);
+};
+```
+
+---
+
+## Accessibility Requirements
+
+### Required Toggles
+
+Every game MUST have:
+
+```typescript
+interface AccessibilitySettings {
+  screenShake: boolean;      // Can cause motion sickness
+  haptics: boolean;          // Some find it annoying
+  soundEffects: boolean;     // Separate from music
+  music: boolean;            // Separate from SFX
+  flashEffects: boolean;     // Photosensitivity
+  reducedMotion: boolean;    // System preference
+}
+
+// Check system preference on load
+const prefersReducedMotion = 
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const defaultSettings: AccessibilitySettings = {
+  screenShake: !prefersReducedMotion,
+  haptics: true,
+  soundEffects: true,
+  music: true,
+  flashEffects: !prefersReducedMotion,
+  reducedMotion: prefersReducedMotion,
+};
+```
+
+### Accessibility Principles
+
+1. **Never rely solely on color** — Use icons, patterns, or labels
+2. **Provide alternatives** — Visual cues for audio, audio for visual
+3. **Haptics are supplementary** — Never the only feedback channel
+4. **Respect system preferences** — Check `prefers-reduced-motion`
+5. **Test without each channel** — Game should be playable with any single channel disabled
+
+### Reduced Motion CSS
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+```
+
+---
+
+## User Juice Preferences
+
+### Why This Matters
+
+Not everyone wants maximum juice. Some players:
+- Get motion sick from screen shake
+- Find haptics distracting
+- Play in quiet environments
+- Have sensory sensitivities
+- Simply prefer minimal effects
+
+A juice intensity system respects preferences while maintaining game feel.
+
+### Preference System Implementation
+
+```typescript
+interface JuicePreferences {
+  // Master control (0-1 scale)
+  juiceIntensity: number;
+  
+  // Individual toggles
+  screenShake: boolean;
+  haptics: boolean;
+  soundEffects: boolean;
+  music: boolean;
+  flashEffects: boolean;
+  particles: boolean;
+  
+  // Intensity overrides (0-1 scale)
+  shakeIntensity: number;
+  particleCount: number;  // Multiplier
+  flashOpacity: number;
+}
+
+const DEFAULT_PREFERENCES: JuicePreferences = {
+  juiceIntensity: 1.0,
+  screenShake: true,
+  haptics: true,
+  soundEffects: true,
+  music: true,
+  flashEffects: true,
+  particles: true,
+  shakeIntensity: 1.0,
+  particleCount: 1.0,
+  flashOpacity: 1.0,
+};
+
+class JuicePreferencesManager {
+  private prefs: JuicePreferences;
+  private readonly STORAGE_KEY = 'juice_preferences';
+  
+  constructor() {
+    this.prefs = this.load();
+  }
+  
+  private load(): JuicePreferences {
+    try {
+      const saved = localStorage.getItem(this.STORAGE_KEY);
+      if (saved) {
+        return { ...DEFAULT_PREFERENCES, ...JSON.parse(saved) };
+      }
+    } catch {}
+    
+    // Check system preference
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      return {
+        ...DEFAULT_PREFERENCES,
+        screenShake: false,
+        flashEffects: false,
+        juiceIntensity: 0.5,
+      };
+    }
+    
+    return { ...DEFAULT_PREFERENCES };
+  }
+  
+  save() {
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.prefs));
+  }
+  
+  get<K extends keyof JuicePreferences>(key: K): JuicePreferences[K] {
+    return this.prefs[key];
+  }
+  
+  set<K extends keyof JuicePreferences>(key: K, value: JuicePreferences[K]) {
+    this.prefs[key] = value;
+    this.save();
+  }
+  
+  // Apply master intensity to a value
+  applyIntensity(value: number): number {
+    return value * this.prefs.juiceIntensity;
+  }
+  
+  // Get effective shake amount
+  getShake(baseAmount: number): number {
+    if (!this.prefs.screenShake) return 0;
+    return baseAmount * this.prefs.shakeIntensity * this.prefs.juiceIntensity;
+  }
+  
+  // Get effective particle count
+  getParticleCount(baseCount: number): number {
+    if (!this.prefs.particles) return 0;
+    return Math.round(baseCount * this.prefs.particleCount * this.prefs.juiceIntensity);
+  }
+  
+  // Get effective flash opacity
+  getFlashOpacity(baseOpacity: number): number {
+    if (!this.prefs.flashEffects) return 0;
+    return baseOpacity * this.prefs.flashOpacity * this.prefs.juiceIntensity;
+  }
+}
+
+export const juicePrefs = new JuicePreferencesManager();
+```
+
+### Using Preferences in Code
+
+```typescript
+// Screen shake
+const triggerShake = (intensity: number, duration: number) => {
+  const effectiveIntensity = juicePrefs.getShake(intensity);
+  if (effectiveIntensity <= 0) return;
+  
+  shakeRef.current = {
+    intensity: effectiveIntensity,
+    duration,
+    startTime: performance.now(),
+  };
+};
+
+// Particles
+const spawnParticles = (x: number, y: number, count: number) => {
+  const effectiveCount = juicePrefs.getParticleCount(count);
+  if (effectiveCount <= 0) return;
+  
+  for (let i = 0; i < effectiveCount; i++) {
+    particles.push(createParticle(x, y));
+  }
+};
+
+// Flash
+const triggerFlash = (color: string, opacity: number) => {
+  const effectiveOpacity = juicePrefs.getFlashOpacity(opacity);
+  if (effectiveOpacity <= 0) return;
+  
+  flashRef.current = { color, opacity: effectiveOpacity, startTime: performance.now() };
+};
+
+// Sound
+const playSound = (id: string, volume: number = 1) => {
+  if (!juicePrefs.get('soundEffects')) return;
+  audioManager.play(id, volume * juicePrefs.get('juiceIntensity'));
+};
+
+// Haptic
+const triggerHaptic = (duration: number) => {
+  if (!juicePrefs.get('haptics')) return;
+  navigator.vibrate?.(duration);
+};
+```
+
+### Settings UI Component
+
+```typescript
+const JuiceSettingsPanel: React.FC = () => {
+  const [prefs, setPrefs] = useState(juicePrefs.getAll());
+  
+  const updatePref = <K extends keyof JuicePreferences>(
+    key: K, 
+    value: JuicePreferences[K]
+  ) => {
+    juicePrefs.set(key, value);
+    setPrefs({ ...prefs, [key]: value });
+  };
+  
+  return (
+    <div className="juice-settings">
+      <h3>Game Feel Settings</h3>
+      
+      {/* Master intensity slider */}
+      <div className="setting-row">
+        <label>Effect Intensity</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.1"
+          value={prefs.juiceIntensity}
+          onChange={(e) => updatePref('juiceIntensity', parseFloat(e.target.value))}
+        />
+        <span>{Math.round(prefs.juiceIntensity * 100)}%</span>
+      </div>
+      
+      {/* Individual toggles */}
+      <div className="setting-row">
+        <label>Screen Shake</label>
+        <input
+          type="checkbox"
+          checked={prefs.screenShake}
+          onChange={(e) => updatePref('screenShake', e.target.checked)}
+        />
+      </div>
+      
+      <div className="setting-row">
+        <label>Haptic Feedback</label>
+        <input
+          type="checkbox"
+          checked={prefs.haptics}
+          onChange={(e) => updatePref('haptics', e.target.checked)}
+        />
+      </div>
+      
+      <div className="setting-row">
+        <label>Flash Effects</label>
+        <input
+          type="checkbox"
+          checked={prefs.flashEffects}
+          onChange={(e) => updatePref('flashEffects', e.target.checked)}
+        />
+      </div>
+      
+      <div className="setting-row">
+        <label>Particle Effects</label>
+        <input
+          type="checkbox"
+          checked={prefs.particles}
+          onChange={(e) => updatePref('particles', e.target.checked)}
+        />
+      </div>
+    </div>
+  );
+};
+```
+
+### Preset Profiles
+
+```typescript
+const JUICE_PRESETS = {
+  full: {
+    juiceIntensity: 1.0,
+    screenShake: true,
+    haptics: true,
+    flashEffects: true,
+    particles: true,
+  },
+  medium: {
+    juiceIntensity: 0.7,
+    screenShake: true,
+    haptics: true,
+    flashEffects: false,
+    particles: true,
+  },
+  minimal: {
+    juiceIntensity: 0.3,
+    screenShake: false,
+    haptics: true,
+    flashEffects: false,
+    particles: false,
+  },
+  none: {
+    juiceIntensity: 0,
+    screenShake: false,
+    haptics: false,
+    flashEffects: false,
+    particles: false,
+  },
+};
+
+const applyPreset = (presetName: keyof typeof JUICE_PRESETS) => {
+  const preset = JUICE_PRESETS[presetName];
+  Object.entries(preset).forEach(([key, value]) => {
+    juicePrefs.set(key as keyof JuicePreferences, value);
+  });
+};
+```
+
+---
+
+# PART 3: AUDIO
+
+## Sound Design Principles
+
+### The Three Rules
+
+1. **Every interaction needs audio** — Silence feels broken
+2. **Variation prevents fatigue** — 3-4 variations per sound type
+3. **Timing must be perfect** — Audio-visual desync destroys immersion
+
+### Sound Categories
+
+| Category | Duration | Character | Examples |
+|----------|----------|-----------|----------|
+| Interaction | 50-150ms | Crisp, satisfying | Tap, flip, tap |
+| Success | 150-300ms | Rewarding, musical | Match, score, collect |
+| Failure | 100-200ms | Soft, informative | Miss, wrong, drop |
+| Streak | Variable | Escalating pitch | Combo hits |
+| Warning | 200-500ms | Attention-grabbing | Low time, danger |
+| Celebration | 500ms+ | Big, memorable | Level complete, high score |
+| Ambient | Looping | Subtle, atmospheric | Power-up active, danger mode |
+
+### Sound Variation
+
+```typescript
+// Never play the same sound twice in a row
+class SoundVariant {
+  private sounds: string[];
+  private lastPlayed: number = -1;
+  
+  constructor(baseName: string, count: number = 4) {
+    this.sounds = Array.from(
+      { length: count }, 
+      (_, i) => `${baseName}_${i + 1}`
+    );
+  }
+  
+  play(volume: number = 1) {
+    let index;
+    do {
+      index = Math.floor(Math.random() * this.sounds.length);
+    } while (index === this.lastPlayed && this.sounds.length > 1);
+    
+    this.lastPlayed = index;
+    
+    // Add pitch variation
+    const pitch = 0.95 + Math.random() * 0.1;
+    playSound(this.sounds[index], volume, pitch);
+  }
+}
+
+// Usage
+const popSound = new SoundVariant('pop', 4);
+popSound.play(0.5); // Plays pop_1, pop_2, pop_3, or pop_4 with pitch variation
+```
+
+### Procedural Sound Generation
+
+Web Audio API for dynamic sounds:
+
+```typescript
+const playTone = (
+  ctx: AudioContext,
+  frequency: number,
+  volume: number,
+  duration: number,
+  type: OscillatorType = 'sine'
+) => {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  
+  osc.type = type;
+  osc.frequency.value = frequency;
+  
+  gain.gain.setValueAtTime(volume, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration / 1000);
+  
+  osc.connect(gain).connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + duration / 1000);
+};
+
+// Layered success sound
+const playSuccessChime = (ctx: AudioContext) => {
+  playTone(ctx, 880, 0.3, 100);  // A5
+  setTimeout(() => playTone(ctx, 1318, 0.4, 150), 50);  // E6
+  setTimeout(() => playTone(ctx, 1760, 0.2, 100), 80);  // A6 shimmer
+};
+```
+
+### ASMR Sound Design
+
+For satisfying, tactile sounds:
+
+```typescript
+// Juicy squish sound (for merge/combine games)
+const playSquish = (ctx: AudioContext, intensity: number = 1) => {
+  const baseFreq = 300 * intensity;
+  
+  // Pop attack
+  playTone(ctx, baseFreq * 2, 0.15, 30, 'sine');
+  
+  // Squish body
+  playTone(ctx, baseFreq * 0.5, 0.1, 80, 'triangle');
+  
+  // Wet tail (for bigger objects)
+  if (intensity > 0.5) {
+    setTimeout(() => playTone(ctx, baseFreq * 1.5, 0.05, 50), 20);
+  }
+};
+```
+
+---
+
+## Audio Mix Management
+
+### The Ducking Problem
+
+When important sounds play, other audio should get quieter temporarily.
+
+```typescript
+class AudioMixer {
+  private masterGain: GainNode;
+  private musicGain: GainNode;
+  private sfxGain: GainNode;
+  private duckingActive: boolean = false;
+  
+  constructor(ctx: AudioContext) {
+    this.masterGain = ctx.createGain();
+    this.musicGain = ctx.createGain();
+    this.sfxGain = ctx.createGain();
+    
+    this.musicGain.connect(this.masterGain);
+    this.sfxGain.connect(this.masterGain);
+    this.masterGain.connect(ctx.destination);
+  }
+  
+  // Duck music when important SFX plays
+  duck(duration: number = 300) {
+    if (this.duckingActive) return;
+    this.duckingActive = true;
+    
+    const now = this.musicGain.context.currentTime;
+    this.musicGain.gain.setValueAtTime(this.musicGain.gain.value, now);
+    this.musicGain.gain.linearRampToValueAtTime(0.3, now + 0.05); // Duck to 30%
+    
+    setTimeout(() => {
+      const releaseTime = this.musicGain.context.currentTime;
+      this.musicGain.gain.linearRampToValueAtTime(1, releaseTime + 0.2);
+      this.duckingActive = false;
+    }, duration);
+  }
+}
+
+// Usage
+mixer.duck(200); // Duck music for 200ms when important sound plays
+playImportantSound();
+```
+
+### Volume Guidelines
+
+| Sound Type | Volume | Notes |
+|------------|--------|-------|
+| Background music | 0.3-0.4 | Should not overpower SFX |
+| UI clicks | 0.2-0.3 | Subtle |
+| Success sounds | 0.4-0.5 | Rewarding |
+| Impact sounds | 0.4-0.6 | Satisfying |
+| Warning sounds | 0.5-0.6 | Attention-grabbing |
+| Death/failure | 0.5-0.6 | Impactful |
+| Celebration | 0.6-0.7 | Big moment |
+
+### Spatial Audio
+
+For games with position-based elements:
+
+```typescript
+const playSpatialSound = (
+  ctx: AudioContext,
+  sound: AudioBuffer,
+  x: number,  // -1 (left) to 1 (right)
+  volume: number
+) => {
+  const source = ctx.createBufferSource();
+  const panner = ctx.createStereoPanner();
+  const gain = ctx.createGain();
+  
+  source.buffer = sound;
+  panner.pan.value = clamp(x, -1, 1);
+  gain.gain.value = volume;
+  
+  source.connect(panner).connect(gain).connect(ctx.destination);
+  source.start();
+};
+```
+
+---
+
+## Signature Sound Branding
+
+### Why It Matters
+
+Iconic games have iconic sounds: Candy Crush's "Divine!", Wordle's success melody, Flappy Bird's point sound.
+
+### Creating Your Signature Sound
+
+Requirements:
+- **Short** (100-300ms)
+- **Distinctive** (not generic)
+- **Pleasant** (players hear it hundreds of times)
+- **Layered** (2-3 tones)
+- **Ascending** (feels positive)
+
+```typescript
+// Two-note ascending chime (universal success pattern)
+const playSignatureChime = (ctx: AudioContext) => {
+  const now = ctx.currentTime;
+  
+  // Note 1: Foundation
+  const osc1 = ctx.createOscillator();
+  const gain1 = ctx.createGain();
+  osc1.frequency.value = 880; // A5
+  gain1.gain.setValueAtTime(0.4, now);
+  gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+  osc1.connect(gain1).connect(ctx.destination);
+  osc1.start(now);
+  osc1.stop(now + 0.15);
+  
+  // Note 2: Resolution (slightly delayed)
+  const osc2 = ctx.createOscillator();
+  const gain2 = ctx.createGain();
+  osc2.frequency.value = 1318; // E6
+  gain2.gain.setValueAtTime(0, now);
+  gain2.gain.setValueAtTime(0.5, now + 0.08);
+  gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+  osc2.connect(gain2).connect(ctx.destination);
+  osc2.start(now + 0.08);
+  osc2.stop(now + 0.25);
+  
+  // Shimmer layer (subtle sparkle)
+  const osc3 = ctx.createOscillator();
+  const gain3 = ctx.createGain();
+  osc3.frequency.value = 2636; // E7
+  gain3.gain.setValueAtTime(0.1, now + 0.08);
+  gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+  osc3.connect(gain3).connect(ctx.destination);
+  osc3.start(now + 0.08);
+  osc3.stop(now + 0.2);
+};
+```
+
+### When to Use Signature Sound
+
+- ✅ Main success action (match, score, collect)
+- ✅ Perfect/excellent performance
+- ❌ Every tap (too frequent)
+- ❌ Failures (should feel distinct)
+- ❌ UI interactions (reserve for gameplay)
+
+---
+
+## Mobile Audio Compatibility
+
+### The iOS/Safari Problem
+
+Web Audio on mobile browsers has critical restrictions that **will break your game** if not handled:
+
+1. **AudioContext requires user gesture** — Cannot autoplay
+2. **AudioContext may be suspended** — Must call `resume()`
+3. **Safari silently fails** — No error, just silence
+4. **Page visibility affects playback** — Audio stops in background
+
+### Audio Unlock Pattern (REQUIRED)
+
+```typescript
+class MobileAudioManager {
+  private ctx: AudioContext | null = null;
+  private unlocked: boolean = false;
+  private unlockPromise: Promise<void> | null = null;
+  
+  constructor() {
+    this.setupUnlockListeners();
+  }
+  
+  private setupUnlockListeners() {
+    const events = ['touchstart', 'touchend', 'mousedown', 'keydown', 'click'];
+    
+    const unlock = async () => {
+      if (this.unlocked) return;
+      
+      try {
+        // Create context on first user interaction
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+        
+        // Resume if suspended (required on iOS)
+        if (this.ctx.state === 'suspended') {
+          await this.ctx.resume();
+        }
+        
+        // Play silent buffer to fully unlock (iOS requirement)
+        const buffer = this.ctx.createBuffer(1, 1, 22050);
+        const source = this.ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this.ctx.destination);
+        source.start(0);
+        
+        this.unlocked = true;
+        console.log('Audio unlocked successfully');
+        
+        // Remove listeners after unlock
+        events.forEach(e => document.removeEventListener(e, unlock));
+      } catch (err) {
+        console.warn('Audio unlock failed:', err);
+      }
+    };
+    
+    events.forEach(e => document.addEventListener(e, unlock, { passive: true }));
+  }
+  
+  // Always check before playing
+  async ensureReady(): Promise<AudioContext | null> {
+    if (!this.ctx || this.ctx.state === 'closed') {
+      return null;
+    }
+    
+    if (this.ctx.state === 'suspended') {
+      try {
+        await this.ctx.resume();
+      } catch {
+        return null;
+      }
+    }
+    
+    return this.ctx;
+  }
+  
+  async playSound(sound: AudioBuffer, volume: number = 1) {
+    const ctx = await this.ensureReady();
+    if (!ctx) return;
+    
+    try {
+      const source = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      source.buffer = sound;
+      gain.gain.value = volume;
+      source.connect(gain).connect(ctx.destination);
+      source.start(0);
+    } catch (err) {
+      console.warn('Sound playback failed:', err);
+    }
+  }
+}
+
+// Singleton instance
+export const audioManager = new MobileAudioManager();
+```
+
+### Howler.js Mobile Setup
+
+If using Howler.js (recommended), still need explicit unlock:
+
+```typescript
+import { Howl, Howler } from 'howler';
+
+// Force HTML5 Audio on mobile for better compatibility
+Howler.usingWebAudio = true;
+Howler.autoUnlock = true; // Howler's built-in unlock
+
+// Manual unlock as backup
+const unlockHowler = () => {
+  if (Howler.ctx && Howler.ctx.state === 'suspended') {
+    Howler.ctx.resume();
+  }
+  
+  // Play silent sound
+  const unlock = new Howl({
+    src: ['data:audio/mp3;base64,//uQxAAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV'],
+    volume: 0,
+    onend: () => unlock.unload(),
+  });
+  unlock.play();
+};
+
+document.addEventListener('touchstart', unlockHowler, { once: true });
+document.addEventListener('click', unlockHowler, { once: true });
+```
+
+### Safe Sound Wrapper
+
+```typescript
+// Use this wrapper for ALL sound calls
+const safePlaySound = (soundId: string, volume: number = 1) => {
+  try {
+    // Check if sound system is ready
+    if (!audioManager.isReady()) {
+      return; // Silently fail - better than error
+    }
+    
+    // Check user preference
+    if (!localStorage.getItem('soundEnabled') !== 'false') {
+      audioManager.play(soundId, volume);
+    }
+  } catch (err) {
+    // Never let audio errors crash the game
+    console.warn(`Sound ${soundId} failed:`, err);
+  }
+};
+```
+
+### Visibility Change Handling
+
+```typescript
+// Pause/resume audio when tab visibility changes
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // Tab hidden - pause all audio
+    Howler.mute(true);
+    // Or for Web Audio:
+    audioManager.ctx?.suspend();
+  } else {
+    // Tab visible - resume
+    Howler.mute(false);
+    audioManager.ctx?.resume();
+  }
+});
+```
+
+### Testing Checklist
+
+- [ ] Audio plays on first tap (after Play button)
+- [ ] Audio works on iOS Safari
+- [ ] Audio works on Chrome Android
+- [ ] No errors in console on page load (before interaction)
+- [ ] Audio pauses when tab is hidden
+- [ ] Audio resumes when tab is visible
+- [ ] Sound toggle actually mutes (not just volume 0)
+
+---
+
+# PART 4: HAPTICS
+
+## Haptic Patterns
+
+### Platform Reality
+
+| Platform | Support | API |
+|----------|---------|-----|
+| iOS | Excellent | UIImpactFeedbackGenerator |
+| Android | Variable | Vibration API |
+| Web | Limited | navigator.vibrate() |
+
+### The Golden Rules
+
+1. **Crisp over buzzy** — Short pulses (10-25ms) feel premium; long buzzes feel cheap
+2. **Match action weight** — Light actions = light haptics
+3. **Patterns = meaning** — Different patterns communicate different information
+4. **Test on real devices** — Simulators don't accurately represent haptics
+
+### Standard Patterns
+
+```typescript
+const haptics = {
+  // Single pulses
+  ultraLight: () => navigator.vibrate?.(5),
+  light: () => navigator.vibrate?.(12),
+  medium: () => navigator.vibrate?.(20),
+  heavy: () => navigator.vibrate?.(35),
+  
+  // Patterns
+  error: () => navigator.vibrate?.([10, 50, 10]),           // tap-gap-tap
+  success: () => navigator.vibrate?.(25),                   // single firm
+  warning: () => navigator.vibrate?.([8, 80, 8, 80, 8]),    // triple pulse
+  powerup: () => navigator.vibrate?.([10, 20, 8, 20, 6]),   // celebratory burst
+  gameOver: () => navigator.vibrate?.(50),                  // long heavy
+  
+  // Streak escalation
+  combo: (streak: number) => {
+    if (streak >= 5) return navigator.vibrate?.([15, 15, 12, 15, 10, 15, 8]);
+    if (streak >= 4) return navigator.vibrate?.([20, 15, 10, 15, 8]);
+    if (streak >= 3) return navigator.vibrate?.([15, 15, 10, 15, 8]);
+    if (streak >= 2) return navigator.vibrate?.([15, 20, 10]);
+    return navigator.vibrate?.(15);
+  },
+};
+```
 
 ### Material-Based Haptics
 
-**Critical learning from Brick Breaker:** Different objects should have distinct haptic signatures.
+Different objects feel different:
 
-| Object Type | Haptic Pattern | Duration | Feel |
-|-------------|---------------|----------|------|
-| Soft/elastic (paddle, cushion) | Medium single | 20ms | Bouncy |
+| Material | Pattern | Duration | Feel |
+|----------|---------|----------|------|
+| Soft (paddle, cushion) | Medium single | 20ms | Bouncy |
 | Normal destructible | Light single | 12ms | Crisp |
-| Heavy destructible | Double pulse | 20ms-30ms-15ms | Substantial |
-| Indestructible | Heavy single | 30ms | Solid thud |
-| Damaged (cracked) | Medium single | 18ms | Informative |
-| Collectible/Powerup | Triple burst | 10ms-20ms-8ms-20ms-6ms | Rewarding |
+| Heavy destructible | Double pulse | 20-30-15ms | Substantial |
+| Metal/indestructible | Heavy single | 30ms | Solid thud |
+| Collectible | Triple burst | 10-20-8ms | Rewarding |
 
-### Streak Haptic Escalation
+### Common Mistakes
 
-```
-Streak 1: 15ms single pulse
-Streak 2: 15ms + 10ms double pulse
-Streak 3: 15ms + 10ms + 8ms triple pulse
-Streak 4: 20ms + 15ms + 10ms + 8ms quad pulse
-Streak 5+: Full celebration pattern
-```
-
-### Implementation Pattern
-
-```javascript
-// Centralized haptic service pattern
-const haptics = {
-  ultraLight: () => vibrate(5),
-  light: () => vibrate(12),
-  medium: () => vibrate(20),
-  heavy: () => vibrate(35),
-  error: () => vibrate([10, 50, 10]),
-  success: () => vibrate(25),
-  powerup: () => vibrate([10, 20, 8, 20, 6]),
-  loss: () => vibrate(50),
-  combo: (streak) => {
-    if (streak >= 5) return vibrate([15, 15, 12, 15, 10, 15, 8]);
-    if (streak >= 4) return vibrate([20, 15, 10, 15, 8]);
-    if (streak >= 3) return vibrate([15, 15, 10, 15, 8]);
-    if (streak >= 2) return vibrate([15, 20, 10]);
-    return vibrate(15);
-  }
-};
-```
-
-### Avoid These Mistakes
-
-- Long continuous vibrations (>100ms feels like an error)
-- Buzzy, ringing vibrations (feels cheap)
-- Haptics without corresponding visual/audio (feels random)
-- Same haptic for different event types (loses meaning)
+- ❌ Long continuous vibrations (>100ms feels like an error)
+- ❌ Buzzy, ringing patterns (feels cheap)
+- ❌ Haptics without visual/audio (feels random)
+- ❌ Same haptic for all events (loses meaning)
 
 ---
 
-## Visual Juice
+# PART 5: VISUALS
 
-### Core Visual Techniques
+## Animation Principles
 
-#### 1. Squash and Stretch
+### Squash & Stretch
 
-**Critical learning:** This is the most important animation principle. Apply to ALL moving objects.
+The single most important animation principle. Objects compress on impact, stretch when moving fast.
 
-Objects compress on impact, stretch when moving fast. Volume should be preserved.
-
-**For DOM elements (CSS):**
-```css
-/* On button press */
-.button:active {
-  transform: scale(0.95, 1.05);
+```typescript
+// Canvas implementation
+interface Deformable {
+  scaleX: number;
+  scaleY: number;
 }
 
-/* On card land */
-@keyframes cardLand {
-  0% { transform: scale(1, 1); }
-  50% { transform: scale(1.1, 0.9); }
-  100% { transform: scale(1, 1); }
-}
-```
-
-**For Canvas elements:**
-```javascript
-// Ball squash on collision
-const triggerSquash = (ball, isHorizontalCollision) => {
-  if (isHorizontalCollision) {
-    ball.squashX = 0.7;  // Compress horizontally
-    ball.squashY = 1.3;  // Expand vertically
+const applySquash = (obj: Deformable, isHorizontal: boolean) => {
+  if (isHorizontal) {
+    obj.scaleX = 0.7;   // Compress in direction of impact
+    obj.scaleY = 1.3;   // Expand perpendicular
   } else {
-    ball.squashX = 1.3;
-    ball.squashY = 0.7;
+    obj.scaleX = 1.3;
+    obj.scaleY = 0.7;
   }
 };
 
-// Recovery in update loop
-const updateSquash = (ball) => {
-  const recovery = 0.15;
-  ball.squashX += (1 - ball.squashX) * recovery;
-  ball.squashY += (1 - ball.squashY) * recovery;
+const updateDeformation = (obj: Deformable, recovery: number = 0.15) => {
+  obj.scaleX += (1 - obj.scaleX) * recovery;
+  obj.scaleY += (1 - obj.scaleY) * recovery;
 };
 
-// Draw with squash
-const drawBall = (ctx, ball) => {
+const drawWithDeformation = (ctx: CanvasRenderingContext2D, obj: any) => {
   ctx.save();
-  ctx.translate(ball.x, ball.y);
-  ctx.scale(ball.squashX, ball.squashY);
+  ctx.translate(obj.x, obj.y);
+  ctx.scale(obj.scaleX, obj.scaleY);
+  // Draw object at origin
   ctx.beginPath();
-  ctx.arc(0, 0, ball.radius, 0, Math.PI * 2);
+  ctx.arc(0, 0, obj.radius, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 };
 ```
 
-#### 2. Velocity-Based Stretch
+### Velocity Stretch
 
-Fast-moving objects should stretch in their direction of movement:
+Fast objects stretch in their direction of movement:
 
-```javascript
-const drawWithVelocityStretch = (ctx, obj) => {
+```typescript
+const drawWithVelocityStretch = (ctx: CanvasRenderingContext2D, obj: any) => {
   const speed = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy);
-  const stretchFactor = 1 + Math.min(speed / 20, 0.3); // Max 30% stretch
+  const stretch = 1 + Math.min(speed / 20, 0.3); // Max 30% stretch
   const angle = Math.atan2(obj.vy, obj.vx);
-
+  
   ctx.save();
   ctx.translate(obj.x, obj.y);
   ctx.rotate(angle);
-  ctx.scale(stretchFactor, 1 / stretchFactor);
-  // Draw object at origin
+  ctx.scale(stretch, 1 / stretch); // Preserve volume
+  ctx.rotate(-angle);
+  // Draw object
   ctx.restore();
-};
-```
-
-#### 3. Impact Flash
-
-Brief white flash at point of collision:
-
-```javascript
-const impactFlashes = [];
-
-const createImpactFlash = (x, y) => {
-  impactFlashes.push({ x, y, radius: 5, alpha: 1 });
-};
-
-const updateImpactFlashes = () => {
-  for (let i = impactFlashes.length - 1; i >= 0; i--) {
-    const flash = impactFlashes[i];
-    flash.radius += 3;
-    flash.alpha -= 0.15;
-    if (flash.alpha <= 0) impactFlashes.splice(i, 1);
-  }
-};
-
-const drawImpactFlashes = (ctx) => {
-  impactFlashes.forEach(flash => {
-    ctx.save();
-    ctx.globalAlpha = flash.alpha;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(flash.x, flash.y, flash.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  });
-};
-```
-
-#### 4. Shatter/Destruction Animation
-
-When objects are destroyed, break them into pieces with physics:
-
-```javascript
-const shards = [];
-
-const createShatter = (obj, shardCount = 6) => {
-  const shardWidth = obj.width / 3;
-  const shardHeight = obj.height / 2;
-
-  for (let i = 0; i < shardCount; i++) {
-    shards.push({
-      x: obj.x + (i % 3) * shardWidth,
-      y: obj.y + Math.floor(i / 3) * shardHeight,
-      width: shardWidth * 0.9,
-      height: shardHeight * 0.9,
-      vx: (Math.random() - 0.5) * 8,
-      vy: -Math.random() * 5 - 2,
-      rotation: 0,
-      rotationSpeed: (Math.random() - 0.5) * 0.3,
-      color: obj.color,
-      alpha: 1,
-    });
-  }
-};
-
-const updateShards = () => {
-  const gravity = 0.3;
-  for (let i = shards.length - 1; i >= 0; i--) {
-    const shard = shards[i];
-    shard.x += shard.vx;
-    shard.y += shard.vy;
-    shard.vy += gravity;
-    shard.rotation += shard.rotationSpeed;
-    shard.alpha -= 0.02;
-    if (shard.alpha <= 0) shards.splice(i, 1);
-  }
-};
-```
-
-#### 5. Screen Shake
-
-**Use sparingly** — Can cause nausea if overused.
-
-```javascript
-let currentShake = null;
-
-const triggerScreenShake = (intensity, duration = 150) => {
-  currentShake = { intensity, duration, startTime: performance.now() };
-};
-
-const getShakeOffset = () => {
-  if (!currentShake) return { x: 0, y: 0 };
-
-  const elapsed = performance.now() - currentShake.startTime;
-  if (elapsed > currentShake.duration) {
-    currentShake = null;
-    return { x: 0, y: 0 };
-  }
-
-  // Decay over time
-  const progress = elapsed / currentShake.duration;
-  const currentIntensity = currentShake.intensity * (1 - progress);
-
-  return {
-    x: (Math.random() - 0.5) * 2 * currentIntensity,
-    y: (Math.random() - 0.5) * 2 * currentIntensity,
-  };
-};
-```
-
-**Screen shake intensity guide:**
-| Event | Intensity | Duration |
-|-------|-----------|----------|
-| Small impact | 2-3px | 100ms |
-| Medium impact | 4-5px | 150ms |
-| Large impact | 6-8px | 200ms |
-| Massive (rare) | 10px+ | 250ms |
-
-#### 6. Freeze Frame (Hit Stop)
-
-Pause the game for 30-100ms on significant impacts. Makes hits feel powerful.
-
-```javascript
-let freezeFrameUntil = 0;
-
-const triggerFreezeFrame = (duration = 50) => {
-  freezeFrameUntil = performance.now() + duration;
-};
-
-// In game loop
-const gameLoop = (timestamp) => {
-  if (timestamp < freezeFrameUntil) {
-    draw(); // Still render, but don't update physics
-    requestAnimationFrame(gameLoop);
-    return;
-  }
-  update();
-  draw();
-  requestAnimationFrame(gameLoop);
-};
-```
-
-**Freeze frame duration guide:**
-| Event | Duration |
-|-------|----------|
-| Normal success | 40-50ms |
-| Combo 5+ | 50-60ms |
-| Combo 10+ | 70-80ms |
-| Big destruction | 60-80ms |
-| Level complete | 100ms |
-
-#### 7. Color Flash / Screen Flash
-
-Brief color overlay on events:
-
-```javascript
-let screenFlash = null;
-
-const triggerScreenFlash = (color, alpha = 0.3) => {
-  screenFlash = { color, alpha };
-};
-
-const updateScreenFlash = () => {
-  if (screenFlash) {
-    screenFlash.alpha -= 0.03;
-    if (screenFlash.alpha <= 0) screenFlash = null;
-  }
-};
-
-const drawScreenFlash = (ctx) => {
-  if (!screenFlash) return;
-  ctx.save();
-  ctx.globalAlpha = screenFlash.alpha;
-  ctx.fillStyle = screenFlash.color;
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-  ctx.restore();
-};
-```
-
-**Flash colors:**
-- **Success:** Green/gold (#00ff00, #ffd700)
-- **Failure:** Red, subtle (#ff0000, alpha 0.2)
-- **Powerup:** Powerup's signature color
-- **Critical:** Pulsing vignette
-
-#### 8. Particles
-
-Enhanced particle system with varied sizes and colors:
-
-```javascript
-const createParticleBurst = (x, y, color, count = 14) => {
-  for (let i = 0; i < count; i++) {
-    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
-    const speed = 2 + Math.random() * 4;
-
-    particles.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 2, // Bias upward
-      size: 2 + Math.random() * 4,
-      color: i % 3 === 0 ? '#ffffff' : color, // Some white sparkles
-      alpha: 1,
-      gravity: 0.1 + Math.random() * 0.1,
-    });
-  }
-};
-```
-
-#### 9. Trail Effects with Color Escalation
-
-Trail color changes based on game state (combo level, powerup active):
-
-```javascript
-const getTrailColor = (combo, isPoweredUp) => {
-  if (isPoweredUp) return '#ff4500'; // Fireball orange
-  if (combo >= 10) return '#ff00ff'; // Magenta
-  if (combo >= 8) return '#ff4500';  // OrangeRed
-  if (combo >= 5) return '#ffd700';  // Gold
-  if (combo >= 3) return '#ffaa00';  // Orange
-  return '#ff8c00'; // Default
 };
 ```
 
 ### Easing Functions
 
-Never use linear easing. Always use curves:
+**Never use linear animation.** Always use curves:
 
-| Use Case | Easing |
-|----------|--------|
-| UI appearing | `ease-out` or `cubic-bezier(0.0, 0.0, 0.2, 1)` |
-| UI disappearing | `ease-in` or `cubic-bezier(0.4, 0.0, 1, 1)` |
-| Bouncy feel | `cubic-bezier(0.68, -0.55, 0.265, 1.55)` |
-| Snappy | `cubic-bezier(0.25, 0.1, 0.25, 1)` |
-| Elastic | `cubic-bezier(0.68, -0.6, 0.32, 1.6)` |
-
----
-
-## Collision & Impact Systems
-
-**New section from Brick Breaker learnings.**
-
-### Principle: Every Collision Type Needs Unique Feedback
-
-When objects collide, the feedback should communicate:
-1. **What** collided (ball vs paddle, card vs card)
-2. **Material** of what it hit (soft, hard, breakable, unbreakable)
-3. **Outcome** (destroyed, damaged, deflected)
-
-### Collision Feedback Matrix
-
-| Collision | Sound | Haptic | Visual |
-|-----------|-------|--------|--------|
-| Player tool + projectile | Rubbery thwack | Medium 20ms | Tool squash, impact flash |
-| Projectile + wall | Clean ping | None or ultra-light | Impact flash |
-| Projectile + breakable (destroy) | Pop/crunch | Light 12ms | Shatter + particles |
-| Projectile + breakable (damage) | Crack | Medium 18ms | Crack overlay |
-| Projectile + unbreakable | Metallic clang | Heavy 30ms | Impact flash, no damage |
-| Player + collectible | Sparkle chime | Triple burst | Glow flash |
-| Player + hazard | Harsh buzz | Error pattern | Red flash |
-
-### Implementation Pattern
-
-```javascript
-const handleCollision = (objA, objB, collisionPoint) => {
-  const collisionType = getCollisionType(objA, objB);
-
-  // Sound
-  playCollisionSound(collisionType, collisionPoint);
-
-  // Haptic
-  triggerCollisionHaptic(collisionType);
-
-  // Visual
-  createImpactFlash(collisionPoint.x, collisionPoint.y);
-
-  if (collisionType.destroys) {
-    createShatter(objB);
-    createParticleBurst(objB.x, objB.y, objB.color);
-    triggerFreezeFrame(40);
-  }
-
-  if (collisionType.squashes) {
-    triggerSquash(objA, collisionType.isHorizontal);
-  }
+```typescript
+// Essential easing functions
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
+const easeInOutQuad = (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+const easeOutElastic = (t: number) => {
+  if (t === 0 || t === 1) return t;
+  return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * (2 * Math.PI / 3)) + 1;
 };
+const easeOutBounce = (t: number) => {
+  if (t < 1 / 2.75) return 7.5625 * t * t;
+  if (t < 2 / 2.75) return 7.5625 * (t -= 1.5 / 2.75) * t + 0.75;
+  if (t < 2.5 / 2.75) return 7.5625 * (t -= 2.25 / 2.75) * t + 0.9375;
+  return 7.5625 * (t -= 2.625 / 2.75) * t + 0.984375;
+};
+
+// When to use each
+// easeOutCubic: UI appearing, objects settling
+// easeOutQuart: Snappy movements
+// easeInOutQuad: Camera movements, UI transitions
+// easeOutElastic: Bouncy buttons, playful UI
+// easeOutBounce: Landing, dropping objects
 ```
 
----
-
-## Combo & Streak Systems
-
-**New section from Brick Breaker learnings.**
-
-### Core Combo Mechanics
-
-A combo system should:
-1. **Track** consecutive successes
-2. **Reward** with escalating feedback
-3. **Timeout** after brief inactivity (0.5-2 seconds)
-4. **Multiply** score or other rewards
-5. **Break** with clear feedback when lost
-
-### Combo Feedback Escalation
-
-| Combo | Sound | Haptic | Visual |
-|-------|-------|--------|--------|
-| 1 | Base | 15ms single | Base animation |
-| 2 | +10% pitch | Double pulse | + Sparkles |
-| 3 | +15% pitch, sparkle layer | Triple pulse | + Color flash |
-| 4-5 | +20% pitch, bass hit | Quad pulse | + Screen shake (light) |
-| 6-9 | Celebratory | Pattern burst | + Trail color change |
-| 10+ | Full celebration | Full pattern | + Confetti, callout |
-
-### Visual Combo Meter
-
-Always show the player their combo status:
-
-```javascript
-const drawComboMeter = (ctx, combo, timeUntilReset, maxTime) => {
-  if (combo < 2) return;
-
-  const fillPercent = timeUntilReset / maxTime;
-  const meterColor = combo >= 10 ? '#ff00ff' : combo >= 5 ? '#ffd700' : '#ff8c00';
-
-  // Background
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-  ctx.fillRect(x, y, width, height);
-
-  // Fill (time remaining)
-  ctx.fillStyle = meterColor;
-  ctx.fillRect(x, y, width * fillPercent, height);
-
-  // Combo count
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(`x${combo}`, x + width / 2, y - 8);
-};
-```
-
-### Combo Score Multiplier
-
-```javascript
-const getComboMultiplier = (combo) => {
-  if (combo >= 10) return 2.5;
-  if (combo >= 8) return 2.0;
-  if (combo >= 5) return 1.5;
-  if (combo >= 3) return 1.2;
-  return 1.0;
-};
-
-const calculateScore = (basePoints, combo) => {
-  return Math.floor(basePoints * getComboMultiplier(combo));
-};
-```
-
-### Combo Break Feedback
-
-When a combo is lost, provide clear feedback:
-
-```javascript
-const onComboBreak = (lostCombo) => {
-  if (lostCombo < 3) return; // Only for meaningful combos
-
-  // Sound: Descending, disappointed tone
-  playComboBreak(lostCombo);
-
-  // Haptic: Brief error-like pattern
-  if (lostCombo >= 5) haptics.error();
-
-  // Visual: Red vignette flash
-  triggerVignetteFlash('#ff0000', 0.3);
-};
-```
-
----
-
-## Anticipation & Tension
-
-**New section from Brick Breaker learnings.**
-
-### Principle: Build Tension Before Big Moments
-
-Anticipation makes achievements feel more satisfying. Key moments to add anticipation:
-- Near completion (1-3 items remaining)
-- Approaching danger (projectile heading toward player)
-- Timer critical state
-- About to achieve milestone
-
-### Final Target Highlighting
-
-When only 1-3 targets remain, highlight them:
-
-```javascript
-const drawWithHighlight = (ctx, obj, remainingCount, time) => {
-  const shouldHighlight = remainingCount <= 3;
-
-  if (shouldHighlight) {
-    // Pulsing glow
-    const pulseIntensity = 10 + Math.sin(time * 0.01) * 8;
-    ctx.shadowColor = '#ffd700';
-    ctx.shadowBlur = pulseIntensity;
-
-    // Pulsing border
-    ctx.strokeStyle = `rgba(255, 215, 0, ${0.5 + Math.sin(time * 0.01) * 0.3})`;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
-  }
-
-  // Draw object normally
-  drawObject(ctx, obj);
-};
-```
-
-### Anticipation Sound Loop
-
-Start a tension-building sound when near completion:
-
-```javascript
-let anticipationLoop = null;
-
-const checkAnticipation = (remainingTargets) => {
-  if (remainingTargets <= 3 && remainingTargets > 0 && !anticipationLoop) {
-    anticipationLoop = startAmbientLoop('/sounds/anticipation_loop.mp3', 0.25);
-  } else if (remainingTargets === 0 || remainingTargets > 3) {
-    if (anticipationLoop) {
-      stopAmbientLoop(anticipationLoop);
-      anticipationLoop = null;
-    }
-  }
-};
-```
-
-### Trajectory Prediction
-
-For games with projectiles, show where they're heading:
-
-```javascript
-const drawTrajectoryHint = (ctx, projectile, targetY, paddle) => {
-  // Only show when projectile is heading toward target
-  if (projectile.vy <= 0) return;
-
-  // Calculate predicted landing position
-  const timeToReach = (targetY - projectile.y) / projectile.vy;
-  if (timeToReach < 0 || timeToReach > 60) return;
-
-  const predictedX = projectile.x + projectile.vx * timeToReach;
-
-  // Draw subtle indicator
-  const alpha = Math.max(0, 1 - timeToReach / 60) * 0.5;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.arc(predictedX, targetY - 5, 4, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-};
-```
-
-### Level Transition Animation
-
-Smooth transitions between levels:
-
-```javascript
-const levelTransition = {
-  phase: null, // 'fadeOut' | 'display' | 'fadeIn'
-  progress: 0,
-  levelNumber: 0,
-};
-
-const startLevelTransition = (newLevel) => {
-  levelTransition.phase = 'fadeOut';
-  levelTransition.progress = 0;
-  levelTransition.levelNumber = newLevel;
-};
-```
-
-### Danger Zone Warning System (NEW - Citrus Drop)
-
-**Source:** Citrus Drop research (January 2026)
-
-For games with "game over" zones (like the danger line in merge games), create intense panic feedback:
-
-#### Visual Danger Indicators
-```javascript
-const DANGER_ZONE_CONFIG = {
-  // Pulsing red vignette
-  vignette: {
-    color: '#ff0000',
-    intensity: 0.3,
-    pulseSpeed: 800, // ms per pulse
-  },
-
-  // Glowing danger objects
-  objectGlow: {
-    color: '#ff4444',
-    radius: 10,
-    pulseSpeed: 400,
-  },
-
-  // Screen edge throb
-  edgeThrob: {
-    color: '#ff0000',
-    width: 20,
-    pulseIntensity: 0.5,
-  },
-};
-
-const drawDangerObject = (ctx, obj, timeInDanger) => {
-  const dangerProgress = Math.min(timeInDanger / 2000, 1);
-  const pulsePhase = (Date.now() % 400) / 400;
-  const glowIntensity = 0.3 + (Math.sin(pulsePhase * Math.PI * 2) * 0.2);
-
-  // Pulsing red glow
-  ctx.shadowColor = `rgba(255, 0, 0, ${glowIntensity * dangerProgress})`;
-  ctx.shadowBlur = 15 + (dangerProgress * 10);
-
-  drawObject(ctx, obj);
-  ctx.shadowBlur = 0;
-
-  // Warning indicator
-  if (dangerProgress > 0.3) {
-    ctx.fillStyle = `rgba(255, 0, 0, ${dangerProgress})`;
-    ctx.font = 'bold 14px system-ui';
-    ctx.fillText('⚠️', obj.x, obj.y - obj.radius - 15);
-  }
-};
-```
-
-#### Audio: Heartbeat Pattern
-```javascript
-const playHeartbeat = () => {
-  // Double-beat pattern: "lub-DUB"
-  playTone(audioManager, 60, 0.08, 100, 'sine');  // First beat
-  setTimeout(() => {
-    playTone(audioManager, 50, 0.12, 100, 'sine'); // Second beat (louder)
-  }, 150);
-};
-
-// Escalate speed as danger increases
-const getHeartbeatInterval = (timeInDanger) => {
-  const baseInterval = 800;
-  const minInterval = 400;
-  const escalation = Math.min(timeInDanger / 2000, 1);
-  return Math.max(minInterval, baseInterval - (escalation * 400));
-};
-```
-
-### Merge Anticipation Glow (NEW - Citrus Drop)
-
-When matching objects are near each other but haven't merged yet, show anticipation:
-
-```javascript
-const MERGE_PROXIMITY = 80; // pixels
-
-const checkMergeProximity = (objects) => {
-  for (let i = 0; i < objects.length; i++) {
-    for (let j = i + 1; j < objects.length; j++) {
-      if (objects[i].type !== objects[j].type) continue;
-
-      const dist = distance(objects[i], objects[j]);
-      const touchDist = objects[i].radius + objects[j].radius;
-
-      if (dist < touchDist + MERGE_PROXIMITY && dist > touchDist) {
-        const proximity = 1 - ((dist - touchDist) / MERGE_PROXIMITY);
-        drawAnticipationGlow(ctx, objects[i], proximity);
-        drawAnticipationGlow(ctx, objects[j], proximity);
-      }
-    }
-  }
-};
-
-const drawAnticipationGlow = (ctx, obj, proximity) => {
-  const pulse = 0.5 + (Math.sin(Date.now() / 250) * 0.5);
-  const glowRadius = obj.radius + (10 * proximity * pulse);
-  const alpha = proximity * 0.4 * pulse;
-
-  const gradient = ctx.createRadialGradient(
-    obj.x, obj.y, obj.radius,
-    obj.x, obj.y, glowRadius
-  );
-  gradient.addColorStop(0, `${obj.color}00`);
-  gradient.addColorStop(0.5, `${obj.color}${Math.round(alpha * 255).toString(16)}`);
-  gradient.addColorStop(1, `${obj.color}00`);
-
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.arc(obj.x, obj.y, glowRadius, 0, Math.PI * 2);
-  ctx.fill();
-};
-
-const updateLevelTransition = () => {
-  if (!levelTransition.phase) return;
-
-  levelTransition.progress += 0.02;
-
-  if (levelTransition.progress >= 1) {
-    if (levelTransition.phase === 'fadeOut') {
-      levelTransition.phase = 'display';
-      levelTransition.progress = 0;
-      loadLevel(levelTransition.levelNumber);
-    } else if (levelTransition.phase === 'display') {
-      levelTransition.phase = 'fadeIn';
-      levelTransition.progress = 0;
-    } else {
-      levelTransition.phase = null;
-    }
-  }
-};
-
-const drawLevelTransition = (ctx) => {
-  if (!levelTransition.phase) return;
-
-  let overlayAlpha = 0;
-  if (levelTransition.phase === 'fadeOut') overlayAlpha = levelTransition.progress;
-  else if (levelTransition.phase === 'display') overlayAlpha = 1;
-  else if (levelTransition.phase === 'fadeIn') overlayAlpha = 1 - levelTransition.progress;
-
-  ctx.save();
-  ctx.globalAlpha = overlayAlpha;
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-  if (levelTransition.phase === 'display') {
-    ctx.fillStyle = '#ffd700';
-    ctx.font = 'bold 48px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(`LEVEL ${levelTransition.levelNumber}`, canvasWidth / 2, canvasHeight / 2);
-  }
-  ctx.restore();
-};
-```
-
----
-
-## Powerup & Collectible Feedback
-
-**New section from Brick Breaker learnings.**
-
-### Powerup Lifecycle
-
-Every powerup should have feedback at each stage:
-
-1. **Spawn** — Something valuable appeared
-2. **Idle/Falling** — It's available, grab it!
-3. **Collection** — You got it!
-4. **Activation** — It's now active
-5. **Active state** — Visual reminder it's working
-6. **Expiring soon** — Warning it's about to end
-7. **Expired** — It's gone
-
-### Spawn Feedback
-
-```javascript
-const spawnPowerup = (x, y, type) => {
-  playSound('powerup_spawn.mp3', 0.35); // Sparkle chime
-  createParticleBurst(x, y, powerupColors[type], 8);
-
-  return {
-    x, y, type,
-    pulsePhase: 0, // For idle animation
-  };
-};
-```
-
-### Idle Animation (Glow & Pulse)
-
-```javascript
-const drawPowerup = (ctx, powerup, time) => {
-  const pulseScale = 1 + Math.sin(time * 0.01) * 0.1;
-  const glowIntensity = 10 + Math.sin(time * 0.015) * 5;
-
-  ctx.save();
-  ctx.shadowColor = powerup.color;
-  ctx.shadowBlur = glowIntensity;
-
-  ctx.translate(powerup.x, powerup.y);
-  ctx.scale(pulseScale, pulseScale);
-
-  // Draw powerup
-  ctx.fillStyle = powerup.color;
-  ctx.beginPath();
-  ctx.arc(0, 0, powerup.radius, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Icon
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(powerup.icon, 0, 0);
-
-  ctx.restore();
-};
-```
-
-### Collection Feedback
-
-```javascript
-const collectPowerup = (powerup) => {
-  // Type-specific sound
-  playSound(powerupSounds[powerup.type], 0.5);
-
-  // Haptic: Rewarding triple burst
-  haptics.powerup();
-
-  // Screen flash in powerup's color
-  triggerScreenFlash(powerup.color, 0.3);
-
-  // Particles
-  createParticleBurst(powerup.x, powerup.y, powerup.color, 12);
-};
-```
-
-### Active State Indicator
-
-Show which powerups are active and their remaining duration:
-
-```javascript
-const drawActivePowerups = (ctx, activePowerups, currentTime) => {
-  activePowerups.forEach((powerup, index) => {
-    const remaining = powerup.expiresAt - currentTime;
-    const progress = remaining / powerup.duration;
-
-    const x = 10;
-    const y = 60 + index * 25;
-    const width = 80;
-    const height = 20;
-
-    // Background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(x, y, width, height);
-
-    // Progress bar
-    ctx.fillStyle = powerup.color;
-    ctx.fillRect(x, y, width * progress, height);
-
-    // Label
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(powerup.type.toUpperCase(), x + 5, y + 14);
-
-    // Flash when about to expire (<2 seconds)
-    if (remaining < 2000) {
-      ctx.globalAlpha = 0.5 + Math.sin(currentTime * 0.02) * 0.5;
-      ctx.strokeStyle = '#ff0000';
-      ctx.strokeRect(x, y, width, height);
-      ctx.globalAlpha = 1;
-    }
-  });
-};
-```
-
-### Type-Specific Active Effects
-
-Some powerups need ambient feedback while active:
-
-```javascript
-// Fireball mode: Ember particles + ambient sound
-const updateFireballMode = (ball, isActive) => {
-  if (isActive) {
-    // Ambient sound loop
-    if (!fireballLoop) fireballLoop = startAmbientLoop('fireball_loop.mp3', 0.2);
-
-    // Draw ember particles around ball
-    drawEmberParticles(ball);
-  } else {
-    if (fireballLoop) {
-      stopAmbientLoop(fireballLoop);
-      fireballLoop = null;
-    }
-  }
-};
-```
-
----
-
-## Debuff & Negative Effect Systems
-
-**New section from Orange Juggle learnings.**
-
-### Principle: Debuffs Need Constant Feedback
-
-When players are affected by a negative status, they need continuous reminders:
-1. **Visual overlay** — Constantly visible effect
-2. **Audio loop** — Ambient sound while active
-3. **Clear cleanse indicator** — Show how to remove it
-
-### Visual Debuff Overlay
-
-Create an immersive "affected" state with screen overlays:
-
-```javascript
-const drawDebuffOverlay = (ctx, debuffType, time) => {
-  if (!activeDebuff) return;
-
-  ctx.save();
-
-  if (debuffType === 'drunk' || debuffType === 'slowed') {
-    // Woozy purple vignette that wobbles
-    const wobbleX = Math.sin(time * 0.003) * 20;
-    const wobbleY = Math.cos(time * 0.004) * 15;
-    const wobbleAlpha = 0.25 + Math.sin(time * 0.005) * 0.1;
-
-    const gradient = ctx.createRadialGradient(
-      canvasWidth / 2 + wobbleX,
-      canvasHeight / 2 + wobbleY,
-      canvasWidth * 0.3,
-      canvasWidth / 2,
-      canvasHeight / 2,
-      canvasWidth * 0.8
-    );
-    gradient.addColorStop(0, 'transparent');
-    gradient.addColorStop(1, `rgba(75, 0, 75, ${wobbleAlpha})`);
-
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-    // Optional: Subtle scan lines for dizziness
-    ctx.globalAlpha = 0.03;
-    for (let y = 0; y < canvasHeight; y += 4) {
-      if (y % 8 === 0) {
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, y, canvasWidth, 2);
-      }
-    }
-  }
-
-  ctx.restore();
-};
-```
-
-### Debuff Audio Loop
-
-```javascript
-const debuffSounds = {
-  drunk: {
-    loop: null,
-    start: (audioContext) => {
-      // Woozy, sloshing ambient with slow LFO
-      const lfo = audioContext.createOscillator();
-      const lfoGain = audioContext.createGain();
-      lfo.frequency.value = 0.5; // Very slow wobble
-      lfoGain.gain.value = 20;
-
-      const main = audioContext.createOscillator();
-      main.type = 'triangle';
-      main.frequency.value = 100;
-
-      const mainGain = audioContext.createGain();
-      mainGain.gain.value = 0.1;
-
-      lfo.connect(lfoGain).connect(main.frequency);
-      main.connect(mainGain).connect(audioContext.destination);
-
-      lfo.start();
-      main.start();
-
-      return { lfo, main, mainGain };
-    },
-    stop: (nodes) => {
-      nodes.mainGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
-      setTimeout(() => {
-        nodes.lfo.stop();
-        nodes.main.stop();
-      }, 500);
-    }
-  }
-};
-```
-
-### Debuff Cleanse Feedback
-
-When a debuff is removed (by powerup or timer), provide satisfying cleanse:
-
-```javascript
-const cleansDebuff = (debuffType, cleanseSource) => {
-  // Sound: Upward cleansing chime
-  const notes = [523, 659, 784]; // C5, E5, G5 ascending
-  notes.forEach((freq, i) => {
-    playNote(freq, audioContext.currentTime + i * 0.08, 0.15);
-  });
-
-  // Haptic: Quick energetic pattern
-  vibrate([10, 20, 8, 20, 6]);
-
-  // Visual: Flash in cleanse color (usually gold/white)
-  triggerScreenFlash('#ffd700', 0.3);
-
-  // Particles: Outward burst symbolizing removal
-  createParticleBurst(playerX, playerY, '#ffd700', 15);
-
-  // Stop debuff ambient
-  debuffSounds[debuffType].stop();
-  debuffOverlay = null;
-};
-```
-
-### Debuff Collection Sound
-
-Negative powerups need distinct, slightly ominous sounds:
-
-```javascript
-const createDebuffCollectSound = (audioContext) => {
-  // Double "glug-glug" with woozy warble
-  const glug1 = createGlugSound(200, 120, 0, 0.1);
-  const glug2 = createGlugSound(180, 100, 0.15, 0.25);
-
-  // Woozy warble overlay
-  const lfo = audioContext.createOscillator();
-  lfo.frequency.value = 5;
-  const lfoGain = audioContext.createGain();
-  lfoGain.gain.value = 30;
-
-  const mainOsc = audioContext.createOscillator();
-  mainOsc.type = 'triangle';
-  mainOsc.frequency.value = 150;
-
-  const mainGain = audioContext.createGain();
-  mainGain.gain.setValueAtTime(0.15, audioContext.currentTime);
-  mainGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-
-  lfo.connect(lfoGain).connect(mainOsc.frequency);
-  mainOsc.connect(mainGain).connect(audioContext.destination);
-
-  lfo.start();
-  mainOsc.start();
-  lfo.stop(audioContext.currentTime + 0.4);
-  mainOsc.stop(audioContext.currentTime + 0.4);
-};
-```
-
-### Debuff Haptic Pattern
-
-```javascript
-// Woozy, uneven pattern that feels "drunk"
-const debuffHaptics = {
-  drunk: [30, 80, 25],    // Long-pause-medium (sloshy)
-  slowed: [40, 40, 40],   // Heavy, sluggish
-  confused: [10, 20, 10, 50, 10, 20, 10], // Erratic
-};
-```
-
----
-
-## Enemy Warning & Hazard Systems
-
-**New section from Orange Juggle learnings.**
-
-### Principle: Enemies Need Anticipation
-
-Sudden enemy appearances feel unfair. Always provide warning:
-1. **Visual warning** — Shadow, icon, or highlight
-2. **Audio warning** — Distinct danger sound
-3. **Time to react** — 1-2 seconds minimum
-
-### Shadow Warning System (Drop from Sky)
-
-For enemies that drop into play:
-
-```javascript
-interface EnemyWarning {
-  x: number;
-  startTime: number;
-  duration: number; // 1500ms typical
-  enemyType: string;
+### Spring Physics
+
+For natural, organic motion:
+
+```typescript
+interface Spring {
+  value: number;
+  target: number;
+  velocity: number;
+  stiffness: number;  // Higher = snappier (100-500)
+  damping: number;    // Higher = less bouncy (10-30)
 }
 
-const enemyWarningRef = useRef<EnemyWarning | null>(null);
-
-const startEnemyWarning = (dropX: number, enemyType: string) => {
-  enemyWarningRef.current = {
-    x: dropX,
-    startTime: performance.now(),
-    duration: 1500,
-    enemyType,
-  };
-
-  // Warning sound
-  playEnemyWarning(enemyType);
-
-  // Warning haptic
-  vibrate([15, 100, 15, 100, 15]); // Urgent triple pulse
+const updateSpring = (spring: Spring, dt: number = 1/60) => {
+  const force = (spring.target - spring.value) * spring.stiffness;
+  const damping = spring.velocity * spring.damping;
+  
+  spring.velocity += (force - damping) * dt;
+  spring.value += spring.velocity * dt;
+  
+  return spring.value;
 };
 
-const drawEnemyWarning = (ctx: CanvasRenderingContext2D, currentTime: number) => {
-  const warning = enemyWarningRef.current;
-  if (!warning) return;
-
-  const elapsed = currentTime - warning.startTime;
-  const progress = Math.min(elapsed / warning.duration, 1);
-
-  // Growing shadow
-  const shadowRadius = 20 + progress * 40;
-  const shadowAlpha = 0.2 + progress * 0.4;
-
-  ctx.save();
-  ctx.globalAlpha = shadowAlpha;
-
-  // Elliptical shadow on ground
-  ctx.fillStyle = '#000000';
-  ctx.beginPath();
-  ctx.ellipse(
-    warning.x,
-    groundY, // Ground level
-    shadowRadius,
-    shadowRadius * 0.4, // Flattened for perspective
-    0, 0, Math.PI * 2
-  );
-  ctx.fill();
-
-  // Pulsing danger ring
-  const pulseAlpha = Math.sin(elapsed * 0.02) * 0.3 + 0.3;
-  ctx.globalAlpha = pulseAlpha;
-  ctx.strokeStyle = '#ff0000';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.ellipse(
-    warning.x,
-    groundY,
-    shadowRadius + 10,
-    (shadowRadius + 10) * 0.4,
-    0, 0, Math.PI * 2
-  );
-  ctx.stroke();
-
-  // Warning icon
-  ctx.globalAlpha = 0.8;
-  ctx.fillStyle = '#ff0000';
-  ctx.font = 'bold 24px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('⚠', warning.x, groundY - 30);
-
-  ctx.restore();
+// Presets
+const SPRING_PRESETS = {
+  bouncy: { stiffness: 200, damping: 12 },
+  snappy: { stiffness: 400, damping: 25 },
+  smooth: { stiffness: 150, damping: 20 },
+  wobbly: { stiffness: 120, damping: 8 },
 };
 ```
 
-### Enemy Drop Animation
+---
 
-```javascript
-interface Enemy {
+## Particle Systems
+
+### Particle Structure
+
+```typescript
+interface Particle {
   x: number;
   y: number;
-  targetY: number;
+  vx: number;
   vy: number;
-  landed: boolean;
-  squashY: number;
+  size: number;
+  color: string;
+  alpha: number;
+  gravity: number;
+  rotation: number;
+  rotationSpeed: number;
+  life: number;
+  maxLife: number;
 }
+```
 
-const spawnEnemy = (x: number, targetY: number): Enemy => {
-  return {
-    x,
-    y: -100, // Start above screen
-    targetY,
-    vy: 0,
-    landed: false,
-    squashY: 1,
-  };
-};
+### Burst Patterns
 
-const updateEnemyDrop = (enemy: Enemy) => {
-  if (enemy.landed) {
-    // Squash recovery
-    enemy.squashY += (1 - enemy.squashY) * 0.15;
-    return;
-  }
-
-  // Accelerating drop
-  enemy.vy += 0.8; // Gravity
-  enemy.y += enemy.vy;
-
-  if (enemy.y >= enemy.targetY) {
-    enemy.y = enemy.targetY;
-    enemy.landed = true;
-    enemy.squashY = 0.5; // Squash on landing
-
-    // Landing effects
-    createDustCloud(enemy.x, enemy.targetY);
-    triggerScreenShake(10, 200);
-    playEnemyLand();
-  }
-};
-
-const createDustCloud = (x: number, y: number) => {
-  for (let i = 0; i < 20; i++) {
-    const angle = Math.random() * Math.PI; // Upper hemisphere
+```typescript
+// Radial burst (explosions, celebrations)
+const spawnRadialBurst = (
+  pool: ParticlePool,
+  x: number, 
+  y: number, 
+  count: number,
+  config: Partial<Particle> = {}
+) => {
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
     const speed = 2 + Math.random() * 4;
-
-    particles.push({
-      x, y,
-      vx: Math.cos(angle) * speed * (Math.random() > 0.5 ? 1 : -1),
-      vy: -Math.sin(angle) * speed,
-      size: 4 + Math.random() * 6,
-      color: '#d2b48c', // Tan/brown
-      alpha: 0.8,
-      gravity: 0.05,
+    
+    pool.spawn(x, y, {
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2, // Slight upward bias
+      size: 3 + Math.random() * 4,
+      color: config.color || '#ffffff',
+      gravity: 0.1,
+      maxLife: 40,
+      ...config,
     });
   }
 };
-```
 
-### Enemy Warning Sound
-
-```javascript
-const createEnemyWarningSound = (audioContext: AudioContext) => {
-  // Descending alarm horn
-  const osc = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(440, audioContext.currentTime);
-  osc.frequency.linearRampToValueAtTime(220, audioContext.currentTime + 0.5);
-
-  gain.gain.setValueAtTime(0.3, audioContext.currentTime);
-  gain.gain.linearRampToValueAtTime(0.4, audioContext.currentTime + 0.1);
-  gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-
-  // Low rumble layer
-  const rumble = audioContext.createOscillator();
-  const rumbleGain = audioContext.createGain();
-  rumble.type = 'sine';
-  rumble.frequency.value = 60;
-  rumbleGain.gain.setValueAtTime(0.2, audioContext.currentTime);
-  rumbleGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
-
-  osc.connect(gain).connect(audioContext.destination);
-  rumble.connect(rumbleGain).connect(audioContext.destination);
-
-  osc.start();
-  rumble.start();
-  osc.stop(audioContext.currentTime + 0.5);
-  rumble.stop(audioContext.currentTime + 0.6);
-};
-```
-
-### Enemy Collision Impact
-
-When enemy hits player (game over moment):
-
-```javascript
-const handleEnemyCollision = () => {
-  // Heavy impact sound
-  playEnemyImpact(); // Crash + thud
-
-  // Major haptic
-  vibrate([80]); // Long heavy pulse
-
-  // Major screen shake
-  triggerScreenShake(15, 300);
-
-  // Freeze frame for impact
-  triggerFreezeFrame(100);
-
-  // Explosion particles
-  for (let i = 0; i < 30; i++) {
-    const angle = (i / 30) * Math.PI * 2;
-    const speed = 3 + Math.random() * 6;
-
-    particles.push({
-      x: player.x, y: player.y,
+// Directional burst (impacts, hits)
+const spawnDirectionalBurst = (
+  pool: ParticlePool,
+  x: number,
+  y: number,
+  direction: number, // radians
+  spread: number,    // radians (e.g., Math.PI/4 for 45° cone)
+  count: number
+) => {
+  for (let i = 0; i < count; i++) {
+    const angle = direction + (Math.random() - 0.5) * spread;
+    const speed = 3 + Math.random() * 5;
+    
+    pool.spawn(x, y, {
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
-      size: 4 + Math.random() * 6,
-      color: i % 3 === 0 ? '#ff4444' : '#ffaa00',
-      alpha: 1,
-      gravity: 0.15,
+      size: 2 + Math.random() * 3,
+      gravity: 0.05,
+      maxLife: 30,
     });
   }
+};
 
-  // Red screen flash
-  triggerScreenFlash('#ff0000', 0.5);
-
-  setGameOver(true);
+// Confetti (celebrations)
+const spawnConfetti = (pool: ParticlePool, x: number, y: number, count: number) => {
+  const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+  
+  for (let i = 0; i < count; i++) {
+    pool.spawn(x, y, {
+      vx: (Math.random() - 0.5) * 10,
+      vy: -5 - Math.random() * 8,
+      size: 6 + Math.random() * 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      gravity: 0.15,
+      rotationSpeed: (Math.random() - 0.5) * 20,
+      maxLife: 80,
+    });
+  }
 };
 ```
 
-### Near-Miss with Enemy
+### Emitter Shapes
 
-Escaping an enemy narrowly should be acknowledged:
+```typescript
+type EmitterShape = 'point' | 'line' | 'circle' | 'rectangle';
 
-```javascript
-const checkEnemyNearMiss = (enemy, player): boolean => {
-  const distance = Math.abs(enemy.x - player.x);
-
-  // Within near-miss range but not collision
-  if (distance > collisionThreshold && distance < collisionThreshold + 30) {
-    // Ultra-light haptic warning
-    vibrate([5]);
-
-    // Brief orange flash (warning but survived)
-    triggerScreenFlash('#ff8800', 0.15);
-
-    return true;
+const getEmitterPosition = (
+  shape: EmitterShape,
+  center: { x: number; y: number },
+  size: { width: number; height: number }
+): { x: number; y: number } => {
+  switch (shape) {
+    case 'point':
+      return center;
+      
+    case 'line':
+      return {
+        x: center.x + (Math.random() - 0.5) * size.width,
+        y: center.y,
+      };
+      
+    case 'circle':
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.random() * size.width / 2;
+      return {
+        x: center.x + Math.cos(angle) * radius,
+        y: center.y + Math.sin(angle) * radius,
+      };
+      
+    case 'rectangle':
+      return {
+        x: center.x + (Math.random() - 0.5) * size.width,
+        y: center.y + (Math.random() - 0.5) * size.height,
+      };
   }
-  return false;
 };
 ```
 
 ---
 
-## Multi-Object Chaos Management
+## Screen Effects
 
-**New section from Orange Juggle learnings.**
+### Screen Shake
 
-### Principle: Help Players Manage Overwhelming Situations
+```typescript
+interface ShakeState {
+  intensity: number;
+  duration: number;
+  startTime: number;
+  trauma: number; // Accumulated shake from multiple hits
+}
 
-When multiple objects require attention simultaneously:
-1. **Prioritize visually** — Show which is most urgent
-2. **Predict outcomes** — Show where things are heading
-3. **Escalate feedback** — More chaos = more intensity
-
-### Panic Level System
-
-```javascript
-const getPanicLevel = (activeObjects: number): number => {
-  if (activeObjects >= 5) return 4; // Maximum chaos
-  if (activeObjects >= 4) return 3;
-  if (activeObjects >= 3) return 2;
-  if (activeObjects >= 2) return 1;
-  return 0; // Calm
+const shakeState: ShakeState = {
+  intensity: 0,
+  duration: 0,
+  startTime: 0,
+  trauma: 0,
 };
 
-const PANIC_EFFECTS = {
-  0: { vignette: false, predictionAlpha: 0.3, shakeMultiplier: 1 },
-  1: { vignette: false, predictionAlpha: 0.4, shakeMultiplier: 1 },
-  2: { vignette: true, vignetteAlpha: 0.1, predictionAlpha: 0.5, shakeMultiplier: 1.2 },
-  3: { vignette: true, vignetteAlpha: 0.2, predictionAlpha: 0.6, shakeMultiplier: 1.5 },
-  4: { vignette: true, vignetteAlpha: 0.3, predictionAlpha: 0.7, shakeMultiplier: 2 },
-};
-```
-
-### Landing Prediction Indicators
-
-Show where falling objects will land:
-
-```javascript
-const drawLandingPredictions = (
-  ctx: CanvasRenderingContext2D,
-  fallingObjects: FallingObject[],
-  targetY: number,
-  panicLevel: number
-) => {
-  const baseAlpha = PANIC_EFFECTS[panicLevel].predictionAlpha;
-
-  fallingObjects.forEach(obj => {
-    if (obj.vy <= 0) return; // Only falling objects
-
-    // Calculate landing position
-    const timeToLand = (targetY - obj.y) / obj.vy;
-    if (timeToLand < 0 || timeToLand > 90) return; // Too far away
-
-    const predictedX = obj.x + obj.vx * timeToLand;
-
-    // Urgency increases as it gets closer
-    const urgency = Math.max(0, 1 - timeToLand / 60);
-    const alpha = baseAlpha * urgency;
-
-    ctx.save();
-    ctx.globalAlpha = alpha;
-
-    // Landing dot
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(predictedX, targetY - 5, 4 + urgency * 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Trajectory line (dashed)
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([5, 5]);
-    ctx.beginPath();
-    ctx.moveTo(obj.x, obj.y);
-    ctx.lineTo(predictedX, targetY - 5);
-    ctx.stroke();
-
-    ctx.restore();
-  });
-};
-```
-
-### Panic Vignette
-
-Red edge glow when overwhelmed:
-
-```javascript
-const drawPanicVignette = (
-  ctx: CanvasRenderingContext2D,
-  panicLevel: number,
-  time: number
-) => {
-  const effects = PANIC_EFFECTS[panicLevel];
-  if (!effects.vignette) return;
-
-  const pulseAlpha = effects.vignetteAlpha + Math.sin(time * 0.02 * panicLevel) * 0.1;
-
-  const gradient = ctx.createRadialGradient(
-    canvasWidth / 2, canvasHeight / 2, canvasWidth * 0.3,
-    canvasWidth / 2, canvasHeight / 2, canvasWidth * 0.7
-  );
-  gradient.addColorStop(0, 'transparent');
-  gradient.addColorStop(1, `rgba(255, 0, 0, ${pulseAlpha})`);
-
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-};
-```
-
-### Prioritized Object Highlighting
-
-Highlight the most urgent object:
-
-```javascript
-const getMostUrgentObject = (objects: FallingObject[], targetY: number): FallingObject | null => {
-  let mostUrgent = null;
-  let shortestTime = Infinity;
-
-  objects.forEach(obj => {
-    if (obj.vy > 0) {
-      const timeToTarget = (targetY - obj.y) / obj.vy;
-      if (timeToTarget > 0 && timeToTarget < shortestTime) {
-        shortestTime = timeToTarget;
-        mostUrgent = obj;
-      }
-    }
-  });
-
-  return mostUrgent;
+// Trigger shake
+const triggerShake = (intensity: number, duration: number = 150) => {
+  shakeState.intensity = Math.max(shakeState.intensity, intensity);
+  shakeState.duration = duration;
+  shakeState.startTime = performance.now();
 };
 
-const drawUrgentHighlight = (ctx: CanvasRenderingContext2D, obj: FallingObject, time: number) => {
-  const pulseIntensity = 8 + Math.sin(time * 0.02) * 4;
+// Add trauma (stacks from multiple hits)
+const addTrauma = (amount: number) => {
+  shakeState.trauma = Math.min(shakeState.trauma + amount, 1);
+};
 
+// Get current offset (call in render loop)
+const getShakeOffset = (): { x: number; y: number } => {
+  const elapsed = performance.now() - shakeState.startTime;
+  
+  // Decay trauma over time
+  shakeState.trauma *= 0.95;
+  
+  // Calculate effective intensity
+  let intensity = shakeState.trauma * 10; // Trauma-based
+  
+  // Add triggered shake
+  if (elapsed < shakeState.duration) {
+    const progress = elapsed / shakeState.duration;
+    intensity += shakeState.intensity * (1 - progress);
+  }
+  
+  if (intensity < 0.1) return { x: 0, y: 0 };
+  
+  // Perlin noise would be better, but random works
+  return {
+    x: (Math.random() - 0.5) * 2 * intensity,
+    y: (Math.random() - 0.5) * 2 * intensity,
+  };
+};
+
+// Apply in render
+const render = (ctx: CanvasRenderingContext2D) => {
+  const shake = getShakeOffset();
   ctx.save();
-  ctx.shadowColor = '#ff4444';
-  ctx.shadowBlur = pulseIntensity;
-
-  // Pulsing ring around urgent object
-  ctx.strokeStyle = '#ff4444';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(obj.x, obj.y, obj.radius + 8, 0, Math.PI * 2);
-  ctx.stroke();
-
+  ctx.translate(shake.x, shake.y);
+  // ... draw everything
   ctx.restore();
 };
 ```
 
-### Chaos Sound Layering
+### Screen Flash
 
-Add audio intensity as chaos increases:
+```typescript
+let flashState = { color: '', alpha: 0 };
 
-```javascript
-const updateChaosAudio = (panicLevel: number) => {
-  // Base game audio always playing
+const triggerFlash = (color: string, alpha: number = 0.3) => {
+  flashState = { color, alpha };
+};
 
-  // Layer 1: Tension drone (panic 2+)
-  if (panicLevel >= 2 && !tensionDrone) {
-    tensionDrone = startAmbientLoop('tension_drone.mp3', 0.15);
-  } else if (panicLevel < 2 && tensionDrone) {
-    stopAmbientLoop(tensionDrone);
-    tensionDrone = null;
+const updateFlash = () => {
+  if (flashState.alpha > 0) {
+    flashState.alpha *= 0.9; // Exponential decay
+    if (flashState.alpha < 0.01) flashState.alpha = 0;
   }
+};
 
-  // Layer 2: Heartbeat (panic 3+)
-  if (panicLevel >= 3 && !heartbeat) {
-    heartbeat = startAmbientLoop('heartbeat.mp3', 0.2);
-  } else if (panicLevel < 3 && heartbeat) {
-    stopAmbientLoop(heartbeat);
-    heartbeat = null;
-  }
+const drawFlash = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+  if (flashState.alpha <= 0) return;
+  
+  ctx.save();
+  ctx.globalAlpha = flashState.alpha;
+  ctx.fillStyle = flashState.color;
+  ctx.fillRect(0, 0, width, height);
+  ctx.restore();
+};
 
-  // Layer 3: Alarm (panic 4)
-  if (panicLevel >= 4 && !alarmLoop) {
-    alarmLoop = startAmbientLoop('alarm_loop.mp3', 0.25);
-  } else if (panicLevel < 4 && alarmLoop) {
-    stopAmbientLoop(alarmLoop);
-    alarmLoop = null;
+// Flash presets
+const FLASH_PRESETS = {
+  success: { color: '#00ff00', alpha: 0.2 },
+  failure: { color: '#ff0000', alpha: 0.3 },
+  impact: { color: '#ffffff', alpha: 0.5 },
+  powerup: { color: '#ffd700', alpha: 0.25 },
+};
+```
+
+### Vignette
+
+```typescript
+const drawVignette = (
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  color: string = '#000000',
+  intensity: number = 0.3,
+  innerRadius: number = 0.3,
+  outerRadius: number = 0.8
+) => {
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const maxRadius = Math.sqrt(centerX * centerX + centerY * centerY);
+  
+  const gradient = ctx.createRadialGradient(
+    centerX, centerY, maxRadius * innerRadius,
+    centerX, centerY, maxRadius * outerRadius
+  );
+  
+  gradient.addColorStop(0, 'transparent');
+  gradient.addColorStop(1, color.replace(')', `, ${intensity})`).replace('rgb', 'rgba'));
+  
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, width, height);
+};
+
+// Pulsing danger vignette
+const drawDangerVignette = (
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  time: number
+) => {
+  const pulse = 0.2 + Math.sin(time * 0.01) * 0.1;
+  drawVignette(ctx, width, height, '#ff0000', pulse);
+};
+```
+
+### Freeze Frame (Hit Stop)
+
+```typescript
+let freezeUntil = 0;
+
+const triggerFreeze = (duration: number = 50) => {
+  freezeUntil = performance.now() + duration;
+};
+
+// In game loop
+const gameLoop = (timestamp: number) => {
+  if (timestamp < freezeUntil) {
+    // Still render, but don't update physics
+    render();
+    requestAnimationFrame(gameLoop);
+    return;
   }
+  
+  update();
+  render();
+  requestAnimationFrame(gameLoop);
+};
+
+// Freeze duration guide
+const FREEZE_DURATIONS = {
+  lightHit: 30,
+  normalHit: 50,
+  heavyHit: 80,
+  combo5: 60,
+  combo10: 80,
+  death: 150,
+  levelComplete: 100,
 };
 ```
 
 ---
 
-## Character-Based Player Feedback
+## Camera Systems
 
-**New section from Orange Juggle learnings.**
+### Camera Structure
 
-### Principle: Characters Have More Feedback Opportunities
-
-When the player controls a character (not just a paddle or cursor):
-1. **Animate body parts** — Arms, legs, expressions
-2. **Character reactions** — Surprise, effort, celebration
-3. **Personality through movement** — Squash, bounce, anticipation
-
-### Animated Limb System
-
-For characters with arms/appendages that interact:
-
-```javascript
-interface Character {
+```typescript
+interface Camera {
   x: number;
   y: number;
-  leftArmAngle: number;
-  rightArmAngle: number;
-  leftArmTarget: number;
-  rightArmTarget: number;
-  bodySquash: number;
-  expression: 'neutral' | 'effort' | 'happy' | 'worried';
+  targetX: number;
+  targetY: number;
+  zoom: number;
+  targetZoom: number;
+  shakeX: number;
+  shakeY: number;
+  trauma: number;
 }
 
-const triggerArmSwing = (character: Character, isLeftArm: boolean) => {
-  const arm = isLeftArm ? 'leftArmTarget' : 'rightArmTarget';
+const createCamera = (): Camera => ({
+  x: 0, y: 0,
+  targetX: 0, targetY: 0,
+  zoom: 1, targetZoom: 1,
+  shakeX: 0, shakeY: 0,
+  trauma: 0,
+});
+```
 
-  // Swing up
-  character[arm] = -Math.PI / 3;
+### Camera Follow with Easing
 
-  // Return to rest after delay
-  setTimeout(() => {
-    character[arm] = 0;
-  }, 150);
-
-  // Body squash on effort
-  character.bodySquash = 0.9;
-
-  // Arm whoosh sound
-  playArmSwing(isLeftArm);
-};
-
-const updateCharacterAnimation = (character: Character) => {
-  const armSpeed = 0.25;
-  const bodyRecovery = 0.15;
-
-  // Arm interpolation
-  character.leftArmAngle += (character.leftArmTarget - character.leftArmAngle) * armSpeed;
-  character.rightArmAngle += (character.rightArmTarget - character.rightArmAngle) * armSpeed;
-
-  // Body squash recovery
-  character.bodySquash += (1 - character.bodySquash) * bodyRecovery;
+```typescript
+const updateCamera = (camera: Camera, target: { x: number; y: number }, dt: number) => {
+  // Smooth follow
+  const followSpeed = 0.1;
+  camera.targetX = target.x;
+  camera.targetY = target.y;
+  
+  camera.x += (camera.targetX - camera.x) * followSpeed;
+  camera.y += (camera.targetY - camera.y) * followSpeed;
+  
+  // Smooth zoom
+  camera.zoom += (camera.targetZoom - camera.zoom) * 0.1;
+  
+  // Update shake
+  camera.trauma = Math.max(0, camera.trauma - dt * 0.5);
+  const shake = camera.trauma * camera.trauma; // Quadratic falloff
+  camera.shakeX = (Math.random() - 0.5) * 2 * shake * 10;
+  camera.shakeY = (Math.random() - 0.5) * 2 * shake * 10;
 };
 ```
 
-### Character Expression System
+### Look-Ahead
 
-```javascript
-const setCharacterExpression = (character: Character, expression: string, duration: number = 500) => {
-  character.expression = expression;
+Camera leads player movement for better visibility:
 
-  if (duration > 0) {
-    setTimeout(() => {
-      character.expression = 'neutral';
-    }, duration);
+```typescript
+const updateCameraWithLookAhead = (
+  camera: Camera,
+  player: { x: number; y: number; vx: number; vy: number },
+  lookAheadFactor: number = 50
+) => {
+  // Look ahead based on velocity
+  const lookAheadX = player.vx * lookAheadFactor;
+  const lookAheadY = player.vy * lookAheadFactor;
+  
+  camera.targetX = player.x + lookAheadX;
+  camera.targetY = player.y + lookAheadY;
+  
+  // Smooth follow
+  camera.x += (camera.targetX - camera.x) * 0.08;
+  camera.y += (camera.targetY - camera.y) * 0.08;
+};
+```
+
+### Camera Bounds
+
+```typescript
+const clampCameraToBounds = (
+  camera: Camera,
+  bounds: { minX: number; maxX: number; minY: number; maxY: number },
+  viewWidth: number,
+  viewHeight: number
+) => {
+  const halfWidth = viewWidth / 2 / camera.zoom;
+  const halfHeight = viewHeight / 2 / camera.zoom;
+  
+  camera.x = clamp(camera.x, bounds.minX + halfWidth, bounds.maxX - halfWidth);
+  camera.y = clamp(camera.y, bounds.minY + halfHeight, bounds.maxY - halfHeight);
+};
+```
+
+### Apply Camera Transform
+
+```typescript
+const applyCameraTransform = (ctx: CanvasRenderingContext2D, camera: Camera, canvasWidth: number, canvasHeight: number) => {
+  ctx.save();
+  
+  // Center on canvas
+  ctx.translate(canvasWidth / 2, canvasHeight / 2);
+  
+  // Apply zoom
+  ctx.scale(camera.zoom, camera.zoom);
+  
+  // Apply shake
+  ctx.translate(camera.shakeX, camera.shakeY);
+  
+  // Move to camera position
+  ctx.translate(-camera.x, -camera.y);
+};
+
+const resetCameraTransform = (ctx: CanvasRenderingContext2D) => {
+  ctx.restore();
+};
+```
+
+---
+
+## Shader Effects & Post-Processing
+
+Premium visual effects that elevate game feel. Includes both Canvas 2D (no WebGL) and WebGL approaches.
+
+### Effect Impact Table
+
+| Effect | Visual Impact | Performance Cost | Complexity | Recommended For |
+|--------|--------------|------------------|------------|-----------------|
+| Glow (shadowBlur) | Medium | Low | Easy | All games |
+| Bloom (multi-pass) | High | Medium | Medium | Victory, power-ups |
+| Chromatic aberration | Medium | Low | Easy | Impact, damage |
+| Color grading | Medium | Low | Easy | Mood, theme |
+| Vignette | Low-Medium | Very Low | Easy | Focus, atmosphere |
+| Screen distortion | High | Medium | Medium | Explosions, impacts |
+| Motion blur | Medium | High | Hard | Fast movement |
+| CRT/retro effects | Medium | Low | Medium | Aesthetic choice |
+
+---
+
+### Canvas 2D Effects (No WebGL Required)
+
+#### Glow Effect (shadowBlur)
+
+```typescript
+// Simple glow - works everywhere
+const drawWithGlow = (
+  ctx: CanvasRenderingContext2D,
+  drawFn: () => void,
+  color: string,
+  blur: number,
+  passes: number = 1
+) => {
+  ctx.save();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = blur;
+  
+  // Multiple passes = stronger glow
+  for (let i = 0; i < passes; i++) {
+    drawFn();
   }
+  
+  ctx.restore();
+};
+
+// Usage: Glowing collectible
+const drawGlowingOrb = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+  drawWithGlow(ctx, () => {
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(x, y, 15, 0, Math.PI * 2);
+    ctx.fill();
+  }, '#ffd700', 20, 2);
+};
+```
+
+#### Bloom Effect (Canvas 2D - No WebGL)
+
+True bloom using offscreen canvas compositing:
+
+```typescript
+class CanvasBloom {
+  private bloomCanvas: HTMLCanvasElement;
+  private bloomCtx: CanvasRenderingContext2D;
+  private blurCanvas: HTMLCanvasElement;
+  private blurCtx: CanvasRenderingContext2D;
+  
+  constructor(width: number, height: number) {
+    // Create offscreen canvases
+    this.bloomCanvas = document.createElement('canvas');
+    this.bloomCanvas.width = width;
+    this.bloomCanvas.height = height;
+    this.bloomCtx = this.bloomCanvas.getContext('2d')!;
+    
+    // Lower resolution for blur (performance)
+    this.blurCanvas = document.createElement('canvas');
+    this.blurCanvas.width = width / 4;
+    this.blurCanvas.height = height / 4;
+    this.blurCtx = this.blurCanvas.getContext('2d')!;
+  }
+  
+  apply(
+    mainCtx: CanvasRenderingContext2D,
+    sourceCanvas: HTMLCanvasElement,
+    threshold: number = 200,
+    intensity: number = 0.5
+  ) {
+    const { width, height } = sourceCanvas;
+    
+    // Step 1: Extract bright pixels
+    const imageData = mainCtx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    
+    for (let i = 0; i < data.length; i += 4) {
+      const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      if (brightness < threshold) {
+        // Darken non-bright pixels
+        data[i] = data[i + 1] = data[i + 2] = 0;
+      }
+    }
+    
+    this.bloomCtx.putImageData(imageData, 0, 0);
+    
+    // Step 2: Downscale and blur
+    this.blurCtx.filter = 'blur(8px)';
+    this.blurCtx.drawImage(
+      this.bloomCanvas, 
+      0, 0, width, height,
+      0, 0, this.blurCanvas.width, this.blurCanvas.height
+    );
+    
+    // Step 3: Composite bloom over original
+    mainCtx.save();
+    mainCtx.globalCompositeOperation = 'lighter';
+    mainCtx.globalAlpha = intensity;
+    mainCtx.filter = 'blur(4px)';
+    mainCtx.drawImage(
+      this.blurCanvas,
+      0, 0, this.blurCanvas.width, this.blurCanvas.height,
+      0, 0, width, height
+    );
+    mainCtx.restore();
+  }
+}
+
+// Usage
+const bloom = new CanvasBloom(800, 600);
+
+const gameLoop = () => {
+  // Draw game normally
+  drawGame(ctx);
+  
+  // Apply bloom post-process
+  bloom.apply(ctx, canvas, 180, 0.6);
+  
+  requestAnimationFrame(gameLoop);
+};
+```
+
+#### Chromatic Aberration (RGB Split)
+
+Creates that "impact" or "damage" look by splitting color channels:
+
+```typescript
+class ChromaticAberration {
+  private tempCanvas: HTMLCanvasElement;
+  private tempCtx: CanvasRenderingContext2D;
+  
+  constructor(width: number, height: number) {
+    this.tempCanvas = document.createElement('canvas');
+    this.tempCanvas.width = width;
+    this.tempCanvas.height = height;
+    this.tempCtx = this.tempCanvas.getContext('2d')!;
+  }
+  
+  apply(
+    ctx: CanvasRenderingContext2D,
+    sourceCanvas: HTMLCanvasElement,
+    offset: number = 3
+  ) {
+    const { width, height } = sourceCanvas;
+    
+    // Copy original
+    this.tempCtx.drawImage(sourceCanvas, 0, 0);
+    
+    // Clear main canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    // Draw red channel offset left
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(this.tempCanvas, -offset, 0);
+    
+    // Extract and apply channels
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Draw green channel centered
+    ctx.globalCompositeOperation = 'lighter';
+    this.tempCtx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(this.tempCanvas, 0, 0);
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = '#00ff00';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Draw blue channel offset right
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(this.tempCanvas, offset, 0);
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = '#0000ff';
+    ctx.fillRect(0, 0, width, height);
+    
+    ctx.globalCompositeOperation = 'source-over';
+  }
+}
+
+// Simpler approach: Just offset draws
+const drawWithChromaticAberration = (
+  ctx: CanvasRenderingContext2D,
+  drawFn: () => void,
+  offset: number
+) => {
+  ctx.save();
+  
+  // Red channel
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.5;
+  ctx.filter = 'url(#redChannel)'; // SVG filter
+  ctx.translate(-offset, 0);
+  drawFn();
+  
+  // Blue channel
+  ctx.filter = 'url(#blueChannel)';
+  ctx.translate(offset * 2, 0);
+  drawFn();
+  
+  // Normal
+  ctx.translate(-offset, 0);
+  ctx.filter = 'none';
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  drawFn();
+  
+  ctx.restore();
+};
+```
+
+#### Impact Chromatic Aberration (Animated)
+
+```typescript
+interface ChromaticState {
+  active: boolean;
+  intensity: number;
+  startTime: number;
+  duration: number;
+}
+
+const chromatic: ChromaticState = {
+  active: false,
+  intensity: 0,
+  startTime: 0,
+  duration: 200,
+};
+
+const triggerChromatic = (intensity: number = 5, duration: number = 200) => {
+  chromatic.active = true;
+  chromatic.intensity = intensity;
+  chromatic.startTime = performance.now();
+  chromatic.duration = duration;
+};
+
+const updateChromatic = (now: number): number => {
+  if (!chromatic.active) return 0;
+  
+  const elapsed = now - chromatic.startTime;
+  if (elapsed >= chromatic.duration) {
+    chromatic.active = false;
+    return 0;
+  }
+  
+  // Ease out
+  const t = elapsed / chromatic.duration;
+  return chromatic.intensity * (1 - t * t);
+};
+
+// In game loop
+const render = () => {
+  const now = performance.now();
+  const chromaticOffset = updateChromatic(now);
+  
+  if (chromaticOffset > 0.5) {
+    drawWithChromaticAberration(ctx, () => drawGame(), chromaticOffset);
+  } else {
+    drawGame();
+  }
+};
+```
+
+#### Vignette Effect
+
+```typescript
+const drawVignette = (
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  intensity: number = 0.3,
+  radius: number = 0.7
+) => {
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const maxRadius = Math.sqrt(centerX * centerX + centerY * centerY);
+  
+  const gradient = ctx.createRadialGradient(
+    centerX, centerY, maxRadius * radius,
+    centerX, centerY, maxRadius
+  );
+  
+  gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  gradient.addColorStop(1, `rgba(0, 0, 0, ${intensity})`);
+  
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, width, height);
+};
+
+// Dynamic vignette (intensify during danger)
+const drawDangerVignette = (
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  dangerLevel: number // 0-1
+) => {
+  const baseIntensity = 0.2;
+  const dangerIntensity = 0.5;
+  const intensity = baseIntensity + (dangerIntensity - baseIntensity) * dangerLevel;
+  
+  // Red tint when in danger
+  const color = dangerLevel > 0.5 
+    ? `rgba(255, 0, 0, ${dangerLevel * 0.3})`
+    : 'rgba(0, 0, 0, 0)';
+  
+  drawVignette(ctx, width, height, intensity);
+  
+  // Add red overlay
+  if (dangerLevel > 0.5) {
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, width, height);
+  }
+};
+```
+
+#### Color Grading (Simple)
+
+```typescript
+interface ColorGrade {
+  brightness: number;  // -1 to 1
+  contrast: number;    // 0 to 2
+  saturation: number;  // 0 to 2
+  hue: number;         // 0 to 360
+}
+
+const PRESETS: Record<string, ColorGrade> = {
+  normal: { brightness: 0, contrast: 1, saturation: 1, hue: 0 },
+  cinematic: { brightness: -0.05, contrast: 1.1, saturation: 0.9, hue: 0 },
+  retro: { brightness: 0.05, contrast: 0.9, saturation: 0.7, hue: 30 },
+  danger: { brightness: -0.1, contrast: 1.2, saturation: 1.3, hue: 350 },
+  victory: { brightness: 0.1, contrast: 1.1, saturation: 1.2, hue: 45 },
+  night: { brightness: -0.2, contrast: 0.9, saturation: 0.6, hue: 220 },
+};
+
+const applyColorGrade = (
+  ctx: CanvasRenderingContext2D,
+  grade: ColorGrade
+) => {
+  // Use CSS filter for simplicity and performance
+  const filter = [
+    `brightness(${1 + grade.brightness})`,
+    `contrast(${grade.contrast})`,
+    `saturate(${grade.saturation})`,
+    `hue-rotate(${grade.hue}deg)`,
+  ].join(' ');
+  
+  ctx.filter = filter;
 };
 
 // Usage
-onHit: () => setCharacterExpression(player, 'effort', 200);
-onCombo5: () => setCharacterExpression(player, 'happy', 1000);
-onDanger: () => setCharacterExpression(player, 'worried', 0); // Until danger passes
-onSuccess: () => setCharacterExpression(player, 'happy', 1500);
-```
-
-### Character Glow with Combo
-
-```javascript
-const drawCharacterWithComboGlow = (
-  ctx: CanvasRenderingContext2D,
-  character: Character,
-  combo: number,
-  time: number
-) => {
-  if (combo >= 3) {
-    const glowColor = getComboColor(combo);
-    const pulseIntensity = 10 + Math.sin(time * 0.01) * 5;
-    const glowAlpha = Math.min(0.3 + combo * 0.05, 0.7);
-
-    ctx.save();
-    ctx.shadowColor = glowColor;
-    ctx.shadowBlur = pulseIntensity + combo * 2;
-    ctx.globalAlpha = glowAlpha;
-
-    // Draw glow layer (silhouette)
-    drawCharacterSilhouette(ctx, character);
-
-    ctx.restore();
-  }
-
-  // Draw normal character on top
-  drawCharacter(ctx, character);
-};
-```
-
-### Arm Swing Sound
-
-```javascript
-const createArmSwingSound = (audioContext: AudioContext, isLeftArm: boolean) => {
-  const noise = audioContext.createBufferSource();
-  const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.08, audioContext.sampleRate);
-  const data = noiseBuffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) {
-    data[i] = Math.random() * 2 - 1;
-  }
-  noise.buffer = noiseBuffer;
-
-  const filter = audioContext.createBiquadFilter();
-  filter.type = 'bandpass';
-  filter.frequency.value = isLeftArm ? 800 : 900; // Slight variation
-  filter.Q.value = 1;
-
-  const gain = audioContext.createGain();
-  gain.gain.setValueAtTime(0.1, audioContext.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
-
-  noise.connect(filter).connect(gain).connect(audioContext.destination);
-  noise.start();
-  noise.stop(audioContext.currentTime + 0.08);
-};
-```
-
-### Character Celebration Animation
-
-```javascript
-const triggerCharacterCelebration = (character: Character) => {
-  // Both arms up
-  character.leftArmTarget = -Math.PI / 2;
-  character.rightArmTarget = -Math.PI / 2;
-
-  // Bounce
-  const bounceTimeline = [
-    { time: 0, bodySquash: 0.8 },
-    { time: 100, bodySquash: 1.2 },
-    { time: 200, bodySquash: 0.9 },
-    { time: 300, bodySquash: 1.1 },
-    { time: 400, bodySquash: 1.0 },
-  ];
-
-  bounceTimeline.forEach(({ time, bodySquash }) => {
-    setTimeout(() => {
-      character.bodySquash = bodySquash;
-    }, time);
-  });
-
-  // Happy expression
-  setCharacterExpression(character, 'happy', 1500);
-
-  // Reset arms
-  setTimeout(() => {
-    character.leftArmTarget = 0;
-    character.rightArmTarget = 0;
-  }, 800);
+const drawWithGrade = (ctx: CanvasRenderingContext2D, preset: string) => {
+  ctx.save();
+  applyColorGrade(ctx, PRESETS[preset] || PRESETS.normal);
+  drawGame();
+  ctx.restore();
 };
 ```
 
 ---
 
-## Near-Miss & Close Call Feedback
+### WebGL Shader Effects (Advanced)
 
-**New section from Brick Breaker learnings.**
+For games already using WebGL or needing maximum quality.
 
-### Why Near-Misses Matter
+#### Bloom Shader (GLSL)
 
-Research shows near-misses create strong engagement:
-- Activates "almost had it" psychology
-- Motivates retry behavior
-- Creates memorable moments
-- Builds tension
+```glsl
+// Vertex shader (shared)
+attribute vec2 a_position;
+attribute vec2 a_texCoord;
+varying vec2 v_texCoord;
 
-### Detecting Near-Misses
+void main() {
+  gl_Position = vec4(a_position, 0.0, 1.0);
+  v_texCoord = a_texCoord;
+}
+```
 
-```javascript
-const checkNearMiss = (projectile, target) => {
-  // Projectile passed target Y but was within range horizontally
-  if (projectile.y > target.y && projectile.y < target.y + 30) {
-    const distanceFromTarget = Math.min(
-      Math.abs(projectile.x - target.x),
-      Math.abs(projectile.x - (target.x + target.width))
-    );
+```glsl
+// Fragment shader - Bloom extract (pass 1)
+precision mediump float;
+varying vec2 v_texCoord;
+uniform sampler2D u_texture;
+uniform float u_threshold;
 
-    if (distanceFromTarget < 20) {
-      triggerNearMissFeedback(projectile.x);
-      return true;
+void main() {
+  vec4 color = texture2D(u_texture, v_texCoord);
+  float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+  
+  if (brightness > u_threshold) {
+    gl_FragColor = color;
+  } else {
+    gl_FragColor = vec4(0.0);
+  }
+}
+```
+
+```glsl
+// Fragment shader - Gaussian blur (pass 2 & 3)
+precision mediump float;
+varying vec2 v_texCoord;
+uniform sampler2D u_texture;
+uniform vec2 u_direction; // (1,0) for horizontal, (0,1) for vertical
+uniform float u_resolution;
+
+void main() {
+  vec4 color = vec4(0.0);
+  float blur = 4.0 / u_resolution;
+  
+  // 9-tap Gaussian
+  color += texture2D(u_texture, v_texCoord + vec2(-4.0 * blur * u_direction.x, -4.0 * blur * u_direction.y)) * 0.0162;
+  color += texture2D(u_texture, v_texCoord + vec2(-3.0 * blur * u_direction.x, -3.0 * blur * u_direction.y)) * 0.0540;
+  color += texture2D(u_texture, v_texCoord + vec2(-2.0 * blur * u_direction.x, -2.0 * blur * u_direction.y)) * 0.1216;
+  color += texture2D(u_texture, v_texCoord + vec2(-1.0 * blur * u_direction.x, -1.0 * blur * u_direction.y)) * 0.1945;
+  color += texture2D(u_texture, v_texCoord) * 0.2270;
+  color += texture2D(u_texture, v_texCoord + vec2(1.0 * blur * u_direction.x, 1.0 * blur * u_direction.y)) * 0.1945;
+  color += texture2D(u_texture, v_texCoord + vec2(2.0 * blur * u_direction.x, 2.0 * blur * u_direction.y)) * 0.1216;
+  color += texture2D(u_texture, v_texCoord + vec2(3.0 * blur * u_direction.x, 3.0 * blur * u_direction.y)) * 0.0540;
+  color += texture2D(u_texture, v_texCoord + vec2(4.0 * blur * u_direction.x, 4.0 * blur * u_direction.y)) * 0.0162;
+  
+  gl_FragColor = color;
+}
+```
+
+```glsl
+// Fragment shader - Composite (pass 4)
+precision mediump float;
+varying vec2 v_texCoord;
+uniform sampler2D u_scene;
+uniform sampler2D u_bloom;
+uniform float u_intensity;
+
+void main() {
+  vec4 sceneColor = texture2D(u_scene, v_texCoord);
+  vec4 bloomColor = texture2D(u_bloom, v_texCoord);
+  
+  gl_FragColor = sceneColor + bloomColor * u_intensity;
+}
+```
+
+#### WebGL Bloom Pipeline (TypeScript)
+
+```typescript
+class WebGLBloom {
+  private gl: WebGLRenderingContext;
+  private extractProgram: WebGLProgram;
+  private blurProgram: WebGLProgram;
+  private compositeProgram: WebGLProgram;
+  private framebuffers: WebGLFramebuffer[];
+  private textures: WebGLTexture[];
+  
+  constructor(gl: WebGLRenderingContext) {
+    this.gl = gl;
+    
+    // Compile shaders and create programs
+    this.extractProgram = this.createProgram(vertexShader, extractFragShader);
+    this.blurProgram = this.createProgram(vertexShader, blurFragShader);
+    this.compositeProgram = this.createProgram(vertexShader, compositeFragShader);
+    
+    // Create framebuffers for multi-pass
+    this.framebuffers = [];
+    this.textures = [];
+    for (let i = 0; i < 3; i++) {
+      const { fb, tex } = this.createFramebuffer();
+      this.framebuffers.push(fb);
+      this.textures.push(tex);
     }
   }
-  return false;
+  
+  apply(sceneTexture: WebGLTexture, intensity: number = 0.5, threshold: number = 0.8) {
+    const gl = this.gl;
+    
+    // Pass 1: Extract bright pixels
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffers[0]);
+    gl.useProgram(this.extractProgram);
+    gl.uniform1f(gl.getUniformLocation(this.extractProgram, 'u_threshold'), threshold);
+    this.renderQuad(sceneTexture);
+    
+    // Pass 2: Horizontal blur
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffers[1]);
+    gl.useProgram(this.blurProgram);
+    gl.uniform2f(gl.getUniformLocation(this.blurProgram, 'u_direction'), 1, 0);
+    this.renderQuad(this.textures[0]);
+    
+    // Pass 3: Vertical blur
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffers[2]);
+    gl.uniform2f(gl.getUniformLocation(this.blurProgram, 'u_direction'), 0, 1);
+    this.renderQuad(this.textures[1]);
+    
+    // Pass 4: Composite
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Render to screen
+    gl.useProgram(this.compositeProgram);
+    gl.uniform1f(gl.getUniformLocation(this.compositeProgram, 'u_intensity'), intensity);
+    
+    // Bind both textures
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, sceneTexture);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.textures[2]);
+    
+    this.renderQuad();
+  }
+  
+  // Helper methods omitted for brevity...
+  private createProgram(vert: string, frag: string): WebGLProgram { /* ... */ }
+  private createFramebuffer(): { fb: WebGLFramebuffer, tex: WebGLTexture } { /* ... */ }
+  private renderQuad(texture?: WebGLTexture): void { /* ... */ }
+}
+```
+
+#### CRT / Retro Effect Shader
+
+```glsl
+// CRT scanlines + curvature
+precision mediump float;
+varying vec2 v_texCoord;
+uniform sampler2D u_texture;
+uniform vec2 u_resolution;
+uniform float u_time;
+
+// Barrel distortion for CRT curve
+vec2 curve(vec2 uv) {
+  uv = uv * 2.0 - 1.0;
+  vec2 offset = abs(uv.yx) / vec2(6.0, 4.0);
+  uv = uv + uv * offset * offset;
+  uv = uv * 0.5 + 0.5;
+  return uv;
+}
+
+void main() {
+  vec2 uv = curve(v_texCoord);
+  
+  // Out of bounds = black
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+    gl_FragColor = vec4(0.0);
+    return;
+  }
+  
+  vec4 color = texture2D(u_texture, uv);
+  
+  // Scanlines
+  float scanline = sin(uv.y * u_resolution.y * 1.5) * 0.04;
+  color.rgb -= scanline;
+  
+  // RGB offset (chromatic aberration)
+  float r = texture2D(u_texture, uv + vec2(0.001, 0.0)).r;
+  float b = texture2D(u_texture, uv - vec2(0.001, 0.0)).b;
+  color.r = r;
+  color.b = b;
+  
+  // Vignette
+  float vignette = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
+  color.rgb *= smoothstep(0.0, 0.4, vignette * 15.0);
+  
+  // Slight flicker
+  color.rgb *= 0.95 + 0.05 * sin(u_time * 10.0);
+  
+  gl_FragColor = color;
+}
+```
+
+---
+
+### Using Libraries (Recommended)
+
+For complex shader effects, use a library rather than raw WebGL:
+
+#### PixiJS Filters
+
+```typescript
+import * as PIXI from 'pixi.js';
+import { BloomFilter, CRTFilter, GlowFilter } from 'pixi-filters';
+
+const app = new PIXI.Application({ width: 800, height: 600 });
+
+// Bloom
+const bloomFilter = new BloomFilter({
+  blur: 2,
+  quality: 3,
+});
+
+// CRT
+const crtFilter = new CRTFilter({
+  curvature: 1,
+  lineWidth: 1,
+  lineContrast: 0.25,
+  noise: 0.1,
+});
+
+// Apply to container
+gameContainer.filters = [bloomFilter];
+
+// Dynamic bloom on impact
+const triggerBloom = (intensity: number) => {
+  bloomFilter.blur = intensity;
+  gsap.to(bloomFilter, { blur: 2, duration: 0.3, ease: 'power2.out' });
 };
 ```
 
-### Near-Miss Feedback
+#### Three.js Post-Processing
 
-```javascript
-const triggerNearMissFeedback = (x) => {
-  // Haptic: Ultra-light warning tap
-  haptics.ultraLight(); // 5ms
+```typescript
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 
-  // Visual: Brief warning indicator
-  nearMissEffect = { x, alpha: 1 };
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
 
-  // Sound: Optional subtle "whoosh" or nothing
-  // (Don't make it too punishing)
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  1.5,  // strength
+  0.4,  // radius
+  0.85  // threshold
+);
+composer.addPass(bloomPass);
+
+// Render
+const animate = () => {
+  requestAnimationFrame(animate);
+  composer.render();
+};
+```
+
+---
+
+### Performance Considerations
+
+| Effect | Draw Calls | Texture Reads | Recommendation |
+|--------|------------|---------------|----------------|
+| shadowBlur | 1 | 0 | Use freely |
+| Canvas bloom | 3-4 | Multiple | Use sparingly |
+| WebGL bloom | 4 passes | 4 | 60fps on most devices |
+| Chromatic | 3 | 3 | Impact moments only |
+| Full CRT | 1 | 5+ | Constant OK if targeted |
+
+**Mobile Optimization:**
+```typescript
+// Detect low-end and skip expensive effects
+const isLowEnd = () => {
+  const canvas = document.createElement('canvas');
+  const gl = canvas.getContext('webgl');
+  if (!gl) return true;
+  
+  const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+  if (debugInfo) {
+    const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+    // Low-end indicators
+    if (/Mali-4|Adreno 3|PowerVR SGX/i.test(renderer)) {
+      return true;
+    }
+  }
+  
+  return navigator.hardwareConcurrency <= 2;
 };
 
-const drawNearMissEffect = (ctx, targetY) => {
-  if (!nearMissEffect) return;
+const shaderTier = isLowEnd() ? 'none' : 'full';
+```
 
-  ctx.save();
-  ctx.globalAlpha = nearMissEffect.alpha;
-  ctx.strokeStyle = '#ff4444';
-  ctx.lineWidth = 3;
-  ctx.setLineDash([5, 5]);
+---
 
-  ctx.beginPath();
-  ctx.moveTo(nearMissEffect.x, targetY - 20);
-  ctx.lineTo(nearMissEffect.x, targetY + 30);
-  ctx.stroke();
+# PART 6: GAME FEEL SYSTEMS
 
-  ctx.restore();
+## Combo & Streak Systems
 
-  nearMissEffect.alpha -= 0.05;
-  if (nearMissEffect.alpha <= 0) nearMissEffect = null;
+### Core Mechanics
+
+A combo system needs:
+1. **Tracking** — Count consecutive successes
+2. **Timeout** — Reset after brief inactivity (0.5-2s)
+3. **Escalation** — Feedback intensifies with streak
+4. **Visualization** — Show current combo clearly
+5. **Break feedback** — Clear signal when combo lost
+
+### Implementation
+
+```typescript
+interface ComboState {
+  count: number;
+  lastSuccessTime: number;
+  timeoutMs: number;
+  isActive: boolean;
+}
+
+const createComboSystem = (timeoutMs: number = 1500): ComboState => ({
+  count: 0,
+  lastSuccessTime: 0,
+  timeoutMs,
+  isActive: false,
+});
+
+const incrementCombo = (combo: ComboState) => {
+  const now = performance.now();
+  const timeSinceLast = now - combo.lastSuccessTime;
+  
+  if (timeSinceLast > combo.timeoutMs && combo.count > 0) {
+    // Timeout - reset
+    onComboBreak(combo.count);
+    combo.count = 0;
+  }
+  
+  combo.count++;
+  combo.lastSuccessTime = now;
+  combo.isActive = true;
+  
+  return combo.count;
+};
+
+const updateCombo = (combo: ComboState) => {
+  if (!combo.isActive) return;
+  
+  const timeSinceLast = performance.now() - combo.lastSuccessTime;
+  if (timeSinceLast > combo.timeoutMs) {
+    onComboBreak(combo.count);
+    combo.count = 0;
+    combo.isActive = false;
+  }
+};
+```
+
+### Feedback Escalation Table
+
+| Combo | Sound | Haptic | Visual | Screen Effect |
+|-------|-------|--------|--------|---------------|
+| 1 | Base | 15ms | Base animation | None |
+| 2 | +5% pitch | Double pulse | + Sparkles | None |
+| 3 | +10% pitch | Triple pulse | + Color flash | None |
+| 4-5 | +15% pitch, sparkle | Quad pulse | + Trail change | Light shake |
+| 6-9 | Celebration tone | Pattern burst | + Glow effect | Medium shake |
+| 10+ | Full fanfare | Full pattern | + Confetti | Flash + heavy shake |
+
+### Score Multiplier
+
+```typescript
+const getComboMultiplier = (combo: number): number => {
+  if (combo >= 15) return 3.0;
+  if (combo >= 10) return 2.5;
+  if (combo >= 8) return 2.0;
+  if (combo >= 5) return 1.5;
+  if (combo >= 3) return 1.25;
+  return 1.0;
+};
+```
+
+### Combo UI
+
+```typescript
+const drawComboMeter = (
+  ctx: CanvasRenderingContext2D,
+  combo: ComboState,
+  x: number,
+  y: number,
+  width: number,
+  height: number
+) => {
+  if (combo.count < 2) return;
+  
+  const timeRemaining = combo.timeoutMs - (performance.now() - combo.lastSuccessTime);
+  const fillPercent = Math.max(0, timeRemaining / combo.timeoutMs);
+  
+  // Color based on combo level
+  const color = combo.count >= 10 ? '#ff00ff' 
+    : combo.count >= 5 ? '#ffd700' 
+    : '#ff8c00';
+  
+  // Background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  roundRect(ctx, x, y, width, height, 4);
+  ctx.fill();
+  
+  // Fill
+  ctx.fillStyle = color;
+  roundRect(ctx, x, y, width * fillPercent, height, 4);
+  ctx.fill();
+  
+  // Text
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 16px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(`x${combo.count}`, x + width / 2, y - 8);
+};
+```
+
+### Fever Mode
+
+When combo reaches a threshold, enter special state:
+
+```typescript
+interface FeverState {
+  active: boolean;
+  startTime: number;
+  duration: number;
+  multiplier: number;
+}
+
+const checkFeverMode = (combo: number, fever: FeverState) => {
+  if (!fever.active && combo >= 10) {
+    fever.active = true;
+    fever.startTime = performance.now();
+    fever.duration = 5000; // 5 seconds
+    fever.multiplier = 3;
+    
+    triggerFeverStart();
+  }
+};
+
+const updateFeverMode = (fever: FeverState) => {
+  if (!fever.active) return;
+  
+  if (performance.now() - fever.startTime > fever.duration) {
+    fever.active = false;
+    triggerFeverEnd();
+  }
+};
+
+const triggerFeverStart = () => {
+  playSound('fever_start');
+  triggerFlash('#ffd700', 0.4);
+  triggerShake(5, 200);
+  // Start ambient fever loop
 };
 ```
 
@@ -2169,1234 +2599,928 @@ const drawNearMissEffect = (ctx, targetY) => {
 
 ## Timer & Urgency Systems
 
-### Why Timers Work
+### Urgency Phases
 
-Research shows time pressure:
-- Increases player engagement and flow states
-- Creates memorable emotional peaks
-- Makes victories feel more triumphant
-- Adds challenge without changing mechanics
-
-### Urgency Level Design
-
-Implement 4-5 distinct urgency levels:
-
-| Level | Trigger | Visual | Audio | Haptic |
-|-------|---------|--------|-------|--------|
-| **Normal** | >50% time | Default colors | Normal music | None |
-| **Warning** | ≤50% time | Yellow tint | Music intensity +1 | None |
-| **Urgent** | ≤25% time | Orange tint, subtle pulse | Warning beep, music +2 | Light pulse on threshold |
-| **Critical** | ≤10 seconds | Red, faster pulse | Ticking, urgent beeps | Pulse every 2s |
-| **Countdown** | ≤5 seconds | Dark red, flash | Escalating beeps | Pulse every 1s |
-
-### Timer Sound Escalation
-
-```
-50% threshold: Single tone (volume 0.4, pitch 1.0)
-25% threshold: Double tone (volume 0.5, pitch 1.2)
-10 seconds: Warning + tick every 1000ms
-5-1 seconds:
-  - 5s: volume 0.3, pitch 1.0
-  - 4s: volume 0.35, pitch 1.05
-  - 3s: volume 0.4, pitch 1.10
-  - 2s: volume 0.45, pitch 1.15
-  - 1s: volume 0.5, pitch 1.25
-```
-
-### Visual Timer Treatments
-
-- **Progress bar:** Fill or drain with color gradient (green→yellow→orange→red)
-- **Glow effect:** Intensifies with urgency
-- **Pulse animation:** Speed increases with urgency
-- **Number color:** Changes through urgency levels
-- **Container effects:** Border glow, vignette in danger zone
-
-### Psychological Considerations
-
-- **Don't make timers too tight** — Frustration kills engagement
-- **Provide "almost made it" feedback** — "You were 2 seconds away!" softens failure
-- **Consider "time bonuses"** — Reward efficiency, don't just punish slowness
-- **Dynamic difficulty** — If player struggles, subtly add time; if dominating, subtly reduce
-
----
-
-## Scoring & Progression
-
-### Scoring Psychology
-
-1. **Big numbers feel better** — 1000 points feels better than 10 points
-2. **Show the math** — Display bonuses separately before combining
-3. **Animate score changes** — Count up, don't just set
-4. **Celebrate milestones** — Special feedback at round numbers
-5. **Show multipliers** — Make combo/streak bonuses visible
-
-### Score Display Animation
-
-```javascript
-function animateScore(from, to, duration = 500) {
-  const start = performance.now();
-  const diff = to - from;
-
-  function update(time) {
-    const elapsed = time - start;
-    const progress = Math.min(elapsed / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 3); // ease-out
-
-    scoreDisplay.textContent = Math.floor(from + diff * eased);
-
-    if (progress < 1) requestAnimationFrame(update);
-  }
-
-  requestAnimationFrame(update);
-}
-```
-
-### Score Popup with Multiplier
-
-```javascript
-const showScorePopup = (x, y, baseScore, multiplier) => {
-  const text = multiplier > 1
-    ? `+${baseScore * multiplier} (x${multiplier})`
-    : `+${baseScore}`;
-
-  const color = multiplier >= 2 ? '#ffd700' : multiplier > 1 ? '#ffaa00' : '#ffffff';
-
-  scorePopups.push({
-    x, y, text, color,
-    alpha: 1,
-    vy: -2,
-  });
-};
-```
-
-### Progression Feedback
-
-| Event | Feedback |
-|-------|----------|
-| Points earned | Floating score popup, flies to total |
-| Bonus earned | Distinct color, larger popup |
-| Multiplier up | Flash, sound escalation |
-| Level up | Full-screen celebration, pause for effect |
-| New high score | Special animation, badge/icon |
-
----
-
-## Feedback Timing
-
-### Response Time Targets
-
-| Interaction | Target Response |
-|-------------|-----------------|
-| Button/tap visual | <16ms (1 frame) |
-| Sound playback | <50ms |
-| Haptic trigger | <30ms |
-| Animation start | <100ms |
-| State change | <200ms |
-
-### The 100-300-1000 Rule
-
-- **<100ms:** Feels instant, direct manipulation
-- **100-300ms:** Noticeable but acceptable
-- **>300ms:** Needs loading indicator or animation to feel intentional
-- **>1000ms:** User thinks something is broken
-
-### Debounce vs. Buffer
-
-**Debounce:** Prevent rapid repeated inputs (good for buttons)
-```javascript
-let lastClick = 0;
-function handleClick() {
-  if (Date.now() - lastClick < 100) return;
-  lastClick = Date.now();
-  // ... handle click
-}
-```
-
-**Buffer:** Queue inputs during busy states (good for fast gameplay)
-```javascript
-let queuedInput = null;
-function handleInput(input) {
-  if (isBusy) {
-    queuedInput = input;
-    return;
-  }
-  processInput(input);
-}
-
-function onBusyComplete() {
-  if (queuedInput) {
-    processInput(queuedInput);
-    queuedInput = null;
-  }
-}
-```
-
----
-
-## Reaction Time Games
-
-**New section from Color Reaction learnings.**
-
-### Principle: Milliseconds Matter
-
-In reaction-time games, feedback must be instant and differentiated by performance:
-1. **Response time <100ms feels instant** — This is your target
-2. **Audio processes faster than visual** — Prioritize audio for critical feedback
-3. **Reaction ratings need distinct feedback** — PERFECT ≠ GREAT ≠ GOOD
-4. **Near-misses need acknowledgment** — "TOO SLOW!" motivates retry
-
-### Reaction Time Rating System
-
-Define clear thresholds with escalating rewards:
-
-```javascript
-const REACTION_RATINGS = [
-  { name: 'PERFECT', maxTime: 300, points: 100, celebration: 'maximum' },
-  { name: 'GREAT', maxTime: 500, points: 75, celebration: 'high' },
-  { name: 'GOOD', maxTime: 800, points: 50, celebration: 'medium' },
-  { name: 'OK', maxTime: 1500, points: 25, celebration: 'low' },
-];
-
-const getReactionRating = (reactionTimeMs: number) => {
-  return REACTION_RATINGS.find(r => reactionTimeMs <= r.maxTime)
-    || { name: 'MISS', points: 0, celebration: 'none' };
-};
-```
-
-### Reaction-Based Sound Variation
-
-Faster reactions = higher pitch, richer sound:
-
-```javascript
-const playReactionSound = (audioContext: AudioContext, reactionTimeMs: number) => {
-  const rating = getReactionRating(reactionTimeMs);
-
-  // Base frequency increases with better performance
-  const baseFreq = rating.name === 'PERFECT' ? 880
-    : rating.name === 'GREAT' ? 784
-    : rating.name === 'GOOD' ? 698
-    : 523;
-
-  // Layer count increases with performance
-  const layers = rating.name === 'PERFECT' ? 4
-    : rating.name === 'GREAT' ? 3
-    : rating.name === 'GOOD' ? 2
-    : 1;
-
-  // Play layered sound
-  for (let i = 0; i < layers; i++) {
-    const freq = baseFreq * (1 + i * 0.5); // Harmonics
-    const delay = i * 0.03;
-    const volume = 0.3 - i * 0.05;
-
-    playNote(audioContext, freq, delay, 0.15, volume);
-  }
-
-  // Add shimmer for PERFECT
-  if (rating.name === 'PERFECT') {
-    playShimmerEffect(audioContext);
-  }
-};
-```
-
-### Reaction-Based Haptic Patterns
-
-```javascript
-const REACTION_HAPTICS = {
-  PERFECT: [15, 20, 12, 20, 10, 20, 8], // Celebratory escalating burst
-  GREAT: [15, 25, 12, 25, 10],          // Triple celebration
-  GOOD: [15, 30, 12],                   // Double pulse
-  OK: [15],                             // Single pulse
-  MISS: [8, 80, 8],                     // Gentle error
-};
-
-const triggerReactionHaptic = (rating: string) => {
-  const pattern = REACTION_HAPTICS[rating];
-  if (pattern) vibrate(pattern);
-};
-```
-
-### Reaction Time Display
-
-Show the exact milliseconds with rating-appropriate styling:
-
-```javascript
-const showReactionTime = (ms: number, rating: string) => {
-  const colors = {
-    PERFECT: '#ffd700', // Gold
-    GREAT: '#00ff88',   // Green
-    GOOD: '#3b82f6',    // Blue
-    OK: '#ffffff',      // White
-  };
-
-  const sizes = {
-    PERFECT: '48px',
-    GREAT: '36px',
-    GOOD: '28px',
-    OK: '24px',
-  };
-
-  // Animate in with bounce for PERFECT/GREAT
-  const animation = rating === 'PERFECT' || rating === 'GREAT'
-    ? 'bounce-in 0.3s ease-out'
-    : 'fade-in 0.2s ease-out';
-
-  return {
-    text: `${ms}ms`,
-    color: colors[rating],
-    fontSize: sizes[rating],
-    animation,
-  };
-};
-```
-
-### Near-Miss Detection (Too Slow)
-
-Detect taps that were close but just outside the window:
-
-```javascript
-const NEAR_MISS_WINDOW = 200; // ms after deadline
-
-const checkNearMiss = (tapTime: number, deadlineTime: number): boolean => {
-  const timePastDeadline = tapTime - deadlineTime;
-
-  if (timePastDeadline > 0 && timePastDeadline <= NEAR_MISS_WINDOW) {
-    // Show "TOO SLOW!" with timing info
-    showNearMissCallout(timePastDeadline);
-
-    // Sympathetic haptic (softer than wrong)
-    vibrate([5, 40, 5]);
-
-    // Descending sympathetic sound
-    playNearMissSound();
-
-    return true;
-  }
-  return false;
-};
-
-const showNearMissCallout = (msPastDeadline: number) => {
-  // Messages rotate for variety
-  const messages = [
-    `TOO SLOW! (${msPastDeadline}ms late)`,
-    `ALMOST! Just ${msPastDeadline}ms too slow`,
-    `SO CLOSE! ${msPastDeadline}ms over`,
-  ];
-
-  const message = messages[Math.floor(Math.random() * messages.length)];
-  showCallout(message, '#ff6b6b', 1500);
-};
-```
-
----
-
-## Time Dilation & Slow Motion
-
-**New section from Color Reaction + Citrus Drop learnings.**
-
-### Freeze Frames / Hitstop (NEW - Citrus Drop)
-
-**Source:** Citrus Drop research + fighting game analysis (January 2026)
-
-Hitstop (brief pause at impact) makes collisions feel powerful. The game freezes characters/objects while effects continue.
-
-#### Tier-Based Freeze Duration
-
-| Event Size | Freeze Duration | Notes |
-|------------|-----------------|-------|
-| Small impact | 30-50ms | Barely noticeable, snappy |
-| Medium impact | 50-80ms | Subtle pause |
-| Large impact | 80-120ms | Noticeable weight |
-| Massive impact | 120-200ms | Dramatic moment |
-| Maximum (melon) | 150-200ms | Full drama |
-
-#### Implementation
-
-```javascript
-let isFrozen = false;
-let freezeEndTime = 0;
-
-const freezeFrame = (duration: number) => {
-  isFrozen = true;
-  freezeEndTime = Date.now() + duration;
-};
-
-// In game loop
-const update = (deltaTime: number) => {
-  if (isFrozen) {
-    if (Date.now() >= freezeEndTime) {
-      isFrozen = false;
-    } else {
-      // IMPORTANT: Still update particles and effects during freeze
-      updateParticles(particles, deltaTime);
-      updateScreenEffects(deltaTime);
-      return; // Skip physics update
-    }
-  }
-
-  // Normal physics/game update
-  Matter.Engine.update(engine, deltaTime);
-};
-```
-
-#### Key Principle: Effects Continue During Freeze
-- Particles keep animating
-- Screen shake continues
-- Flash effects progress
-- Only game physics pauses
-
-This creates the "time stopped but impact reverberates" feeling.
-
-### Principle: Slow Motion Rewards Mastery
-
-Time dilation (brief slow-motion effect) makes perfect moments feel epic:
-- Creates "time standing still" feeling
-- Gives player time to appreciate their achievement
-- Makes the moment memorable and shareable
-- Increases perceived skill validation
-
-### When to Use Time Dilation
-
-| Event | Duration | Use |
-|-------|----------|-----|
-| PERFECT reaction | 300-400ms | Yes - maximum reward |
-| Critical hit | 200-300ms | Yes - moment of impact |
-| Boss defeat | 500ms+ | Yes - climactic moment |
-| Regular success | - | No - overuse kills impact |
-| Combo milestone (10+) | 250ms | Yes - achievement moment |
-
-### Time Dilation Implementation
-
-```javascript
-interface TimeDilation {
-  active: boolean;
-  startTime: number;
-  duration: number;
-  factor: number; // 0.2 = 20% speed
-}
-
-const timeDilationRef = useRef<TimeDilation | null>(null);
-
-const triggerTimeDilation = (duration = 400, factor = 0.2) => {
-  timeDilationRef.current = {
-    active: true,
-    startTime: performance.now(),
-    duration,
-    factor,
-  };
-
-  // Ethereal slow-mo sound
-  playTimeDilationSound();
-};
-
-const getTimeScale = (currentTime: number): number => {
-  const dilation = timeDilationRef.current;
-  if (!dilation || !dilation.active) return 1;
-
-  const elapsed = currentTime - dilation.startTime;
-
-  if (elapsed >= dilation.duration) {
-    timeDilationRef.current = null;
-    return 1;
-  }
-
-  // Smooth ease-in-out of slow motion
-  const progress = elapsed / dilation.duration;
-
-  if (progress < 0.2) {
-    // Entering slow motion (ease into slow)
-    const enterProgress = progress / 0.2;
-    return 1 - (1 - dilation.factor) * enterProgress;
-  } else if (progress > 0.8) {
-    // Exiting slow motion (ease back to normal)
-    const exitProgress = (progress - 0.8) / 0.2;
-    return dilation.factor + (1 - dilation.factor) * exitProgress;
-  }
-
-  // Full slow motion
-  return dilation.factor;
-};
-
-// In game loop
-const gameLoop = (timestamp: number) => {
-  const timeScale = getTimeScale(timestamp);
-  const deltaTime = (timestamp - lastTimestamp) * timeScale;
-
-  update(deltaTime);
-  draw();
-
-  requestAnimationFrame(gameLoop);
-};
-```
-
-### Time Dilation Visual Effects
-
-```javascript
-const drawTimeDilationEffect = (ctx: CanvasRenderingContext2D, timeScale: number) => {
-  if (timeScale >= 1) return;
-
-  // Golden vignette
-  const alpha = (1 - timeScale) * 0.3;
-  const gradient = ctx.createRadialGradient(
-    canvasWidth / 2, canvasHeight / 2, 0,
-    canvasWidth / 2, canvasHeight / 2, canvasWidth * 0.7
-  );
-  gradient.addColorStop(0, 'transparent');
-  gradient.addColorStop(1, `rgba(255, 215, 0, ${alpha})`);
-
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-  // Motion blur effect (draw previous positions with fade)
-  if (motionTrail.length > 0) {
-    motionTrail.forEach((pos, i) => {
-      ctx.globalAlpha = (i / motionTrail.length) * 0.3;
-      drawObjectAt(ctx, pos);
-    });
-    ctx.globalAlpha = 1;
-  }
-};
-```
-
-### Time Dilation Sound
-
-```javascript
-const createTimeDilationSound = (audioContext: AudioContext) => {
-  // Ethereal whoosh with reverb feel
-  const osc = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  const filter = audioContext.createBiquadFilter();
-
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(300, audioContext.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.3);
-
-  filter.type = 'lowpass';
-  filter.frequency.value = 800;
-  filter.Q.value = 5;
-
-  gain.gain.setValueAtTime(0.2, audioContext.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-
-  osc.connect(filter).connect(gain).connect(audioContext.destination);
-  osc.start();
-  osc.stop(audioContext.currentTime + 0.4);
-
-  // Add shimmer layer
-  for (let i = 0; i < 3; i++) {
-    const shimmer = audioContext.createOscillator();
-    const shimmerGain = audioContext.createGain();
-
-    shimmer.type = 'sine';
-    shimmer.frequency.value = 1000 + i * 200 + Math.random() * 100;
-
-    shimmerGain.gain.setValueAtTime(0.05, audioContext.currentTime + i * 0.05);
-    shimmerGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3 + i * 0.05);
-
-    shimmer.connect(shimmerGain).connect(audioContext.destination);
-    shimmer.start(audioContext.currentTime + i * 0.05);
-    shimmer.stop(audioContext.currentTime + 0.3 + i * 0.05);
-  }
-};
-```
-
----
-
-## Countdown Urgency Systems
-
-**New section from Color Reaction learnings.**
-
-### Principle: Multi-Phase Urgency Escalation
-
-For time-limited windows (like reaction windows), urgency should escalate:
-1. **Visual changes** — Color, pulse speed, effects
-2. **Audio changes** — Ticking, heartbeat, pitch increase
-3. **Haptic changes** — Pulses become more frequent
-
-### Urgency Phase Definition
-
-```javascript
+```typescript
 interface UrgencyPhase {
   name: string;
-  threshold: number; // ms remaining
-  ringColor: string;
-  pulseSpeed: number; // ms per pulse (0 = no pulse)
-  tickSound: boolean;
-  heartbeat: boolean;
-  shake: boolean;
-  vignetteAlpha: number;
+  threshold: number; // Remaining time in ms
+  color: string;
+  pulseSpeed: number;
+  soundPitch: number;
+  hapticInterval: number;
 }
 
 const URGENCY_PHASES: UrgencyPhase[] = [
-  { name: 'normal', threshold: 1500, ringColor: '#2ecc71', pulseSpeed: 0,
-    tickSound: false, heartbeat: false, shake: false, vignetteAlpha: 0 },
-  { name: 'warning', threshold: 750, ringColor: '#f1c40f', pulseSpeed: 400,
-    tickSound: false, heartbeat: false, shake: false, vignetteAlpha: 0.05 },
-  { name: 'critical', threshold: 300, ringColor: '#e74c3c', pulseSpeed: 150,
-    tickSound: true, heartbeat: true, shake: true, vignetteAlpha: 0.15 },
+  { name: 'calm', threshold: Infinity, color: '#00ff00', pulseSpeed: 0, soundPitch: 1, hapticInterval: 0 },
+  { name: 'warning', threshold: 10000, color: '#ffff00', pulseSpeed: 1, soundPitch: 1.05, hapticInterval: 1000 },
+  { name: 'danger', threshold: 5000, color: '#ff8800', pulseSpeed: 2, soundPitch: 1.1, hapticInterval: 500 },
+  { name: 'critical', threshold: 2000, color: '#ff0000', pulseSpeed: 4, soundPitch: 1.2, hapticInterval: 200 },
 ];
 
-const getCurrentUrgencyPhase = (remainingMs: number): UrgencyPhase => {
-  for (const phase of URGENCY_PHASES) {
-    if (remainingMs <= phase.threshold) {
-      return phase;
-    }
-  }
-  return URGENCY_PHASES[0];
+const getCurrentPhase = (remainingMs: number): UrgencyPhase => {
+  return URGENCY_PHASES.find(p => remainingMs <= p.threshold) || URGENCY_PHASES[0];
 };
 ```
 
-### Ring/Border Color Transition
+### Timer Display
 
-```javascript
-const drawUrgencyRing = (
+```typescript
+const drawTimer = (
   ctx: CanvasRenderingContext2D,
-  centerX: number,
-  centerY: number,
-  radius: number,
   remainingMs: number,
   totalMs: number,
-  time: number
-) => {
-  const phase = getCurrentUrgencyPhase(remainingMs);
-
-  // Progress arc
-  const progress = remainingMs / totalMs;
-  const startAngle = -Math.PI / 2;
-  const endAngle = startAngle + (1 - progress) * Math.PI * 2;
-
-  // Pulse scale
-  let pulseScale = 1;
-  if (phase.pulseSpeed > 0) {
-    pulseScale = 1 + Math.sin(time / phase.pulseSpeed * Math.PI * 2) * 0.05;
-  }
-
-  ctx.save();
-  ctx.translate(centerX, centerY);
-  ctx.scale(pulseScale, pulseScale);
-
-  // Ring glow
-  ctx.shadowColor = phase.ringColor;
-  ctx.shadowBlur = 10 + (phase.name === 'critical' ? Math.sin(time * 0.02) * 5 : 0);
-
-  // Draw ring
-  ctx.strokeStyle = phase.ringColor;
-  ctx.lineWidth = 6;
-  ctx.lineCap = 'round';
-
-  ctx.beginPath();
-  ctx.arc(0, 0, radius, startAngle, endAngle);
-  ctx.stroke();
-
-  ctx.restore();
-
-  // Shake in critical
-  if (phase.shake) {
-    const shakeIntensity = 2;
-    return {
-      offsetX: (Math.random() - 0.5) * shakeIntensity,
-      offsetY: (Math.random() - 0.5) * shakeIntensity,
-    };
-  }
-
-  return { offsetX: 0, offsetY: 0 };
-};
-```
-
-### Countdown Sound System
-
-```javascript
-const useCountdownSounds = (audioContext: AudioContext) => {
-  const lastTickRef = useRef<number>(0);
-  const heartbeatRef = useRef<OscillatorNode | null>(null);
-
-  const playTick = (remainingMs: number) => {
-    const phase = getCurrentUrgencyPhase(remainingMs);
-
-    // Tick in critical phase (final 500ms)
-    if (remainingMs <= 500 && remainingMs > 0) {
-      const now = performance.now();
-      if (now - lastTickRef.current > 100) { // Max 10 ticks/sec
-        const pitch = 1 + (500 - remainingMs) / 500 * 0.3; // Pitch rises as time runs out
-        playTickSound(audioContext, pitch);
-        lastTickRef.current = now;
-      }
-    }
-
-    // Heartbeat in critical phase (final 300ms)
-    if (phase.heartbeat && !heartbeatRef.current) {
-      heartbeatRef.current = startHeartbeat(audioContext);
-    } else if (!phase.heartbeat && heartbeatRef.current) {
-      stopHeartbeat(heartbeatRef.current);
-      heartbeatRef.current = null;
-    }
-  };
-
-  return { playTick };
-};
-
-const playTickSound = (audioContext: AudioContext, pitch: number) => {
-  const osc = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-
-  osc.type = 'sine';
-  osc.frequency.value = 800 * pitch;
-
-  gain.gain.setValueAtTime(0.15, audioContext.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
-
-  osc.connect(gain).connect(audioContext.destination);
-  osc.start();
-  osc.stop(audioContext.currentTime + 0.05);
-};
-
-const startHeartbeat = (audioContext: AudioContext): OscillatorNode => {
-  const osc = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  const lfo = audioContext.createOscillator();
-  const lfoGain = audioContext.createGain();
-
-  // Low heartbeat thump
-  osc.type = 'sine';
-  osc.frequency.value = 60;
-
-  // LFO for pulsing
-  lfo.frequency.value = 1.5; // 90 BPM
-  lfoGain.gain.value = 0.1;
-
-  lfo.connect(lfoGain).connect(gain.gain);
-  osc.connect(gain).connect(audioContext.destination);
-
-  gain.gain.value = 0.15;
-
-  lfo.start();
-  osc.start();
-
-  return osc;
-};
-
-const stopHeartbeat = (osc: OscillatorNode) => {
-  osc.stop();
-};
-```
-
-### Urgency Haptic Patterns
-
-```javascript
-const useUrgencyHaptics = () => {
-  const lastHapticRef = useRef<number>(0);
-
-  const triggerUrgencyHaptic = (remainingMs: number) => {
-    const now = performance.now();
-
-    // Warning threshold (750ms)
-    if (remainingMs <= 750 && remainingMs > 300) {
-      if (now - lastHapticRef.current > 500) {
-        vibrate([8, 50, 8]); // Double tap
-        lastHapticRef.current = now;
-      }
-    }
-
-    // Critical threshold (300ms)
-    if (remainingMs <= 300 && remainingMs > 0) {
-      if (now - lastHapticRef.current > 150) {
-        vibrate([8, 30, 8, 30, 8]); // Rapid triple
-        lastHapticRef.current = now;
-      }
-    }
-  };
-
-  return { triggerUrgencyHaptic };
-};
-```
-
-### "TAP NOW!" Text Urgency
-
-```javascript
-const drawUrgencyText = (
-  ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
-  remainingMs: number,
   time: number
 ) => {
-  const phase = getCurrentUrgencyPhase(remainingMs);
-
-  // Text pulses in warning/critical
-  let scale = 1;
-  let alpha = 1;
-
-  if (phase.name === 'warning') {
-    scale = 1 + Math.sin(time * 0.01) * 0.05;
-    alpha = 0.8 + Math.sin(time * 0.015) * 0.2;
-  } else if (phase.name === 'critical') {
-    scale = 1 + Math.sin(time * 0.03) * 0.1;
-    alpha = 0.7 + Math.sin(time * 0.04) * 0.3;
-  }
-
+  const phase = getCurrentPhase(remainingMs);
+  const percent = remainingMs / totalMs;
+  
+  // Pulse effect
+  const pulse = phase.pulseSpeed > 0 
+    ? 1 + Math.sin(time * phase.pulseSpeed * 0.01) * 0.1 
+    : 1;
+  
   ctx.save();
   ctx.translate(x, y);
-  ctx.scale(scale, scale);
-  ctx.globalAlpha = alpha;
-
-  ctx.fillStyle = phase.ringColor;
-  ctx.font = 'bold 24px Arial';
+  ctx.scale(pulse, pulse);
+  
+  // Timer text
+  const seconds = Math.ceil(remainingMs / 1000);
+  ctx.fillStyle = phase.color;
+  ctx.font = 'bold 32px monospace';
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  // Add glow in critical
+  ctx.fillText(seconds.toString(), 0, 0);
+  
+  // Glow in critical
   if (phase.name === 'critical') {
-    ctx.shadowColor = phase.ringColor;
-    ctx.shadowBlur = 10;
+    ctx.shadowColor = phase.color;
+    ctx.shadowBlur = 10 + Math.sin(time * 0.02) * 5;
   }
-
-  ctx.fillText('TAP NOW!', 0, 0);
-
-  // Show remaining ms in critical
-  if (remainingMs <= 500 && remainingMs > 0) {
-    ctx.font = '16px monospace';
-    ctx.fillText(`${Math.ceil(remainingMs)}ms`, 0, 30);
-  }
-
+  
   ctx.restore();
 };
 ```
 
-### Urgency Vignette
+### Anticipation States
 
-```javascript
-const drawUrgencyVignette = (
+When near completion, highlight remaining targets:
+
+```typescript
+const drawWithAnticipation = (
   ctx: CanvasRenderingContext2D,
-  remainingMs: number,
+  obj: any,
+  remainingCount: number,
   time: number
 ) => {
-  const phase = getCurrentUrgencyPhase(remainingMs);
-
-  if (phase.vignetteAlpha <= 0) return;
-
-  // Pulse the vignette in critical
-  let alpha = phase.vignetteAlpha;
-  if (phase.name === 'critical') {
-    alpha += Math.sin(time * 0.02) * 0.05;
+  const shouldHighlight = remainingCount <= 3;
+  
+  if (shouldHighlight) {
+    // Pulsing glow
+    const pulseIntensity = 10 + Math.sin(time * 0.01) * 8;
+    ctx.shadowColor = '#ffd700';
+    ctx.shadowBlur = pulseIntensity;
+    
+    // Scale pulse
+    const scale = 1 + Math.sin(time * 0.008) * 0.05;
+    ctx.save();
+    ctx.translate(obj.x, obj.y);
+    ctx.scale(scale, scale);
+    ctx.translate(-obj.x, -obj.y);
   }
-
-  const gradient = ctx.createRadialGradient(
-    canvasWidth / 2, canvasHeight / 2, canvasWidth * 0.3,
-    canvasWidth / 2, canvasHeight / 2, canvasWidth * 0.7
-  );
-
-  gradient.addColorStop(0, 'transparent');
-  gradient.addColorStop(1, `rgba(255, 0, 0, ${alpha})`);
-
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  
+  // Draw object
+  drawObject(ctx, obj);
+  
+  if (shouldHighlight) {
+    ctx.restore();
+  }
 };
 ```
 
 ---
 
-## Fever Mode & Bonus States
+## Near-Miss & Close Call
 
-**New section from Color Reaction learnings.**
-
-### Principle: Reward Sustained Excellence with Special States
-
-When players achieve sustained success (high combos, long streaks), reward them with a distinct "bonus state" that feels like entering a special mode. This gives players a clear goal to chase.
-
-### When to Trigger Fever Mode
-
-| Game Type | Trigger | Duration |
-|-----------|---------|----------|
-| Reaction games | 15+ streak | Until miss |
-| Combo games | 10+ combo | Until combo breaks |
-| Survival games | 60s+ survival | Time-limited (15s) |
-| Score games | Score milestone | Until next milestone or fail |
-
-### Fever Mode Components
-
-Every fever/bonus state should include:
-
-1. **Visual Transformation**
-   - Background color shift (often warm/fire colors)
-   - Particle effects (embers, sparkles, energy)
-   - Enhanced glow on player/active elements
-   - Pulsing vignette
-
-2. **Audio Layer**
-   - Distinct ambient loop (driving bass, energy hum)
-   - Enhanced sound effects (louder, richer)
-   - Optional: Music layer change
-
-3. **Gameplay Reward**
-   - Score multiplier (typically 2x)
-   - Enhanced effects (1.5x particle count, shake intensity)
-   - Visual multiplier display (large, prominent)
-
-4. **Entry Celebration**
-   - Dramatic announcement ("FEVER MODE!")
-   - Screen flash + shake
-   - Confetti burst
-   - Ascending fanfare sound
-
-5. **Exit Feedback**
-   - Clear "fever ended" indication
-   - Descending sound
-   - Effects fade out (not instant cut)
-
-### Fever Mode Implementation
+### Detection
 
 ```typescript
-interface FeverState {
-  active: boolean;
+interface NearMissResult {
+  isNearMiss: boolean;
+  intensity: number; // 0-1, closer = higher
+  edge: 'top' | 'bottom' | 'left' | 'right' | null;
+}
+
+const NEAR_MISS_THRESHOLD = 0.25; // Within 25% of danger zone
+
+const checkNearMiss = (
+  playerPos: number,
+  dangerStart: number,
+  dangerEnd: number
+): NearMissResult => {
+  const gapSize = dangerEnd - dangerStart;
+  const threshold = gapSize * NEAR_MISS_THRESHOLD;
+  
+  const distToTop = playerPos - dangerStart;
+  const distToBottom = dangerEnd - playerPos;
+  
+  // Check if within gap but near edge
+  if (playerPos > dangerStart && playerPos < dangerEnd) {
+    if (distToTop < threshold) {
+      return { isNearMiss: true, intensity: 1 - distToTop / threshold, edge: 'top' };
+    }
+    if (distToBottom < threshold) {
+      return { isNearMiss: true, intensity: 1 - distToBottom / threshold, edge: 'bottom' };
+    }
+  }
+  
+  return { isNearMiss: false, intensity: 0, edge: null };
+};
+```
+
+### Feedback
+
+```typescript
+const onNearMiss = (result: NearMissResult) => {
+  if (!result.isNearMiss) return;
+  
+  // Bonus points based on intensity
+  const bonus = Math.ceil(result.intensity * 3); // 1-3 bonus points
+  addScore(bonus);
+  
+  // Visual feedback
+  triggerFlash('#ffff00', result.intensity * 0.2);
+  
+  // Sound - higher pitch for closer calls
+  const pitch = 1 + result.intensity * 0.3;
+  playSound('whoosh', 0.3, pitch);
+  
+  // Haptic
+  if (result.intensity > 0.7) {
+    haptics.light();
+  }
+  
+  // Floating text
+  showFloatingText(`+${bonus}`, playerX, playerY - 30, '#ffdd00');
+};
+```
+
+---
+
+## Death Sequences
+
+### The Golden Formula
+
+```
+FREEZE FRAME (150ms) → SLOW-MO (400ms at 0.3x) → GAME OVER
+```
+
+### Implementation
+
+```typescript
+interface DeathSequence {
+  phase: 'freeze' | 'slowmo' | 'done';
   startTime: number;
-  multiplier: number;
-  intensity: number; // 0-1, grows with continued success
+  timeScale: number;
 }
 
-const FEVER_CONFIG = {
-  activationThreshold: 15,  // Streak/combo needed
-  scoreMultiplier: 2,
-  effectScale: 1.5,         // Multiply particle counts, shake intensity
+const DEATH_CONFIG = {
+  freezeDuration: 150,
+  slowMoDuration: 400,
+  slowMoScale: 0.3,
+  shakeIntensity: 8,
+  particleCount: 25,
 };
 
-const [feverState, setFeverState] = useState<FeverState>({
-  active: false,
-  startTime: 0,
-  multiplier: 1,
-  intensity: 0,
-});
-
-const activateFeverMode = () => {
-  setFeverState({
-    active: true,
+const startDeathSequence = (player: any): DeathSequence => {
+  const sequence: DeathSequence = {
+    phase: 'freeze',
     startTime: performance.now(),
-    multiplier: FEVER_CONFIG.scoreMultiplier,
-    intensity: 0.5,
+    timeScale: 0,
+  };
+  
+  // Immediate effects
+  triggerShake(DEATH_CONFIG.shakeIntensity, 200);
+  triggerFlash('#ffffff', 0.6);
+  spawnDeathParticles(player.x, player.y, DEATH_CONFIG.particleCount);
+  playSound('death_impact');
+  haptics.heavy();
+  
+  return sequence;
+};
+
+const updateDeathSequence = (sequence: DeathSequence): number => {
+  const elapsed = performance.now() - sequence.startTime;
+  
+  if (sequence.phase === 'freeze') {
+    if (elapsed > DEATH_CONFIG.freezeDuration) {
+      sequence.phase = 'slowmo';
+      sequence.startTime = performance.now();
+      sequence.timeScale = DEATH_CONFIG.slowMoScale;
+    }
+    return 0; // No physics update during freeze
+  }
+  
+  if (sequence.phase === 'slowmo') {
+    if (elapsed > DEATH_CONFIG.slowMoDuration) {
+      sequence.phase = 'done';
+      sequence.timeScale = 1;
+      showGameOver();
+    }
+    return sequence.timeScale;
+  }
+  
+  return 1;
+};
+
+// In game loop
+const gameLoop = (dt: number) => {
+  if (deathSequence) {
+    const timeScale = updateDeathSequence(deathSequence);
+    if (timeScale === 0) {
+      render(); // Still render during freeze
+      return;
+    }
+    dt *= timeScale; // Slow-mo physics
+  }
+  
+  update(dt);
+  render();
+};
+```
+
+### Death Particles
+
+```typescript
+const spawnDeathParticles = (x: number, y: number, count: number) => {
+  const colors = ['#ff4444', '#ffaa00', '#ffffff'];
+  
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
+    const speed = 3 + Math.random() * 4;
+    
+    particlePool.spawn(x, y, {
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: 4 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      gravity: 0.1,
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() - 0.5) * 10,
+      maxLife: 60,
+    });
+  }
+};
+```
+
+---
+
+# PART 7: INPUT & INTERACTION
+
+## Response Timing & Prediction
+
+### Target Response Times
+
+| Interaction | Target | Notes |
+|-------------|--------|-------|
+| Visual feedback | <16ms | 1 frame |
+| Sound playback | <50ms | Perceptible if slower |
+| Haptic trigger | <30ms | Must feel instant |
+| Animation start | <100ms | Feels immediate |
+| State change | <200ms | Acceptable |
+
+### The 100-300-1000 Rule
+
+- **<100ms**: Feels instant, direct manipulation
+- **100-300ms**: Noticeable but acceptable
+- **>300ms**: Needs loading indicator
+- **>1000ms**: User thinks something is broken
+
+### Input Prediction
+
+Show feedback before server response:
+
+```typescript
+// Optimistic UI pattern
+const handleTap = async (x: number, y: number) => {
+  // Immediate local feedback (optimistic)
+  playSound('tap');
+  triggerHaptic(12);
+  spawnParticles(x, y, 5);
+  setLocalState({ ...state, tapped: true });
+  
+  try {
+    // Server validation
+    const result = await api.validateAction(x, y);
+    
+    if (result.valid) {
+      // Success - state already reflects action
+      triggerSuccessFeedback();
+    } else {
+      // Rollback optimistic update
+      setLocalState(previousState);
+      triggerErrorFeedback();
+    }
+  } catch (error) {
+    // Network error - rollback
+    setLocalState(previousState);
+    showRetryPrompt();
+  }
+};
+```
+
+### Input Buffering
+
+Queue inputs during busy states:
+
+```typescript
+class InputBuffer {
+  private queue: InputEvent[] = [];
+  private isBusy: boolean = false;
+  
+  enqueue(event: InputEvent) {
+    if (this.isBusy) {
+      this.queue.push(event);
+      return;
+    }
+    this.process(event);
+  }
+  
+  private process(event: InputEvent) {
+    this.isBusy = true;
+    
+    handleInput(event).then(() => {
+      this.isBusy = false;
+      
+      // Process queued input
+      if (this.queue.length > 0) {
+        const next = this.queue.shift()!;
+        this.process(next);
+      }
+    });
+  }
+}
+```
+
+### Debouncing
+
+Prevent accidental double-inputs:
+
+```typescript
+let lastInputTime = 0;
+const DEBOUNCE_MS = 100;
+
+const handleInput = (event: InputEvent) => {
+  const now = performance.now();
+  if (now - lastInputTime < DEBOUNCE_MS) return;
+  lastInputTime = now;
+  
+  processInput(event);
+};
+```
+
+---
+
+## Touch & Mobile Patterns
+
+### Touch Offset
+
+Keep dragged objects visible above finger:
+
+```typescript
+const TOUCH_OFFSET_Y = -60; // 60px above touch point
+
+const handleTouchMove = (e: TouchEvent) => {
+  const touch = e.touches[0];
+  setDragPosition({
+    x: touch.clientX,
+    y: touch.clientY + TOUCH_OFFSET_Y,
   });
-
-  // Entry effects
-  showCallout('🔥 FEVER MODE! 🔥');
-  triggerScreenShake(200);
-  triggerConfetti();
-  triggerScreenFlash('#ffd700', 0.4);
-  playFeverActivationSound();
-  vibrate([20, 30, 15, 30, 12, 30, 10, 30, 8]);
-};
-
-const deactivateFeverMode = () => {
-  setFeverState({ active: false, startTime: 0, multiplier: 1, intensity: 0 });
-  showCallout('FEVER ENDED');
-  playFeverEndSound();
-  stopFeverAudioLoop();
 };
 ```
 
-### Fever Mode Visual CSS
+### Long Press Detection
 
-```css
-.game-container.fever-mode {
-  animation: fever-background 1s ease-in-out infinite;
+```typescript
+interface LongPressState {
+  startTime: number | null;
+  startX: number;
+  startY: number;
+  triggered: boolean;
 }
 
-.game-container.fever-mode::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at center,
-    rgba(255, 100, 0, 0.1) 0%,
-    rgba(255, 50, 0, 0.2) 100%
-  );
-  animation: fever-pulse 500ms ease-in-out infinite;
-  pointer-events: none;
-}
+const LONG_PRESS_DURATION = 500;
+const MOVE_THRESHOLD = 10;
 
-@keyframes fever-background {
-  0%, 100% { background-color: #1a0505; }
-  50% { background-color: #2a0808; }
-}
-
-/* Rising ember particles */
-.fever-ember {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: #ff6b00;
-  border-radius: 50%;
-  box-shadow: 0 0 10px #ff6b00;
-  animation: ember-rise 2s linear infinite;
-}
-
-@keyframes ember-rise {
-  0% { transform: translateY(100vh) scale(1); opacity: 1; }
-  100% { transform: translateY(-20vh) scale(0); opacity: 0; }
-}
+const detectLongPress = (state: LongPressState, e: TouchEvent): boolean => {
+  const touch = e.touches[0];
+  
+  // Check if moved too much
+  const dx = touch.clientX - state.startX;
+  const dy = touch.clientY - state.startY;
+  if (Math.sqrt(dx*dx + dy*dy) > MOVE_THRESHOLD) {
+    state.startTime = null;
+    return false;
+  }
+  
+  // Check duration
+  if (state.startTime && !state.triggered) {
+    if (performance.now() - state.startTime > LONG_PRESS_DURATION) {
+      state.triggered = true;
+      return true;
+    }
+  }
+  
+  return false;
+};
 ```
 
-### Fever Multiplier Display
+### Swipe Detection
+
+```typescript
+interface SwipeResult {
+  direction: 'up' | 'down' | 'left' | 'right' | null;
+  velocity: number;
+}
+
+const MIN_SWIPE_DISTANCE = 50;
+const MAX_SWIPE_TIME = 300;
+
+const detectSwipe = (
+  startX: number, startY: number,
+  endX: number, endY: number,
+  duration: number
+): SwipeResult => {
+  if (duration > MAX_SWIPE_TIME) return { direction: null, velocity: 0 };
+  
+  const dx = endX - startX;
+  const dy = endY - startY;
+  const distance = Math.sqrt(dx*dx + dy*dy);
+  
+  if (distance < MIN_SWIPE_DISTANCE) return { direction: null, velocity: 0 };
+  
+  const velocity = distance / duration;
+  
+  if (Math.abs(dx) > Math.abs(dy)) {
+    return { direction: dx > 0 ? 'right' : 'left', velocity };
+  } else {
+    return { direction: dy > 0 ? 'down' : 'up', velocity };
+  }
+};
+```
+
+### Thumb Zone Awareness
+
+```typescript
+const getThumbZone = (screenHeight: number): { top: number; bottom: number } => {
+  // Bottom 40% of screen is comfortable thumb zone
+  return {
+    top: screenHeight * 0.6,
+    bottom: screenHeight,
+  };
+};
+
+// Place primary interactions in thumb zone
+const isInThumbZone = (y: number, screenHeight: number): boolean => {
+  const zone = getThumbZone(screenHeight);
+  return y >= zone.top && y <= zone.bottom;
+};
+```
+
+---
+
+## Drag & Drop
+
+### Trail Particles
+
+```typescript
+const lastTrailPos = { x: 0, y: 0 };
+const TRAIL_EMIT_DISTANCE = 25;
+
+const emitTrailParticle = (x: number, y: number, color: string) => {
+  const dx = x - lastTrailPos.x;
+  const dy = y - lastTrailPos.y;
+  const distance = Math.sqrt(dx*dx + dy*dy);
+  
+  if (distance > TRAIL_EMIT_DISTANCE) {
+    lastTrailPos.x = x;
+    lastTrailPos.y = y;
+    
+    particlePool.spawn(x, y, {
+      vx: 0,
+      vy: 0,
+      size: 8 + Math.random() * 4,
+      color,
+      alpha: 0.6,
+      maxLife: 20,
+    });
+  }
+};
+```
+
+### Magnetic Snapping
+
+```typescript
+const SNAP_RADIUS = 0.25; // 25% of cell size
+
+const calculateSnapPosition = (
+  rawX: number,
+  rawY: number,
+  cellSize: number
+): { x: number; y: number; snapped: boolean } => {
+  const snapX = Math.round(rawX / cellSize) * cellSize;
+  const snapY = Math.round(rawY / cellSize) * cellSize;
+  
+  const distX = Math.abs(rawX - snapX);
+  const distY = Math.abs(rawY - snapY);
+  
+  if (distX < cellSize * SNAP_RADIUS && distY < cellSize * SNAP_RADIUS) {
+    return { x: snapX, y: snapY, snapped: true };
+  }
+  
+  return { x: rawX, y: rawY, snapped: false };
+};
+
+// Haptic on snap
+let wasSnapped = false;
+const onDragMove = (x: number, y: number) => {
+  const { snapped } = calculateSnapPosition(x, y, cellSize);
+  
+  if (snapped && !wasSnapped) {
+    haptics.ultraLight();
+  }
+  wasSnapped = snapped;
+};
+```
+
+### Dragged Object Styling
 
 ```css
-.fever-multiplier {
-  position: absolute;
-  top: 15%;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-  animation: multiplier-pulse 300ms ease-in-out infinite;
+.dragged {
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+  transform: scale(1.1);
+  z-index: 1000;
+  transition: transform 0.1s ease-out;
 }
 
-.multiplier-value {
-  font-size: 48px;
-  font-weight: bold;
-  color: #ffd700;
-  text-shadow:
-    0 0 20px #ff6b00,
-    0 0 40px #ff4500,
-    0 0 60px #ff0000;
-}
-
-@keyframes multiplier-pulse {
-  0%, 100% { transform: translateX(-50%) scale(1); }
-  50% { transform: translateX(-50%) scale(1.1); }
+.drag-ghost {
+  opacity: 0.5;
+  border: 2px dashed rgba(255,255,255,0.5);
 }
 ```
 
 ---
 
-## Camera Effects
+# PART 8: UI/UX JUICE
 
-**New section from Color Reaction learnings.**
+## Scoring & Progression
 
-### Principle: Camera Movement Adds Physicality
-
-Camera effects (zoom, shake, pan) make on-screen events feel like they have physical weight. They're a core juice technique often overlooked in web games.
-
-### Camera Zoom Pulse
-
-Brief zoom on impactful moments, then ease back:
+### Score Animation
 
 ```typescript
-const [cameraZoom, setCameraZoom] = useState(1);
-
-const triggerCameraZoom = (intensity: number = 1.05, duration: number = 200) => {
-  setCameraZoom(intensity);
-  setTimeout(() => setCameraZoom(1), duration);
-};
-
-// Scale intensity by event importance
-const ZOOM_INTENSITIES = {
-  tap: 1.02,
-  success: 1.04,
-  great: 1.06,
-  perfect: 1.08,
-  milestone: 1.10,
+const animateScore = (
+  from: number,
+  to: number,
+  duration: number = 500,
+  onUpdate: (value: number) => void
+) => {
+  const start = performance.now();
+  const diff = to - from;
+  
+  const update = (now: number) => {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = easeOutCubic(progress);
+    
+    onUpdate(Math.floor(from + diff * eased));
+    
+    if (progress < 1) requestAnimationFrame(update);
+  };
+  
+  requestAnimationFrame(update);
 };
 ```
 
-```css
-.game-container {
-  transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  transform-origin: center center;
-}
-```
-
-### Touch Point Ripple
-
-Ripple effect at the actual touch location reinforces input-output connection:
+### Floating Score Popup
 
 ```typescript
-interface TouchRipple {
-  id: string;
+interface ScorePopup {
   x: number;
   y: number;
+  text: string;
   color: string;
+  alpha: number;
+  vy: number;
+  scale: number;
 }
 
-const createTouchRipple = (event: TouchEvent | MouseEvent, color: string) => {
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-  const x = 'touches' in event
-    ? event.touches[0].clientX - rect.left
-    : event.clientX - rect.left;
-  const y = 'touches' in event
-    ? event.touches[0].clientY - rect.top
-    : event.clientY - rect.top;
+const createScorePopup = (
+  x: number, 
+  y: number, 
+  points: number, 
+  multiplier: number = 1
+): ScorePopup => {
+  const text = multiplier > 1 
+    ? `+${points * multiplier} (x${multiplier})` 
+    : `+${points}`;
+  
+  const color = multiplier >= 2 ? '#ffd700' 
+    : multiplier > 1 ? '#ffaa00' 
+    : '#ffffff';
+  
+  return {
+    x, y,
+    text,
+    color,
+    alpha: 1,
+    vy: -2,
+    scale: multiplier > 1 ? 1.2 : 1,
+  };
+};
 
-  const id = `ripple-${Date.now()}`;
-  addRipple({ id, x, y, color });
-  setTimeout(() => removeRipple(id), 600);
+const updateScorePopups = (popups: ScorePopup[]) => {
+  for (let i = popups.length - 1; i >= 0; i--) {
+    const p = popups[i];
+    p.y += p.vy;
+    p.alpha -= 0.02;
+    p.scale *= 0.99;
+    
+    if (p.alpha <= 0) popups.splice(i, 1);
+  }
+};
+
+const drawScorePopups = (ctx: CanvasRenderingContext2D, popups: ScorePopup[]) => {
+  popups.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.alpha;
+    ctx.translate(p.x, p.y);
+    ctx.scale(p.scale, p.scale);
+    ctx.fillStyle = p.color;
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.text, 0, 0);
+    ctx.restore();
+  });
 };
 ```
 
-```css
-.touch-ripple {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  animation: ripple-expand 600ms ease-out forwards;
-}
-
-@keyframes ripple-expand {
-  0% { width: 20px; height: 20px; opacity: 0.6; }
-  100% { width: 150px; height: 150px; opacity: 0; }
-}
-```
-
-### Hit-Stop (Frame Freeze)
-
-Brief pause on impact makes hits feel powerful. Scale duration by importance:
+### Milestone Celebrations
 
 ```typescript
-const HIT_STOP_DURATIONS = {
-  light: 15,    // ms
-  medium: 30,
-  heavy: 50,
-  perfect: 60,
-  massive: 100,
+const SCORE_MILESTONES = [100, 500, 1000, 2500, 5000, 10000];
+
+const checkMilestone = (oldScore: number, newScore: number) => {
+  for (const milestone of SCORE_MILESTONES) {
+    if (oldScore < milestone && newScore >= milestone) {
+      triggerMilestoneCelebration(milestone);
+      return;
+    }
+  }
 };
 
-const [hitStop, setHitStop] = useState(false);
-
-const triggerHitStop = (intensity: keyof typeof HIT_STOP_DURATIONS) => {
-  const duration = HIT_STOP_DURATIONS[intensity];
-  setHitStop(true);
-  setTimeout(() => setHitStop(false), duration);
+const triggerMilestoneCelebration = (milestone: number) => {
+  // Big celebration
+  playSound('milestone');
+  triggerFlash('#ffd700', 0.3);
+  triggerShake(4, 150);
+  spawnConfetti(canvasWidth / 2, canvasHeight / 2, 30);
+  
+  // Show callout
+  showCallout(`${milestone} POINTS!`, 2000);
 };
 ```
-
-```css
-/* Pause all animations during hit-stop */
-.hit-stop-active * {
-  animation-play-state: paused !important;
-}
-
-/* Slight brightness boost during freeze */
-.hit-stop-active .game-container {
-  filter: brightness(1.2) contrast(1.1);
-}
-```
-
-### When to Use Camera Effects
-
-| Event | Zoom | Ripple | Hit-Stop |
-|-------|------|--------|----------|
-| Any tap/click | ✗ | ✓ | ✗ |
-| Successful action | 1.04x | ✓ | 15ms |
-| Great performance | 1.06x | ✓ | 30ms |
-| Perfect performance | 1.08x | ✓ | 60ms |
-| Combo milestone | 1.10x | ✓ | 50ms |
-| Big destruction | 1.06x | ✗ | 50ms |
-| Level complete | 1.10x | ✗ | 100ms |
 
 ---
 
-## Viral & Share Mechanics
+## Loading & Waiting States
 
-**New section from Color Reaction learnings.**
+### Skeleton Screens
 
-### Principle: Without Sharing, There's No Viral Loop
-
-Research shows viral mobile games MUST have frictionless sharing. Players who share:
-- Return 2.3x more often
-- Have 40% higher lifetime value
-- Bring in new players organically
-
-### Share Image Generator
-
-Create branded, shareable images with game stats:
+Show structure immediately, fill in details when ready:
 
 ```typescript
-interface GameStats {
-  score: number;
-  maxStreak: number;
-  bestTime?: number;
-  perfectCount?: number;
+const SkeletonCard = () => (
+  <div className="skeleton-card">
+    <div className="skeleton-image shimmer" />
+    <div className="skeleton-text shimmer" style={{ width: '80%' }} />
+    <div className="skeleton-text shimmer" style={{ width: '60%' }} />
+  </div>
+);
+
+// CSS
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
-const generateShareImage = async (stats: GameStats): Promise<string> => {
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+```
+
+### Progress Bars with Juice
+
+```typescript
+const drawProgressBar = (
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number,
+  width: number, height: number,
+  progress: number, // 0-1
+  time: number
+) => {
+  // Background
+  ctx.fillStyle = '#333';
+  roundRect(ctx, x, y, width, height, height / 2);
+  ctx.fill();
+  
+  // Fill with gradient
+  const gradient = ctx.createLinearGradient(x, y, x + width, y);
+  gradient.addColorStop(0, '#4CAF50');
+  gradient.addColorStop(1, '#8BC34A');
+  ctx.fillStyle = gradient;
+  roundRect(ctx, x, y, width * progress, height, height / 2);
+  ctx.fill();
+  
+  // Shine animation
+  const shineX = x + (time * 0.1 % (width + 50)) - 25;
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.fillRect(shineX, y, 50, height);
+  ctx.restore();
+};
+```
+
+### Fake Progress for Indeterminate Waits
+
+```typescript
+// Psychology: Fast start, slow middle, fast finish
+const getFakeProgress = (elapsed: number, expectedDuration: number): number => {
+  const t = elapsed / expectedDuration;
+  
+  if (t < 0.3) {
+    // Fast start (0-30% in first 30% of time)
+    return t / 0.3 * 0.3;
+  } else if (t < 0.9) {
+    // Slow middle (30-80% in next 60% of time)
+    return 0.3 + ((t - 0.3) / 0.6) * 0.5;
+  } else {
+    // Actual completion will jump to 100%
+    return 0.8 + ((t - 0.9) / 0.1) * 0.15;
+  }
+};
+```
+
+---
+
+## Tutorial & Onboarding
+
+### First-Time User Experience (FTUE)
+
+```typescript
+const TUTORIAL_STEPS = [
+  { target: 'play-button', text: 'Tap to start!', arrow: 'down' },
+  { target: 'game-area', text: 'Match the pairs', arrow: 'none' },
+  { target: 'timer', text: 'Beat the clock!', arrow: 'up' },
+];
+
+interface TutorialState {
+  step: number;
+  complete: boolean;
+  hasSeenBefore: boolean;
+}
+
+const initTutorial = (): TutorialState => ({
+  step: 0,
+  complete: localStorage.getItem('tutorial_complete') === 'true',
+  hasSeenBefore: localStorage.getItem('tutorial_complete') === 'true',
+});
+```
+
+### Attention-Guiding Animation
+
+```typescript
+// Pulsing highlight around target element
+const drawTutorialHighlight = (
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number,
+  width: number, height: number,
+  time: number
+) => {
+  const pulse = 1 + Math.sin(time * 0.005) * 0.1;
+  const glowIntensity = 10 + Math.sin(time * 0.008) * 5;
+  
+  ctx.save();
+  ctx.shadowColor = '#ffd700';
+  ctx.shadowBlur = glowIntensity;
+  ctx.strokeStyle = '#ffd700';
+  ctx.lineWidth = 3;
+  
+  ctx.translate(x + width/2, y + height/2);
+  ctx.scale(pulse, pulse);
+  ctx.translate(-(x + width/2), -(y + height/2));
+  
+  roundRect(ctx, x - 5, y - 5, width + 10, height + 10, 8);
+  ctx.stroke();
+  
+  ctx.restore();
+};
+
+// Pointing hand animation
+const drawPointingHand = (
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number,
+  time: number
+) => {
+  const bobY = Math.sin(time * 0.01) * 5;
+  
+  ctx.save();
+  ctx.translate(x, y + bobY);
+  ctx.font = '32px Arial';
+  ctx.fillText('👆', 0, 0);
+  ctx.restore();
+};
+```
+
+### Tutorial Completion Celebration
+
+```typescript
+const completeTutorial = () => {
+  localStorage.setItem('tutorial_complete', 'true');
+  
+  // Celebration
+  playSound('tutorial_complete');
+  triggerFlash('#00ff00', 0.2);
+  spawnConfetti(canvasWidth / 2, canvasHeight / 2, 20);
+  
+  // Bonus reward
+  showCallout('🎉 +250 Oranges!', 3000);
+  addCurrency(250);
+};
+```
+
+---
+
+## Share & Viral Mechanics
+
+### Scorecard Generation
+
+```typescript
+const generateScorecard = async (
+  score: number,
+  highScore: number,
+  gameScreenshot: string | null
+): Promise<string> => {
   const canvas = document.createElement('canvas');
   canvas.width = 600;
   canvas.height = 400;
   const ctx = canvas.getContext('2d')!;
-
-  // Background gradient
-  const gradient = ctx.createLinearGradient(0, 0, 600, 400);
-  gradient.addColorStop(0, '#1a1a2e');
-  gradient.addColorStop(1, '#16213e');
-  ctx.fillStyle = gradient;
+  
+  // Background
+  ctx.fillStyle = '#1a1a2e';
   ctx.fillRect(0, 0, 600, 400);
-
-  // Game title with branding
-  ctx.fillStyle = '#ffd700';
-  ctx.font = 'bold 36px Arial';
+  
+  // Game screenshot
+  if (gameScreenshot) {
+    const img = await loadImage(gameScreenshot);
+    ctx.drawImage(img, 50, 50, 200, 150);
+  }
+  
+  // Score
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 48px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('🎮 GAME NAME', 300, 50);
-
-  // Score (large and prominent)
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 72px Arial';
-  ctx.fillText(stats.score.toLocaleString(), 300, 140);
+  ctx.fillText(score.toLocaleString(), 400, 120);
+  
   ctx.font = '20px Arial';
-  ctx.fillText('POINTS', 300, 170);
-
-  // Stats row
-  const statsY = 220;
-  ctx.font = '16px Arial';
-  ctx.fillStyle = '#888888';
-  ctx.fillText('Best Streak', 100, statsY);
-  ctx.fillText('Best Time', 300, statsY);
-  ctx.fillText('Perfects', 500, statsY);
-
-  ctx.font = 'bold 28px Arial';
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(`🔥 ${stats.maxStreak}`, 100, statsY + 35);
-  ctx.fillText(`⚡ ${stats.bestTime}ms`, 300, statsY + 35);
-  ctx.fillText(`🌟 ${stats.perfectCount}`, 500, statsY + 35);
-
+  ctx.fillStyle = '#aaaaaa';
+  ctx.fillText('SCORE', 400, 150);
+  
+  // New high score badge
+  if (score >= highScore) {
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText('🏆 NEW HIGH SCORE!', 400, 200);
+  }
+  
   // Branding
-  ctx.fillStyle = '#666666';
-  ctx.font = '14px Arial';
-  ctx.fillText('Play at wojak.ink', 300, 370);
-
+  ctx.fillStyle = '#888888';
+  ctx.font = '16px Arial';
+  ctx.fillText('Play at wojak.ink', 300, 380);
+  
   return canvas.toDataURL('image/png');
 };
 ```
 
-### Share Button with Web Share API
-
-```typescript
-const handleShare = async (stats: GameStats) => {
-  const imageUrl = await generateShareImage(stats);
-
-  // Try native share first (mobile)
-  if (navigator.share) {
-    try {
-      const blob = await (await fetch(imageUrl)).blob();
-      const file = new File([blob], 'game-score.png', { type: 'image/png' });
-      await navigator.share({
-        title: `I scored ${stats.score} points!`,
-        text: `Best streak: ${stats.maxStreak} 🔥`,
-        files: [file],
-      });
-      return;
-    } catch (e) {
-      // Fall through to download
-    }
-  }
-
-  // Fallback: download image
-  const link = document.createElement('a');
-  link.download = 'game-score.png';
-  link.href = imageUrl;
-  link.click();
-};
-```
-
-### Challenge Mode (Friend Challenges)
-
-Let players challenge friends with shareable links:
+### Challenge Link Generation
 
 ```typescript
 interface Challenge {
@@ -3412,17 +3536,17 @@ const generateChallengeLink = (score: number, name: string): string => {
     createdAt: Date.now(),
   };
   const encoded = btoa(JSON.stringify(challenge));
-  return `${window.location.origin}/game?challenge=${encoded}`;
+  return `${window.location.origin}/games?challenge=${encoded}`;
 };
 
-// On game load, check for challenge
+// On game load
 useEffect(() => {
   const params = new URLSearchParams(window.location.search);
   const challengeParam = params.get('challenge');
-
+  
   if (challengeParam) {
     try {
-      const challenge: Challenge = JSON.parse(atob(challengeParam));
+      const challenge = JSON.parse(atob(challengeParam));
       setActiveChallenge(challenge);
     } catch (e) {
       console.error('Invalid challenge');
@@ -3431,1375 +3555,321 @@ useEffect(() => {
 }, []);
 ```
 
-### Challenge Mode UI
+### Share Prompt Timing
 
-```typescript
-// During gameplay, show challenge target
-{activeChallenge && (
-  <div className="challenge-banner">
-    <span>Beat {activeChallenge.creatorName}'s {activeChallenge.targetScore} pts!</span>
-    <div className="challenge-progress">
-      <div
-        className="challenge-fill"
-        style={{ width: `${Math.min(100, (score / activeChallenge.targetScore) * 100)}%` }}
-      />
-    </div>
-  </div>
-)}
-```
-
-### Share Button Placement
-
-- **Game Over Screen:** Primary placement, large button
-- **Pause Menu:** Secondary placement
-- **After Milestone:** Prompt to share (non-blocking)
-- **Challenge Win:** Automatic prompt with "Share your victory!"
-
-### What Makes Shares Effective
-
-1. **Visual Appeal:** Branded, colorful, readable at small sizes
-2. **Clear Achievement:** Score/stat prominently displayed
-3. **Call to Action:** "Play at [url]" visible
-4. **Emotional Hook:** Emojis, celebration imagery
-5. **Challenge Element:** "Can you beat this?" implicit
+Best times to prompt for share:
+- ✅ After new high score
+- ✅ After completing a challenge
+- ✅ After milestone achievement
+- ❌ After every game (annoying)
+- ❌ During gameplay (disruptive)
 
 ---
 
-## Signature Sound Design
+# PART 9: ADVANCED TOPICS
 
-**New section from Color Reaction learnings.**
+## Procedural Animation
 
-### Principle: Every Viral Game Has an Iconic Sound
+### Spring-Based UI
 
-Think of Candy Crush's "Divine!", Wordle's success melody, or Flappy Bird's point sound. These sounds become synonymous with the game and trigger instant recognition.
-
-### Creating a Signature Sound
-
-Your signature sound should be:
-- **Short** (100-300ms)
-- **Distinctive** (not generic)
-- **Pleasant** (players hear it hundreds of times)
-- **Layered** (2-3 tones, not single note)
-- **Ascending** (feels positive/rewarding)
-
-### Two-Note Chime Pattern
-
-The most effective pattern is a quick two-note ascending chime:
+Make UI elements feel alive with springs:
 
 ```typescript
-const createSignatureSound = (audioContext: AudioContext) => {
-  // Note 1: Lower tone
-  const note1 = audioContext.createOscillator();
-  const gain1 = audioContext.createGain();
-  note1.type = 'sine';
-  note1.frequency.value = 880; // A5
-  gain1.gain.setValueAtTime(0.4, audioContext.currentTime);
-  gain1.gain.exponentialRampToValueAtTime(0.1, audioContext.currentTime + 0.1);
-
-  // Note 2: Higher tone (slightly delayed)
-  const note2 = audioContext.createOscillator();
-  const gain2 = audioContext.createGain();
-  note2.type = 'sine';
-  note2.frequency.value = 1318; // E6
-  gain2.gain.setValueAtTime(0, audioContext.currentTime);
-  gain2.gain.setValueAtTime(0.5, audioContext.currentTime + 0.08);
-  gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
-
-  // Shimmer layer (octave up, quiet)
-  const shimmer = audioContext.createOscillator();
-  const shimmerGain = audioContext.createGain();
-  shimmer.type = 'sine';
-  shimmer.frequency.value = 2636; // E7
-  shimmerGain.gain.setValueAtTime(0.1, audioContext.currentTime + 0.08);
-  shimmerGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
-
-  // Connect and play
-  note1.connect(gain1).connect(audioContext.destination);
-  note2.connect(gain2).connect(audioContext.destination);
-  shimmer.connect(shimmerGain).connect(audioContext.destination);
-
-  note1.start();
-  note2.start(audioContext.currentTime + 0.08);
-  shimmer.start(audioContext.currentTime + 0.08);
-
-  note1.stop(audioContext.currentTime + 0.15);
-  note2.stop(audioContext.currentTime + 0.3);
-  shimmer.stop(audioContext.currentTime + 0.25);
-};
-```
-
-### When to Play Signature Sound
-
-Use your signature sound sparingly for maximum impact:
-- ✅ Main success action (match, score, collect)
-- ✅ Perfect/excellent performance
-- ❌ Every tap (too frequent)
-- ❌ Failures (should feel distinct)
-- ❌ UI interactions (reserve for gameplay)
-
-### Sound Branding Across Games
-
-For Wojak.ink, consider a consistent audio identity:
-- **Same signature chime** in all games (brand recognition)
-- **Game-specific variations** (different keys/instruments)
-- **Consistent volume levels** across all games
-- **Shared sound library** for common actions (button clicks, errors)
-
----
-
-## Tile & Grid Game Juice
-
-**New section from 2048 Merge learnings.**
-
-### Principle: Merge Games Need Progressive Feedback
-
-In tile/merge games, the feedback should escalate with tile value. Higher-value merges feel more impactful.
-
-### Ascending Pitch Sound System
-
-Each tile value should have a progressively higher pitch:
-
-```typescript
-const MERGE_SOUND_CONFIG: Record<number, { pitch: number; volume: number; layers: number }> = {
-  4:    { pitch: 0.8,  volume: 0.4, layers: 1 },  // Low, simple
-  8:    { pitch: 0.85, volume: 0.45, layers: 1 },
-  16:   { pitch: 0.9,  volume: 0.5, layers: 1 },
-  32:   { pitch: 0.95, volume: 0.55, layers: 1 },
-  64:   { pitch: 1.0,  volume: 0.6, layers: 1 },
-  128:  { pitch: 1.05, volume: 0.65, layers: 2 }, // Add sparkle layer
-  256:  { pitch: 1.1,  volume: 0.7, layers: 2 },
-  512:  { pitch: 1.15, volume: 0.75, layers: 3 }, // Add bass hit
-  1024: { pitch: 1.2,  volume: 0.8, layers: 3 },
-  2048: { pitch: 1.3,  volume: 1.0, layers: 4 },  // Full celebration
-};
-
-const playMergeSound = (resultValue: number) => {
-  const config = MERGE_SOUND_CONFIG[resultValue];
-
-  // Base merge sound with pitch variation
-  playWithPitch('merge_pop', config.pitch, config.volume);
-
-  // Add sparkle layer for 128+
-  if (config.layers >= 2) {
-    setTimeout(() => playWithPitch('sparkle', config.pitch * 1.2, 0.3), 30);
-  }
-
-  // Add bass hit for 512+
-  if (config.layers >= 3) {
-    playWithPitch('bass_hit', config.pitch * 0.5, 0.4);
-  }
-};
-```
-
-### Progressive Haptic Intensity
-
-Haptic feedback should scale logarithmically with tile value:
-
-```typescript
-const HAPTIC_CONFIG: Record<number, number[]> = {
-  4:    [12],                           // Single light tap
-  8:    [15],
-  16:   [18],
-  32:   [20],
-  64:   [22],
-  128:  [25],
-  256:  [15, 20, 25],                   // Double tap
-  512:  [20, 15, 25, 15, 30],           // Triple tap
-  1024: [25, 20, 30, 20, 35],
-  2048: [30, 20, 35, 20, 40, 20, 50],   // Celebration pattern
-};
-
-const triggerMergeHaptic = (resultValue: number) => {
-  const pattern = HAPTIC_CONFIG[resultValue] || [20];
-  navigator.vibrate?.(pattern);
-};
-```
-
-### Grid Danger State System
-
-When the grid is almost full, create escalating tension:
-
-```typescript
-type DangerLevel = 'safe' | 'warning' | 'critical' | 'imminent';
-
-const DANGER_THRESHOLDS = {
-  warning: 4,   // 4 or fewer empty cells
-  critical: 2,  // 2 or fewer empty cells
-  imminent: 1,  // Only 1 empty cell
-};
-
-// Visual effects per danger level
-const DANGER_VISUALS = {
-  warning: {
-    glowColor: 'rgba(255, 165, 0, 0.3)',
-    pulseSpeed: 1.5, // seconds
-  },
-  critical: {
-    glowColor: 'rgba(255, 100, 0, 0.4)',
-    pulseSpeed: 1.0,
-  },
-  imminent: {
-    glowColor: 'rgba(255, 50, 0, 0.5)',
-    pulseSpeed: 0.5,
-  },
-};
-```
-
-### Empty Cell Highlighting
-
-In danger states, highlight available spaces:
-
-```css
-.grid-cell.cell-highlighted {
-  background: rgba(255, 215, 0, 0.3);
-  animation: cellGlow 1s ease-in-out infinite;
-}
-
-@keyframes cellGlow {
-  0%, 100% { background: rgba(255, 215, 0, 0.2); }
-  50% { background: rgba(255, 215, 0, 0.4); }
-}
-```
-
-### Tile Squash & Stretch
-
-Apply squash/stretch based on movement direction:
-
-```css
-/* Stretch in direction of movement */
-.tile-moving-left,
-.tile-moving-right {
-  transform: scaleX(1.15) scaleY(0.9);
-}
-
-.tile-moving-up,
-.tile-moving-down {
-  transform: scaleX(0.9) scaleY(1.15);
-}
-
-/* Squash on merge impact */
-.tile-merged {
-  animation: squashMerge 200ms ease-out;
-}
-
-@keyframes squashMerge {
-  0% { transform: scale(0.8, 1.2); }
-  40% { transform: scale(1.25, 0.85); }
-  70% { transform: scale(0.95, 1.05); }
-  100% { transform: scale(1, 1); }
-}
-```
-
----
-
-## Character Personality on Objects
-
-**New section from 2048 Merge learnings (inspired by Threes!).**
-
-### Principle: Faces Create Emotional Attachment
-
-Adding simple faces to game objects transforms abstract elements into characters players care about.
-
-> "The tile faces in Threes! 'make the game feel like something special - like playing with characters instead of just moving numbers around the board.'" - Threes! Analysis
-
-### Face Configuration System
-
-```typescript
-interface ObjectFace {
-  eyes: string;      // Character eyes
-  mouth: string;     // Character mouth
-  expression: 'happy' | 'excited' | 'worried' | 'sleepy' | 'shocked';
-  extras?: string;   // Additional features (sparkles, crown, etc.)
-}
-
-// Example for a progression system (cards, tiles, etc.)
-const OBJECT_FACES: Record<number, ObjectFace> = {
-  1:  { eyes: '• •', mouth: '‿', expression: 'sleepy' },     // Basic
-  2:  { eyes: '◦ ◦', mouth: '‿', expression: 'happy' },      // Awakening
-  3:  { eyes: '° °', mouth: '◡', expression: 'happy' },      // Content
-  4:  { eyes: '◉ ◉', mouth: '◡', expression: 'happy' },      // Alert
-  5:  { eyes: '◉ ◉', mouth: '▽', expression: 'excited' },    // Excited
-  6:  { eyes: '★ ★', mouth: '▽', expression: 'excited' },    // Starry
-  7:  { eyes: '✧ ✧', mouth: '◇', expression: 'excited', extras: '✨' }, // Sparkly
-  8:  { eyes: '☀ ☀', mouth: '◇', expression: 'excited', extras: '👑' }, // Crowned
-};
-```
-
-### Context-Reactive Faces
-
-Faces should react to game state:
-
-```typescript
-const ObjectFaceRenderer: React.FC<{
-  value: number;
-  isNearMatch: boolean;  // Adjacent to a matching piece
-  isDanger: boolean;     // Game in danger state
-}> = ({ value, isNearMatch, isDanger }) => {
-  const face = OBJECT_FACES[value];
-
-  // Modify expression based on context
-  let currentExpression = face.expression;
-  if (isDanger) currentExpression = 'worried';
-  if (isNearMatch) currentExpression = 'excited';
-
+// Button that responds to hover/press with spring physics
+const SpringButton = ({ children, onClick }) => {
+  const [spring, setSpring] = useState({ value: 1, velocity: 0, target: 1 });
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSpring(s => {
+        const force = (s.target - s.value) * 300;
+        const damping = s.velocity * 20;
+        const velocity = s.velocity + (force - damping) * 0.016;
+        const value = s.value + velocity * 0.016;
+        return { ...s, value, velocity };
+      });
+    }, 16);
+    return () => clearInterval(interval);
+  }, []);
+  
   return (
-    <div className={`object-face face-${currentExpression}`}>
-      <span className="face-eyes">{face.eyes}</span>
-      <span className="face-mouth">{face.mouth}</span>
-      {face.extras && <span className="face-extras">{face.extras}</span>}
-    </div>
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setSpring(s => ({ ...s, target: 1.1 }))}
+      onMouseLeave={() => setSpring(s => ({ ...s, target: 1 }))}
+      onMouseDown={() => setSpring(s => ({ ...s, target: 0.9 }))}
+      onMouseUp={() => setSpring(s => ({ ...s, target: 1.1 }))}
+      style={{ transform: `scale(${spring.value})` }}
+    >
+      {children}
+    </button>
   );
 };
 ```
 
-### Face Animation CSS
-
-```css
-.object-face {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 0.4em;
-  opacity: 0.9;
-}
-
-/* Expression animations */
-.face-excited .face-eyes {
-  animation: bounce 0.5s ease-in-out infinite;
-}
-
-.face-worried .face-eyes {
-  animation: shake 0.3s ease-in-out infinite;
-}
-
-.face-sleepy {
-  opacity: 0.6;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-1px); }
-  75% { transform: translateX(1px); }
-}
-
-/* New object "hello" animation */
-.object-new .object-face {
-  animation: hello 0.4s ease-out;
-}
-
-@keyframes hello {
-  0% { transform: scale(0); }
-  60% { transform: scale(1.2); }
-  100% { transform: scale(1); }
-}
-```
-
-### Unlockable Character Bios
-
-Track and reward discovery:
+### Procedural Wobble
 
 ```typescript
-const OBJECT_BIOS: Record<number, { name: string; bio: string }> = {
-  1: { name: 'Seed', bio: 'A tiny beginning, full of potential!' },
-  2: { name: 'Sprout', bio: 'Just waking up to the world.' },
-  // ... etc
-};
+// Objects wobble organically when disturbed
+interface WobbleState {
+  angle: number;
+  velocity: number;
+  damping: number;
+  stiffness: number;
+}
 
-// Track unlocked bios
-const [unlockedBios, setUnlockedBios] = useState<Set<number>>(() => {
-  const saved = localStorage.getItem('game-unlocked-bios');
-  return saved ? new Set(JSON.parse(saved)) : new Set([1, 2]);
+const createWobble = (): WobbleState => ({
+  angle: 0,
+  velocity: 0,
+  damping: 0.9,
+  stiffness: 0.3,
 });
 
-const unlockBio = (value: number) => {
-  setUnlockedBios(prev => {
-    const newSet = new Set(prev);
-    newSet.add(value);
-    localStorage.setItem('game-unlocked-bios', JSON.stringify([...newSet]));
-    return newSet;
-  });
+const disturbWobble = (wobble: WobbleState, force: number) => {
+  wobble.velocity += force;
+};
+
+const updateWobble = (wobble: WobbleState) => {
+  wobble.velocity += -wobble.angle * wobble.stiffness;
+  wobble.velocity *= wobble.damping;
+  wobble.angle += wobble.velocity;
+  return wobble.angle;
+};
+
+// Usage
+const drawWithWobble = (ctx, obj, wobble) => {
+  ctx.save();
+  ctx.translate(obj.x, obj.y);
+  ctx.rotate(wobble.angle * 0.1); // Convert to radians
+  // Draw object
+  ctx.restore();
+};
+```
+
+### Breathing/Idle Animation
+
+```typescript
+// Subtle scale pulsing for idle objects
+const getBreathingScale = (time: number, speed: number = 0.002, amount: number = 0.02): number => {
+  return 1 + Math.sin(time * speed) * amount;
+};
+
+// Subtle floating motion
+const getFloatingOffset = (time: number, speed: number = 0.003, amount: number = 3): number => {
+  return Math.sin(time * speed) * amount;
 };
 ```
 
 ---
 
-## Next Item Preview Systems
+## Environmental Systems
 
-**New section from 2048 Merge learnings (inspired by Threes!).**
-
-### Principle: Preview Adds Strategy and Reduces Frustration
-
-Showing upcoming items transforms random-feeling games into strategic experiences.
-
-> "The 'peek' mechanic in Threes! shows what's coming next, adding strategy and anticipation. Players can plan one move ahead." - Threes! Analysis
-
-### Queue-Based Preview System
+### Weather Effects
 
 ```typescript
-const [nextItemQueue, setNextItemQueue] = useState<number[]>([]);
-
-// Generate next random item
-const generateNextItem = (): number => {
-  // Game-specific logic (e.g., 90% chance of 2, 10% chance of 4)
-  return Math.random() < 0.9 ? 2 : 4;
-};
-
-// Initialize queue
-const initQueue = () => {
-  setNextItemQueue([generateNextItem(), generateNextItem()]);
-};
-
-// Use queue when spawning
-const spawnFromQueue = (): number => {
-  const nextValue = nextItemQueue[0];
-  setNextItemQueue(prev => [...prev.slice(1), generateNextItem()]);
-  return nextValue;
-};
-```
-
-### Preview UI Component
-
-```typescript
-const NextItemPreview: React.FC<{ queue: number[] }> = ({ queue }) => (
-  <div className="next-preview">
-    <span className="preview-label">NEXT</span>
-    <div className="preview-items">
-      {queue.map((value, i) => (
-        <div
-          key={i}
-          className={`preview-item preview-item-${i}`}
-          style={getItemStyle(value)}
-        >
-          <ObjectFace value={value} />
-          <span className="preview-value">{value}</span>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-```
-
-### Preview CSS
-
-```css
-.next-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.preview-label {
-  font-size: 10px;
-  font-weight: bold;
-  text-transform: uppercase;
-  opacity: 0.7;
-}
-
-.preview-items {
-  display: flex;
-  gap: 4px;
-}
-
-.preview-item {
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  animation: previewPop 200ms ease-out;
-}
-
-/* Secondary item is smaller and faded */
-.preview-item-1 {
-  opacity: 0.5;
-  transform: scale(0.8);
-}
-
-@keyframes previewPop {
-  0% { transform: scale(0.8); opacity: 0; }
-  60% { transform: scale(1.1); }
-  100% { transform: scale(1); opacity: 1; }
-}
-```
-
-### Direction-Based Spawn Preview
-
-For games where spawn location matters:
-
-```typescript
-// Show which edge the item will spawn from
-const SpawnDirectionIndicator: React.FC<{ direction: Direction }> = ({ direction }) => {
-  const arrowMap = {
-    up: '↑',
-    down: '↓',
-    left: '←',
-    right: '→',
-  };
-
-  return (
-    <div className="spawn-indicator">
-      <span className="spawn-arrow">{arrowMap[direction]}</span>
-      <span className="spawn-label">Spawns from {direction}</span>
-    </div>
-  );
-};
-```
-
-### Move Preview (Peek Before Commit)
-
-Allow players to see result before committing:
-
-```typescript
-const [previewState, setPreviewState] = useState<{
-  active: boolean;
-  direction: Direction | null;
-  resultState: GameState;
-} | null>(null);
-
-// Show preview on touch-hold
-const showMovePreview = (direction: Direction) => {
-  const simulatedResult = simulateMove(currentState, direction);
-  setPreviewState({ active: true, direction, resultState: simulatedResult });
-};
-
-// Hide preview on release (and optionally execute)
-const hideMovePreview = (shouldExecute: boolean) => {
-  if (shouldExecute && previewState) {
-    executeMove(previewState.direction);
-  }
-  setPreviewState(null);
-};
-```
-
-### Preview Overlay Rendering
-
-```typescript
-{previewState?.active && (
-  <div className="move-preview-overlay">
-    {previewState.resultState.items.map(item => (
-      <div
-        key={item.id}
-        className="preview-ghost"
-        style={getPositionStyle(item)}
-      >
-        {item.value}
-      </div>
-    ))}
-  </div>
-)}
-```
-
-```css
-.move-preview-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 50;
-}
-
-.preview-ghost {
-  position: absolute;
-  opacity: 0.5;
-  border: 2px dashed rgba(255,255,255,0.5);
-}
-```
-
----
-
-## Drag & Drop Juice
-
-**New section from Block Puzzle learnings.**
-
-### Principle: Dragging Should Feel Premium
-
-When players drag objects, provide continuous feedback through trails, glow effects, and magnetic snapping.
-
-### Particle Trail System
-
-```typescript
-interface TrailParticle {
-  id: number;
+interface WeatherParticle {
   x: number;
   y: number;
+  vx: number;
+  vy: number;
   size: number;
-  color: string;
   alpha: number;
 }
 
-const [trailParticles, setTrailParticles] = useState<TrailParticle[]>([]);
-const lastTrailPosRef = useRef({ x: 0, y: 0 });
+// Rain system
+const createRainParticle = (canvasWidth: number): WeatherParticle => ({
+  x: Math.random() * canvasWidth,
+  y: -10,
+  vx: -1,
+  vy: 8 + Math.random() * 4,
+  size: 2,
+  alpha: 0.3 + Math.random() * 0.3,
+});
 
-// Emit particle every 25px of movement
-const emitTrailParticle = (x: number, y: number, color: string) => {
-  const dx = x - lastTrailPosRef.current.x;
-  const dy = y - lastTrailPosRef.current.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-
-  if (distance > 25) {
-    lastTrailPosRef.current = { x, y };
-    setTrailParticles(prev => [...prev, {
-      id: Date.now(),
-      x, y,
-      size: 8 + Math.random() * 4,
-      color,
-      alpha: 0.6,
-    }]);
-  }
-};
-```
-
-### Trail Particle CSS
-
-```css
-.trail-particle {
-  position: absolute;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  filter: blur(2px);
-  pointer-events: none;
-}
-```
-
-### Magnetic Snap Feedback
-
-```typescript
-const SNAP_RADIUS = 0.25; // 25% of cell width
-
-const calculateSnapPosition = (rawX: number, rawY: number) => {
-  const snapX = Math.round(rawX / cellSize) * cellSize;
-  const snapY = Math.round(rawY / cellSize) * cellSize;
-
-  const distX = Math.abs(rawX - snapX);
-  const distY = Math.abs(rawY - snapY);
-
-  // If within snap radius, snap to grid
-  if (distX < cellSize * SNAP_RADIUS && distY < cellSize * SNAP_RADIUS) {
-    return { x: snapX, y: snapY, snapped: true };
-  }
-
-  return { x: rawX, y: rawY, snapped: false };
-};
-
-// Haptic feedback on snap
-if (newSnapped && !prevSnapped) {
-  navigator.vibrate?.(10);
-}
-```
-
-### Dragged Object Glow
-
-```css
-.dragged-object {
-  filter: drop-shadow(0 0 10px rgba(255, 200, 0, 0.5));
-  animation: dragGlow 1s ease-in-out infinite;
-}
-
-@keyframes dragGlow {
-  0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 200, 0, 0.5)); }
-  50% { filter: drop-shadow(0 0 20px rgba(255, 200, 0, 0.8)); }
-}
-```
-
-### Touch Offset for Mobile
-
-```typescript
-// Offset piece above finger so player can see it
-const TOUCH_OFFSET_Y = -60; // 60px above touch point
-
-const handleTouchMove = (e: TouchEvent) => {
-  const touch = e.touches[0];
-  setDragPosition({
-    x: touch.clientX,
-    y: touch.clientY + TOUCH_OFFSET_Y, // Offset above finger
+const updateRain = (particles: WeatherParticle[], canvasWidth: number, canvasHeight: number) => {
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    
+    if (p.y > canvasHeight) {
+      Object.assign(p, createRainParticle(canvasWidth));
+    }
   });
 };
+
+const drawRain = (ctx: CanvasRenderingContext2D, particles: WeatherParticle[]) => {
+  ctx.strokeStyle = '#6688aa';
+  particles.forEach(p => {
+    ctx.globalAlpha = p.alpha;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x + p.vx * 3, p.y + p.vy * 3);
+    ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+};
 ```
 
----
-
-## Line Clear & Cascade Systems
-
-**New section from Block Puzzle learnings.**
-
-### Principle: Line Clears Should Feel EXPLOSIVE
-
-Multi-line clears deserve massive feedback: freeze frame, shockwave, particles bursting outward.
-
-### Freeze Frame by Clear Count
+### Day/Night Cycle
 
 ```typescript
-const FREEZE_DURATIONS = {
-  1: 0,      // No freeze for single
-  2: 40,     // Brief pause for double
-  3: 60,     // Longer for triple
-  4: 100,    // Maximum for quad+
-};
-
-const triggerFreezeFrame = (duration: number) => {
-  setFreezeFrame(true);
-  setTimeout(() => setFreezeFrame(false), duration);
-};
-```
-
-### Shockwave Effect
-
-```css
-.line-clear-shockwave {
-  position: absolute;
-  border-radius: 50%;
-  border: 3px solid rgba(255, 200, 0, 0.8);
-  background: radial-gradient(circle, rgba(255, 200, 0, 0.3) 0%, transparent 70%);
-  pointer-events: none;
-  animation: shockwaveExpand 400ms ease-out forwards;
-}
-
-@keyframes shockwaveExpand {
-  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
-}
-```
-
-### Staggered Cell Clear Animation
-
-```typescript
-// Clear cells with staggered delay for wave effect
-cells.forEach((cell, index) => {
-  setTimeout(() => {
-    markCellAsClearing(cell);
-    createParticleBurst(cell.x, cell.y, cell.color);
-  }, index * 30); // 30ms stagger per cell
-});
-```
-
-### Clear Cell CSS with Flash
-
-```css
-.cell-clearing {
-  animation: cellClearFlash 500ms ease-out forwards;
-}
-
-@keyframes cellClearFlash {
-  0% { filter: brightness(1); transform: scale(1); }
-  15% { filter: brightness(2.5); background: white !important; transform: scale(1.1); }
-  30% { filter: brightness(1.5); transform: scale(1.2); }
-  100% { filter: brightness(0); transform: scale(0) rotate(180deg); opacity: 0; }
-}
-```
-
-### Screen Shake by Line Count
-
-```typescript
-const SHAKE_CONFIG = {
-  1: { intensity: 3, duration: 150 },
-  2: { intensity: 5, duration: 200 },
-  3: { intensity: 8, duration: 300 },
-  4: { intensity: 12, duration: 400 },
-};
-```
-
-### Perfect Clear Detection
-
-```typescript
-// Massive celebration when grid is completely empty
-const checkPerfectClear = (grid: Grid): boolean => {
-  return grid.every(row => row.every(cell => !cell.filled));
-};
-
-if (checkPerfectClear(newGrid)) {
-  triggerPerfectClear(); // Massive confetti, fanfare, bonus points
-}
-```
-
----
-
-## Musical Combo Escalation
-
-**New section from Block Puzzle learnings.**
-
-### Principle: Combos Should Create Melodies
-
-Each consecutive combo plays the next note in a musical scale, creating satisfying melodies during hot streaks.
-
-> "For merge sequences, sounds go UP in pitch on the scale. This makes long combo chains feel super satisfying." - Tetris Effect
-
-### Musical Scale Configuration
-
-```typescript
-// C Major scale frequencies
-const COMBO_SCALE_FREQUENCIES = [
-  261.63, // C4 - Do (combo 1)
-  293.66, // D4 - Re (combo 2)
-  329.63, // E4 - Mi (combo 3)
-  349.23, // F4 - Fa (combo 4)
-  392.00, // G4 - Sol (combo 5+)
-];
-
-const playComboNote = (comboLevel: number) => {
-  const noteIndex = Math.min(comboLevel - 1, 4);
-  const frequency = COMBO_SCALE_FREQUENCIES[noteIndex];
-
-  const audioContext = new AudioContext();
-  const osc = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-
-  osc.frequency.value = frequency;
-  osc.type = 'sine';
-  gain.gain.setValueAtTime(0.5, audioContext.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-
-  osc.connect(gain).connect(audioContext.destination);
-  osc.start();
-  osc.stop(audioContext.currentTime + 0.3);
-};
-```
-
-### Layered Sound by Combo Level
-
-```typescript
-const COMBO_SOUND_CONFIG = {
-  1: { layers: 1 },           // Base note only
-  2: { layers: 1 },           // Base note only
-  3: { layers: 2 },           // Add sparkle layer
-  4: { layers: 2 },           // Add sparkle layer
-  5: { layers: 3 },           // Add bass hit
-};
-
-const playComboSound = (combo: number) => {
-  const config = COMBO_SOUND_CONFIG[Math.min(combo, 5)];
-
-  playComboNote(combo);
-
-  if (config.layers >= 2) {
-    playSparkleSound();
-  }
-
-  if (config.layers >= 3) {
-    playBassHit();
-  }
-};
-```
-
-### Combo Timeout Bar
-
-```typescript
-const ComboTimeoutBar: React.FC<{ lastTime: number; timeout: number }> = ({
-  lastTime, timeout
-}) => {
-  const [remaining, setRemaining] = useState(100);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - lastTime;
-      setRemaining(Math.max(0, 100 - (elapsed / timeout) * 100));
-    }, 16);
-    return () => clearInterval(interval);
-  }, [lastTime, timeout]);
-
-  return (
-    <div className="combo-timeout-bar">
-      <div className="fill" style={{ width: `${remaining}%` }} />
-    </div>
-  );
-};
-```
-
-### Combo Break Feedback
-
-```typescript
-const playComboBreak = (lostCombo: number) => {
-  if (lostCombo >= 3) {
-    // Descending "womp womp" sound
-    playWithPitch('combo_break', 0.8, 0.4);
-
-    // Brief red vignette flash
-    triggerVignetteFlash('#ff0000', 0.2);
-  }
-};
-```
-
----
-
-## Squash & Stretch Animation
-
-**New section from Flappy Orange learnings.**
-
-### Principle: Deformation Creates Life
-
-Squash and stretch is the #1 animation principle for making game characters feel alive and weighty. When objects deform on impact and return to shape, they feel organic rather than rigid.
-
-### Character Deformation Config
-
-```typescript
-interface DeformationConfig {
-  scaleX: number;
-  scaleY: number;
-  duration: number;      // Time to reach deformation
-  returnDuration: number; // Time to return to normal
-}
-
-const DEFORMATION_CONFIGS = {
-  // On upward action (jump, flap, bounce up)
-  UPWARD: {
-    scaleX: 0.85,      // Compress horizontally
-    scaleY: 1.3,       // Stretch vertically
-    duration: 80,
-    returnDuration: 150
-  },
-  // At apex of movement
-  APEX: {
-    scaleX: 1.1,       // Slightly wider
-    scaleY: 0.9,       // Slightly shorter
-    duration: 100,
-    returnDuration: 100
-  },
-  // On downward impact
-  IMPACT: {
-    scaleX: 1.4,       // Very wide
-    scaleY: 0.6,       // Very short
-    duration: 60,
-    returnDuration: 200
-  }
-};
-```
-
-### Canvas Implementation
-
-```typescript
-const drawDeformedCharacter = (
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  scaleX: number,
-  scaleY: number
-) => {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(scaleX, scaleY);
-  ctx.translate(-x, -y);
-
-  // Draw character at original position
-  drawCharacter(ctx, x, y);
-
-  ctx.restore();
-};
-
-// Apply deformation with easing
-const applyDeformation = (config: DeformationConfig) => {
-  characterRef.current.scaleX = config.scaleX;
-  characterRef.current.scaleY = config.scaleY;
-
-  setTimeout(() => {
-    animateToValue(characterRef.current, 'scaleX', 1.0, config.returnDuration, 'easeOut');
-    animateToValue(characterRef.current, 'scaleY', 1.0, config.returnDuration, 'easeOut');
-  }, config.duration);
-};
-```
-
-### Timing Guidelines
-
-| Event | Stretch/Squash | Duration | Return |
-|-------|----------------|----------|--------|
-| Jump/Flap | Tall & thin (0.85x, 1.3y) | 80ms | 150ms |
-| Apex | Wide & short (1.1x, 0.9y) | 100ms | 100ms |
-| Land/Impact | Very wide (1.4x, 0.6y) | 60ms | 200ms |
-| Bounce | Alternating | 60ms each | 100ms |
-
-### Key Principles
-
-1. **Volume preservation**: When squashing, the object should appear to maintain the same volume (wider = shorter)
-2. **Speed indicates weight**: Faster return = lighter object, slower return = heavier
-3. **Anticipation**: Slight squash before a jump makes the action feel more powerful
-4. **Follow-through**: Overshoot slightly past normal before settling
-
----
-
-## Death Sequence Design
-
-**New section from Flappy Orange learnings.**
-
-### Principle: Death Should Feel Impactful, Not Frustrating
-
-A well-designed death sequence creates the "I know exactly what I did wrong" moment that drives the "one more try" loop.
-
-### The Golden Death Formula
-
-```
-FREEZE FRAME (150ms) → SLOW-MO (400ms at 0.3x) → NORMAL SPEED → GAME OVER
-```
-
-### Freeze Frame Implementation
-
-```typescript
-const FREEZE_CONFIG = {
-  duration: 150,        // 150ms pause
-  shakeIntensity: 6,    // Screen shake intensity
-  shakeDuration: 200    // Shake continues into slow-mo
-};
-
-const triggerDeathFreeze = () => {
-  gameStateRef.current.isFrozen = true;
-
-  // Effects trigger during freeze
-  triggerScreenShake(FREEZE_CONFIG.shakeIntensity, FREEZE_CONFIG.shakeDuration);
-  spawnDeathParticles(character.x, character.y);
-  triggerImpactFlash(0.6);
-
-  setTimeout(() => {
-    gameStateRef.current.isFrozen = false;
-    startSlowMotionDeath();
-  }, FREEZE_CONFIG.duration);
-};
-
-// In game loop - skip physics when frozen
-if (gameStateRef.current.isFrozen) {
-  renderFrame(); // Still render, just don't update physics
-  return;
-}
-```
-
-### Slow-Motion Death
-
-```typescript
-const SLOW_MO_CONFIG = {
-  timeScale: 0.3,           // 30% speed
-  duration: 400,            // 400ms of slow-mo
-  tumbleSpeed: 720,         // Degrees per second (at normal speed)
-  knockbackForce: 3         // Sideways push
-};
-
-const startSlowMotionDeath = () => {
-  gameStateRef.current.timeScale = SLOW_MO_CONFIG.timeScale;
-
-  // Character tumbles
-  character.rotationVelocity = SLOW_MO_CONFIG.tumbleSpeed;
-  character.velocityX = -SLOW_MO_CONFIG.knockbackForce; // Knocked back
-
-  // Apply squash deformation
-  applyDeformation(DEFORMATION_CONFIGS.IMPACT);
-
-  setTimeout(() => {
-    gameStateRef.current.timeScale = 1.0;
-    showGameOverScreen();
-  }, SLOW_MO_CONFIG.duration);
-};
-
-// Apply timeScale to physics
-const deltaTime = 1 * gameStateRef.current.timeScale;
-character.velocity += GRAVITY * deltaTime;
-character.y += character.velocity * deltaTime;
-character.rotation += character.rotationVelocity * deltaTime * (Math.PI / 180);
-```
-
-### Death Particle Explosion
-
-```typescript
-const spawnDeathParticles = (x: number, y: number) => {
-  const particles: Particle[] = [];
-  const count = 25 + Math.floor(Math.random() * 10); // 25-35 particles
-
-  for (let i = 0; i < count; i++) {
-    const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
-    const speed = 3 + Math.random() * 4;
-
-    particles.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      size: 4 + Math.random() * 6,
-      alpha: 1,
-      color: Math.random() > 0.3 ? characterColor : '#ffffff',
-      gravity: 0.1,
-      rotation: Math.random() * Math.PI * 2,
-      rotationSpeed: (Math.random() - 0.5) * 10
-    });
-  }
-
-  return particles;
-};
-```
-
-### Impact Flash
-
-```typescript
-const triggerImpactFlash = (intensity: number = 0.6) => {
-  setImpactFlashAlpha(intensity);
-
-  const decay = () => {
-    setImpactFlashAlpha(prev => {
-      if (prev <= 0.05) return 0;
-      return prev * 0.85; // Exponential decay
-    });
-    if (impactFlashAlpha > 0.05) requestAnimationFrame(decay);
+interface DayCycle {
+  time: number; // 0-1 (0 = midnight, 0.5 = noon)
+  colors: {
+    sky: string;
+    ambient: number; // 0-1 brightness
   };
-
-  requestAnimationFrame(decay);
-};
-
-// Render white overlay
-if (impactFlashAlpha > 0) {
-  ctx.fillStyle = `rgba(255, 255, 255, ${impactFlashAlpha})`;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
+
+const getDayCycleColors = (time: number): DayCycle['colors'] => {
+  // Simplified day cycle
+  if (time < 0.25) {
+    // Night to dawn
+    return { sky: lerpColor('#0a0a20', '#ff7733', time * 4), ambient: 0.3 + time * 2 };
+  } else if (time < 0.5) {
+    // Morning to noon
+    return { sky: lerpColor('#ff7733', '#87ceeb', (time - 0.25) * 4), ambient: 0.8 + (time - 0.25) * 0.8 };
+  } else if (time < 0.75) {
+    // Noon to evening
+    return { sky: lerpColor('#87ceeb', '#ff7733', (time - 0.5) * 4), ambient: 1 - (time - 0.5) * 0.8 };
+  } else {
+    // Evening to night
+    return { sky: lerpColor('#ff7733', '#0a0a20', (time - 0.75) * 4), ambient: 0.5 - (time - 0.75) * 0.8 };
+  }
+};
 ```
 
-### Chromatic Aberration (Optional Premium Effect)
+### Ambient Sound Layers
 
 ```typescript
-// CSS-based approach (performant)
-.chromatic-aberration {
-  animation: chromaticFlash 200ms ease-out;
-}
-
-@keyframes chromaticFlash {
-  0% { filter: drop-shadow(-3px 0 0 red) drop-shadow(3px 0 0 cyan); }
-  100% { filter: none; }
-}
+const createAmbientSoundscape = (audioContext: AudioContext) => {
+  const layers = {
+    base: createAmbientLoop('forest_base.mp3', 0.3),
+    birds: createAmbientLoop('birds.mp3', 0),
+    wind: createAmbientLoop('wind.mp3', 0),
+  };
+  
+  // Crossfade based on game state
+  const updateAmbience = (intensity: number) => {
+    // More intense = more wind, less birds
+    layers.birds.volume = Math.max(0, 0.3 - intensity * 0.3);
+    layers.wind.volume = Math.min(0.4, intensity * 0.4);
+  };
+  
+  return { layers, updateAmbience };
+};
 ```
-
-### Death Sound Design
-
-- **Impact sound**: Low thud + high crack (layered)
-- **Timing**: Plays at freeze frame start
-- **Volume**: Loud but not jarring
-- **No music cut**: Let music fade naturally
 
 ---
 
-## Near-Miss Bonus Systems
+## NFT Integration
 
-**New section from Flappy Orange learnings.**
-
-### Principle: Reward Risky Play
-
-Near-miss systems detect when players barely succeed and reward them with bonus points and feedback. This creates tension and encourages skillful play.
-
-### Detection Algorithm
+### Display NFT Metadata
 
 ```typescript
-interface NearMissResult {
-  isNearMiss: boolean;
-  intensity: number;     // 0-1, closer = higher
-  edge: 'top' | 'bottom' | 'left' | 'right' | 'both' | null;
-}
+const showNftInfo = (nftId: number, metadata: NftMetadata) => {
+  // Brief overlay showing NFT details
+  const overlay = document.createElement('div');
+  overlay.className = 'nft-info-popup';
+  overlay.innerHTML = `
+    <div class="nft-name">${metadata.name}</div>
+    <div class="nft-rarity ${metadata.rarity}">${metadata.rarity}</div>
+    <div class="nft-traits">${metadata.traits.join(' • ')}</div>
+  `;
+  
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.remove(), 2000);
+};
+```
 
-const NEAR_MISS_CONFIG = {
-  threshold: 0.25,       // Within 25% of danger zone
-  bonusPoints: [1, 2, 3], // Points by intensity tier
-  callouts: ['close!', 'CLOSE!', 'INSANE!']
+### Rarity-Based Effects
+
+```typescript
+const RARITY_EFFECTS = {
+  common: { particles: 5, sound: 'match_common', shake: 0 },
+  uncommon: { particles: 8, sound: 'match_uncommon', shake: 1 },
+  rare: { particles: 12, sound: 'match_rare', shake: 2 },
+  legendary: { particles: 20, sound: 'match_legendary', shake: 4 },
 };
 
-const checkNearMiss = (
-  playerPosition: number,
-  safeZoneStart: number,
-  safeZoneEnd: number
-): NearMissResult => {
-  const safeZoneSize = safeZoneEnd - safeZoneStart;
-  const threshold = safeZoneSize * NEAR_MISS_CONFIG.threshold;
-
-  const distFromStart = playerPosition - safeZoneStart;
-  const distFromEnd = safeZoneEnd - playerPosition;
-
-  let isNearMiss = false;
-  let intensity = 0;
-  let edge: NearMissResult['edge'] = null;
-
-  if (distFromStart < threshold && distFromStart > 0) {
-    isNearMiss = true;
-    intensity = 1 - (distFromStart / threshold);
-    edge = 'top';
+const onNftMatch = (rarity: string) => {
+  const effects = RARITY_EFFECTS[rarity] || RARITY_EFFECTS.common;
+  
+  spawnParticles(x, y, effects.particles);
+  playSound(effects.sound);
+  if (effects.shake > 0) {
+    triggerShake(effects.shake, 100);
   }
-
-  if (distFromEnd < threshold && distFromEnd > 0) {
-    const endIntensity = 1 - (distFromEnd / threshold);
-    if (endIntensity > intensity) {
-      intensity = endIntensity;
-      edge = edge ? 'both' : 'bottom';
-    }
-  }
-
-  return { isNearMiss, intensity, edge };
-};
-```
-
-### Bonus Points Calculation
-
-```typescript
-const calculateNearMissBonus = (intensity: number): number => {
-  if (intensity > 0.8) return 3; // "INSANE!" tier
-  if (intensity > 0.5) return 2; // "CLOSE!" tier
-  if (intensity > 0.2) return 1; // "close!" tier
-  return 0;
-};
-```
-
-### Visual Feedback
-
-```typescript
-const triggerNearMissVisuals = (intensity: number) => {
-  // Yellow screen flash
-  setNearMissFlashAlpha(intensity * 0.3);
-
-  // Particles at danger edge
-  spawnNearMissParticles(intensity);
-
-  // Callout text
-  const tier = intensity > 0.8 ? 2 : intensity > 0.5 ? 1 : 0;
-  showFloatingText(NEAR_MISS_CONFIG.callouts[tier], '#ffdd00');
-
-  // Screen border pulse
-  triggerBorderPulse('#ffdd00', intensity * 0.5);
-};
-```
-
-### Near-Miss Audio
-
-```typescript
-const playNearMissSound = (intensity: number) => {
-  // Rising tone - pitch scales with intensity
-  const baseFreq = 400;
-  const freqBoost = intensity * 200;
-
-  const osc = audioContext.createOscillator();
-  osc.frequency.value = baseFreq + freqBoost;
-  osc.type = 'triangle';
-
-  const gain = audioContext.createGain();
-  gain.gain.setValueAtTime(0.2 * intensity, audioContext.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-
-  osc.connect(gain).connect(audioContext.destination);
-  osc.start();
-  osc.stop(audioContext.currentTime + 0.15);
-};
-```
-
-### Haptic Pattern
-
-```typescript
-const NEAR_MISS_HAPTIC = [5, 5, 5, 5, 5]; // Rapid flutter
-
-const triggerNearMissHaptic = (intensity: number) => {
-  if ('vibrate' in navigator) {
-    // More intense = more pulses
-    const pulseCount = Math.ceil(intensity * 5);
-    const pattern = Array(pulseCount * 2 - 1).fill(5);
-    navigator.vibrate(pattern);
+  
+  if (rarity === 'legendary') {
+    triggerFlash('#ffd700', 0.3);
+    spawnConfetti(x, y, 15);
   }
 };
 ```
 
-### Integration Example
+### Collection Progress
 
 ```typescript
-// On successful obstacle pass
-const handleObstaclePass = (player: Player, obstacle: Obstacle) => {
-  const nearMiss = checkNearMiss(player.y, obstacle.gapStart, obstacle.gapEnd);
-
-  let points = 1; // Base point
-
-  if (nearMiss.isNearMiss) {
-    const bonus = calculateNearMissBonus(nearMiss.intensity);
-    points += bonus;
-
-    if (bonus > 0) {
-      triggerNearMissVisuals(nearMiss.intensity);
-      playNearMissSound(nearMiss.intensity);
-      triggerNearMissHaptic(nearMiss.intensity);
-
-      showFloatingText(`+${bonus}`, player.x, player.y - 40, '#ffdd00');
-    }
+const trackNftEncounter = (nftId: number) => {
+  const seen = JSON.parse(localStorage.getItem('seen_nfts') || '[]');
+  
+  if (!seen.includes(nftId)) {
+    seen.push(nftId);
+    localStorage.setItem('seen_nfts', JSON.stringify(seen));
+    
+    // First-time encounter celebration
+    showCallout(`New Wojak discovered! (${seen.length}/4200)`, 2000);
+    playSound('discovery');
   }
-
-  addScore(points);
 };
 ```
-
-### Design Considerations
-
-1. **Don't punish safe play**: Base points should still feel rewarding
-2. **Make it opt-in**: Players naturally take more risks as they improve
-3. **Clear feedback**: Players must understand WHY they got bonus points
-4. **Diminishing returns**: Avoid making risky play the ONLY viable strategy
 
 ---
 
-## Accessibility Considerations
+# PART 10: REFERENCE
 
-### Required Toggles
+## Reusable Code Libraries
 
-Every game must have toggles for:
-- [ ] **Screen shake** — Can cause motion sickness
-- [ ] **Haptic feedback** — Some users find it annoying or overwhelming
-- [ ] **Sound effects** — Separate from music toggle
-- [ ] **Background music** — Separate from SFX toggle
-- [ ] **Flash effects** — Can trigger photosensitive reactions
-- [ ] **Reduced motion** — Respect system preferences
+### Library Structure
 
-### Accessibility Best Practices
-
-1. **Never rely solely on color** — Use icons, patterns, or labels too
-2. **Provide visual alternatives to audio cues** — Flash or icon for warnings
-3. **Provide audio alternatives to visual cues** — For visually impaired users
-4. **Haptics as supplementary** — Never the only feedback channel
-5. **Respect prefers-reduced-motion** — Check and respond to system setting
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+```
+src/lib/
+├── juice/
+│   ├── particles.ts      # Particle systems, pools, presets
+│   ├── animations.ts     # Easing, springs, tweens
+│   ├── effects.ts        # Screen shake, flash, vignette
+│   ├── audio.ts          # Web Audio, procedural sounds
+│   ├── camera.ts         # Camera system
+│   └── index.ts
+├── utils/
+│   ├── math.ts           # Clamp, random, vectors
+│   ├── color.ts          # Color interpolation
+│   ├── mobile.ts         # Touch handling
+│   └── index.ts
+└── canvas/
+    ├── drawing.ts        # Shapes, gradients
+    ├── parallax.ts       # Parallax system
+    ├── text.ts           # Floating text
+    └── index.ts
 ```
 
-### Testing Checklist
+### Import Examples
 
-- [ ] Play with sound off — Is it still playable?
-- [ ] Play with screen shake off — Is it still satisfying?
-- [ ] Test with reduced motion preference
-- [ ] Test with high contrast mode
-- [ ] Test with screen reader
+```typescript
+// All-in-one import
+import {
+  spawnBurstParticles,
+  createScreenShake,
+  easeOutCubic,
+  playTone,
+  triggerHaptic,
+  createCamera,
+} from '@/lib/juice';
 
----
-
-## NFT Integration Opportunities
-
-### Showcase Your Collection
-
-Your games feature 4,200 unique Wojak NFTs. Don't just use them as textures—make them characters:
-
-1. **Display NFT metadata on interaction**
-   - Show NFT name when matched/selected
-   - Show rarity tier with special effects
-   - Display trait information briefly
-
-2. **Rarity-based bonuses**
-   - Rare NFTs could give bonus points
-   - Legendary NFTs could trigger special effects
-   - Track which NFTs players interact with most
-
-3. **Collection progress**
-   - "You've seen 342/4200 Wojaks!"
-   - "New Wojak discovered!" celebration
-   - Post-game summary of NFTs encountered
-
-4. **Trait-based gameplay**
-   - Bonus for matching same-trait NFTs
-   - Special rounds featuring specific bases
-   - Themed events around NFT attributes
-
-5. **Social/sharing features**
-   - Generate shareable images with matched NFTs
-   - "My best streak featured [NFT Name]!"
-   - Collection highlights and favorites
+import { clamp, randomInRange, lerpColor } from '@/lib/utils';
+import { roundRect, setupHiDPICanvas } from '@/lib/canvas';
+```
 
 ---
 
@@ -4807,126 +3877,533 @@ Your games feature 4,200 unique Wojak NFTs. Don't just use them as textures—ma
 
 ### Before Launch
 
-#### Sound
+#### Audio
 - [ ] Every tap/click has audio feedback
 - [ ] Different collision types have distinct sounds
-- [ ] Success sounds are satisfying and varied (3+ variations)
-- [ ] Failure sounds are informative but not punishing
-- [ ] Streak/combo sounds escalate appropriately
-- [ ] Warning sounds grab attention without annoying
-- [ ] Level complete has celebration audio
-- [ ] Game over has appropriate closure sound
-- [ ] Powerups have spawn, collect, and active sounds
+- [ ] 3+ sound variations per event type
+- [ ] Streak/combo sounds escalate
 - [ ] Sound toggle works and persists
+- [ ] Music ducks during important SFX
 
 #### Haptics
 - [ ] Tap interactions have light haptic
-- [ ] Different collision types have distinct haptics
-- [ ] Success has medium haptic
-- [ ] Failure has distinct error pattern
-- [ ] Streaks have escalating haptics
-- [ ] Critical warnings have haptic pulse
-- [ ] Powerup collection has reward haptic
-- [ ] Near-miss has ultra-light warning
+- [ ] Different events have distinct patterns
+- [ ] Streak haptics escalate
 - [ ] Haptic toggle works and persists
 
 #### Visual
 - [ ] Moving objects have squash/stretch
-- [ ] Impacts have flash effect
-- [ ] Destruction has shatter/particle burst
-- [ ] Success has visual celebration (glow, particles, scale)
-- [ ] Failure has visual feedback (shake, flash)
-- [ ] Streaks have escalating visual effects
-- [ ] Combo meter shows current streak
-- [ ] Final targets are highlighted
-- [ ] Powerups glow and pulse
-- [ ] Active powerups show timer bars
+- [ ] Impacts have flash + particles
+- [ ] Destruction has shatter animation
+- [ ] Combo meter visible during streaks
 - [ ] Timer has urgency color progression
 - [ ] Score changes animate (count up)
-- [ ] Screen shake is implemented with decay
+- [ ] Screen shake with decay
 - [ ] Freeze frames on big impacts
-- [ ] All animations use proper easing (no linear)
+- [ ] All animations use proper easing
 
-#### Timing
-- [ ] Input response feels instant (<100ms)
-- [ ] Animations don't block input
-- [ ] Input buffering prevents lost clicks during animations
-- [ ] Debounce prevents accidental double-inputs
+#### Performance
+- [ ] Particle pooling implemented
+- [ ] Performance tiers for different devices
+- [ ] Frame budget respected
+- [ ] No memory leaks in particle systems
 
 #### Accessibility
 - [ ] Screen shake toggle
 - [ ] Haptic toggle
 - [ ] Sound/music separate toggles
 - [ ] Respects prefers-reduced-motion
-- [ ] Color is not sole indicator of state
-
-#### Polish
-- [ ] Anticipation states before completions
-- [ ] Near-completion has special feedback
-- [ ] Milestones have callouts
-- [ ] Score popups show multipliers
-- [ ] Level transitions are smooth
-- [ ] Combo break has feedback
+- [ ] Color is not sole indicator
 
 ---
 
 ## Quick Reference Card
 
-### Minimum Viable Juice
+### Minimum Viable Juice (Top 5)
 
-If you can only implement 5 things:
+1. **Squash & stretch** on all moving objects
+2. **Sound + haptic** on every interaction
+3. **Particle burst** on destruction/success
+4. **Score count-up** animation
+5. **Screen shake** on big moments
 
-1. **Squash & stretch** — Objects compress on impact, stretch when fast
-2. **Impact flash + sound** — Every collision has visual and audio feedback
-3. **Score animation** — Count up, don't just set
-4. **Combo escalation** — Visual, audio, haptic all increase with streak
-5. **Anticipation states** — Highlight final targets, build tension
+### Common Mistakes
 
-### Common Mistakes to Avoid
+| Mistake | Fix |
+|---------|-----|
+| Linear easing | Use ease-out, ease-in-out |
+| Same sound every time | 3-4 variations per sound |
+| Same feedback for all events | Differentiate by type |
+| Screen shake on everything | Save for big moments |
+| Buzzy haptics | Short, crisp pulses only |
+| No combo visualization | Add combo meter |
+| Audio-visual desync | Test timing carefully |
 
-| Mistake | Why It's Bad | Fix |
+### Effect Intensity Guide
+
+| Event | Shake | Flash | Particles | Freeze |
+|-------|-------|-------|-----------|--------|
+| Light tap | 0 | 0 | 0 | 0 |
+| Normal hit | 0 | 0.1 | 8 | 0 |
+| Good hit | 2 | 0.15 | 12 | 30ms |
+| Great hit | 3 | 0.2 | 16 | 50ms |
+| Combo 5+ | 4 | 0.25 | 20 | 60ms |
+| Combo 10+ | 5 | 0.3 | 30 | 80ms |
+| Death | 8 | 0.5 | 25 | 150ms |
+| Level complete | 4 | 0.3 | Confetti | 100ms |
+
+---
+
+## Troubleshooting Guide
+
+### "Something Feels Wrong" Diagnostic
+
+When juice doesn't feel right, diagnose systematically:
+
+| Symptom | Likely Cause | Fix |
 |---------|--------------|-----|
-| Linear easing | Feels robotic | Use ease-out, ease-in-out |
-| Same sound every time | Causes fatigue | 3-4 variations per sound |
-| Same feedback for all collisions | Loses meaning | Differentiate by type |
-| Missing failure feedback | Feels broken | Add subtle sound + visual |
-| Screen shake on everything | Causes nausea | Save for big moments only |
-| Buzzy haptics | Feels cheap | Short, crisp pulses only |
-| Audio/visual desync | Destroys immersion | Test timing carefully |
-| No anticipation states | Endings feel abrupt | Add "almost there" feedback |
-| No combo visualization | Players don't know streak | Add combo meter |
-| Static powerups | Easy to miss | Add glow and pulse |
+| Feels "floaty" | Linear easing | Use ease-out for movements, ease-in-out for UI |
+| Feels "dead" | Missing audio | Add sound to every interaction |
+| Feels "cheap" | Same feedback every time | Add 3-4 variations per sound, randomize particles |
+| Feels "laggy" | Visual-audio desync | Sound must trigger within 16ms of visual |
+| Feels "nauseating" | Too much shake | Reduce intensity, add decay, offer toggle |
+| Feels "random" | No clear cause-effect | Feedback must be immediate and proportional |
+| Feels "annoying" | Over-frequent effects | Add cooldowns, reduce intensity on repeat |
+| Feels "cluttered" | Particles blocking view | Lower z-index, shorter lifespan, fewer particles |
+
+### Common Anti-Patterns
+
+#### 1. Shake Overuse
+```typescript
+// ❌ BAD: Shake on everything
+const onTap = () => shake(5, 200);
+const onScore = () => shake(5, 200);
+const onCollect = () => shake(5, 200);
+
+// ✅ GOOD: Reserve shake for significant moments
+const onTap = () => playSound('tap'); // No shake
+const onScore = () => { playSound('score'); spawnParticles(x, y, 8); }; // No shake
+const onCombo10 = () => { playSound('combo'); shake(4, 150); }; // Earned shake
+```
+
+#### 2. Linear Everything
+```typescript
+// ❌ BAD: Linear feels robotic
+const animate = (t) => t;
+
+// ✅ GOOD: Ease-out feels responsive
+const animate = (t) => 1 - Math.pow(1 - t, 3);
+```
+
+#### 3. Identical Feedback
+```typescript
+// ❌ BAD: Everything sounds/looks the same
+const onHit = () => playSound('hit');
+const onMiss = () => playSound('hit'); // Same sound!
+
+// ✅ GOOD: Distinct feedback types
+const onHit = () => playSound(hitVariants.random(), { pitch: 0.9 + Math.random() * 0.2 });
+const onMiss = () => playSound('miss', { volume: 0.5 }); // Distinct, softer
+```
+
+#### 4. Feedback Spam
+```typescript
+// ❌ BAD: Effect on every frame
+gameLoop(() => {
+  if (player.moving) spawnParticles(player.x, player.y, 5);
+});
+
+// ✅ GOOD: Cooldown between effects
+let lastTrail = 0;
+gameLoop((now) => {
+  if (player.moving && now - lastTrail > 50) {
+    spawnParticle(player.x, player.y);
+    lastTrail = now;
+  }
+});
+```
+
+#### 5. Blocking Particles
+```typescript
+// ❌ BAD: Particles cover gameplay
+particles.push({ 
+  ...baseParticle, 
+  size: 30, 
+  lifetime: 2000,
+  opacity: 1.0,
+});
+
+// ✅ GOOD: Non-intrusive particles
+particles.push({
+  ...baseParticle,
+  size: 8,
+  lifetime: 400,
+  opacity: 0.6,
+  zIndex: -1, // Behind game objects
+});
+```
+
+### Debugging Workflow
+
+1. **Isolate the channel** — Turn off sound, turn off particles, turn off shake one at a time
+2. **Check timing** — Log timestamps of visual and audio events
+3. **Test extremes** — Set values to 0 and max to understand range
+4. **Test on target device** — Desktop feel ≠ mobile feel
+5. **Get fresh eyes** — Ask someone who hasn't seen it before
 
 ---
 
-## Resources & References
+## Calibration Methodology
 
-### Game Feel / Juice
-- [Juice It or Lose It - GDC Talk](https://www.gdcvault.com/play/1016487/Juice-It-or-Lose)
-- [Juice in Game Design - Blood Moon Interactive](https://www.bloodmooninteractive.com/articles/juice.html)
-- [Game Feel - Wikipedia](https://en.wikipedia.org/wiki/Game_feel)
-- [Squeezing More Juice - GameAnalytics](https://www.gameanalytics.com/blog/squeezing-more-juice-out-of-your-game-design)
+### The Tuning Process
 
-### Animation Principles
-- [Squash and Stretch - CG Wire](https://blog.cg-wire.com/squash-stretch-principle/)
-- [12 Principles of Animation](https://en.wikipedia.org/wiki/Twelve_basic_principles_of_animation)
+Getting juice values right is iterative. Here's a systematic approach:
 
-### Haptics
-- [Android Haptics Design Principles](https://developer.android.com/develop/ui/views/haptics/haptics-principles)
-- [Haptics Best Practices for Mobile - Interhaptics](https://medium.com/nerd-for-tech/haptics-for-mobile-the-best-practices-for-android-and-ios-d2aa72409bdd)
+#### Step 1: Start with Defaults
 
-### Combo Systems
-- [The Design of Combos and Chains - Game Developer](https://www.gamedeveloper.com/design/the-design-of-combos-and-chains)
-- [Multiplier Systems in Gaming - ContestBeat](https://contestbeat.com/an-in-depth-guide-to-mastering-multiplier-systems-in-gaming)
+Use these baseline values as starting points:
 
-### Psychology
-- [Near-Miss Effect in Games](https://www.psychologyofgames.com/2016/09/the-near-miss-effect-and-game-rewards/)
-- [Time Pressure as Video Game Design Element - ResearchGate](https://www.researchgate.net/publication/281637918_Time_Pressure_as_Video_Game_Design_Element_and_Basic_Need_Satisfaction)
-- [Building Tension in Games - Gamigion](https://www.gamigion.com/use-of-tension-in-game-design/)
+| Effect | Start Value | Range | Notes |
+|--------|-------------|-------|-------|
+| Screen shake intensity | 3-5 | 1-15 | Higher = more violent |
+| Screen shake duration | 100-200ms | 50-500ms | Shorter = snappier |
+| Particle count | 8-12 | 3-50 | More = more celebration |
+| Particle lifetime | 300-500ms | 100-2000ms | Shorter = snappier |
+| Flash opacity | 0.15-0.2 | 0.05-0.5 | Lower = subtler |
+| Flash duration | 100-150ms | 50-300ms | Shorter = punchier |
+| Freeze frame | 30-60ms | 0-150ms | 0 = no freeze |
+| Haptic duration | 10-20ms | 5-50ms | Shorter = crisper |
+
+#### Step 2: Test Extremes
+
+```typescript
+// Test with exaggerated values to understand the range
+const DEBUG_MODE = true;
+
+const shake = DEBUG_MODE ? 20 : 5;  // Exaggerate to see effect
+const particles = DEBUG_MODE ? 50 : 12;
+const flashOpacity = DEBUG_MODE ? 0.8 : 0.2;
+```
+
+#### Step 3: Context-Based Scaling
+
+Different events need different intensities:
+
+```typescript
+const INTENSITY_SCALE = {
+  // Micro feedback (every tap)
+  tap: { shake: 0, flash: 0, particles: 0, freeze: 0 },
+  
+  // Small success
+  collect: { shake: 0, flash: 0.1, particles: 6, freeze: 0 },
+  
+  // Medium success
+  match: { shake: 2, flash: 0.15, particles: 10, freeze: 30 },
+  
+  // Big success
+  combo5: { shake: 3, flash: 0.2, particles: 15, freeze: 50 },
+  
+  // Huge success
+  combo10: { shake: 5, flash: 0.25, particles: 25, freeze: 80 },
+  
+  // Failure
+  gameOver: { shake: 8, flash: 0.4, particles: 20, freeze: 150 },
+};
+```
+
+#### Step 4: Device Testing
+
+```typescript
+// Mobile needs different values than desktop
+const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+
+const getShakeIntensity = (base: number) => {
+  // Mobile screens are smaller, shake feels more intense
+  return isMobile ? base * 0.7 : base;
+};
+
+const getParticleCount = (base: number) => {
+  // Mobile has less GPU headroom
+  return isMobile ? Math.floor(base * 0.6) : base;
+};
+```
+
+#### Step 5: Fatigue Testing
+
+Play your game for 10+ minutes continuously. Effects that feel good at first may become annoying:
+
+- **Sound fatigue** — Same sound 100x gets grating → add variations
+- **Visual fatigue** — Constant particles obscure gameplay → reduce or add cooldown
+- **Shake fatigue** — Too much shake causes discomfort → reduce frequency
+
+### Value Tuning Checklist
+
+Before finalizing values:
+
+- [ ] Tested on mobile device (not just simulator)
+- [ ] Tested on low-end device
+- [ ] Played for 10+ minutes straight
+- [ ] Asked 3+ people for feedback
+- [ ] Tested with sound off
+- [ ] Tested with reduced motion enabled
+- [ ] Values feel good at 60fps AND 30fps
 
 ---
 
-*This playbook should be referenced when polishing any Wojak.ink game. The goal is consistency across all 15 games while allowing each game's unique mechanics to shine.*
+## Error-Resilient Patterns
 
-*Updated with learnings from: Memory Match, Brick Breaker, Orange Juggle, Color Reaction*
-*Enhanced with 2026 research on viral mechanics, rhythm game psychology, and mobile game best practices*
+Production code must handle failures gracefully. Juice should enhance, never break.
+
+### Feature Detection
+
+```typescript
+// Always check API availability
+const hasHaptics = 'vibrate' in navigator;
+const hasWebAudio = 'AudioContext' in window || 'webkitAudioContext' in window;
+const hasPointerEvents = 'PointerEvent' in window;
+
+// Feature-based implementation
+const triggerHaptic = (duration: number) => {
+  if (!hasHaptics) return;
+  try {
+    navigator.vibrate(duration);
+  } catch {
+    // Silently fail - some browsers throw on vibrate
+  }
+};
+```
+
+### Safe Audio Context
+
+```typescript
+class SafeAudioContext {
+  private ctx: AudioContext | null = null;
+  private initAttempted = false;
+  
+  async getContext(): Promise<AudioContext | null> {
+    // Don't retry if init already failed
+    if (this.initAttempted && !this.ctx) return null;
+    
+    if (!this.ctx) {
+      this.initAttempted = true;
+      
+      try {
+        const AudioContextClass = window.AudioContext || 
+          (window as any).webkitAudioContext;
+        
+        if (!AudioContextClass) {
+          console.warn('Web Audio API not supported');
+          return null;
+        }
+        
+        this.ctx = new AudioContextClass();
+      } catch (err) {
+        console.warn('Failed to create AudioContext:', err);
+        return null;
+      }
+    }
+    
+    // Handle suspended state
+    if (this.ctx.state === 'suspended') {
+      try {
+        await this.ctx.resume();
+      } catch {
+        // Resume failed, but context might still work
+      }
+    }
+    
+    // Don't return closed context
+    if (this.ctx.state === 'closed') {
+      this.ctx = null;
+      return null;
+    }
+    
+    return this.ctx;
+  }
+}
+```
+
+### Safe Canvas Operations
+
+```typescript
+const safeDrawParticles = (
+  ctx: CanvasRenderingContext2D | null,
+  particles: Particle[]
+) => {
+  // Null check
+  if (!ctx) return;
+  
+  // Empty check
+  if (particles.length === 0) return;
+  
+  try {
+    ctx.save();
+    
+    particles.forEach(p => {
+      // Skip invalid particles
+      if (!isFinite(p.x) || !isFinite(p.y)) return;
+      if (p.opacity <= 0 || p.size <= 0) return;
+      
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.opacity));
+      ctx.fillStyle = p.color || '#ffffff';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    
+    ctx.restore();
+  } catch (err) {
+    // Canvas operations can fail (e.g., context lost)
+    console.warn('Particle draw failed:', err);
+  }
+};
+```
+
+### Graceful Degradation
+
+```typescript
+// Tiered juice system that degrades gracefully
+class JuiceSystem {
+  private tier: 'full' | 'reduced' | 'minimal' | 'none';
+  
+  constructor() {
+    this.tier = this.detectTier();
+  }
+  
+  private detectTier(): 'full' | 'reduced' | 'minimal' | 'none' {
+    // No juice if user prefers reduced motion
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return 'minimal';
+    }
+    
+    // Check device capability
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl');
+    
+    if (!gl) {
+      return 'minimal'; // No WebGL = probably low-end
+    }
+    
+    // Check for low memory
+    if ((navigator as any).deviceMemory && (navigator as any).deviceMemory < 4) {
+      return 'reduced';
+    }
+    
+    // Check for slow CPU (rough heuristic)
+    const cores = navigator.hardwareConcurrency || 2;
+    if (cores <= 2) {
+      return 'reduced';
+    }
+    
+    return 'full';
+  }
+  
+  getParticleLimit(): number {
+    return { full: 100, reduced: 50, minimal: 20, none: 0 }[this.tier];
+  }
+  
+  shouldShake(): boolean {
+    return this.tier !== 'none' && this.tier !== 'minimal';
+  }
+  
+  shouldFlash(): boolean {
+    return this.tier === 'full' || this.tier === 'reduced';
+  }
+}
+```
+
+### Error Boundary for Juice
+
+```typescript
+// React error boundary specifically for juice effects
+class JuiceErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.warn('Juice effect error:', error, info);
+    // Log to analytics but don't crash the game
+  }
+  
+  render() {
+    // If juice crashes, just render nothing (game continues)
+    if (this.state.hasError) {
+      return null;
+    }
+    return this.props.children;
+  }
+}
+
+// Usage
+<JuiceErrorBoundary>
+  <ParticleSystem />
+  <ScreenEffects />
+</JuiceErrorBoundary>
+```
+
+### Safe localStorage
+
+```typescript
+const safeStorage = {
+  get(key: string, defaultValue: any = null) {
+    try {
+      const value = localStorage.getItem(key);
+      return value ? JSON.parse(value) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  },
+  
+  set(key: string, value: any) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch {
+      // localStorage full or unavailable
+      return false;
+    }
+  },
+};
+
+// Usage for preferences
+const prefs = safeStorage.get('juice_prefs', DEFAULT_PREFERENCES);
+```
+
+---
+
+## Related Documentation
+
+| Document | Description |
+|----------|-------------|
+| `docs/research/retention-patterns.md` | Daily rewards, streaks, progression |
+| `docs/research/viral-patterns.md` | Sharing, challenges, leaderboards |
+| `docs/testing/juice-testing-checklist.md` | Testing guide for all juice |
+| `templates/canvas-game-starter/` | Ready-to-use game template |
+
+---
+
+## Changelog
+
+### v2.1 (January 2026)
+- **NEW**: Mobile Audio Compatibility section (iOS/Safari unlock patterns)
+- **NEW**: User Juice Preferences system (intensity slider, toggles, presets)
+- **NEW**: Troubleshooting Guide with anti-patterns and diagnostic table
+- **NEW**: Calibration Methodology (starting values, tuning process, fatigue testing)
+- **NEW**: Error-Resilient Patterns (feature detection, graceful degradation, error boundaries)
+- **EXPANDED**: Shader Effects section with full implementations (Canvas bloom, chromatic aberration, color grading, WebGL shaders, GLSL code, PixiJS/Three.js examples)
+
+### v2.0 (January 2026)
+- Complete restructure from 36 sections to 22
+- Added: Feedback State Machine, Performance Budgeting, Audio Mix Management
+- Added: Input Prediction, Touch Patterns, Loading States, Tutorial Juice
+- Added: Procedural Animation, Environmental Systems
+- Consolidated redundant sections
+- Added Priority Matrix and Quick Start guide
+- Improved code examples with TypeScript
+- Added effect intensity reference table

@@ -8,12 +8,15 @@ npm run dev -- --host           # Dev server (network accessible)
 npm run build                   # Production build
 npx wrangler pages deploy dist --project-name=wojak-ink  # Deploy
 npx wrangler d1 execute wojak-users --file=./functions/migrations/XXX.sql
+npm test                        # Run Playwright smoke tests
+npm run test:ui                 # Playwright UI mode (interactive)
+npm run test:headed             # Tests with visible browser
 ```
 
 ## Architecture Overview
 React + Vite frontend, Cloudflare Pages hosting, D1 database, Clerk auth.
-BigPulp AI uses Claude API. 12 canvas-based mini-games with global leaderboards.
-60K+ lines of code, 6 main pages, 12 games, 70+ components, 4,200 NFTs.
+BigPulp AI uses Claude API. 15 canvas-based mini-games (6 active, 9 coming soon) with global leaderboards.
+60K+ lines of code, 6 main pages, 15 games, 70+ components, 4,200 NFTs.
 
 **Live site**: https://wojak.ink | **13+ nested providers** in App.tsx
 
@@ -64,6 +67,8 @@ BigPulp AI uses Claude API. 12 canvas-based mini-games with global leaderboards.
 - Score popups: `addScorePopup()` expects STRING not number - use template literal
 - CSS z-index: game-over=500, leaderboard=700, modals=1000
 - Leaderboard overlay: Click outside to close, use `e.stopPropagation()` on panel
+- **Game lifecycle**: Games must check `gameStarted` from `GameMuteContext` before auto-starting timers
+- **Tab visibility**: Timer games set `isPaused` on `visibilitychange`, canvas games auto-pause via rAF
 
 ## Development Workflow
 **Everything stays local until explicitly told to push.**
@@ -148,11 +153,13 @@ src/
 └── hooks/           # Custom hooks
 
 public/assets/
-├── nft-data/        # Metadata, rarity JSON
+├── nft-data/        # Metadata, rarity JSON, memory-match-filters.json
 ├── BigPulp/         # Analysis data
 └── wojak-layers/    # Layer images
 
 functions/api/       # Cloudflare Workers
+
+tests/               # Playwright smoke tests
 
 .claude/
 ├── patterns/        # Consolidated knowledge
@@ -160,6 +167,7 @@ functions/api/       # Cloudflare Workers
 
 docs/
 ├── adr/             # Architecture Decision Records
+├── testing/         # Test checklists and reports
 └── archive/         # Deprecated content
 ```
 
@@ -173,18 +181,51 @@ docs/
 | `src/systems/haptics/` | Haptic feedback system |
 | `src/services/salesDatabank.ts` | Sales history, CAT fixes |
 | `vite.config.ts` | Dev proxies, React deduplication |
+| `src/contexts/GameMuteContext.tsx` | Arcade frame state, `gameStarted` flag |
+
+## Testing
+Playwright smoke tests verify game functionality automatically.
+
+| Resource | Location |
+|----------|----------|
+| Smoke tests | `tests/games.spec.ts` |
+| Playwright config | `playwright.config.ts` |
+| Game audit checklist | `docs/testing/GAME-AUDIT-TEST-CHECKLIST.md` |
+| Automated test report | `docs/testing/AUTOMATED-TEST-REPORT.md` |
+
+**Run tests:**
+```bash
+npm test                                    # Against production (https://wojak.ink)
+TEST_BASE_URL=http://localhost:5173 npm test  # Against local dev server
+npm run test:ui                             # Interactive UI mode
+npm run test:headed                         # See browser during tests
+```
+
+**Test coverage:**
+- Games hub loads correctly
+- All 6 game modals open with PLAY button
+- Leaderboard visible in modals
+- Modals close properly
+- Games wait for PLAY before starting (lifecycle)
+- Console error monitoring
 
 ## Games (15 total, all in src/pages/)
 FlappyOrange, BlockPuzzle, CitrusDrop, OrangeSnake, BrickBreaker, WojakWhack,
-OrangeStack, MemoryMatch, OrangePong, WojakRunner, OrangeJuggle, KnifeGame,
+BrickByBrick, MemoryMatch, OrangePong, WojakRunner, OrangeJuggle, KnifeGame,
 ColorReaction, Merge2048, OrangeWordle
+
+**Currently Active (6 games):**
+- MemoryMatch, BrickByBrick, FlappyOrange, WojakRunner, ColorReaction, BlockPuzzle
+
+**Coming Soon (9 games):**
+- Merge2048, OrangePong, OrangeJuggle, KnifeGame, OrangeWordle, CitrusDrop, OrangeSnake, BrickBreaker, WojakWhack
 
 **All games use**: `@ts-nocheck`, canvas rendering, useGameSounds, useGameHaptics, useLeaderboard, useGameEffects
 
 **Game Tiers** (for rewards):
 - **Easy** (5🍊): memory-match, color-reaction, orange-snake, citrus-drop, wojak-whack
 - **Medium** (10🍊): orange-pong, merge-2048, block-puzzle, brick-breaker, orange-wordle
-- **Hard** (15🍊): flappy-orange, wojak-runner, orange-stack, knife-game, orange-juggle
+- **Hard** (15🍊): flappy-orange, wojak-runner, brick-by-brick, knife-game, orange-juggle
 
 ## Common Issues Quick Reference
 | Issue | Fix |

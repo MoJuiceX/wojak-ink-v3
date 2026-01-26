@@ -682,12 +682,23 @@
   text-align: center;
 }
 
+/* Game title header at top of level complete screen */
+.bb-game-title-header {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  text-shadow: 0 2px 10px rgba(249, 115, 22, 0.4);
+  margin-bottom: 12px;
+}
+
 .stack-content .game-title {
   font-size: 32px;
   font-weight: 800;
   color: var(--color-text-primary, #fff);
   margin-bottom: 16px;
-  margin-top: -60px;
+  margin-top: 0;
 }
 
 .stack-content .game-emoji {
@@ -1350,6 +1361,13 @@
    ============================================ */
 
 @media (max-width: 480px) {
+  /* Game title header - mobile */
+  .bb-game-title-header {
+    font-size: 18px;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+
   .os-game-over-content {
     flex-direction: column;
     align-items: center;

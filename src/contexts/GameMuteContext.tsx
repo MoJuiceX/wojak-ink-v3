@@ -14,6 +14,7 @@ interface GameMuteContextType {
   toggleMute: () => void;
   musicManagedExternally: boolean; // True if GameModal handles music
   gameStarted: boolean; // True when user clicks Play in arcade intro
+  isPaused: boolean; // True when game should be paused (e.g., quit dialog shown)
 }
 
 export const GameMuteContext = createContext<GameMuteContextType | null>(null);
@@ -28,6 +29,7 @@ export const useGameMute = (): GameMuteContextType => {
       toggleMute: () => {},
       musicManagedExternally: false,
       gameStarted: false,
+      isPaused: false,
     };
   }
   return context;

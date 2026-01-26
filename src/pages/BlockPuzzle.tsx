@@ -11,8 +11,10 @@ import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { GameSEO } from '@/components/seo/GameSEO';
 import { useGameMute } from '@/contexts/GameMuteContext';
+import { useMobileGameFullscreen } from '@/hooks/useMobileGameFullscreen';
 import { useArcadeLights } from '@/contexts/ArcadeLightsContext';
 import { getLineClearTier, GAME_COMBO_TIERS } from '@/config/arcade-light-mappings';
+import { GAME_OVER_SEQUENCE } from '@/lib/juice/brandConstants';
 import { captureGameArea } from '@/systems/sharing/captureDOM';
 import { generateGameScorecard } from '@/systems/sharing/GameScorecard';
 import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
@@ -92,7 +94,7 @@ import './BlockPuzzle.css';
 const BlockPuzzle: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { playGameOver } = useGameSounds();
+  const { playGameOver, playWojakChime } = useGameSounds();
   const { hapticGameOver, hapticButton } = useGameHaptics();
 
   // Visual effects
@@ -102,6 +104,8 @@ const BlockPuzzle: React.FC = () => {
     triggerConfetti,
     showEpicCallout,
     resetAllEffects,
+    triggerScreenShake,
+    triggerVignette,
   } = useGameEffects();
 
   // Leaderboard
@@ -380,18 +384,9 @@ const BlockPuzzle: React.FC = () => {
     }
   }, [gameState, soundEnabled, isPaused]);
 
-  // Mobile fullscreen mode - hide header during gameplay
-  useEffect(() => {
-    if (isMobile && gameState === 'playing') {
-      document.body.classList.add('game-fullscreen-mode');
-    } else {
-      document.body.classList.remove('game-fullscreen-mode');
-    }
-
-    return () => {
-      document.body.classList.remove('game-fullscreen-mode');
-    };
-  }, [isMobile, gameState]);
+  // Mobile fullscreen mode - hide navigation and lock scroll for all active game states
+  const isActiveGameState = gameState !== 'idle';
+  useMobileGameFullscreen(isActiveGameState, isMobile);
 
   // Navigation guard - prevents accidental exits during gameplay
   const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
@@ -1050,9 +1045,13 @@ const BlockPuzzle: React.FC = () => {
     }
     if (soundEnabled) playGameOver();
     hapticGameOver();
+    // Unified game-over effects
+    triggerScreenShake(GAME_OVER_SEQUENCE.shakeDuration);
+    triggerVignette(GAME_OVER_SEQUENCE.vignetteColor);
     // Arcade lights: Game over (check for high score)
     if (currentScore > highScore) {
       triggerEvent('game:highScore');
+      if (soundEnabled) playWojakChime(); // Signature chime on new high score
     } else {
       triggerEvent('game:over');
     }
@@ -1061,7 +1060,7 @@ const BlockPuzzle: React.FC = () => {
     if (isSignedIn && currentScore > 0) {
       submitScoreGlobal(currentScore);
     }
-  }, [soundEnabled, playGameOver, hapticGameOver, isSignedIn, submitScoreGlobal, triggerEvent, highScore]);
+  }, [soundEnabled, playGameOver, playWojakChime, hapticGameOver, isSignedIn, submitScoreGlobal, triggerEvent, triggerScreenShake, triggerVignette, highScore]);
 
   // Place piece on grid
   const attemptPlacement = useCallback((pieceId: string, row: number, col: number) => {

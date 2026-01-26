@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameSounds } from '@/hooks/useGameSounds';
+import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameMute } from '@/contexts/GameMuteContext';
+import { useMobileGameFullscreen } from '@/hooks/useMobileGameFullscreen';
 import { useArcadeLights } from '@/contexts/ArcadeLightsContext';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { useGameTouch } from '@/hooks/useGameTouch';
@@ -42,7 +44,8 @@ const MUSIC_PLAYLIST = [
 ];
 
 const WojakRunner: React.FC = () => {
-  const { playCollect, playGameOver } = useGameSounds();
+  const { playCollect, playGameOver, playWojakChime } = useGameSounds();
+  const { hapticScore, hapticGameOver } = useGameHaptics();
 
   // Visual effects system
   const {
@@ -71,7 +74,7 @@ const WojakRunner: React.FC = () => {
 
 
   // Arcade frame shared mute state
-  const { isMuted: arcadeMuted, musicManagedExternally, gameStarted } = useGameMute();
+  const { isMuted: arcadeMuted, musicManagedExternally, gameStarted, isPaused: isContextPaused } = useGameMute();
 
   // Arcade lights control
   const { triggerEvent, setGameId } = useArcadeLights();
@@ -96,17 +99,9 @@ const WojakRunner: React.FC = () => {
     onConfirmExit: () => navigate('/games'),
   });
 
-  // Mobile fullscreen mode - hide header during gameplay
-  useEffect(() => {
-    if (isMobile && gameState === 'playing') {
-      document.body.classList.add('game-fullscreen-mode');
-    } else {
-      document.body.classList.remove('game-fullscreen-mode');
-    }
-    return () => {
-      document.body.classList.remove('game-fullscreen-mode');
-    };
-  }, [isMobile, gameState]);
+  // Mobile fullscreen mode - hide navigation and lock scroll for all active game states
+  const isActiveGameState = gameState !== 'idle';
+  useMobileGameFullscreen(isActiveGameState, isMobile);
 
   const [playerLane, setPlayerLane] = useState(1);
   const [obstacles, setObstacles] = useState<Obstacle[]>([]);
@@ -142,6 +137,9 @@ const WojakRunner: React.FC = () => {
 
   // Ref for game loop to check dialog state
   const showExitDialogRef = useRef(false);
+  
+  // Ref for game loop to check context pause state (quit dialog from GameModal)
+  const isContextPausedRef = useRef(false);
 
   // Collect streak tracking
   const [collectStreak, setCollectStreak] = useState(0);
@@ -158,7 +156,12 @@ const WojakRunner: React.FC = () => {
   // Sound refs for use in game loop
   const playCollectRef = useRef(playCollect);
   const playGameOverRef = useRef(playGameOver);
+  const playWojakChimeRef = useRef(playWojakChime);
   const triggerEventRef = useRef(triggerEvent);
+
+  // Haptic refs for use in game loop
+  const hapticScoreRef = useRef(hapticScore);
+  const hapticGameOverRef = useRef(hapticGameOver);
 
   // Effect refs for use in game loop
   const triggerShockwaveRef = useRef(triggerShockwave);
@@ -182,8 +185,11 @@ const WojakRunner: React.FC = () => {
   useEffect(() => {
     playCollectRef.current = playCollect;
     playGameOverRef.current = playGameOver;
+    playWojakChimeRef.current = playWojakChime;
     triggerEventRef.current = triggerEvent;
-  }, [playCollect, playGameOver, triggerEvent]);
+    hapticScoreRef.current = hapticScore;
+    hapticGameOverRef.current = hapticGameOver;
+  }, [playCollect, playGameOver, playWojakChime, triggerEvent, hapticScore, hapticGameOver]);
 
   // Keep effect refs updated
   useEffect(() => {
@@ -203,6 +209,11 @@ const WojakRunner: React.FC = () => {
   useEffect(() => {
     showExitDialogRef.current = showExitDialog;
   }, [showExitDialog]);
+
+  // Keep context pause ref in sync for game loop
+  useEffect(() => {
+    isContextPausedRef.current = isContextPaused;
+  }, [isContextPaused]);
 
   // Keep game state refs in sync for game loop reads (avoids stale closures)
   useEffect(() => { obstaclesRef.current = obstacles; }, [obstacles]);
@@ -427,8 +438,8 @@ const WojakRunner: React.FC = () => {
     lastFrameTimeRef.current = performance.now();
 
     const gameLoop = (currentTime: number) => {
-      // Pause game loop when exit dialog is shown
-      if (showExitDialogRef.current) {
+      // Pause game loop when exit dialog is shown or quit dialog shown
+      if (showExitDialogRef.current || isContextPausedRef.current) {
         lastFrameTimeRef.current = currentTime;
         animationRef.current = requestAnimationFrame(gameLoop);
         return;
@@ -618,10 +629,12 @@ const WojakRunner: React.FC = () => {
               musicAudioRef.current = null;
             }
             playGameOverRef.current();
+            hapticGameOverRef.current();
             // Arcade lights: Game over (collision)
             const finalScore = score + Math.floor(distance / 10);
             if (finalScore > highScore) {
               triggerEventRef.current('game:highScore');
+              playWojakChimeRef.current(); // Signature chime on new high score
             } else {
               triggerEventRef.current('game:over');
             }
@@ -651,6 +664,7 @@ const WojakRunner: React.FC = () => {
               collectedIdsRef.current.add(collectible.id);
 
               playCollectRef.current();
+              hapticScoreRef.current(); // Collection haptic
               // Arcade lights: Orange collected (debounced)
               triggerEventRef.current('collect:coin');
 

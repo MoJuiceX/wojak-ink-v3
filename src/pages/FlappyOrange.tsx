@@ -11,7 +11,9 @@ import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useGameMute } from '@/contexts/GameMuteContext';
+import { useMobileGameFullscreen } from '@/hooks/useMobileGameFullscreen';
 import { useArcadeLights } from '@/contexts/ArcadeLightsContext';
+import { GAME_OVER_SEQUENCE } from '@/lib/juice/brandConstants';
 import { GameSEO } from '@/components/seo/GameSEO';
 import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
 import { getFlappyOrangeScorecardDataUrl, type FlappyScorecardData } from '@/systems/sharing/FlappyOrangeScorecard';
@@ -194,7 +196,7 @@ const FlappyOrange: React.FC = () => {
   const realLeaderboard = useLeaderboard('flappy-orange');
 
   // Arcade frame mute control (from GameModal)
-  const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
+  const { isMuted: arcadeMuted, musicManagedExternally, isPaused: isContextPaused } = useGameMute();
 
   // Arcade lights control (from GameModal)
   // NEW: Using event-based API for better pattern management
@@ -214,16 +216,16 @@ const FlappyOrange: React.FC = () => {
   }, [setGameId]);
 
   // Use real or dummy based on mode
-  const { playBlockLand, playPerfectBonus, playCombo, playGameOver } = BARE_BONES_MODE
-    ? { playBlockLand: () => {}, playPerfectBonus: () => {}, playCombo: () => {}, playGameOver: () => {} }
+  const { playBlockLand, playPerfectBonus, playCombo, playGameOver, playWojakChime } = BARE_BONES_MODE
+    ? { playBlockLand: () => {}, playPerfectBonus: () => {}, playCombo: () => {}, playGameOver: () => {}, playWojakChime: () => {} }
     : realGameSounds;
   const { hapticScore, hapticCombo, hapticHighScore, hapticGameOver, hapticButton } = BARE_BONES_MODE
     ? { hapticScore: () => {}, hapticCombo: () => {}, hapticHighScore: () => {}, hapticGameOver: () => {}, hapticButton: () => {} }
     : realGameHaptics;
 
   // Visual effects
-  const { effects, triggerBigMoment, triggerConfetti, showEpicCallout, resetAllEffects } = BARE_BONES_MODE
-    ? { effects: { showShockwave: false, shockwaveColor: '#ff6b00', shockwaveScale: 1, showImpactSparks: false, sparksColor: '#ff6b00', showVignette: false, vignetteColor: '#ff0000', screenShake: false, floatingEmojis: [] as { id: string; emoji: string; x: number }[], epicCallout: null as string | null, showConfetti: false, combo: 0, scorePopups: [] as { id: string; x: number; y: number; score: number; color?: string }[] }, triggerBigMoment: () => {}, triggerConfetti: () => {}, showEpicCallout: (_msg: string) => {}, resetAllEffects: () => {} }
+  const { effects, triggerBigMoment, triggerConfetti, showEpicCallout, resetAllEffects, triggerScreenShake: triggerGlobalScreenShake, triggerVignette } = BARE_BONES_MODE
+    ? { effects: { showShockwave: false, shockwaveColor: '#ff6b00', shockwaveScale: 1, showImpactSparks: false, sparksColor: '#ff6b00', showVignette: false, vignetteColor: '#ff0000', screenShake: false, floatingEmojis: [] as { id: string; emoji: string; x: number }[], epicCallout: null as string | null, showConfetti: false, combo: 0, scorePopups: [] as { id: string; x: number; y: number; score: number; color?: string }[] }, triggerBigMoment: () => {}, triggerConfetti: () => {}, showEpicCallout: (_msg: string) => {}, resetAllEffects: () => {}, triggerScreenShake: (_duration?: number) => {}, triggerVignette: (_color?: string) => {} }
     : realGameEffects;
 
   // Leaderboard
@@ -408,6 +410,12 @@ const FlappyOrange: React.FC = () => {
     showExitDialogRef.current = showExitDialog;
   }, [showExitDialog]);
 
+  // Ref for game loop to check context pause state (quit dialog from GameModal)
+  const isContextPausedRef = useRef(false);
+  useEffect(() => {
+    isContextPausedRef.current = isContextPaused;
+  }, [isContextPaused]);
+
   // Sync juice state to refs for game loop (prevents game loop recreation)
   useEffect(() => {
     impactFlashAlphaRef.current = impactFlashAlpha;
@@ -516,18 +524,9 @@ const FlappyOrange: React.FC = () => {
     }
   }, [gameState, soundEnabled]);
 
-  // Mobile fullscreen mode - hide header during gameplay
-  useEffect(() => {
-    if (isMobile && gameState === 'playing') {
-      document.body.classList.add('game-fullscreen-mode');
-    } else {
-      document.body.classList.remove('game-fullscreen-mode');
-    }
-
-    return () => {
-      document.body.classList.remove('game-fullscreen-mode');
-    };
-  }, [isMobile, gameState]);
+  // Mobile fullscreen mode - hide navigation and lock scroll for all active game states
+  const isActiveGameState = gameState !== 'idle';
+  useMobileGameFullscreen(isActiveGameState, isMobile);
 
   // Page Visibility API - pause game and audio when backgrounded (battery optimization)
   const wasPlayingBeforeHiddenRef = useRef(false);
@@ -1119,6 +1118,7 @@ const FlappyOrange: React.FC = () => {
       if (result.isNewHighScore) {
         setHighScore(result.newHighScore);
         setIsNewPersonalBest(true);
+        playWojakChime(); // Signature chime on new high score
         // Trigger high score celebration after game over sequence
         setTimeout(() => {
           triggerEvent('game:highScore');
@@ -1139,6 +1139,9 @@ const FlappyOrange: React.FC = () => {
       state.gameState = 'gameover';
       setGameState('gameover');
       triggerEvent('game:over');
+      // Unified game-over effects (minimal in ultra mode)
+      triggerGlobalScreenShake(GAME_OVER_SEQUENCE.shakeDuration);
+      triggerVignette(GAME_OVER_SEQUENCE.vignetteColor);
       updateScores();
       return;
     }
@@ -1150,9 +1153,12 @@ const FlappyOrange: React.FC = () => {
       setGameState('gameover');
       triggerEvent('game:over');
       hapticGameOver();
+      // Unified game-over effects
+      triggerGlobalScreenShake(GAME_OVER_SEQUENCE.shakeDuration);
+      triggerVignette(GAME_OVER_SEQUENCE.vignetteColor);
       updateScores();
     }, JUICE_CONFIG.FREEZE_DURATION + JUICE_CONFIG.SLOW_MO_DURATION + 200);
-  }, [playGameOver, hapticGameOver, highScore, isSignedIn, submitScore, triggerDeathFreeze, clearLightCombo, triggerEvent]);
+  }, [playGameOver, playWojakChime, hapticGameOver, highScore, isSignedIn, submitScore, triggerDeathFreeze, clearLightCombo, triggerEvent, triggerGlobalScreenShake, triggerVignette]);
 
   // Check collision - wrapper for imported pure function
   const checkCollisionWrapper = useCallback((bird: Bird, pipes: Pipe[]): boolean => {
@@ -1578,8 +1584,8 @@ const FlappyOrange: React.FC = () => {
       }
 
 
-      // Update physics (skip if frozen, but not if dying with slow-mo)
-      const shouldUpdatePhysics = !state.isFrozen && !showExitDialogRef.current;
+      // Update physics (skip if frozen or paused by dialogs)
+      const shouldUpdatePhysics = !state.isFrozen && !showExitDialogRef.current && !isContextPausedRef.current;
 
       if (shouldUpdatePhysics) {
         // Apply time scale for slow-mo, multiply by deltaTime for frame-rate independence

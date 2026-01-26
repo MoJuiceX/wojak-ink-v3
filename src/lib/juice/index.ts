@@ -27,8 +27,60 @@
  *   // Camera
  *   createCamera,
  *   applyCameraTransform,
+ *
+ *   // Brand Constants
+ *   BRAND_COLORS,
+ *   EFFECT_TIMINGS,
+ *   SQUASH_PRESETS,
+ *   GAME_OVER_SEQUENCE,
+ *
+ *   // Performance
+ *   detectInitialTier,
+ *   FPSMonitor,
+ *   TIER_CONFIGS,
  * } from '@/lib/juice';
  */
+
+// ============================================
+// BRAND CONSTANTS
+// ============================================
+
+export {
+  // Colors
+  BRAND_COLORS,
+  // Timings
+  EFFECT_TIMINGS,
+  // Squash/Stretch
+  type SquashPreset,
+  SQUASH_PRESETS,
+  // Shake
+  SHAKE_INTENSITIES,
+  // Game Over
+  GAME_OVER_SEQUENCE,
+  // Callouts
+  MILESTONE_CALLOUTS,
+  getCalloutForTier,
+  // Particles
+  PARTICLE_PALETTES,
+} from './brandConstants';
+
+// ============================================
+// PERFORMANCE DETECTION
+// ============================================
+
+export {
+  // Types
+  type PerformanceTier,
+  type PerformanceConfig,
+  // Configs
+  TIER_CONFIGS,
+  // Detection
+  detectInitialTier,
+  FPSMonitor,
+  // Utilities
+  scaleParticleCount,
+  shouldEnableEffect,
+} from './performanceDetector';
 
 // ============================================
 // PARTICLES

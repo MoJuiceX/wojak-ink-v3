@@ -53,7 +53,7 @@ export const ScorePopup: React.FC<ScorePopupProps> = ({
       }}
     >
       {prefix && <span className="score-popup-prefix">{prefix}</span>}
-      <span className="score-popup-value">+{score}</span>
+      <span className="score-popup-value">{prefix ? '' : '+'}{score}</span>
     </div>
   );
 };

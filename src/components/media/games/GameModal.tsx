@@ -25,6 +25,7 @@ import { GameMuteContext } from '@/contexts/GameMuteContext';
 import { ArcadeLightsProvider, useArcadeLights, GAME_LIGHT_INTENSITY } from '@/contexts/ArcadeLightsContext';
 import { MobileGameControls } from './MobileGameControls';
 import { CRTOverlay } from '@/components/arcade/CRTOverlay';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import './GameModal.css';
 
 /**
@@ -178,7 +179,30 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
   const [lightOptions, setLightOptions] = useState<LightOptions>({});
   const [lightPattern, setLightPattern] = useState<PatternName | null>('breathe');
   const [isMuted, setIsMuted] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const isMobile = useIsMobile();
+
+  // Handle close button click - show confirmation if game is in progress
+  const handleCloseAttempt = useCallback(() => {
+    if (gameStarted) {
+      // Game is in progress - show confirmation dialog
+      setShowCloseConfirm(true);
+    } else {
+      // Not playing - close immediately
+      onClose();
+    }
+  }, [gameStarted, onClose]);
+
+  // Handle confirmed exit - actually close the game
+  const handleConfirmClose = useCallback(() => {
+    setShowCloseConfirm(false);
+    onClose();
+  }, [onClose]);
+
+  // Handle cancel - stay in game
+  const handleCancelClose = useCallback(() => {
+    setShowCloseConfirm(false);
+  }, []);
 
   // Game music management
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -229,6 +253,43 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
       audioRef.current.pause();
       audioRef.current = null;
     }
+  }, []);
+
+  // Stop music when browser tab is hidden or closed (especially important on mobile)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && audioRef.current) {
+        audioRef.current.pause();
+      } else if (!document.hidden && audioRef.current && !isMutedRef.current) {
+        audioRef.current.play().catch(() => {});
+      }
+    };
+
+    // pagehide fires when user closes tab/browser - more reliable than unload on mobile
+    const handlePageHide = () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+
+    // beforeunload as additional fallback for desktop browsers
+    const handleBeforeUnload = () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
 
   // Reset when modal closes or game changes
@@ -348,18 +409,33 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
     }
   };
 
-  // Hide bottom navigation during gameplay on mobile
+  // Hide bottom navigation on mobile when modal is open (fullscreen from the start)
+  // Also add scroll lock to prevent page scrolling on intro screen
   useEffect(() => {
-    if (isMobile && gameStarted) {
+    if (isMobile && isOpen) {
       document.body.classList.add('game-fullscreen-mode');
+      // Add scroll lock to prevent page scrolling
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
     } else {
       document.body.classList.remove('game-fullscreen-mode');
+      // Remove scroll lock
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
     }
 
     return () => {
       document.body.classList.remove('game-fullscreen-mode');
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
     };
-  }, [isMobile, gameStarted]);
+  }, [isMobile, isOpen]);
 
   // Add class when arcade frame is visible (desktop only)
   useEffect(() => {
@@ -435,18 +511,17 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
           {/* Shows on mobile during gameplay (not for coming soon on intro screen) */}
           {/* Games with hasOwnControls still use their own UI (e.g., Block Puzzle) */}
           {isMobile && gameStarted && !isComingSoon && !game.hasOwnControls && (
-            <MobileGameControls onClose={onClose} />
+            <MobileGameControls onClose={handleCloseAttempt} />
           )}
 
           {/* Modal content - centering wrapper */}
           <div
             className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
             style={{
-              // Mobile: minimal padding to maximize game area
-              // Arcade frame: no padding needed (fills screen)
-              // When gameStarted on mobile, all padding removed for full screen experience
-              paddingTop: isMobile ? (gameStarted ? '0' : '45px') : (game.id === 'memory-match' ? '55px' : '0'),
-              paddingBottom: isMobile ? (gameStarted ? '0' : '60px') : (game.id === 'memory-match' ? '15px' : '0'),
+              // Mobile: no padding for true fullscreen experience
+              // Desktop: padding for arcade frame positioning
+              paddingTop: isMobile ? '0' : (game.id === 'memory-match' ? '55px' : '0'),
+              paddingBottom: isMobile ? '0' : (game.id === 'memory-match' ? '15px' : '0'),
               paddingLeft: isMobile ? '0' : (game.id === 'memory-match' ? '72px' : '0'),
               paddingRight: isMobile ? '0' : (game.id === 'memory-match' ? '72px' : '0'),
             }}
@@ -475,7 +550,7 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
                       onLightSequenceComplete={handleLightSequenceComplete}
                       showIntroButtons={true}
                       onHelpClick={() => setShowInstructions(prev => !prev)}
-                      onCloseClick={onClose}
+                      onCloseClick={handleCloseAttempt}
                       isMuted={isMuted}
                       onMuteClick={handleMuteToggle}
                     >
@@ -491,7 +566,7 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
                         <ArcadeLightsProvider>
                           {/* Bridge syncs context state to GameModal for ArcadeFrame */}
                           <ArcadeLightsBridge onStateChange={handleLightContextChange} />
-                          <GameMuteContext.Provider value={{ isMuted, setIsMuted, toggleMute: () => setIsMuted(prev => !prev), musicManagedExternally: !!GAME_MUSIC[game.id], gameStarted }}>
+                          <GameMuteContext.Provider value={{ isMuted, setIsMuted, toggleMute: () => setIsMuted(prev => !prev), musicManagedExternally: !!GAME_MUSIC[game.id], gameStarted, isPaused: showCloseConfirm }}>
                             <Suspense
                               fallback={
                                 <div
@@ -713,12 +788,12 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
                 width: isMobile
                   ? '100vw'
                   : (game.id === 'memory-match' && gameStarted ? 'fit-content' : 'min(75vw, 900px)'),
-                // Mobile: use dvh for better iOS Safari support, full screen when game started
+                // Mobile: use dvh for better iOS Safari support, always full screen
                 height: isMobile
-                  ? (gameStarted ? '100dvh' : 'calc(100dvh - 105px)')
+                  ? '100dvh'  // Always full height on mobile (intro and gameplay)
                   : (game.id === 'memory-match' && gameStarted ? 'fit-content' : '88vh'),
                 maxWidth: game.id === 'memory-match' && gameStarted && !isMobile ? 'calc(100vw - 145px)' : undefined,
-                maxHeight: isMobile ? (gameStarted ? '100dvh' : 'calc(100dvh - 105px)') : 'calc(100vh - 70px)',
+                maxHeight: isMobile ? '100dvh' : 'calc(100vh - 70px)',
                 background: isMobile
                   ? 'transparent' // Let game background show through on mobile
                   : `linear-gradient(135deg, ${game.accentColor}15 0%, ${game.accentColor}05 100%)`,
@@ -755,7 +830,7 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
                     <span className="game-intro-header-title">{game.name}</span>
                     <button
                       className="game-intro-header-btn"
-                      onClick={onClose}
+                      onClick={handleCloseAttempt}
                       aria-label="Close game"
                     >
                       <X size={20} />
@@ -849,7 +924,7 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
                   <ArcadeLightsProvider>
                     {/* Bridge syncs context state (mobile - no visible effect but keeps API consistent) */}
                     <ArcadeLightsBridge onStateChange={handleLightContextChange} />
-                    <GameMuteContext.Provider value={{ isMuted, setIsMuted, toggleMute: () => setIsMuted(prev => !prev), musicManagedExternally: !!GAME_MUSIC[game.id], gameStarted }}>
+                    <GameMuteContext.Provider value={{ isMuted, setIsMuted, toggleMute: () => setIsMuted(prev => !prev), musicManagedExternally: !!GAME_MUSIC[game.id], gameStarted, isPaused: showCloseConfirm }}>
                       <Suspense
                         fallback={
                           <div
@@ -994,6 +1069,19 @@ export function GameModal({ game, isOpen, onClose }: GameModalProps) {
               );
             })()}
           </div>
+
+          {/* Close confirmation dialog - shown when user tries to close during gameplay */}
+          <ConfirmModal
+            isOpen={showCloseConfirm}
+            onClose={handleCancelClose}
+            onConfirm={handleConfirmClose}
+            title="Quit Game?"
+            message="You'll lose your current progress if you quit now."
+            confirmText="Quit Game"
+            cancelText="Keep Playing"
+            variant="warning"
+            icon="🎮"
+          />
         </>
       )}
     </AnimatePresence>

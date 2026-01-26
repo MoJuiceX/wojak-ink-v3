@@ -13,7 +13,10 @@ import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScr
 import { generateGameScorecard } from '@/systems/sharing/GameScorecard';
 import { useGameMute } from '@/contexts/GameMuteContext';
 import { useArcadeLights } from '@/contexts/ArcadeLightsContext';
+import { useMobileGameFullscreen } from '@/hooks/useMobileGameFullscreen';
 import { getComboTier } from '@/config/arcade-light-mappings';
+import { useGameSounds } from '@/hooks/useGameSounds';
+import { GAME_OVER_SEQUENCE } from '@/lib/juice/brandConstants';
 import {
   FRUITS,
   COLORS,
@@ -99,7 +102,7 @@ const ColorReaction: React.FC = () => {
   }, []);
 
   // Arcade frame mute control (from GameModal)
-  const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
+  const { isMuted: arcadeMuted, musicManagedExternally, isPaused: isContextPaused } = useGameMute();
 
   // Arcade lights control (from GameModal via context)
   const { triggerEvent, setGameId } = useArcadeLights();
@@ -206,15 +209,8 @@ const ColorReaction: React.FC = () => {
     }
   }, [gameState.status, isMuted]);
 
-  // Mobile fullscreen mode - hide navigation as soon as game page opens
-  useEffect(() => {
-    if (isMobile) {
-      document.body.classList.add('game-fullscreen-mode');
-    }
-    return () => {
-      document.body.classList.remove('game-fullscreen-mode');
-    };
-  }, [isMobile]);
+  // Mobile fullscreen mode - hide navigation and lock scroll as soon as game page opens
+  useMobileGameFullscreen(isMobile, isMobile);
 
   const [livesWarning, setLivesWarning] = useState<string | null>(null);
 
@@ -371,6 +367,9 @@ const ColorReaction: React.FC = () => {
     resetAllEffects,
   } = useGameEffects();
 
+  // Standard game sounds (for signature chime only - other sounds use useColorReactionSounds)
+  const { playWojakChime } = useGameSounds();
+
   // Timer refs
   const roundTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const matchWindowTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -388,6 +387,9 @@ const ColorReaction: React.FC = () => {
   const targetColorRef = useRef(0);
   const yourFruitRef = useRef(0);
   const yourColorRef = useRef(1);
+  
+  // Ref for game loop to check context pause state (quit dialog from GameModal)
+  const isContextPausedRef = useRef(false);
 
   // Match timing — source of truth (use performance.now())
   const matchActiveRef = useRef(false);
@@ -510,6 +512,11 @@ const ColorReaction: React.FC = () => {
     // 2) INVARIANT LOGGER: Log on state change to verify rendered match state
   }, [gameState.isMatchWindow, gameState.targetFruit, gameState.targetColor, gameState.yourFruit, gameState.yourColor, gameState.status]);
 
+  // Sync context pause state to ref
+  useEffect(() => {
+    isContextPausedRef.current = isContextPaused;
+  }, [isContextPaused]);
+
   // Ref for tracking lives changes
   const prevLivesRef = useRef(gameState.lives);
 
@@ -555,9 +562,72 @@ const ColorReaction: React.FC = () => {
     }
   }, []);
 
+  // Refs for game over handler (avoids stale closures in scheduleNextCycle)
+  const isSignedInRef = useRef(isSignedIn);
+  const submitScoreRef = useRef(submitScore);
+  const highScoreRef = useRef(highScore);
+  
+  useEffect(() => { isSignedInRef.current = isSignedIn; }, [isSignedIn]);
+  useEffect(() => { submitScoreRef.current = submitScore; }, [submitScore]);
+  useEffect(() => { highScoreRef.current = highScore; }, [highScore]);
+
+  // Shared game over handler - captures screenshot, submits score, sets game over state
+  const handleGameOver = useCallback(async (finalScore: number, bestReactionTime: number) => {
+    gameStatusRef.current = 'gameover';
+    
+    // Stop music
+    if (musicAudioRef.current) {
+      musicAudioRef.current.pause();
+      musicAudioRef.current = null;
+    }
+
+    // Check for new high score
+    const currentHighScore = highScoreRef.current;
+    const isNewBest = finalScore > currentHighScore;
+    if (isNewBest) {
+      setIsNewPersonalBest(true);
+      setHighScore(finalScore);
+      localStorage.setItem('colorReactionHighScore', String(finalScore));
+      playWojakChime();
+    } else {
+      setIsNewPersonalBest(false);
+    }
+
+    // Capture screenshot BEFORE showing game over (wait for it)
+    if (gameAreaRef.current) {
+      const screenshot = await captureGameArea(gameAreaRef.current);
+      if (screenshot) {
+        setGameScreenshot(screenshot);
+      }
+    }
+
+    // Submit score if signed in and met minimum actions
+    if (isSignedInRef.current && gameStatsRef.current.successes >= 3) {
+      submitScoreRef.current(finalScore, undefined, {
+        bestReactionTime: bestReactionTime === Infinity ? null : Math.round(bestReactionTime),
+        maxStreak: maxStreakRef.current,
+        correctTaps: gameStatsRef.current.successes,
+      });
+    }
+
+    // Set game over state
+    setGameState((prev) => ({ ...prev, status: 'gameover', lives: 0, streak: 0, isMatchWindow: false }));
+  }, [playWojakChime]);
+
+  // Ref for handleGameOver to use in scheduleNextCycle
+  const handleGameOverRef = useRef(handleGameOver);
+  useEffect(() => { handleGameOverRef.current = handleGameOver; }, [handleGameOver]);
+
   const scheduleNextCycle = useCallback((currentScore: number, caller?: string) => {
     // Prevent concurrent calls
     if (processingCycleRef.current) {
+      return;
+    }
+    // Pause game cycle when quit dialog is shown
+    if (isContextPausedRef.current) {
+      setTimeout(() => {
+        scheduleNextCycle(currentScore, caller || 'retry-after-pause');
+      }, 100);
       return;
     }
     // CRITICAL: Never allow scheduleNextCycle if a match window is still active
@@ -754,8 +824,22 @@ const ColorReaction: React.FC = () => {
       }
 
       const startTime = now;
+      let pausedTime = 0;
+      let lastPauseStart = 0;
       countdownIntervalRef.current = setInterval(() => {
-        const elapsed = performance.now() - startTime;
+        // Track pause time to freeze the countdown
+        if (isContextPausedRef.current) {
+          if (lastPauseStart === 0) {
+            lastPauseStart = performance.now();
+          }
+          return; // Don't update progress while paused
+        } else if (lastPauseStart > 0) {
+          // Resumed from pause - add pause duration to offset
+          pausedTime += performance.now() - lastPauseStart;
+          lastPauseStart = 0;
+        }
+        
+        const elapsed = performance.now() - startTime - pausedTime;
         const progress = Math.max(0, 100 * (1 - elapsed / windowMs));
         setMatchProgress(progress);
         
@@ -775,6 +859,12 @@ const ColorReaction: React.FC = () => {
       }, 50);
 
       matchWindowTimeoutRef.current = setTimeout(() => {
+        // Don't process misses when game is paused (quit dialog shown)
+        // The game will continue when the pause ends via scheduleNextCycle retry
+        if (isContextPausedRef.current) {
+          return;
+        }
+        
         // Check match ID FIRST
         if (localMatchId !== currentRoundIdRef.current) {
           return;
@@ -810,6 +900,7 @@ const ColorReaction: React.FC = () => {
         // Use a ref to track if we've already scheduled the next cycle
         // This prevents React StrictMode from scheduling twice
         let nextCycleScheduled = false;
+        let gameOverHandled = false;
         
         setGameState((currentState) => {
           if (currentState.status !== 'playing') {
@@ -820,12 +911,13 @@ const ColorReaction: React.FC = () => {
           const newLives = currentLives - 1;
           
           if (newLives <= 0) {
-            gameStatusRef.current = 'gameover';
-            if (musicAudioRef.current) {
-              musicAudioRef.current.pause();
-              musicAudioRef.current = null;
+            // Use shared game over handler (handles screenshot + score submission)
+            if (!gameOverHandled) {
+              gameOverHandled = true;
+              handleGameOverRef.current(currentState.score, currentState.bestReactionTime);
             }
-            return { ...currentState, status: 'gameover', lives: 0, streak: 0, isMatchWindow: false };
+            // Return unchanged - handleGameOver will set the state
+            return currentState;
           } else {
             // CRITICAL: Only schedule next cycle ONCE (prevent StrictMode double-scheduling)
             if (!nextCycleScheduled) {
@@ -1087,9 +1179,12 @@ const ColorReaction: React.FC = () => {
       playCRGameOver();
       // TASK 12: Game over haptic
       hapticGameOver();
+      // Unified game-over effects
+      triggerScreenShake(GAME_OVER_SEQUENCE.shakeDuration);
+      triggerVignette(GAME_OVER_SEQUENCE.vignetteColor);
     }
     prevLivesRef.current = gameState.lives;
-  }, [gameState.lives, gameState.status, handleWrongTap, playCRGameOver, playCRLifeLoss, playCRLastLifeWarning, showLivesWarning, hapticCRLoseLife, hapticCRLastLife, hapticGameOver]);
+  }, [gameState.lives, gameState.status, handleWrongTap, playCRGameOver, playCRLifeLoss, playCRLastLifeWarning, showLivesWarning, hapticCRLoseLife, hapticCRLastLife, hapticGameOver, triggerScreenShake, triggerVignette]);
 
   // Handle tap - uses refs for immediate state access (avoids stale closures on mobile)
   const handleTap = useCallback(() => {
@@ -1100,6 +1195,11 @@ const ColorReaction: React.FC = () => {
       return;
     }
     lastTapTimeRef.current = now;
+
+    // Don't process taps when game is paused (quit dialog shown)
+    if (isContextPausedRef.current) {
+      return;
+    }
 
     // TASK 3: Immediate ultra-light haptic on every tap (before determining result)
     hapticCRTap();
@@ -1334,44 +1434,15 @@ const ColorReaction: React.FC = () => {
         mismatchHighlightTimeoutRef.current = null;
       }, 500);
 
-      // Capture screenshot before game over if this is the last life
-      if (gameState.lives <= 1 && gameAreaRef.current) {
-        const currentHighScore = highScore;
-        if (gameState.score > currentHighScore) {
-          setIsNewPersonalBest(true);
-          setHighScore(gameState.score);
-          localStorage.setItem('colorReactionHighScore', String(gameState.score));
-        } else {
-          setIsNewPersonalBest(false);
-        }
-        captureGameArea(gameAreaRef.current).then(screenshot => {
-          if (screenshot) setGameScreenshot(screenshot);
-        });
+      // Handle game over or continue with reduced lives
+      if (gameState.lives <= 1) {
+        // Use shared game over handler (handles screenshot + score submission)
+        handleGameOver(gameState.score, gameState.bestReactionTime);
+      } else {
+        setGameState((prev) => ({ ...prev, lives: prev.lives - 1, streak: 0 }));
       }
-
-      setGameState((prev) => {
-        const newLives = prev.lives - 1;
-
-        if (newLives <= 0) {
-          gameStatusRef.current = 'gameover';
-          if (musicAudioRef.current) {
-            musicAudioRef.current.pause();
-            musicAudioRef.current = null;
-          }
-          // Only submit score if minimum actions met (3 correct taps)
-          if (isSignedIn && gameStatsRef.current.successes >= 3) {
-            submitScore(prev.score, undefined, {
-              bestReactionTime: prev.bestReactionTime === Infinity ? null : Math.round(prev.bestReactionTime),
-              maxStreak: maxStreakRef.current,
-              correctTaps: gameStatsRef.current.successes,
-            });
-          }
-          return { ...prev, status: 'gameover', lives: 0, streak: 0 };
-        }
-        return { ...prev, lives: newLives, streak: 0 };
-      });
     }
-  }, [scheduleNextCycle, handleCorrectTap, gameState.streak, gameState.lives, gameState.score, highScore, isSignedIn, submitScore, hapticCRTap, musicManagedExternally, playNextMusicTrack]);
+  }, [scheduleNextCycle, handleCorrectTap, handleGameOver, gameState.streak, gameState.lives, gameState.score, gameState.bestReactionTime, hapticCRTap, musicManagedExternally, playNextMusicTrack]);
 
   // Handle game restart - TASK 82: Retry animation (smooth transition)
   const handleRestart = useCallback((e?: React.MouseEvent) => {

@@ -101,7 +101,7 @@ export const GameEffects: React.FC<GameEffectsProps> = ({
         </div>
       )}
 
-      {/* Score Popups - Flying +points */}
+      {/* Score Popups - Flying +/- points */}
       {effects.scorePopups.map((popup) => (
         <div
           key={popup.id}
@@ -113,7 +113,7 @@ export const GameEffects: React.FC<GameEffectsProps> = ({
           }}
         >
           {popup.prefix && <span className="score-popup-prefix">{popup.prefix}</span>}
-          <span className="score-popup-value">+{popup.score}</span>
+          <span className="score-popup-value">{popup.prefix ? '' : '+'}{popup.score}</span>
         </div>
       ))}
 
