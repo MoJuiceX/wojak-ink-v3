@@ -72,7 +72,7 @@ const BrickByBrick: React.FC = () => {
   useAudio();
 
   // Arcade frame mute control (from GameModal)
-  const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
+  const { isMuted: arcadeMuted, musicManagedExternally, gameStarted } = useGameMute();
 
   // Arcade lights control
   const { triggerEvent, setGameId } = useArcadeLights();
@@ -387,13 +387,13 @@ const BrickByBrick: React.FC = () => {
     speedRef.current = speed;
   }, [speed]);
 
-  // Auto-start game on mount (unified intro from GameModal)
+  // Start game when user clicks PLAY in arcade frame (gameStarted becomes true)
   useEffect(() => {
-    if (gameState === 'idle') {
+    if (gameStarted && gameState === 'idle') {
       startGame();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [gameStarted]);
 
   // Page Visibility API - pause game when tab is backgrounded
   useEffect(() => {

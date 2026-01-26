@@ -203,7 +203,7 @@ const MemoryMatch: React.FC = () => {
   useAudio();
 
   // Arcade frame shared mute state
-  const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
+  const { isMuted: arcadeMuted, musicManagedExternally, gameStarted } = useGameMute();
 
   // Arcade lights control
   const { triggerEvent, setGameId } = useArcadeLights();
@@ -636,13 +636,13 @@ const MemoryMatch: React.FC = () => {
     }
   }, [metadata, gameState, preloadNextRound]);
 
-  // Auto-start game when metadata is loaded (unified intro from GameModal)
+  // Start game when user clicks PLAY in arcade frame (gameStarted becomes true)
   useEffect(() => {
-    if (metadata.length > 0 && gameState === 'idle') {
+    if (gameStarted && metadata.length > 0 && gameState === 'idle') {
       startGame();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [metadata]);
+  }, [gameStarted, metadata]);
 
   // Start a new game from round 1
   const startGame = async () => {

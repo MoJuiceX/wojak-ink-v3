@@ -113,7 +113,7 @@ const BlockPuzzle: React.FC = () => {
     isSubmitting,
   } = useLeaderboard('block-puzzle');
   // Arcade frame mute control (from GameModal)
-  const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
+  const { isMuted: arcadeMuted, musicManagedExternally, gameStarted } = useGameMute();
 
   // Arcade lights control
   const { triggerEvent, setGameId } = useArcadeLights();
@@ -999,12 +999,13 @@ const BlockPuzzle: React.FC = () => {
     triggerEvent('play:active');
   }, [soundEnabled, hapticButton, resetAllEffects, stopDangerSound, playNextSong, triggerEvent]);
 
-  // Auto-start on mount
+  // Start game when user clicks PLAY in arcade frame (gameStarted becomes true)
   useEffect(() => {
-    if (gameState === 'idle') {
+    if (gameStarted && gameState === 'idle') {
       startGame();
     }
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameStarted]);
 
   // Submit score
   const submitScoreGlobal = useCallback(async (finalScore: number) => {
