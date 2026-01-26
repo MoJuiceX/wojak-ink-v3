@@ -42,22 +42,6 @@ const LEVEL_CONFIG: Record<number, { startSpeed: number; speedIncrease: number; 
 
 const MAX_LEVEL = 10;
 
-// Power-up types
-type PowerUpType = 'magnet' | 'slowmo' | 'width' | 'shield';
-const POWER_UPS: Record<PowerUpType, { emoji: string; name: string; duration?: number }> = {
-  magnet: { emoji: '🧲', name: 'Magnet', duration: 1 },      // Auto-centers next drop
-  slowmo: { emoji: '⏱️', name: 'Slow-Mo', duration: 5000 },  // 50% speed for 5 seconds
-  width:  { emoji: '📏', name: 'Width+', duration: 1 },      // Restore 30px width
-  shield: { emoji: '🛡️', name: 'Shield', duration: 1 },      // Forgives one bad drop
-};
-
-// Combo perk thresholds
-const COMBO_PERKS = {
-  miniShield: 5,      // At 5x combo, lose less width on bad drops
-  autoSlowMo: 10,     // At 10x combo, auto slow-mo for 3 seconds
-  widthRestore: 15,   // At 15x combo, restore some width
-};
-
 // Scoring configuration
 const SCORING = {
   basePoints: 10,           // Points per successful block
@@ -68,7 +52,6 @@ const SCORING = {
   bounceMultiplier: 1,      // Points lost per bounce
   comboMultiplier: 0.1,     // Each consecutive good drop adds 10% multiplier
   levelBonus: 100,          // Bonus per level completed
-  powerUpChance: 0.15,      // 15% chance for power-up on block
 };
 
 const BrickByBrick: React.FC = () => {
@@ -255,7 +238,6 @@ const BrickByBrick: React.FC = () => {
   const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
 
   // Scoring state
-  const [bounceCount, setBounceCount] = useState(0);
   const [combo, setCombo] = useState(0);
   const [lastDropBonus, setLastDropBonus] = useState('');
   const [lastPoints, setLastPoints] = useState(0);
@@ -266,15 +248,6 @@ const BrickByBrick: React.FC = () => {
   // Visual effects state (reduced for performance)
   const [showShockwave, setShowShockwave] = useState(false);
   const [impactPosition, setImpactPosition] = useState({ x: 0, y: 0 });
-
-  // Power-up state
-  const [, setActivePowerUp] = useState<PowerUpType | null>(null);
-  const [pendingPowerUp, setPendingPowerUp] = useState<PowerUpType | null>(null); // Power-up on next block
-  const [isSlowMo, setIsSlowMo] = useState(false);
-  const [hasShield, setHasShield] = useState(false);
-  const [hasMagnet, setHasMagnet] = useState(false);
-  const [powerUpNotification, setPowerUpNotification] = useState<string | null>(null);
-  const slowMoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Danger zone feedback - when block width is critically small
   const dangerZoneThreshold = INITIAL_WIDTH_RESPONSIVE * 0.3; // 30% of initial width
@@ -387,7 +360,6 @@ const BrickByBrick: React.FC = () => {
   const directionRef = useRef(1);
   const speedRef = useRef(1.5);
   const bounceCountRef = useRef(0);
-  const isSlowMoRef = useRef(false);
 
   // Fixed timestep game loop refs
   const lastFrameTimeRef = useRef(0);
@@ -414,10 +386,6 @@ const BrickByBrick: React.FC = () => {
   useEffect(() => {
     speedRef.current = speed;
   }, [speed]);
-
-  useEffect(() => {
-    isSlowMoRef.current = isSlowMo;
-  }, [isSlowMo]);
 
   // Auto-start game on mount (unified intro from GameModal)
   useEffect(() => {
@@ -504,7 +472,6 @@ const BrickByBrick: React.FC = () => {
     setLevelScore(0);
     setSpeed(config.startSpeed);
     setDirection(1);
-    setBounceCount(0);
     setCombo(0);
     setLastDropBonus('');
     setScoreSubmitted(false);
@@ -514,19 +481,9 @@ const BrickByBrick: React.FC = () => {
     directionRef.current = 1;
     speedRef.current = config.startSpeed;
     bounceCountRef.current = 0;
-    isSlowMoRef.current = false;
     freezeUntilRef.current = 0;
     lastFrameTimeRef.current = 0;
     accumulatorRef.current = 0;
-
-    // Reset power-up state
-    setActivePowerUp(null);
-    setPendingPowerUp(null);
-    setIsSlowMo(false);
-    setHasShield(false);
-    setHasMagnet(false);
-    setPowerUpNotification(null);
-    if (slowMoTimeoutRef.current) clearTimeout(slowMoTimeoutRef.current);
 
     // Reset pause state and drop lock
     setIsPaused(false);
@@ -576,7 +533,6 @@ const BrickByBrick: React.FC = () => {
     setLevelScore(0);
     setSpeed(config.startSpeed);
     setDirection(1);
-    setBounceCount(0);
     setCombo(0);
     setLastDropBonus('');
     spawnNewBlock(baseBlock.width);
@@ -597,8 +553,6 @@ const BrickByBrick: React.FC = () => {
     });
 
     if (result.success) {
-      console.log('[BrickByBrick] Score submitted:', result);
-      // Track new personal best
       if (result.isNewHighScore) {
         setIsNewPersonalBest(true);
       }
@@ -622,19 +576,8 @@ const BrickByBrick: React.FC = () => {
     currentBlockRef.current = newBlock;
     setDirection(1);
     blockSpawnTimeRef.current = Date.now();
-    setBounceCount(0); // Reset bounce count for new block
-    bounceCountRef.current = 0; // Also reset ref for animation loop
-
-    // Randomly spawn power-up on the new block (15% chance, more common at higher levels)
-    const powerUpChance = SCORING.powerUpChance + (level * 0.02); // Increases slightly per level
-    if (Math.random() < powerUpChance && !pendingPowerUp) {
-      const powerUpTypes: PowerUpType[] = ['magnet', 'slowmo', 'width', 'shield'];
-      const randomPowerUp = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
-      setPendingPowerUp(randomPowerUp);
-    } else if (!pendingPowerUp) {
-      setPendingPowerUp(null);
-    }
-  }, [level, pendingPowerUp, isMobile]);
+    bounceCountRef.current = 0; // Reset ref for animation loop
+  }, [isMobile]);
 
   const dropBlock = useCallback(() => {
     // Use refs for accurate position (avoids stale closure)
@@ -648,21 +591,9 @@ const BrickByBrick: React.FC = () => {
     const config = LEVEL_CONFIG[level];
     const lastBlock = currentBlocks[currentBlocks.length - 1];
 
-    // Apply magnet power-up: auto-center the block
-    let effectiveBlockX = block.x;
-    if (hasMagnet) {
-      // Center the block over the last block
-      const effectiveGameWidth = measuredGameWidthRef.current > 0 ? measuredGameWidthRef.current : GAME_WIDTH_RESPONSIVE;
-      effectiveBlockX = lastBlock.x + (lastBlock.width - block.width) / 2;
-      effectiveBlockX = Math.max(0, Math.min(effectiveBlockX, effectiveGameWidth - block.width));
-      setHasMagnet(false); // Use up the magnet
-      setPowerUpNotification('🧲 Auto-Centered!');
-      setTimeout(() => setPowerUpNotification(null), 1500);
-    }
-
     // Calculate overlap using ref for accurate current position
-    const currentLeft = effectiveBlockX;
-    const currentRight = effectiveBlockX + block.width;
+    const currentLeft = block.x;
+    const currentRight = block.x + block.width;
     const lastLeft = lastBlock.x;
     const lastRight = lastBlock.x + lastBlock.width;
 
@@ -671,33 +602,21 @@ const BrickByBrick: React.FC = () => {
     let overlapWidth = overlapRight - overlapLeft;
 
     if (overlapWidth <= 0) {
-      // No overlap - check for shield
-      if (hasShield) {
-        // Shield saves the player! Place block at edge with minimum overlap
-        setHasShield(false);
-        setPowerUpNotification('🛡️ Shield Used!');
-        setTimeout(() => setPowerUpNotification(null), 1500);
-        // Give them a small overlap to continue (30% of last block width)
-        overlapWidth = lastBlock.width * 0.3;
-        overlapLeft = lastBlock.x;
-        overlapRight = lastBlock.x + overlapWidth;
+      // No overlap - game over
+      playGameOver();
+      hapticGameOver();
+      // Arcade lights: Game over (missed block)
+      if (score > highScore) {
+        triggerEvent('game:highScore');
       } else {
-        // No shield - game over
-        playGameOver();
-        hapticGameOver();
-        // Arcade lights: Game over (missed block)
-        if (score > highScore) {
-          triggerEvent('game:highScore');
-        } else {
-          triggerEvent('game:over');
-        }
-        setGameState('gameover');
-        if (score > highScore) {
-          setHighScore(score);
-          localStorage.setItem('brickByBrickHighScore', String(score));
-        }
-        return;
+        triggerEvent('game:over');
       }
+      setGameState('gameover');
+      if (score > highScore) {
+        setHighScore(score);
+        localStorage.setItem('brickByBrickHighScore', String(score));
+      }
+      return;
     }
 
     // Create the new stacked block with trimmed width
@@ -805,46 +724,6 @@ const BrickByBrick: React.FC = () => {
       triggerEvent(`combo:${comboTier}` as any);
     }
 
-    // ====== POWER-UP ACTIVATION ======
-    if (pendingPowerUp) {
-      const powerUp = POWER_UPS[pendingPowerUp];
-      setPowerUpNotification(`${powerUp.emoji} ${powerUp.name}!`);
-      setTimeout(() => setPowerUpNotification(null), 2000);
-      // Arcade lights: Power-up collected
-      triggerEvent('collect:powerup');
-
-      switch (pendingPowerUp) {
-        case 'magnet':
-          setHasMagnet(true);
-          break;
-        case 'slowmo':
-          setIsSlowMo(true);
-          if (slowMoTimeoutRef.current) clearTimeout(slowMoTimeoutRef.current);
-          slowMoTimeoutRef.current = setTimeout(() => setIsSlowMo(false), 5000);
-          break;
-        case 'width':
-          // Restore 30px width on the new block (will apply to next spawn)
-          const effectiveGameWidth = measuredGameWidthRef.current > 0 ? measuredGameWidthRef.current : GAME_WIDTH_RESPONSIVE;
-          const maxWidth = isMobile ? Math.floor(effectiveGameWidth * 0.5) : Math.min(220, effectiveGameWidth * 0.35);
-          newBlock.width = Math.min(newBlock.width + 30, maxWidth);
-          break;
-        case 'shield':
-          setHasShield(true);
-          break;
-      }
-      setPendingPowerUp(null);
-    }
-
-    // ====== COMBO PERKS ======
-    // Auto slow-mo at 10x combo
-    if (newCombo === COMBO_PERKS.autoSlowMo && !isSlowMo) {
-      setIsSlowMo(true);
-      setPowerUpNotification('⏱️ Combo Slow-Mo!');
-      setTimeout(() => setPowerUpNotification(null), 2000);
-      if (slowMoTimeoutRef.current) clearTimeout(slowMoTimeoutRef.current);
-      slowMoTimeoutRef.current = setTimeout(() => setIsSlowMo(false), 3000);
-    }
-
     const newScore = score + dropPoints;
     const newLevelScore = levelScore + 1;
 
@@ -913,7 +792,7 @@ const BrickByBrick: React.FC = () => {
 
     // Spawn next block
     spawnNewBlock(overlapWidth);
-  }, [gameState, score, levelScore, level, highScore, spawnNewBlock, bounceCount, combo, playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver, hasMagnet, hasShield, isSlowMo, pendingPowerUp, triggerEvent]);
+  }, [gameState, score, levelScore, level, highScore, spawnNewBlock, combo, playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver, triggerEvent]);
 
   // Clear bonus text after a short time
   useEffect(() => {
@@ -956,8 +835,7 @@ const BrickByBrick: React.FC = () => {
       const block = currentBlockRef.current;
       if (!block) return;
 
-      // Apply slow-mo effect (50% speed)
-      const effectiveSpeed = isSlowMoRef.current ? speedRef.current * 0.5 : speedRef.current;
+      const effectiveSpeed = speedRef.current;
       let newX = block.x + effectiveSpeed * directionRef.current;
 
       // Bounce off boundaries
@@ -1276,7 +1154,7 @@ const BrickByBrick: React.FC = () => {
               {currentBlock && (
                 <div
                   ref={movingBlockRef}
-                  className={`stack-block moving ${isSlowMo ? 'slow-mo-active' : ''}`}
+                  className="stack-block moving"
                   style={{
                     transform: `translateX(${currentBlock.x}px)`,
                     width: currentBlock.width,
@@ -1288,35 +1166,7 @@ const BrickByBrick: React.FC = () => {
                     ),
                   }}
                 >
-                  <span className="block-emoji">
-                    {pendingPowerUp ? POWER_UPS[pendingPowerUp].emoji : '🍊'}
-                  </span>
-                </div>
-              )}
-
-              {/* Power-up notification - always at bottom above ground */}
-              {powerUpNotification && (
-                <div className="power-up-notification">
-                  {powerUpNotification}
-                </div>
-              )}
-
-              {/* Active power-ups indicator - always at bottom above ground */}
-              {/* Active power-ups - horizontal bar at bottom, with duration rings */}
-              {(isSlowMo || hasShield || hasMagnet) && (
-                <div className="active-powerups">
-                  {isSlowMo && (
-                    <span className="powerup-badge slowmo">
-                      ⏱️
-                      {/* Duration ring - SVG countdown */}
-                      <svg className="duration-ring" viewBox="0 0 52 52">
-                        <circle className="ring-bg" cx="26" cy="26" r="24" />
-                        <circle className="ring-progress" cx="26" cy="26" r="24" />
-                      </svg>
-                    </span>
-                  )}
-                  {hasShield && <span className="powerup-badge shield">🛡️</span>}
-                  {hasMagnet && <span className="powerup-badge magnet">🧲</span>}
+                  <span className="block-emoji">🍊</span>
                 </div>
               )}
 
@@ -1362,7 +1212,7 @@ const BrickByBrick: React.FC = () => {
 
                   {/* Floating clouds passing by - more clouds at higher altitudes */}
                   <div className="height-clouds">
-                    {Array.from({ length: Math.min(2 + Math.floor(altitude * 0.7), 12) }).map((_, i) => (
+                    {Array.from({ length: Math.min(2 + Math.floor(altitude * 0.3), 5) }).map((_, i) => (
                       <div
                         key={i}
                         className="floating-cloud"
@@ -1389,7 +1239,7 @@ const BrickByBrick: React.FC = () => {
 
                   {/* Wind/speed lines showing upward movement */}
                   <div className="height-wind-lines">
-                    {Array.from({ length: 8 }).map((_, i) => (
+                    {Array.from({ length: 4 }).map((_, i) => (
                       <div
                         key={i}
                         className="wind-line"
@@ -1401,19 +1251,6 @@ const BrickByBrick: React.FC = () => {
                     ))}
                   </div>
                 </>
-              )}
-
-              {/* Background Glow Effect - intensifies with combo */}
-              {combo >= 3 && (
-                <div
-                  className="combo-bg-glow"
-                  style={{
-                    opacity: Math.min(0.15 + combo * 0.03, 0.4),
-                    background: combo >= 8 ? 'radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)' :
-                               combo >= 5 ? 'radial-gradient(circle, rgba(249,115,22,0.4) 0%, transparent 70%)' :
-                                           'radial-gradient(circle, rgba(168,85,247,0.4) 0%, transparent 70%)'
-                  }}
-                />
               )}
 
               {/* Screen Shake Container - for contained effects only */}
@@ -1578,23 +1415,12 @@ const BrickByBrick: React.FC = () => {
               {/* NOTE: Floating emojis and epic callout are now rendered via portal above */}
 
               {/* Speed lines background (intensity based on combo) */}
-              {combo >= 3 && (
-                <div className={`speed-lines intensity-${Math.min(Math.floor(combo / 3), 5)}`}>
-                  {Array.from({ length: 20 }).map((_, i) => (
-                    <div key={i} className="speed-line" style={{ '--line-offset': `${i * 5}%` } as React.CSSProperties} />
+              {combo >= 5 && (
+                <div className={`speed-lines intensity-${Math.min(Math.floor(combo / 3), 3)}`}>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div key={i} className="speed-line" style={{ '--line-offset': `${i * 10}%` } as React.CSSProperties} />
                   ))}
                 </div>
-              )}
-
-              {/* Color shift overlay at high combos */}
-              {combo >= 5 && (
-                <div
-                  className="color-shift-overlay"
-                  style={{
-                    '--hue-rotate': `${combo * 15}deg`,
-                    opacity: Math.min(combo * 0.03, 0.3),
-                  } as React.CSSProperties}
-                />
               )}
 
               {/* Tap hint */}
@@ -1661,7 +1487,7 @@ const BrickByBrick: React.FC = () => {
                 <p className="level-hint">
                   {level === 1 && 'Blocks move faster now!'}
                   {level === 2 && 'Blocks shrink quicker!'}
-                  {level === 3 && 'Watch for power-ups!'}
+                  {level === 3 && 'Getting faster!'}
                   {level === 4 && 'Halfway there!'}
                   {level === 5 && 'Getting intense!'}
                   {level === 6 && 'Almost legendary!'}

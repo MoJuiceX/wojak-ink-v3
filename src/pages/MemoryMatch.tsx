@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useGameHaptics } from '@/systems/haptics';
 import { useLeaderboard } from '@/hooks/data/useLeaderboard';
@@ -27,34 +26,63 @@ interface NFTMetadata {
   attributes?: { trait_type: string; value: string }[];
 }
 
-// Round configuration - pairs and optional base filter
-// Time increases by 20% each round (calculated dynamically)
-// STRATEGY: Add COLUMNS before ROWS to keep cards BIG for longer!
-// 3 rows → 4 rows → 5 rows (only add rows when horizontal space is exhausted)
-const ROUND_CONFIG: { pairs: number; baseFilter?: string }[] = [
-  // Phase 1: 3 rows - cards stay SAME SIZE (height-constrained)
-  { pairs: 6 },       // Round 1: 12 cards (4×3) - baseline card size
-  { pairs: 7 },       // Round 2: 14 cards (5×3) - +1 column, 1 empty
-  { pairs: 9 },       // Round 3: 18 cards (6×3) - fills grid
-  // Phase 2: 4 rows - gradual increase
-  { pairs: 11 },      // Round 4: 22 cards (6×4) - 2 empty
-  { pairs: 12 },      // Round 5: 24 cards (6×4) - fills grid
-  { pairs: 13 },      // Round 6: 26 cards (7×4) - 2 empty
-  { pairs: 14 },      // Round 7: 28 cards (7×4) - fills grid
-  { pairs: 15 },      // Round 8: 30 cards (8×4) - 2 empty
-  { pairs: 16 },      // Round 9: 32 cards (8×4) - fills grid
-  { pairs: 16 },      // Round 10: 32 cards (8×4) - same cards, less time per card
-  // Similar-looking NFT filters for extra difficulty (same card count, time keeps scaling)
-  { pairs: 16, baseFilter: 'Alien Baddie' },  // Round 11
-  { pairs: 16, baseFilter: 'Alien Waifu' },   // Round 12
-  { pairs: 16, baseFilter: 'Bepe Baddie' },   // Round 13
-  { pairs: 16, baseFilter: 'Bepe Waifu' },    // Round 14
-  { pairs: 16, baseFilter: 'Wojak' },         // Round 15+
+// Round configuration - pairs and optional filter (from memory-match-filters.json)
+// Levels 1-9: Scaling phase (pairs increase, +11s per additional pair)
+// Levels 10-39: Base/combo/suit filters (-1s per level)
+// Levels 40+: Random filter (-0.5s per level, no floor)
+interface RoundConfig {
+  pairs: number;
+  filter?: string; // Filter name from memory-match-filters.json
+}
+
+const ROUND_CONFIG: RoundConfig[] = [
+  // Levels 1-9: Scaling phase (no filter, random NFTs)
+  { pairs: 6 },   // Level 1: 12 cards (4×3) - 36s
+  { pairs: 7 },   // Level 2: 14 cards (5×3) - 47s
+  { pairs: 9 },   // Level 3: 18 cards (6×3) - 69s
+  { pairs: 11 },  // Level 4: 22 cards (6×4) - 91s
+  { pairs: 12 },  // Level 5: 24 cards (6×4) - 102s
+  { pairs: 13 },  // Level 6: 26 cards (7×4) - 113s
+  { pairs: 14 },  // Level 7: 28 cards (7×4) - 124s
+  { pairs: 15 },  // Level 8: 30 cards (8×4) - 135s
+  { pairs: 16 },  // Level 9: 32 cards (8×4) - 146s
+  // Levels 10-23: Base filters (14 bases, ordered by count)
+  { pairs: 16, filter: 'Wojak' },        // Level 10: 145s
+  { pairs: 16, filter: 'Soyjak' },       // Level 11: 144s
+  { pairs: 16, filter: 'Papa Tang' },    // Level 12: 143s
+  { pairs: 16, filter: 'Monkey Zoo' },   // Level 13: 142s
+  { pairs: 16, filter: 'Waifu' },        // Level 14: 141s
+  { pairs: 16, filter: 'Baddie' },       // Level 15: 140s
+  { pairs: 16, filter: 'Bepe Wojak' },   // Level 16: 139s
+  { pairs: 16, filter: 'Bepe Soyjak' },  // Level 17: 138s
+  { pairs: 16, filter: 'Bepe Waifu' },   // Level 18: 137s
+  { pairs: 16, filter: 'Bepe Baddie' },  // Level 19: 136s
+  { pairs: 16, filter: 'Alien Wojak' },  // Level 20: 135s
+  { pairs: 16, filter: 'Alien Soyjak' }, // Level 21: 134s
+  { pairs: 16, filter: 'Alien Waifu' },  // Level 22: 133s
+  { pairs: 16, filter: 'Alien Baddie' }, // Level 23: 132s
+  // Levels 24-39: Combo and suit filters (16 filters, ordered by count)
+  { pairs: 16, filter: 'Clown + Clown Nose' },                    // Level 24: 131s
+  { pairs: 16, filter: 'Wizard Hat + Wizard Drip' },              // Level 25: 130s
+  { pairs: 16, filter: 'Proof of Prayer' },                       // Level 26: 129s
+  { pairs: 16, filter: 'Gopher Suit' },                           // Level 27: 128s
+  { pairs: 16, filter: 'Super Saiyan + Super Saiyan Uniform' },   // Level 28: 127s
+  { pairs: 16, filter: 'Roman Drip + Centurion' },                // Level 29: 126s
+  { pairs: 16, filter: 'Pepe Suit' },                             // Level 30: 125s
+  { pairs: 16, filter: 'Goose Suit' },                            // Level 31: 124s
+  { pairs: 16, filter: 'Ronin Helmet + Ronin' },                  // Level 32: 123s
+  { pairs: 16, filter: 'Bepe Suit' },                             // Level 33: 122s
+  { pairs: 16, filter: 'Pickle Suit' },                           // Level 34: 121s
+  { pairs: 16, filter: 'Bepe Army + Field Cap/Hard Hat' },        // Level 35: 120s
+  { pairs: 16, filter: 'Viking Armor + Viking Helmet' },          // Level 36: 119s
+  { pairs: 16, filter: 'Astronaut' },                             // Level 37: 118s
+  { pairs: 16, filter: 'Sonic Suit' },                            // Level 38: 117s
+  { pairs: 16, filter: 'Firefighter Helmet + Firefighter Uniform' }, // Level 39: 116s
 ];
 
-// Base time for round 1, increases 20% each round
-const BASE_TIME = 40; // Increased 15% from 35
-const TIME_INCREASE_PER_ROUND = 1.20; // 20% more time each round
+// Fixed time per level (no more exponential increase)
+// Levels 1-9: Pre-calculated based on +11s per additional pair
+const LEVEL_TIMES = [36, 47, 69, 91, 102, 113, 124, 135, 146];
 
 interface Card {
   id: number;
@@ -192,8 +220,27 @@ const MemoryMatch: React.FC = () => {
   const [matches, setMatches] = useState(0);
   const [timeLeft, setTimeLeft] = useState(40);
   const [isChecking, setIsChecking] = useState(false);
+  const [isPaused, setIsPaused] = useState(false); // Pause timer when tab is hidden
   const [metadata, setMetadata] = useState<NFTMetadata[]>([]);
   const [gameScreenshot, setGameScreenshot] = useState<string | null>(null);
+
+  // Pre-computed filter data for instant level loading
+  interface FilterData {
+    filters: Record<string, {
+      type: string;
+      count: number;
+      nftIds: number[];
+      traits?: Record<string, string | string[]>;
+    }>;
+    levelOrder: string[];
+  }
+  const [filterData, setFilterData] = useState<FilterData | null>(null);
+  
+  // Track last 3 filters used for random selection (prevents repeats)
+  const lastFiltersRef = useRef<string[]>([]);
+  
+  // Track previous round's NFT IDs for smart exclusion
+  const previousRoundNftIdsRef = useRef<number[]>([]);
 
   // Progressive rounds
   const [round, setRound] = useState(1);
@@ -219,46 +266,6 @@ const MemoryMatch: React.FC = () => {
   const [showNearWinShimmer, setShowNearWinShimmer] = useState(false);
   const [timelineCelebrating, setTimelineCelebrating] = useState(false);
 
-  // Dev mode - pauses timer and game logic for layout testing
-  const [devMode, setDevMode] = useState(false);
-  const [showDevPanel, setShowDevPanel] = useState(false); // Dev panel disabled for production
-
-  // Keyboard shortcut to toggle dev panel (press 'D')
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Toggle dev panel with 'D' key (not in input fields)
-      if (e.key.toLowerCase() === 'd' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
-        setShowDevPanel(prev => !prev);
-      }
-      // Quick level jump with number keys in dev mode
-      if (showDevPanel && e.key >= '1' && e.key <= '9') {
-        const level = parseInt(e.key);
-        if (level <= ROUND_CONFIG.length) {
-          jumpToRound(level);
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showDevPanel]);
-
-  // Jump to a specific round for layout testing
-  const jumpToRound = async (targetRound: number) => {
-    setDevMode(true); // Enable dev mode to pause timer
-    setRound(targetRound);
-    const config = getRoundConfig(targetRound);
-    const newCards = shuffleCards(config.pairs, config.baseFilter);
-    await preloadImages(newCards);
-    setCards(newCards);
-    setFlippedCards([]);
-    flippedCardsRef.current = [];
-    setMoves(0);
-    setMatches(0);
-    setTimeLeft(config.time);
-    setRoundTotalTime(config.time);
-    setIsChecking(false);
-    setGameState('playing');
-  };
 
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const [highScore, setHighScore] = useState(() => {
@@ -279,6 +286,12 @@ const MemoryMatch: React.FC = () => {
   // Keep refs in sync
   useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
   useEffect(() => { gameStateRefForMusic.current = gameState; }, [gameState]);
+
+  // Refs for timer (to avoid score dependencies in timer useEffect)
+  const totalScoreRef = useRef(totalScore);
+  const highScoreRef = useRef(highScore);
+  useEffect(() => { totalScoreRef.current = totalScore; }, [totalScore]);
+  useEffect(() => { highScoreRef.current = highScore; }, [highScore]);
 
   // Ref for musicManagedExternally (to check in startGame)
   const musicManagedExternallyRef = useRef(musicManagedExternally);
@@ -320,18 +333,20 @@ const MemoryMatch: React.FC = () => {
     };
   }, []);
 
-  // Visibility change handling - pause music when browser goes to background (mobile)
+  // Visibility change handling - pause timer and music when browser goes to background
   const wasPlayingBeforeHiddenRef = useRef(false);
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Page is hidden - remember if music was playing and pause it
+        // Page is hidden - pause timer and music
+        setIsPaused(true);
         wasPlayingBeforeHiddenRef.current = !!(musicAudioRef.current && !musicAudioRef.current.paused);
         if (musicAudioRef.current) {
           musicAudioRef.current.pause();
         }
       } else {
-        // Page became visible - resume music if it was playing before
+        // Page became visible - resume timer and music
+        setIsPaused(false);
         if (wasPlayingBeforeHiddenRef.current && gameStateRefForMusic.current === 'playing' && soundEnabledRef.current && !musicManagedExternallyRef.current) {
           if (musicAudioRef.current) {
             musicAudioRef.current.play().catch(() => {});
@@ -385,13 +400,13 @@ const MemoryMatch: React.FC = () => {
   const { urgencyLevel } = useTimeUrgency({
     timeLeft,
     totalTime: roundTotalTime,
-    isPlaying: gameState === 'playing' && !devMode,
+    isPlaying: gameState === 'playing',
     soundEnabled,
   });
 
   // Navigation guard - prevents accidental exits during gameplay
   const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
-    isPlaying: gameState === 'playing' && !devMode,
+    isPlaying: gameState === 'playing',
   });
 
   // Mobile fullscreen mode - hide header during gameplay
@@ -408,12 +423,32 @@ const MemoryMatch: React.FC = () => {
 
   // Get current round config (cycle back if beyond defined rounds)
   // Time increases by 20% each round
-  const getRoundConfig = (r: number): { pairs: number; time: number; baseFilter?: string } => {
-    const index = Math.min(r - 1, ROUND_CONFIG.length - 1);
-    const config = ROUND_CONFIG[index];
-    // Calculate time: base * 1.2^(round-1)
-    const time = Math.floor(BASE_TIME * Math.pow(TIME_INCREASE_PER_ROUND, r - 1));
-    return { ...config, time };
+  // Get round configuration with time based on new formulas
+  // Levels 1-9: Fixed times from LEVEL_TIMES array
+  // Levels 10-39: 146 - (round - 9) = starts at 145s, decreases by 1s per level
+  // Levels 40+: 116 - (round - 39) * 0.5 = starts at 115.5s, decreases by 0.5s per level
+  const getRoundConfig = (r: number): { pairs: number; time: number; filter?: string } => {
+    let time: number;
+    
+    if (r <= 9) {
+      // Levels 1-9: Use pre-calculated times
+      time = LEVEL_TIMES[r - 1];
+    } else if (r <= 39) {
+      // Levels 10-39: Start at 145s, decrease by 1s per level
+      time = 146 - (r - 9);
+    } else {
+      // Levels 40+: Start at 115.5s, decrease by 0.5s per level (no floor)
+      time = 116 - (r - 39) * 0.5;
+    }
+    
+    // Get config (use last defined config for levels 40+)
+    if (r <= ROUND_CONFIG.length) {
+      const config = ROUND_CONFIG[r - 1];
+      return { ...config, time };
+    } else {
+      // Level 40+: Use random filter
+      return { pairs: 16, filter: getRandomFilter(), time };
+    }
   };
 
   // Preloaded cards for instant next game
@@ -430,70 +465,109 @@ const MemoryMatch: React.FC = () => {
   // Track anticipation mode to avoid DOM queries on every timer tick
   const anticipationModeRef = useRef<'none' | 'struggling' | 'near-win-2' | 'near-win-1'>('none');
 
-  // Load metadata on mount - use preloader cache if available (instant load)
+  // Load metadata and filter data on mount
   useEffect(() => {
-    const loadMetadata = async () => {
-      // Check if preloader already has the data (loaded during app startup)
+    const loadData = async () => {
+      // Load metadata - use preloader cache if available (instant load)
       if (isPreloaderReady()) {
         const cachedNfts = getAllNfts();
         if (cachedNfts.length > 0) {
-          console.log('[MemoryMatch] Using cached metadata from preloader');
           setMetadata(cachedNfts);
-          return;
+        }
+      } else {
+        // Preloader not ready - initialize it (also caches for future)
+        try {
+          await initGalleryPreloader();
+          const nfts = getAllNfts();
+          if (nfts.length > 0) {
+            setMetadata(nfts);
+          } else {
+            // Fallback to direct fetch if preloader failed
+            const res = await fetch('/assets/nft-data/metadata.json');
+            const data = await res.json();
+            setMetadata(data);
+          }
+        } catch (err) {
+          console.error('Failed to load metadata:', err);
         }
       }
 
-      // Preloader not ready - initialize it (also caches for future)
+      // Load pre-computed filter data for instant level loading
       try {
-        await initGalleryPreloader();
-        const nfts = getAllNfts();
-        if (nfts.length > 0) {
-          console.log('[MemoryMatch] Loaded metadata via preloader init');
-          setMetadata(nfts);
-        } else {
-          // Fallback to direct fetch if preloader failed
-          console.log('[MemoryMatch] Preloader empty, fetching directly');
-          const res = await fetch('/assets/nft-data/metadata.json');
-          const data = await res.json();
-          setMetadata(data);
-        }
+        const filterRes = await fetch('/assets/nft-data/memory-match-filters.json');
+        const filters = await filterRes.json();
+        setFilterData(filters);
       } catch (err) {
-        console.error('Failed to load metadata:', err);
+        console.error('Failed to load filter data:', err);
+        // Game can still work without filter data using fallback
       }
     };
 
-    loadMetadata();
+    loadData();
   }, []);
 
-  const shuffleCards = useCallback((pairsCount: number, baseFilter?: string, excludeNftIds: number[] = []) => {
+  // Get random filter for levels 40+ (excludes last 3 used filters)
+  const getRandomFilter = useCallback((): string => {
+    if (!filterData) {
+      // Fallback if filter data not loaded
+      return ROUND_CONFIG[ROUND_CONFIG.length - 1].filter || '';
+    }
+    
+    const allFilters = Object.keys(filterData.filters);
+    const available = allFilters.filter(f => !lastFiltersRef.current.includes(f));
+    const selected = available[Math.floor(Math.random() * available.length)] || allFilters[0];
+    
+    // Update tracking (keep last 3)
+    lastFiltersRef.current = [...lastFiltersRef.current.slice(-2), selected];
+    return selected;
+  }, [filterData]);
+
+  // Create cards for a round using pre-computed filter data when available
+  const shuffleCards = useCallback((pairsCount: number, filterName?: string, excludeNftIds: number[] = []) => {
     if (metadata.length === 0) return [];
 
-    // Filter by base type if specified (for harder rounds with similar-looking NFTs)
-    let availableMetadata = metadata.filter(nft => !excludeNftIds.includes(nft.edition));
+    let availableNftIds: number[];
 
-    if (baseFilter) {
-      availableMetadata = availableMetadata.filter(nft => {
-        const baseAttr = nft.attributes?.find(attr => attr.trait_type === 'Base');
-        return baseAttr?.value === baseFilter;
-      });
-    }
-
-    // If not enough NFTs with filter, fall back to all
-    if (availableMetadata.length < pairsCount) {
-      availableMetadata = metadata.filter(nft => !excludeNftIds.includes(nft.edition));
+    // Try to use pre-computed filter data for instant loading
+    if (filterData && filterName && filterData.filters[filterName]) {
+      const filter = filterData.filters[filterName];
+      availableNftIds = filter.nftIds.filter(id => !excludeNftIds.includes(id));
+      
+      // Smart exclusion: only exclude if enough remain after exclusion
+      if (availableNftIds.length < pairsCount && filter.nftIds.length >= pairsCount) {
+        // Not enough after exclusion, skip exclusion for this round
+        availableNftIds = [...filter.nftIds];
+      }
+      
+      // If still not enough (shouldn't happen), fall back to random
+      if (availableNftIds.length < pairsCount) {
+        console.warn(`[MemoryMatch] Filter ${filterName} has insufficient NFTs, falling back to random`);
+        availableNftIds = metadata.map(nft => nft.edition).filter(id => !excludeNftIds.includes(id));
+      }
+    } else {
+      // No filter or filter data not loaded - use all metadata (fallback behavior)
+      availableNftIds = metadata.map(nft => nft.edition).filter(id => !excludeNftIds.includes(id));
     }
 
     // Fisher-Yates shuffle for proper randomization
-    const shuffledMetadata = [...availableMetadata];
-    for (let i = shuffledMetadata.length - 1; i > 0; i--) {
+    const shuffledIds = [...availableNftIds];
+    for (let i = shuffledIds.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [shuffledMetadata[i], shuffledMetadata[j]] = [shuffledMetadata[j], shuffledMetadata[i]];
+      [shuffledIds[i], shuffledIds[j]] = [shuffledIds[j], shuffledIds[i]];
     }
-    const selectedNFTs = shuffledMetadata.slice(0, pairsCount);
+    const selectedIds = shuffledIds.slice(0, pairsCount);
+    
+    // Store for smart exclusion in next round
+    previousRoundNftIdsRef.current = selectedIds;
 
+    // Map IDs to metadata
+    const metadataMap = new Map(metadata.map(nft => [nft.edition, nft]));
     const cardPairs: Card[] = [];
 
-    selectedNFTs.forEach((nft, index) => {
+    selectedIds.forEach((nftId, index) => {
+      const nft = metadataMap.get(nftId);
+      if (!nft) return;
+      
       // Create pair
       cardPairs.push({
         id: index * 2,
@@ -520,7 +594,7 @@ const MemoryMatch: React.FC = () => {
     }
 
     return cardPairs;
-  }, [metadata]);
+  }, [metadata, filterData]);
 
   const preloadImages = (cards: Card[]): Promise<void[]> => {
     // Get unique images (each NFT appears twice)
@@ -545,7 +619,7 @@ const MemoryMatch: React.FC = () => {
     isPreloadingRef.current = true;
 
     const config = getRoundConfig(nextRound);
-    const nextCards = shuffleCards(config.pairs, config.baseFilter, currentNftIds);
+    const nextCards = shuffleCards(config.pairs, config.filter, currentNftIds);
 
     if (nextCards.length > 0) {
       await preloadImages(nextCards);
@@ -585,7 +659,6 @@ const MemoryMatch: React.FC = () => {
       playNextMusicTrack();
     }
 
-    setDevMode(false); // Disable dev mode for normal gameplay
     setRound(1);
     setTotalScore(0);
     setTotalMatchesFound(0); // NEW: Reset for leaderboard minimum check
@@ -606,7 +679,7 @@ const MemoryMatch: React.FC = () => {
       newCards = preloadedCardsRef.current;
       preloadedCardsRef.current = null;
     } else {
-      newCards = shuffleCards(config.pairs, config.baseFilter);
+      newCards = shuffleCards(config.pairs, config.filter);
       await preloadImages(newCards);
     }
 
@@ -708,7 +781,6 @@ const MemoryMatch: React.FC = () => {
     });
 
     if (result.success) {
-      console.log('[MemoryMatch] Score submitted:', result);
       if (result.isNewHighScore) {
         setIsNewPersonalBest(true);
       }
@@ -718,12 +790,12 @@ const MemoryMatch: React.FC = () => {
   }, [isSignedIn, scoreSubmitted, submitScore, highScore]);
 
   // Map global leaderboard for display
-  // Retry start when metadata loads (only for initial load, not dev mode)
+  // Retry start when metadata loads
   useEffect(() => {
-    if (gameState === 'loading' && metadata.length > 0 && !devMode && cards.length === 0) {
+    if (gameState === 'loading' && metadata.length > 0 && cards.length === 0) {
       startGame();
     }
-  }, [metadata, gameState, devMode, cards.length]);
+  }, [metadata, gameState, cards.length]);
 
   // Keep flippedCardsRef in sync with state
   useEffect(() => {
@@ -1122,18 +1194,17 @@ const MemoryMatch: React.FC = () => {
     }
   };
 
-  // Check round completion - all pairs matched (skip in dev mode)
+  // Check round completion - all pairs matched
   useEffect(() => {
-    if (devMode) return; // Skip in dev mode
     const config = getRoundConfig(round);
     if (matches === config.pairs && gameState === 'playing') {
       completeRound();
     }
-  }, [matches, gameState, round, devMode]);
+  }, [matches, gameState, round]);
 
-  // Timer - time out = game over (skip in dev mode, pause when exit dialog shown)
+  // Timer - time out = game over (pause when exit dialog shown or tab hidden)
   useEffect(() => {
-    if (gameState !== 'playing' || devMode || showExitDialog) return;
+    if (gameState !== 'playing' || showExitDialog || isPaused) return;
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -1171,8 +1242,8 @@ const MemoryMatch: React.FC = () => {
           }
           playGameOver();
           hapticGameOver();
-          // Arcade lights: Game over (check for high score)
-          if (totalScore > highScore) {
+          // Arcade lights: Game over (check for high score using refs to avoid dependency)
+          if (totalScoreRef.current > highScoreRef.current) {
             triggerEvent('game:highScore');
           } else {
             triggerEvent('game:over');
@@ -1180,12 +1251,13 @@ const MemoryMatch: React.FC = () => {
           setGameState('gameover');
           return 0;
         }
-        // Play warning sound at 10, 5, 3, 2, 1 seconds
-        if (prev === 10 || prev <= 5) {
+        // Play warning sound at 10, 5, 4, 3, 2, 1 seconds
+        // Use Math.floor for 10s check to handle decimal times (e.g., 10.5s on level 40+)
+        if (Math.floor(prev) === 10 || prev <= 5) {
           playWarning();
           hapticWarning();
           // Arcade lights: Timer warnings
-          if (prev === 10) {
+          if (Math.floor(prev) === 10) {
             triggerEvent('timer:warning');
           } else if (prev <= 5) {
             triggerEvent('timer:critical');
@@ -1200,7 +1272,7 @@ const MemoryMatch: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameState, devMode, showExitDialog, playGameOver, playWarning, hapticGameOver, hapticWarning, triggerEvent, totalScore, highScore]);
+  }, [gameState, showExitDialog, isPaused, playGameOver, playWarning, hapticGameOver, hapticWarning, triggerEvent, hapticUrgencyTick]);
 
   // Auto-submit score for signed-in users when game ends
   useEffect(() => {
@@ -1299,65 +1371,6 @@ const MemoryMatch: React.FC = () => {
 
   return (
     <>
-      {/* Dev Panel - Rendered via Portal directly to document.body to bypass all clipping */}
-      {showDevPanel && createPortal(
-        <div className="mm-dev-panel">
-          <div className="mm-dev-header">
-            <span>🛠️ LEVEL TESTER</span>
-            <button onClick={() => setShowDevPanel(false)}>×</button>
-          </div>
-          <div className="mm-dev-info">
-            Click level to preview grid layout
-          </div>
-          <div className="mm-dev-levels">
-            {ROUND_CONFIG.map((config, index) => {
-              const pairs = config.pairs;
-              const totalCards = pairs * 2;
-              // Estimate grid layout
-              const cols = totalCards <= 16 ? 4 : totalCards <= 24 ? 6 : 6;
-              const rows = Math.ceil(totalCards / cols);
-              return (
-                <button
-                  key={index}
-                  className={`mm-dev-btn ${round === index + 1 && gameState === 'playing' ? 'active' : ''}`}
-                  onClick={() => jumpToRound(index + 1)}
-                  title={`Round ${index + 1}: ${pairs} pairs (${totalCards} cards, ~${cols}x${rows})${config.baseFilter ? ` [${config.baseFilter}]` : ''}`}
-                >
-                  <span className="mm-dev-btn-round">R{index + 1}</span>
-                  <span className="mm-dev-btn-info">{totalCards}</span>
-                </button>
-              );
-            })}
-          </div>
-          {devMode && (
-            <div className="mm-dev-status">
-              <span className="mm-dev-mode-badge">⏸️ PAUSED</span>
-              <span className="mm-dev-grid-info">
-                {cards.length} cards • Round {round}
-              </span>
-            </div>
-          )}
-          {/* Reveal All button */}
-          <button
-            className="mm-dev-reveal-btn"
-            onClick={() => setCards(prev => prev.map(c => ({ ...c, isFlipped: true })))}
-          >
-            👁️ Reveal All Cards
-          </button>
-          {/* Hide All button */}
-          <button
-            className="mm-dev-reveal-btn"
-            onClick={() => setCards(prev => prev.map(c => ({ ...c, isFlipped: c.isMatched })))}
-            style={{ marginTop: '4px', background: 'rgba(100, 100, 100, 0.9)' }}
-          >
-            🙈 Hide Unmatched
-          </button>
-        </div>,
-        document.body
-      )}
-
-      {/* Mobile Dev Toggle - REMOVED for production */}
-
       <div className={`memory-container ${gameState === 'playing' ? 'playing-mode' : ''} ${gameState === 'playing' ? getUrgencyClass(urgencyLevel) : ''}`}>
         <GameSEO
           gameName="Memory Match"
@@ -1549,7 +1562,7 @@ const MemoryMatch: React.FC = () => {
                   </div>
                   <div className={`mm-stat ${getUrgencyClass(urgencyLevel)}`}>
                     <span className="mm-stat-label">Time</span>
-                    <span className="mm-stat-value">{timeLeft}s</span>
+                    <span className="mm-stat-value">{Math.floor(timeLeft)}s</span>
                   </div>
                   <div className="mm-stat">
                     <span className="mm-stat-label">Pairs</span>

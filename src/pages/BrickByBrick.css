@@ -2432,170 +2432,6 @@
 }
 
 /* ============================================
-   POWER-UP SYSTEM STYLES
-   ============================================ */
-
-/* Slow-mo visual effect on moving block */
-.stack-block.moving.slow-mo-active {
-  box-shadow: 0 0 30px rgba(0, 191, 255, 0.8), 0 0 60px rgba(0, 191, 255, 0.4);
-  border: 2px solid rgba(0, 191, 255, 0.8);
-  animation: pulse-glow 0.5s ease-in-out infinite alternate, slow-mo-trail 0.3s ease-in-out infinite;
-}
-
-@keyframes slow-mo-trail {
-  0% { filter: blur(0px); }
-  50% { filter: blur(1px); }
-  100% { filter: blur(0px); }
-}
-
-/* ============================================
-   POWER-UPS / ITEMS - Cool colors (cyan/blue/purple)
-   Always at BOTTOM of screen, never overlaps combos
-   ============================================ */
-
-/* Power-up notification - slides up from bottom */
-.power-up-notification {
-  position: absolute;
-  left: 50%;
-  bottom: 130px; /* Above the active-powerups bar */
-  transform: translateX(-50%);
-  font-size: 24px;
-  font-weight: 800;
-  color: #fff;
-  text-shadow: 0 0 20px rgba(0, 200, 255, 0.9), 0 2px 4px rgba(0, 0, 0, 0.8);
-  background: linear-gradient(135deg, rgba(0, 40, 80, 0.95) 0%, rgba(0, 80, 120, 0.95) 100%);
-  padding: 10px 20px;
-  border-radius: 12px;
-  border: 2px solid rgba(0, 200, 255, 0.7);
-  pointer-events: none;
-  z-index: 300;
-  animation: item-slide-up 2s ease-out forwards;
-  white-space: nowrap;
-  box-shadow:
-    0 0 30px rgba(0, 200, 255, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-@keyframes item-slide-up {
-  0% { transform: translateX(-50%) translateY(30px) scale(0.8); opacity: 0; }
-  15% { transform: translateX(-50%) translateY(0) scale(1.05); opacity: 1; }
-  25% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
-  80% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
-  100% { transform: translateX(-50%) translateY(-20px) scale(0.9); opacity: 0; }
-}
-
-/* Active power-ups indicator - horizontal bar at bottom center */
-.active-powerups {
-  position: absolute;
-  left: 50%;
-  bottom: 70px; /* Position from bottom, above ground (50px) with some margin */
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  gap: 16px;
-  z-index: 200; /* Above blocks (no z-index) and other effects */
-  padding: 10px 20px;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 30px;
-  /* Removed backdrop-filter for performance on mobile */
-}
-
-/* Hide the container when empty */
-.active-powerups:empty {
-  display: none;
-}
-
-.powerup-badge {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  font-size: 22px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(0, 40, 60, 0.9) 0%, rgba(0, 60, 90, 0.9) 100%);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  animation: badge-appear 0.3s ease-out;
-}
-
-@keyframes badge-appear {
-  0% { transform: scale(0) rotate(-180deg); opacity: 0; }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; }
-}
-
-.powerup-badge.slowmo {
-  border-color: rgba(0, 200, 255, 0.9);
-  box-shadow: 0 0 20px rgba(0, 200, 255, 0.6), inset 0 0 15px rgba(0, 200, 255, 0.2);
-}
-
-.powerup-badge.shield {
-  border-color: rgba(34, 220, 120, 0.9);
-  box-shadow: 0 0 20px rgba(34, 220, 120, 0.6), inset 0 0 15px rgba(34, 220, 120, 0.2);
-}
-
-.powerup-badge.magnet {
-  border-color: rgba(180, 100, 255, 0.9);
-  box-shadow: 0 0 20px rgba(180, 100, 255, 0.6), inset 0 0 15px rgba(180, 100, 255, 0.2);
-}
-
-/* Duration ring for timed power-ups (Slow-Mo) */
-.powerup-badge .duration-ring {
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  width: 52px;
-  height: 52px;
-  pointer-events: none;
-}
-
-.powerup-badge .duration-ring circle {
-  fill: none;
-  stroke-width: 3;
-  stroke-linecap: round;
-  transform: rotate(-90deg);
-  transform-origin: center;
-}
-
-.powerup-badge .duration-ring .ring-bg {
-  stroke: rgba(255, 255, 255, 0.1);
-}
-
-.powerup-badge .duration-ring .ring-progress {
-  stroke: rgba(0, 200, 255, 1);
-  stroke-dasharray: 150;
-  stroke-dashoffset: 0;
-  animation: ring-countdown 5s linear forwards;
-  filter: drop-shadow(0 0 4px rgba(0, 200, 255, 0.8));
-}
-
-@keyframes ring-countdown {
-  0% { stroke-dashoffset: 0; }
-  100% { stroke-dashoffset: 150; }
-}
-
-/* Pulse animation for badges without duration */
-.powerup-badge.shield,
-.powerup-badge.magnet {
-  animation: badge-appear 0.3s ease-out, badge-glow 1.5s ease-in-out infinite alternate 0.3s;
-}
-
-@keyframes badge-glow {
-  0% { transform: scale(1); filter: brightness(1); }
-  100% { transform: scale(1.05); filter: brightness(1.2); }
-}
-
-/* Power-up on block indicator */
-.stack-block.moving .block-emoji {
-  transition: transform 0.2s ease;
-}
-
-.stack-block.moving:hover .block-emoji {
-  transform: scale(1.2);
-}
-
-/* ============================================
    HEIGHT EFFECTS - Visual feedback for going high
    ============================================ */
 
@@ -2839,7 +2675,7 @@
     letter-spacing: 1px;
   }
 
-  /* Blocks - MUST match BLOCK_HEIGHT_MOBILE in OrangeStack.tsx (40px) */
+  /* Blocks - MUST match BLOCK_HEIGHT_MOBILE in BrickByBrick.tsx (40px) */
   .stack-block {
     height: 40px;
   }
@@ -2872,26 +2708,6 @@
   .bonus-flash {
     font-size: 18px;
     padding: 8px 16px;
-  }
-
-  /* Power-up badges - smaller on mobile */
-  .powerup-badge {
-    width: 36px;
-    height: 36px;
-    font-size: 18px;
-  }
-
-  /* Power-ups container - higher on mobile for visibility */
-  .active-powerups {
-    bottom: 55px; /* Just above ground (40px on mobile) */
-    gap: 20px; /* More spacing between badges */
-    padding: 8px 16px;
-  }
-
-  .power-up-notification {
-    font-size: 18px;
-    padding: 8px 14px;
-    bottom: 110px; /* Adjusted for mobile */
   }
 
   /* Combo meter - shorter on mobile */

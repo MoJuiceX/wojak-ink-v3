@@ -99,23 +99,22 @@ export default function GamesHub() {
   const toggleRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [flickState, setFlickState] = useState<{
-    flyingEmoji: {
-      type: 'donut' | 'poop';
-      start: { x: number; y: number };
-      end: { x: number; y: number };
-      targetId: string;
-      xPercent: number;
-      yPercent: number;
-    } | null;
-    splatter: {
-      type: 'donut' | 'poop';
-      position: { x: number; y: number };
-    } | null;
-  }>({
-    flyingEmoji: null,
-    splatter: null,
-  });
+  // Multi-throw support: arrays instead of single values
+  const [flyingEmojis, setFlyingEmojis] = useState<Array<{
+    id: string;
+    type: 'donut' | 'poop';
+    start: { x: number; y: number };
+    end: { x: number; y: number };
+    targetId: string;
+    xPercent: number;
+    yPercent: number;
+  }>>([]);
+
+  const [splatters, setSplatters] = useState<Array<{
+    id: string;
+    type: 'donut' | 'poop';
+    position: { x: number; y: number };
+  }>>([]);
 
   const [heatmapState, setHeatmapState] = useState<{
     isActive: boolean;
@@ -165,16 +164,16 @@ export default function GamesHub() {
     };
   }, []);
 
-  // Handle card flick (called from GameCard)
+  // Handle card flick (called from GameCard) - supports rapid-fire multi-throw
   const handleCardFlick = useCallback((
     gameId: string,
     clickX: number,
     clickY: number,
     cardRect: DOMRect
   ) => {
-    if (!activeMode || flickState.flyingEmoji) return;
+    if (!activeMode) return;
 
-    // Check if user has balance
+    // Check if user has balance (use current state for optimistic check)
     const balance = activeMode === 'donut' ? donutBalance : poopBalance;
     if (balance <= 0) return;
 
@@ -182,30 +181,50 @@ export default function GamesHub() {
     const xPercent = ((clickX - cardRect.left) / cardRect.width) * 100;
     const yPercent = ((clickY - cardRect.top) / cardRect.height) * 100;
 
+    // Generate unique ID for this throw
+    const emojiId = `emoji-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
     SoundManager.playVoteThrow();
 
-    setFlickState({
-      flyingEmoji: {
-        type: activeMode,
-        start: startPos,
-        end: { x: clickX, y: clickY },
-        targetId: gameId,
-        xPercent,
-        yPercent,
-      },
-      splatter: null,
-    });
-  }, [activeMode, flickState.flyingEmoji, getTogglePosition, donutBalance, poopBalance]);
+    // Add to flying emojis array (no blocking - allows rapid fire!)
+    setFlyingEmojis(prev => [...prev, {
+      id: emojiId,
+      type: activeMode,
+      start: startPos,
+      end: { x: clickX, y: clickY },
+      targetId: gameId,
+      xPercent,
+      yPercent,
+    }]);
 
-  const handleEmojiLand = useCallback(async () => {
-    if (!flickState.flyingEmoji) return;
+    // Optimistic balance decrement
+    if (activeMode === 'donut') {
+      setDonutBalance(prev => Math.max(0, prev - 1));
+    } else {
+      setPoopBalance(prev => Math.max(0, prev - 1));
+    }
+  }, [activeMode, getTogglePosition, donutBalance, poopBalance]);
 
-    const { type, end, targetId, xPercent, yPercent } = flickState.flyingEmoji;
+  // Handle emoji landing - accepts id to support multiple simultaneous emojis
+  const handleEmojiLand = useCallback(async (emojiId: string) => {
+    // Find the emoji that landed
+    const landedEmoji = flyingEmojis.find(e => e.id === emojiId);
+    if (!landedEmoji) return;
+
+    const { type, end, targetId, xPercent, yPercent } = landedEmoji;
 
     SoundManager.playVoteImpact(type);
 
-    // Send vote to server and get new balance
-    const result = await addVote(targetId, type, xPercent, yPercent);
+    // Remove from flying array
+    setFlyingEmojis(prev => prev.filter(e => e.id !== emojiId));
+
+    // Add splatter effect
+    const splatterId = `splatter-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setSplatters(prev => [...prev, {
+      id: splatterId,
+      type,
+      position: end,
+    }]);
 
     // Save vote locally for heatmap display
     setLocalVotes(prev => [...prev, {
@@ -216,7 +235,11 @@ export default function GamesHub() {
       targetId,
     }]);
 
-    // Update balance from server response
+    // Send vote to server (balance already optimistically decremented)
+    // Server response will reconcile if needed
+    const result = await addVote(targetId, type, xPercent, yPercent);
+
+    // Reconcile balance if server returns different value
     if (result.success && result.newBalance !== undefined) {
       if (type === 'donut') {
         setDonutBalance(result.newBalance);
@@ -224,15 +247,11 @@ export default function GamesHub() {
         setPoopBalance(result.newBalance);
       }
     }
+  }, [flyingEmojis, addVote]);
 
-    setFlickState({
-      flyingEmoji: null,
-      splatter: { type, position: end },
-    });
-  }, [flickState.flyingEmoji, addVote]);
-
-  const handleSplatterComplete = useCallback(() => {
-    setFlickState(prev => ({ ...prev, splatter: null }));
+  // Handle splatter completion - remove specific splatter by id
+  const handleSplatterComplete = useCallback((splatterId: string) => {
+    setSplatters(prev => prev.filter(s => s.id !== splatterId));
   }, []);
 
   const handleShowHeatmap = useCallback((type: 'donut' | 'poop') => {
@@ -360,22 +379,28 @@ export default function GamesHub() {
         {/* Game Modal */}
         <GameModal game={selectedGame} isOpen={gameModalOpen} onClose={handleGameModalClose} />
 
-        {flickState.flyingEmoji && (
+        {/* Multiple flying emojis for rapid-fire support */}
+        {flyingEmojis.map(emoji => (
           <FlyingEmoji
-            type={flickState.flyingEmoji.type}
-            startPosition={flickState.flyingEmoji.start}
-            endPosition={flickState.flyingEmoji.end}
+            key={emoji.id}
+            id={emoji.id}
+            type={emoji.type}
+            startPosition={emoji.start}
+            endPosition={emoji.end}
             onComplete={handleEmojiLand}
           />
-        )}
+        ))}
 
-        {flickState.splatter && (
+        {/* Multiple splatters for simultaneous impacts */}
+        {splatters.map(splatter => (
           <SplatterEffect
-            type={flickState.splatter.type}
-            position={flickState.splatter.position}
+            key={splatter.id}
+            id={splatter.id}
+            type={splatter.type}
+            position={splatter.position}
             onComplete={handleSplatterComplete}
           />
-        )}
+        ))}
 
         {heatmapState.isActive && (
           <HeatmapRain
@@ -422,22 +447,28 @@ export default function GamesHub() {
 
       <GameModal game={selectedGame} isOpen={gameModalOpen} onClose={handleGameModalClose} />
 
-      {flickState.flyingEmoji && (
+      {/* Multiple flying emojis for rapid-fire support */}
+      {flyingEmojis.map(emoji => (
         <FlyingEmoji
-          type={flickState.flyingEmoji.type}
-          startPosition={flickState.flyingEmoji.start}
-          endPosition={flickState.flyingEmoji.end}
+          key={emoji.id}
+          id={emoji.id}
+          type={emoji.type}
+          startPosition={emoji.start}
+          endPosition={emoji.end}
           onComplete={handleEmojiLand}
         />
-      )}
+      ))}
 
-      {flickState.splatter && (
+      {/* Multiple splatters for simultaneous impacts */}
+      {splatters.map(splatter => (
         <SplatterEffect
-          type={flickState.splatter.type}
-          position={flickState.splatter.position}
+          key={splatter.id}
+          id={splatter.id}
+          type={splatter.type}
+          position={splatter.position}
           onComplete={handleSplatterComplete}
         />
-      )}
+      ))}
 
       {heatmapState.isActive && (
         <HeatmapRain

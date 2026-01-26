@@ -43,7 +43,6 @@ import {
   USE_MESSAGE_CHANNEL_LOOP,
   DEBUG_OVERLAY,
   DEBUG_WEATHER,
-  SAD_IMAGES,
   type WeatherType,
 } from './games/flappy-orange/config';
 import type {
@@ -233,7 +232,6 @@ const FlappyOrange: React.FC = () => {
   const { leaderboard: globalLeaderboard, submitScore, isSignedIn, userDisplayName, isSubmitting } = BARE_BONES_MODE
     ? { leaderboard: [], submitScore: () => Promise.resolve(), isSignedIn: false, userDisplayName: '', isSubmitting: false }
     : realLeaderboard;
-  const [, setShowLeaderboardPanel] = useState(false);
   const [isGameOverExiting, setIsGameOverExiting] = useState(false);
 
   // Dynamic canvas dimensions - measured from container
@@ -362,7 +360,6 @@ const FlappyOrange: React.FC = () => {
   const [highScore, setHighScore] = useState(getStoredHighScore);
   const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
-  const [, setSadImage] = useState('');
   const [soundEnabled, setSoundEnabled] = useState(() => {
     return localStorage.getItem('flappyOrangeSoundEnabled') !== 'false';
   });
@@ -865,25 +862,6 @@ const FlappyOrange: React.FC = () => {
     rainSplashesRef.current = [...rainSplashesRef.current, ...newSplashes];
   }, [CANVAS_HEIGHT]);
 
-  // Trigger lightning
-  const triggerLightning = useCallback(() => {
-    lightningRef.current = { alpha: 1, sequence: 0, startTime: Date.now() };
-    setLightningAlpha(0.8);
-
-    // Multi-flash sequence
-    setTimeout(() => setLightningAlpha(0.2), 50);
-    setTimeout(() => setLightningAlpha(0.6), 100);
-    setTimeout(() => setLightningAlpha(0.1), 150);
-    setTimeout(() => setLightningAlpha(0.4), 200);
-    setTimeout(() => setLightningAlpha(0), 300);
-
-    // Thunder shake after delay
-    setTimeout(() => {
-      triggerScreenShake(4, 300);
-      playTone(60, 0.15, 400); // Low rumble
-    }, 400);
-  }, [triggerScreenShake, playTone]);
-
   // ============================================
   // WEATHER SYSTEM FUNCTIONS
   // ============================================
@@ -1139,7 +1117,6 @@ const FlappyOrange: React.FC = () => {
 
     // Update scores and submit to leaderboard
     const updateScores = () => {
-      setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
       const result = handleGameOverScore(state.score, highScore);
       if (result.isNewHighScore) {
         setHighScore(result.newHighScore);
@@ -1299,7 +1276,6 @@ const FlappyOrange: React.FC = () => {
         state.stars = generateStarsPure(CANVAS_WIDTH, CANVAS_HEIGHT);  // Generate stars for night sky
         gameStartTimeRef.current = Date.now();
         setGameState('playing');
-        console.log('[FlappyOrange] Setting light sequence: play:active');
         triggerEvent('play:active');
       }
       if (state.gameState === 'playing') {
@@ -1316,7 +1292,6 @@ const FlappyOrange: React.FC = () => {
         state.stars = generateStarsPure(CANVAS_WIDTH, CANVAS_HEIGHT);  // Generate stars for night sky
         gameStartTimeRef.current = Date.now();
         setGameState('playing');
-        console.log('[FlappyOrange] Setting light sequence: play:active');
         triggerEvent('play:active');
       }
       if (state.gameState === 'playing') {
@@ -1410,7 +1385,6 @@ const FlappyOrange: React.FC = () => {
   // Animated play again - fades out game over overlay before resetting
   const handlePlayAgain = useCallback(() => {
     setIsGameOverExiting(true);
-    setShowLeaderboardPanel(false);
     setTimeout(() => {
       resetGame();
       setIsGameOverExiting(false);
@@ -1506,10 +1480,6 @@ const FlappyOrange: React.FC = () => {
 
   // Game loop
   useEffect(() => {
-    if (BARE_BONES_MODE) {
-      console.log('Game loop useEffect running!', { CANVAS_WIDTH, CANVAS_HEIGHT, BIRD_X });
-    }
-
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -1664,17 +1634,6 @@ const FlappyOrange: React.FC = () => {
           return true;
         });
 
-        // Weather effects for storm mode (score >= 50)
-        const isStorm = state.score >= 50;
-        if (isStorm && state.gameState === 'playing' && !state.isFrozen) {
-          if (Math.random() < 0.15 * deltaTime) {
-            rainDropsRef.current = addRainDropsWithCap(rainDropsRef.current, createRainDrops(2, CANVAS_WIDTH, CANVAS_HEIGHT, false));
-          }
-          handleUpdateRainDrops();
-          if (Math.random() < 0.0003 * deltaTime) {
-            triggerLightning();
-          }
-        }
       }
 
       state.frameCount++;

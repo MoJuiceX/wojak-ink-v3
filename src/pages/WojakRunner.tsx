@@ -5,7 +5,6 @@ import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameMute } from '@/contexts/GameMuteContext';
 import { useArcadeLights } from '@/contexts/ArcadeLightsContext';
-// import { GAME_COMBO_TIERS } from '@/config/arcade-light-mappings';
 import { useGameNavigationGuard } from '@/hooks/useGameNavigationGuard';
 import { useGameTouch } from '@/hooks/useGameTouch';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -72,7 +71,7 @@ const WojakRunner: React.FC = () => {
 
 
   // Arcade frame shared mute state
-  const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
+  const { isMuted: arcadeMuted, musicManagedExternally, gameStarted } = useGameMute();
 
   // Arcade lights control
   const { triggerEvent, setGameId } = useArcadeLights();
@@ -89,7 +88,7 @@ const WojakRunner: React.FC = () => {
   // Bottom offset for player position - higher on mobile to clear icon bar
   const PLAYER_BOTTOM_OFFSET = isMobile ? 90 : 60;
 
-  const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover'>('playing');
+  const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
 
   // Navigation guard - prevents accidental exits during gameplay
   const { showExitDialog, confirmExit, cancelExit } = useGameNavigationGuard({
@@ -152,6 +151,10 @@ const WojakRunner: React.FC = () => {
   // Track collected IDs to prevent double sound plays
   const collectedIdsRef = useRef<Set<number>>(new Set());
 
+  // Refs for game loop to avoid stale closures (FlappyOrange pattern)
+  const obstaclesRef = useRef<Obstacle[]>([]);
+  const distanceRef = useRef(0);
+
   // Sound refs for use in game loop
   const playCollectRef = useRef(playCollect);
   const playGameOverRef = useRef(playGameOver);
@@ -200,6 +203,10 @@ const WojakRunner: React.FC = () => {
   useEffect(() => {
     showExitDialogRef.current = showExitDialog;
   }, [showExitDialog]);
+
+  // Keep game state refs in sync for game loop reads (avoids stale closures)
+  useEffect(() => { obstaclesRef.current = obstacles; }, [obstacles]);
+  useEffect(() => { distanceRef.current = distance; }, [distance]);
 
   // Background music refs
   const playlistIndexRef = useRef(Math.floor(Math.random() * MUSIC_PLAYLIST.length));
@@ -327,12 +334,12 @@ const WojakRunner: React.FC = () => {
   // Running footstep sound removed - background music is sufficient
   // and the footsteps were distracting
 
-  // Auto-start game on mount (arcade frame handles the initial Play button)
+  // Start game when arcade PLAY button is clicked
   useEffect(() => {
-    // Initialize game state on mount
-    startGame();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (gameStarted && gameState === 'idle') {
+      startGame();
+    }
+  }, [gameStarted, gameState]);
 
   const startGame = () => {
     setPlayerLane(1);
@@ -347,6 +354,7 @@ const WojakRunner: React.FC = () => {
     lastDistanceMilestoneRef.current = 0;
     setScoreSubmitted(false);
     setIsNewPersonalBest(false);
+    setGameScreenshot(null); // Reset to prevent stale screenshot on replay
     // Reset streak and effects
     setCollectStreak(0);
     collectStreakRef.current = 0;
@@ -375,7 +383,6 @@ const WojakRunner: React.FC = () => {
     });
 
     if (result.success) {
-      console.log('[WojakRunner] Score submitted:', result);
       if (result.isNewHighScore) {
         setIsNewPersonalBest(true);
       }
@@ -554,7 +561,7 @@ const WojakRunner: React.FC = () => {
             // Orange went off screen - check if it was blocked by an obstacle
             // An orange is "blocked" if there's an obstacle in the same lane
             // that would have prevented the player from getting it
-            const wasBlocked = obstacles.some(o =>
+            const wasBlocked = obstaclesRef.current.some(o =>
               o.lane === c.lane &&
               Math.abs(o.y - c.y) < OBSTACLE_SIZE + COLLECTIBLE_SIZE
             );
@@ -579,7 +586,7 @@ const WojakRunner: React.FC = () => {
       const playerY = height - playerBottomOffsetRef.current - PLAYER_SIZE;
 
       // Check obstacle collision
-      obstacles.forEach(obstacle => {
+      obstaclesRef.current.forEach(obstacle => {
         if (obstacle.lane === playerLane) {
           const obstacleY = obstacle.y;
           if (
@@ -594,8 +601,14 @@ const WojakRunner: React.FC = () => {
             resetComboRef.current();
 
             // Capture screenshot before game over
+            // Pause lane line animation for screenshot capture (html2canvas can't capture CSS animations)
             if (gameAreaRef.current) {
+              const laneLines = gameAreaRef.current.querySelectorAll('.lane-line') as NodeListOf<HTMLElement>;
+              laneLines.forEach(el => el.style.animationPlayState = 'paused');
+              
               captureGameArea(gameAreaRef.current).then(screenshot => {
+                // Restore animation (already game over, but clean up)
+                laneLines.forEach(el => el.style.animationPlayState = 'running');
                 if (screenshot) setGameScreenshot(screenshot);
               });
             }
@@ -705,7 +718,9 @@ const WojakRunner: React.FC = () => {
         clearTimeout(scorePopupTimeoutRef.current);
       }
     };
-  }, [gameState, speed, playerLane, obstacles, score, distance, highScore]);
+  // Note: obstacles and distance removed - we read from refs to avoid stale closures
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, speed, playerLane, score, highScore]);
 
   const totalScore = score + Math.floor(distance / 10);
 

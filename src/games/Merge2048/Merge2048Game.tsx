@@ -276,48 +276,6 @@ const getFontSizeClass = (value: number): string => {
   return 'tile-font-small';
 };
 
-// TASK 34: Check if a tile has an adjacent tile with the same value (near match)
-const checkNearMatch = (tiles: Tile[], targetTile: Tile): boolean => {
-  return tiles.some(t =>
-    t.id !== targetTile.id &&
-    t.value === targetTile.value &&
-    ((Math.abs(t.row - targetTile.row) === 1 && t.col === targetTile.col) ||
-     (Math.abs(t.col - targetTile.col) === 1 && t.row === targetTile.row))
-  );
-};
-
-// TASK 32: Face renderer component
-interface TileFaceRendererProps {
-  value: number;
-  isNearMatch: boolean;
-  isDanger: boolean;
-  showFaces: boolean;
-}
-
-const TileFaceRenderer: React.FC<TileFaceRendererProps> = ({
-  value,
-  isNearMatch,
-  isDanger,
-  showFaces,
-}) => {
-  if (!showFaces) return null;
-
-  const face = TILE_FACES[value] || TILE_FACES[2];
-
-  // Modify expression based on game state
-  let currentExpression = face.expression;
-  if (isDanger) currentExpression = 'worried';
-  if (isNearMatch) currentExpression = 'excited';
-
-  return (
-    <div className={`tile-face tile-face-${currentExpression}`}>
-      <span className="tile-eyes">{face.eyes}</span>
-      <span className="tile-mouth">{face.mouth}</span>
-      {face.extras && <span className="tile-extras">{face.extras}</span>}
-    </div>
-  );
-};
-
 /**
  * Convert tiles array to 2D grid representation
  */
@@ -429,94 +387,6 @@ const getHighestMergedValue = (tiles: Tile[]): number => {
   const mergedTiles = tiles.filter((t) => t.isMerged);
   if (mergedTiles.length === 0) return 0;
   return Math.max(...mergedTiles.map((t) => t.value));
-};
-
-// ============================================================================
-// PHASE 7: NEXT TILE PREVIEW COMPONENT
-// ============================================================================
-
-// TASK 96: Next tile preview component
-const NextTilePreview: React.FC<{ queue: number[]; showFaces: boolean }> = ({ queue, showFaces }) => (
-  <div className="next-tile-preview">
-    <span className="preview-label">NEXT</span>
-    <div className="preview-tiles">
-      {queue.slice(0, 2).map((value, i) => {
-        const colors = TILE_COLORS[value] || { background: '#eee4da', text: '#776e65' };
-        const face = TILE_FACES[value];
-        return (
-          <div
-            key={i}
-            className={`preview-tile preview-tile-${i}`}
-            style={{ backgroundColor: colors.background, color: colors.text }}
-          >
-            {showFaces && face && (
-              <span className="preview-face">{face.eyes}</span>
-            )}
-            <span className="preview-value">{value}</span>
-          </div>
-        );
-      })}
-    </div>
-  </div>
-);
-
-// ============================================================================
-// PHASE 8: COMBO DISPLAY COMPONENTS
-// ============================================================================
-
-// TASK 105: Combo display component
-const ComboDisplay: React.FC<{ count: number; isActive: boolean }> = ({ count, isActive }) => {
-  if (!isActive || count < 2) return null;
-
-  const getComboColor = () => {
-    if (count >= 10) return '#ff00ff';
-    if (count >= 7) return '#ff4500';
-    if (count >= 5) return '#ffd700';
-    if (count >= 3) return '#ff8c00';
-    return '#ffffff';
-  };
-
-  return (
-    <div
-      className={`combo-display combo-${Math.min(count, 10)}`}
-      style={{ color: getComboColor() }}
-    >
-      <span className="combo-count">{count}x</span>
-      <span className="combo-label">COMBO!</span>
-    </div>
-  );
-};
-
-// TASK 107: Combo timeout bar component
-const ComboTimeoutBar: React.FC<{ lastMergeTime: number; isActive: boolean; timeout: number }> = ({
-  lastMergeTime,
-  isActive,
-  timeout,
-}) => {
-  const [timeLeft, setTimeLeft] = useState(100);
-
-  useEffect(() => {
-    if (!isActive) {
-      setTimeLeft(100);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - lastMergeTime;
-      const remaining = Math.max(0, 100 - (elapsed / timeout) * 100);
-      setTimeLeft(remaining);
-    }, 16);
-
-    return () => clearInterval(interval);
-  }, [lastMergeTime, isActive, timeout]);
-
-  if (!isActive) return null;
-
-  return (
-    <div className="combo-timeout-bar">
-      <div className="combo-timeout-fill" style={{ width: `${timeLeft}%` }} />
-    </div>
-  );
 };
 
 // ============================================================================
@@ -691,26 +561,6 @@ const Merge2048Game: React.FC = () => {
   // TASK 81: Track consecutive merges for fever
   const consecutiveMergesRef = useRef(0);
   const lastMergeTimeRef = useRef(0);
-  // State version for UI (refs don't trigger re-renders)
-  const [streakCount, setStreakCount] = useState(0);
-
-  // TASK 35: Near-match map for tile expressions
-  const [nearMatchMap, setNearMatchMap] = useState<Record<number, boolean>>({});
-
-  // TASK 45: Face toggle setting
-  const [showFaces, setShowFaces] = useState(() => {
-    const saved = localStorage.getItem('merge2048-show-faces');
-    return saved !== null ? JSON.parse(saved) : true;
-  });
-
-  // TASK 41: Track unlocked tile bios
-  const [unlockedBios, setUnlockedBios] = useState<Set<number>>(() => {
-    const saved = localStorage.getItem('merge2048-unlocked-bios');
-    return saved ? new Set(JSON.parse(saved)) : new Set([2, 4]);
-  });
-
-  // TASK 42: Character gallery modal state
-  const [showGallery, setShowGallery] = useState(false);
 
   // TASK 126-138: Share system state
   const [showShareModal, setShowShareModal] = useState(false);
@@ -724,22 +574,10 @@ const Merge2048Game: React.FC = () => {
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
 
-  // ============================================================================
-  // PHASE 7: NEXT TILE PREVIEW (Tasks 93-100)
-  // ============================================================================
-
-  // TASK 93: Next tile queue state
+  // Next tile queue for spawning (internal use)
   const [nextTileQueue, setNextTileQueue] = useState<number[]>([2, 2]);
-  const [showPreview, setShowPreview] = useState(() => {
-    const saved = localStorage.getItem('merge2048-show-preview');
-    return saved !== null ? JSON.parse(saved) : true;
-  });
 
-  // ============================================================================
-  // PHASE 8: COMBO VISUALIZATION (Tasks 101-110)
-  // ============================================================================
-
-  // TASK 101 & 102: Combo state and timeout
+  // Combo state for score multipliers (internal use)
   const COMBO_TIMEOUT = 1500;
   interface ComboState {
     count: number;
@@ -751,38 +589,6 @@ const Merge2048Game: React.FC = () => {
     lastMergeTime: 0,
     isActive: false,
   });
-
-  // ============================================================================
-  // PHASE 9: EXTRA FEATURES (Tasks 111-125)
-  // ============================================================================
-
-  // TASK 111: Undo system state
-  interface UndoState {
-    tiles: Tile[];
-    score: number;
-    available: boolean;
-  }
-  const [undoState, setUndoState] = useState<UndoState | null>(null);
-  const [undoUsed, setUndoUsed] = useState(false);
-
-  // ============================================================================
-  // PHASE 11: DYNAMIC MUSIC SYSTEM (Tasks 139-145)
-  // ============================================================================
-
-  // TASK 139 & 140: Music state and refs
-  interface MusicState {
-    isPlaying: boolean;
-    intensity: number; // 0-1 based on combo
-    urgency: number;   // 0-1 based on danger
-  }
-  const [musicState, setMusicState] = useState<MusicState>({
-    isPlaying: false,
-    intensity: 0,
-    urgency: 0,
-  });
-  const [musicEnabled, setMusicEnabled] = useState(false);
-  const musicOscillatorsRef = useRef<OscillatorNode[]>([]);
-  const musicGainsRef = useRef<GainNode[]>([]);
 
   // Audio hooks
   const { playBlockLand, playPerfectBonus, playCombo, playWinSound, playGameOver, playClick, setMuted } = useHowlerSounds();
@@ -946,7 +752,6 @@ const Merge2048Game: React.FC = () => {
           });
         }
         consecutiveMergesRef.current = 0;
-        setStreakCount(0);
       }
     }, 500);
 
@@ -969,25 +774,6 @@ const Merge2048Game: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, [tiles]);
-
-  // TASK 35: Update near-match map when tiles change
-  useEffect(() => {
-    const map: Record<number, boolean> = {};
-    tiles.forEach(tile => {
-      map[tile.id] = checkNearMatch(tiles, tile);
-    });
-    setNearMatchMap(map);
-  }, [tiles]);
-
-  // TASK 41: Save unlocked bios to localStorage
-  useEffect(() => {
-    localStorage.setItem('merge2048-unlocked-bios', JSON.stringify([...unlockedBios]));
-  }, [unlockedBios]);
-
-  // TASK 45: Save face toggle setting
-  useEffect(() => {
-    localStorage.setItem('merge2048-show-faces', JSON.stringify(showFaces));
-  }, [showFaces]);
 
   /**
    * Trigger haptic feedback (mobile devices) - LEGACY
@@ -1212,11 +998,6 @@ const Merge2048Game: React.FC = () => {
     setNextTileQueue([generateNextTile(), generateNextTile()]);
   }, [generateNextTile]);
 
-  // Save preview toggle setting
-  useEffect(() => {
-    localStorage.setItem('merge2048-show-preview', JSON.stringify(showPreview));
-  }, [showPreview]);
-
   // ============================================================================
   // PHASE 8: COMBO SYSTEM FUNCTIONS
   // ============================================================================
@@ -1273,164 +1054,6 @@ const Merge2048Game: React.FC = () => {
 
     return () => clearInterval(checkTimeout);
   }, [comboState, COMBO_TIMEOUT, playComboBreak]);
-
-  // ============================================================================
-  // PHASE 9: EXTRA FEATURES FUNCTIONS
-  // ============================================================================
-
-  // TASK 17 & 113: Undo sound and function
-  const playUndoSound = useCallback(() => {
-    if (isMuted) return;
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    // Rewind sound effect
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(600, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.15);
-    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.18);
-  }, [isMuted, getAudioContext]);
-
-  // TASK 113: Handle undo
-  const handleUndo = useCallback(() => {
-    if (!undoState?.available || undoUsed) return;
-
-    setTiles(undoState.tiles);
-    setScore(undoState.score);
-    setUndoUsed(true);
-    setUndoState(null);
-    playUndoSound();
-    triggerHaptic('light');
-  }, [undoState, undoUsed, playUndoSound, triggerHaptic]);
-
-  // TASK 112: Save state for undo (called before move)
-  const saveStateForUndo = useCallback(() => {
-    if (!undoUsed) {
-      setUndoState({
-        tiles: JSON.parse(JSON.stringify(tiles)),
-        score: score,
-        available: true,
-      });
-    }
-  }, [tiles, score, undoUsed]);
-
-  // ============================================================================
-  // PHASE 11: DYNAMIC MUSIC SYSTEM FUNCTIONS
-  // ============================================================================
-
-  // TASK 141: Start music layers synchronized
-  const startMusic = useCallback(() => {
-    if (musicState.isPlaying || isMuted) return;
-
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    // Create base drone layer
-    const baseOsc = ctx.createOscillator();
-    const baseGain = ctx.createGain();
-    baseOsc.type = 'sine';
-    baseOsc.frequency.value = 55; // A1
-    baseGain.gain.value = 0.08;
-    baseOsc.connect(baseGain).connect(ctx.destination);
-    baseOsc.start();
-
-    // Create mid harmony layer
-    const midOsc = ctx.createOscillator();
-    const midGain = ctx.createGain();
-    midOsc.type = 'triangle';
-    midOsc.frequency.value = 110; // A2
-    midGain.gain.value = 0;
-    midOsc.connect(midGain).connect(ctx.destination);
-    midOsc.start();
-
-    // Create high tension layer
-    const highOsc = ctx.createOscillator();
-    const highGain = ctx.createGain();
-    highOsc.type = 'sine';
-    highOsc.frequency.value = 220; // A3
-    highGain.gain.value = 0;
-    highOsc.connect(highGain).connect(ctx.destination);
-    highOsc.start();
-
-    musicOscillatorsRef.current = [baseOsc, midOsc, highOsc];
-    musicGainsRef.current = [baseGain, midGain, highGain];
-
-    setMusicState(prev => ({ ...prev, isPlaying: true }));
-  }, [musicState.isPlaying, isMuted, getAudioContext]);
-
-  // TASK 145: Stop and clean up music
-  const stopMusic = useCallback(() => {
-    musicOscillatorsRef.current.forEach(osc => {
-      try { osc.stop(); } catch { /* ignore */ }
-    });
-    musicOscillatorsRef.current = [];
-    musicGainsRef.current = [];
-    setMusicState({ isPlaying: false, intensity: 0, urgency: 0 });
-  }, []);
-
-  // TASK 144: Toggle music
-  const toggleMusic = useCallback(() => {
-    setMusicEnabled(prev => {
-      if (prev) {
-        stopMusic();
-        return false;
-      } else {
-        startMusic();
-        return true;
-      }
-    });
-  }, [startMusic, stopMusic]);
-
-  // TASK 142: Update intensity based on combo
-  useEffect(() => {
-    if (!musicState.isPlaying || musicGainsRef.current.length < 3) return;
-
-    const intensity = Math.min(comboState.count / 10, 1);
-    const midGain = musicGainsRef.current[1];
-    if (midGain) {
-      midGain.gain.setTargetAtTime(intensity * 0.06, getAudioContext().currentTime, 0.1);
-    }
-
-    setMusicState(prev => ({ ...prev, intensity }));
-  }, [comboState.count, musicState.isPlaying, getAudioContext]);
-
-  // TASK 143: Update urgency based on danger level
-  useEffect(() => {
-    if (!musicState.isPlaying || musicGainsRef.current.length < 3) return;
-
-    const urgencyMap: Record<DangerLevel, number> = {
-      safe: 0,
-      warning: 0.3,
-      critical: 0.6,
-      imminent: 1,
-    };
-    const urgency = urgencyMap[dangerLevel];
-    const highGain = musicGainsRef.current[2];
-    if (highGain) {
-      highGain.gain.setTargetAtTime(urgency * 0.05, getAudioContext().currentTime, 0.1);
-    }
-
-    // Also increase base frequency with urgency
-    const baseOsc = musicOscillatorsRef.current[0];
-    if (baseOsc) {
-      baseOsc.frequency.setTargetAtTime(55 + urgency * 20, getAudioContext().currentTime, 0.2);
-    }
-
-    setMusicState(prev => ({ ...prev, urgency }));
-  }, [dangerLevel, musicState.isPlaying, getAudioContext]);
-
-  // TASK 145: Clean up music on unmount
-  useEffect(() => {
-    return () => {
-      stopMusic();
-    };
-  }, [stopMusic]);
 
   // ============================================================================
   // PHASE 1: SOUND FOUNDATION FUNCTIONS
@@ -1595,16 +1218,6 @@ const Merge2048Game: React.FC = () => {
     }
   }, [playSignatureChime, triggerEvent]);
 
-  // TASK 41: Unlock bio when reaching new tile value
-  const unlockBio = useCallback((value: number) => {
-    setUnlockedBios(prev => {
-      if (prev.has(value)) return prev;
-      const newSet = new Set(prev);
-      newSet.add(value);
-      return newSet;
-    });
-  }, []);
-
   // ============================================================================
   // PHASE 6: FEVER MODE FUNCTIONS
   // ============================================================================
@@ -1708,14 +1321,10 @@ const Merge2048Game: React.FC = () => {
     });
     consecutiveMergesRef.current = 0;
     lastMergeTimeRef.current = 0;
-    setStreakCount(0);
-    // TASK 94: Initialize next tile queue on new game
+    // Initialize next tile queue on new game
     initNextTileQueue();
-    // TASK 104: Reset combo on new game
+    // Reset combo on new game
     setComboState({ count: 0, lastMergeTime: 0, isActive: false });
-    // TASK 116: Reset undo on new game
-    setUndoState(null);
-    setUndoUsed(false);
     setScore(0);
     setIsGameOver(false);
     setHasWon(false);
@@ -1737,9 +1346,6 @@ const Merge2048Game: React.FC = () => {
   const move = useCallback(
     (direction: Direction) => {
       if (isGameOver || isMovingRef.current) return;
-
-      // TASK 112: Save state for undo before move
-      saveStateForUndo();
 
       isMovingRef.current = true;
       // TASK 55: Track movement direction for squash/stretch
@@ -1848,7 +1454,6 @@ const Merge2048Game: React.FC = () => {
           if (totalScoreGained > 0) {
             consecutiveMergesRef.current++;
             lastMergeTimeRef.current = Date.now();
-            setStreakCount(consecutiveMergesRef.current);
             totalMergesRef.current++; // NEW: Track total merges for minimum actions
 
             // TASK 103: Increment combo counter
@@ -1888,10 +1493,8 @@ const Merge2048Game: React.FC = () => {
           // TASK 8 & 9: Use new pitch-based merge sound system
           if (highestMerged > 0) {
             playMergeSound(highestMerged);
-            // TASK 7: Check for milestone and play signature chime
+            // Check for milestone and play signature chime
             checkMilestone(highestMerged);
-            // TASK 41: Unlock bio for new tile values
-            unlockBio(highestMerged);
             // Arcade lights: Merge with value-based tier (debounced)
             const mergeTier = getMergeTier(highestMerged);
             triggerEvent(`score:${mergeTier}` as any);
@@ -2061,7 +1664,7 @@ const Merge2048Game: React.FC = () => {
         }
       });
     },
-    [isGameOver, hasWon, showScorePopup, triggerScreenShake, playSlideSound, playMergeSound, playSpawnSound, playInvalidMoveSound, checkMilestone, playWinSound, playGameOver, isSignedIn, submitScore, score, triggerShockwave, triggerSparks, addFloatingEmoji, showEpicCallout, triggerConfetti, triggerSlideHaptic, triggerMergeHaptic, triggerWinHaptic, triggerGameOverHaptic, triggerErrorHaptic, unlockBio, saveStateForUndo, incrementCombo, nextTileQueue, generateNextTile]
+    [isGameOver, hasWon, showScorePopup, triggerScreenShake, playSlideSound, playMergeSound, playSpawnSound, playInvalidMoveSound, checkMilestone, playWinSound, playGameOver, isSignedIn, submitScore, score, triggerShockwave, triggerSparks, addFloatingEmoji, showEpicCallout, triggerConfetti, triggerSlideHaptic, triggerMergeHaptic, triggerWinHaptic, triggerGameOverHaptic, triggerErrorHaptic, incrementCombo, nextTileQueue, generateNextTile]
   );
 
   /**
@@ -2192,14 +1795,15 @@ const Merge2048Game: React.FC = () => {
 
   /**
    * Render a single tile
-   * TASK 37: Updated to include TileFaceRenderer
+   * Uses CSS Grid positioning (grid-row/grid-column) for reliable alignment
    */
   const renderTile = (tile: Tile) => {
+    // Use CSS Grid row/column - grid is 1-indexed
     const style: React.CSSProperties = {
       ...getTileStyle(tile.value),
-      '--tile-row': tile.row,
-      '--tile-col': tile.col,
-    } as React.CSSProperties;
+      gridRow: tile.row + 1,
+      gridColumn: tile.col + 1,
+    };
 
     // TASK 56: Apply movement direction class to tiles
     const moveClass = lastMoveDirection && !tile.isNew && !tile.isMerged
@@ -2217,18 +1821,8 @@ const Merge2048Game: React.FC = () => {
       .filter(Boolean)
       .join(' ');
 
-    // TASK 36: Use dangerLevel for face expressions
-    const isDanger = dangerLevel !== 'safe';
-
     return (
       <div key={tile.id} className={classes} style={style}>
-        {/* TASK 37: Add tile face */}
-        <TileFaceRenderer
-          value={tile.value}
-          isNearMatch={nearMatchMap[tile.id] || false}
-          isDanger={isDanger}
-          showFaces={showFaces}
-        />
         <span className="tile-value">
           {tile.value}
         </span>
@@ -2263,56 +1857,12 @@ const Merge2048Game: React.FC = () => {
             </div>
           )}
         </div>
-        {/* TASK 98: Next tile preview in header */}
-        {showPreview && <NextTilePreview queue={nextTileQueue} showFaces={showFaces} />}
       </div>
 
-      {/* Controls */}
+      {/* Controls - simplified to just New Game */}
       <div className="merge2048-controls">
         <button className="new-game-btn" onClick={handleNewGame}>
           New Game
-        </button>
-        {/* TASK 114: Undo button */}
-        <button
-          className={`undo-btn ${undoUsed || !undoState?.available ? 'disabled' : ''}`}
-          onClick={handleUndo}
-          disabled={undoUsed || !undoState?.available}
-          aria-label="Undo"
-        >
-          ↩️
-        </button>
-        {/* TASK 43: Gallery button */}
-        <button
-          className="gallery-btn"
-          onClick={() => setShowGallery(true)}
-          aria-label="Character Gallery"
-        >
-          📖
-        </button>
-        {/* TASK 45: Face toggle button */}
-        <button
-          className="face-toggle-btn"
-          onClick={() => setShowFaces(prev => !prev)}
-          aria-label={showFaces ? 'Hide faces' : 'Show faces'}
-        >
-          {showFaces ? '😊' : '🔢'}
-        </button>
-        {/* TASK 99: Preview toggle button */}
-        <button
-          className="preview-toggle-btn"
-          onClick={() => setShowPreview(prev => !prev)}
-          aria-label={showPreview ? 'Hide preview' : 'Show preview'}
-        >
-          {showPreview ? '👁️' : '👁️‍🗨️'}
-        </button>
-        {/* Mute button removed - arcade frame handles muting via GameMuteContext */}
-        {/* TASK 144: Music toggle button */}
-        <button
-          className={`music-btn ${musicEnabled ? 'active' : ''}`}
-          onClick={toggleMusic}
-          aria-label={musicEnabled ? 'Stop music' : 'Start music'}
-        >
-          {musicEnabled ? '🎵' : '🎶'}
         </button>
       </div>
 
@@ -2325,34 +1875,12 @@ const Merge2048Game: React.FC = () => {
       {/* TASK 48 & 59: Add freeze-frame and camera zoom */}
       <div
         ref={gridWrapperRef}
-        className={`merge2048-grid-wrapper ${effects.screenShake ? 'shake' : ''} ${dangerLevel !== 'safe' ? `danger-${dangerLevel}` : ''} ${feverState.active ? 'fever-active' : ''} ${freezeFrame ? 'freeze-frame' : ''}`}
+        className={`merge2048-grid-wrapper ${effects.screenShake ? 'shake' : ''} ${freezeFrame ? 'freeze-frame' : ''}`}
         style={{ transform: `scale(${cameraZoom})` }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchMove={handleTouchMove}
       >
-        {/* TASK 87: Fever meter UI component */}
-        {feverState.active && (
-          <div className="fever-meter-container">
-            <div className="fever-meter fever-meter-enter">
-              <span className="fever-meter-icon">🔥</span>
-              <span className="fever-meter-text">FEVER</span>
-              <span className="fever-meter-multiplier">{feverState.multiplier}x</span>
-            </div>
-          </div>
-        )}
-
-        {/* Merge streak indicator (building toward fever) */}
-        {!feverState.active && streakCount > 0 && (
-          <div className="merge-streak-indicator">
-            {Array.from({ length: FEVER_CONFIG.activationThreshold }).map((_, i) => (
-              <div
-                key={i}
-                className={`streak-dot ${i < streakCount ? 'active' : ''}`}
-              />
-            ))}
-          </div>
-        )}
         <div className="merge2048-grid">
           {/* Background cells */}
           <div className="grid-background">{renderGridBackground()}</div>
@@ -2493,69 +2021,10 @@ const Merge2048Game: React.FC = () => {
         </div>
       </div>
 
-      {/* TASK 105 & 107: Combo display - positioned below grid on mobile */}
-      <div className="combo-container">
-        <ComboDisplay count={comboState.count} isActive={comboState.isActive} />
-        <ComboTimeoutBar
-          lastMergeTime={comboState.lastMergeTime}
-          isActive={comboState.isActive}
-          timeout={COMBO_TIMEOUT}
-        />
-      </div>
-
       {/* Instructions */}
       <div className="merge2048-instructions">
         <p>Swipe to move tiles. Merge matching numbers to reach 2048!</p>
       </div>
-
-      {/* TASK 42: Character Gallery Modal */}
-      {showGallery && (
-        <div className="gallery-modal-overlay" onClick={() => setShowGallery(false)}>
-          <div className="gallery-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="gallery-header">
-              <h2>Citrus Gallery</h2>
-              <span className="gallery-count">{unlockedBios.size}/{Object.keys(TILE_BIOS).length} Discovered</span>
-              <button className="gallery-close" onClick={() => setShowGallery(false)}>✕</button>
-            </div>
-            <div className="gallery-grid">
-              {Object.entries(TILE_BIOS).map(([value, bio]) => {
-                const numValue = parseInt(value);
-                const isUnlocked = unlockedBios.has(numValue);
-                const face = TILE_FACES[numValue];
-                const colors = TILE_COLORS[numValue] || { background: '#ccc', text: '#333' };
-                return (
-                  <div
-                    key={value}
-                    className={`gallery-card ${isUnlocked ? 'unlocked' : 'locked'}`}
-                  >
-                    <div
-                      className="gallery-tile-preview"
-                      style={{
-                        backgroundColor: isUnlocked ? colors.background : '#666',
-                        color: isUnlocked ? colors.text : '#999',
-                      }}
-                    >
-                      {isUnlocked ? (
-                        <>
-                          <span className="gallery-face-eyes">{face.eyes}</span>
-                          <span className="gallery-face-mouth">{face.mouth}</span>
-                          <span className="gallery-tile-value">{value}</span>
-                        </>
-                      ) : (
-                        <span className="gallery-locked-icon">🔒</span>
-                      )}
-                    </div>
-                    <div className="gallery-info">
-                      <span className="gallery-name">{isUnlocked ? bio.name : '???'}</span>
-                      <span className="gallery-bio">{isUnlocked ? bio.bio : 'Merge tiles to discover!'}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

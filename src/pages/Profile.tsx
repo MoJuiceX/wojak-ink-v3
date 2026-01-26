@@ -244,7 +244,7 @@ function generateMockProfile(userId: string): ProfileData {
     ],
     gameScores: [
       { gameId: 'flappy', gameName: 'Flappy Orange', score: 127, rank: 3 },
-      { gameId: 'stack', gameName: 'Orange Stack', score: 45, rank: 12 },
+      { gameId: 'stack', gameName: 'Brick by Brick', score: 45, rank: 12 },
       { gameId: 'memory', gameName: 'Memory Match', score: 890, rank: 5 },
       { gameId: 'runner', gameName: 'Wojak Runner', score: 3400, rank: 8 },
     ],

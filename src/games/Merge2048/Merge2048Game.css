@@ -189,6 +189,8 @@
   border-radius: 12px;
   padding: 12px;
   box-sizing: border-box;
+  /* CSS variable for gap - used by inline tile positioning */
+  --grid-gap: 12px;
 }
 
 /* Grid background (empty cells) */
@@ -206,38 +208,28 @@
   border-radius: 6px;
 }
 
-/* Tiles container - absolute positioned over grid */
+/* Tiles container - CSS Grid matching background for guaranteed alignment */
 .tiles-container {
   position: absolute;
   top: 12px;
   left: 12px;
   right: 12px;
   bottom: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 12px;
 }
 
-/* Individual tile - uses top/left for positioning, transform for animations */
+/* Individual tile - uses grid-row/grid-column for positioning */
 .tile {
-  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
   font-weight: bold;
-  /* Size and position calculated from container using CSS calc */
-  /* Container is tiles-container which has 12px inset from grid */
-  /* Available space = 100% of tiles-container */
-  /* 4 cells + 3 gaps of 12px = total width */
-  /* cell-size = (100% - 36px) / 4 */
-  width: calc((100% - 36px) / 4);
-  height: calc((100% - 36px) / 4);
-  /* Position using top/left with calc - this works with percentages */
-  /* Each cell position = index * (cell-size + gap) */
-  /* cell-size + gap = (100% - 36px) / 4 + 12px = (100% - 36px + 48px) / 4 = (100% + 12px) / 4 */
-  top: calc(var(--tile-row) * (100% + 12px) / 4);
-  left: calc(var(--tile-col) * (100% + 12px) / 4);
-  /* Smooth position transitions */
-  transition: top 150ms ease-out, left 150ms ease-out;
   z-index: 10;
+  /* Animation handled by tile-new and tile-merged classes */
 }
 
 .tile-value {
@@ -460,475 +452,7 @@
   margin: 0;
 }
 
-/* ========== PHASE 5: DANGER STATE SYSTEM ========== */
-
-/* TASK 68: Visual danger indicators */
-.merge2048-grid-wrapper.danger-warning {
-  box-shadow: inset 0 0 20px rgba(255, 165, 0, 0.3);
-  animation: warningPulse 1.5s ease-in-out infinite;
-}
-
-.merge2048-grid-wrapper.danger-critical {
-  box-shadow: inset 0 0 30px rgba(255, 100, 0, 0.4);
-  animation: criticalPulse 1s ease-in-out infinite;
-}
-
-.merge2048-grid-wrapper.danger-imminent {
-  box-shadow: inset 0 0 40px rgba(255, 50, 0, 0.5);
-  animation: imminentPulse 0.5s ease-in-out infinite;
-}
-
-@keyframes warningPulse {
-  0%, 100% { box-shadow: inset 0 0 20px rgba(255, 165, 0, 0.3); }
-  50% { box-shadow: inset 0 0 30px rgba(255, 165, 0, 0.5); }
-}
-
-@keyframes criticalPulse {
-  0%, 100% { box-shadow: inset 0 0 30px rgba(255, 100, 0, 0.4); }
-  50% { box-shadow: inset 0 0 45px rgba(255, 100, 0, 0.6); }
-}
-
-@keyframes imminentPulse {
-  0%, 100% { box-shadow: inset 0 0 40px rgba(255, 50, 0, 0.5); }
-  50% { box-shadow: inset 0 0 60px rgba(255, 50, 0, 0.7); }
-}
-
-/* TASK 69: Vignette effect for danger */
-.merge2048-grid-wrapper.danger-critical::after,
-.merge2048-grid-wrapper.danger-imminent::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: 12px;
-  background: radial-gradient(
-    ellipse at center,
-    transparent 50%,
-    rgba(255, 50, 0, 0.15) 100%
-  );
-  z-index: 5;
-}
-
-/* TASK 71: Empty cell highlight in danger state */
-.grid-cell.cell-highlighted {
-  background: rgba(255, 215, 0, 0.3);
-  animation: cellGlow 1s ease-in-out infinite;
-}
-
-@keyframes cellGlow {
-  0%, 100% { background: rgba(255, 215, 0, 0.2); }
-  50% { background: rgba(255, 215, 0, 0.4); }
-}
-
-/* ========== END DANGER STATE SYSTEM ========== */
-
-/* ========== PHASE 6: FEVER MODE ========== */
-
-/* TASK 85: Fever mode visual CSS */
-.merge2048-grid-wrapper.fever-active {
-  box-shadow:
-    0 0 30px rgba(255, 107, 0, 0.6),
-    0 0 60px rgba(255, 50, 0, 0.4),
-    inset 0 0 20px rgba(255, 107, 0, 0.3);
-  animation: feverPulse 0.5s ease-in-out infinite;
-}
-
-@keyframes feverPulse {
-  0%, 100% {
-    box-shadow:
-      0 0 30px rgba(255, 107, 0, 0.6),
-      0 0 60px rgba(255, 50, 0, 0.4),
-      inset 0 0 20px rgba(255, 107, 0, 0.3);
-  }
-  50% {
-    box-shadow:
-      0 0 40px rgba(255, 107, 0, 0.8),
-      0 0 80px rgba(255, 50, 0, 0.6),
-      inset 0 0 30px rgba(255, 107, 0, 0.5);
-  }
-}
-
-/* TASK 86: Fever tiles border effect */
-.merge2048-grid-wrapper.fever-active .tile {
-  box-shadow: 0 0 10px rgba(255, 107, 0, 0.8);
-  border: 2px solid rgba(255, 200, 100, 0.6);
-}
-
-/* TASK 87-88: Fever meter UI component */
-.fever-meter-container {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  right: 0;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  z-index: 200;
-}
-
-.fever-meter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255, 107, 0, 0.9);
-  padding: 6px 16px;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(255, 107, 0, 0.5);
-  animation: feverMeterPulse 0.4s ease-in-out infinite;
-}
-
-@keyframes feverMeterPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-.fever-meter-icon {
-  font-size: 18px;
-  animation: feverIconBounce 0.3s ease-in-out infinite alternate;
-}
-
-@keyframes feverIconBounce {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-2px); }
-}
-
-.fever-meter-text {
-  font-size: 14px;
-  font-weight: bold;
-  color: white;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.fever-meter-multiplier {
-  font-size: 16px;
-  font-weight: bold;
-  color: #FFD700;
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
-}
-
-/* Fever meter enter/exit animations */
-.fever-meter-enter {
-  animation: feverMeterEnter 0.3s ease-out forwards;
-}
-
-@keyframes feverMeterEnter {
-  0% {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.8);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* Consecutive merge indicator (building toward fever) */
-.merge-streak-indicator {
-  position: absolute;
-  top: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 4px;
-  pointer-events: none;
-  z-index: 150;
-}
-
-.streak-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  transition: all 0.2s ease;
-}
-
-.streak-dot.active {
-  background: linear-gradient(135deg, #ff6b00, #ff8533);
-  box-shadow: 0 0 8px rgba(255, 107, 0, 0.8);
-  animation: streakDotPulse 0.5s ease-in-out infinite;
-}
-
-@keyframes streakDotPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-}
-
-/* ========== END FEVER MODE ========== */
-
-/* ========== PHASE 3: TILE PERSONALITY SYSTEM ========== */
-
-/* TASK 33: Tile face styles */
-.tile-face {
-  position: absolute;
-  top: 35%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 0.35em;
-  opacity: 0.95;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.tile-eyes {
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-}
-
-.tile-mouth {
-  margin-top: -0.15em;
-}
-
-.tile-extras {
-  position: absolute;
-  top: -1.2em;
-  right: -1em;
-  font-size: 0.8em;
-}
-
-/* Expression animations */
-.tile-face-excited .tile-eyes {
-  animation: eyesBounce 0.5s ease-in-out infinite;
-}
-
-.tile-face-worried .tile-eyes {
-  animation: eyesShake 0.3s ease-in-out infinite;
-}
-
-.tile-face-worried .tile-mouth {
-  transform: scaleY(-1);
-}
-
-.tile-face-sleepy {
-  opacity: 0.6;
-}
-
-.tile-face-shocked .tile-eyes {
-  animation: eyesPulse 0.6s ease-in-out infinite;
-}
-
-@keyframes eyesBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-}
-
-@keyframes eyesShake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-1px); }
-  75% { transform: translateX(1px); }
-}
-
-@keyframes eyesPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
-
-/* Adjust tile-value position to make room for face */
-.tile .tile-value {
-  position: relative;
-  top: 15%;
-  z-index: 2;
-}
-
-/* TASK 38: Hello animation for new tiles */
-.tile-new .tile-face {
-  animation: faceHello 0.4s ease-out;
-}
-
-@keyframes faceHello {
-  0% { transform: translate(-50%, -50%) scale(0); }
-  60% { transform: translate(-50%, -50%) scale(1.2); }
-  100% { transform: translate(-50%, -50%) scale(1); }
-}
-
-/* TASK 39: Celebration animation for merges */
-.tile-merged .tile-face {
-  animation: faceCelebrate 0.3s ease-out;
-}
-
-@keyframes faceCelebrate {
-  0% { transform: translate(-50%, -50%) scale(1); }
-  30% { transform: translate(-50%, -50%) scale(1.3) rotate(-5deg); }
-  60% { transform: translate(-50%, -50%) scale(1.3) rotate(5deg); }
-  100% { transform: translate(-50%, -50%) scale(1); }
-}
-
-/* TASK 43: Gallery button */
-.gallery-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 10px 12px;
-  font-size: 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
-  color: white;
-}
-
-.gallery-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* TASK 45: Face toggle button */
-.face-toggle-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 10px 14px;
-  font-size: 18px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
-  line-height: 1;
-}
-
-.face-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.face-toggle-btn:active {
-  transform: scale(0.95);
-}
-
-/* TASK 42: Character Gallery Modal */
-.gallery-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease;
-}
-
-.gallery-modal {
-  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-  border-radius: 16px;
-  max-width: 90vw;
-  max-height: 80vh;
-  width: 400px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-}
-
-.gallery-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.gallery-header h2 {
-  margin: 0;
-  color: #ff6b00;
-  font-size: 22px;
-}
-
-.gallery-count {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.gallery-close {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 24px;
-  cursor: pointer;
-  padding: 4px 8px;
-  transition: color 0.15s ease;
-}
-
-.gallery-close:hover {
-  color: white;
-}
-
-.gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  padding: 16px;
-  overflow-y: auto;
-}
-
-.gallery-card {
-  display: flex;
-  flex-direction: column;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  overflow: hidden;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.gallery-card.unlocked:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(255, 107, 0, 0.2);
-}
-
-.gallery-card.locked {
-  opacity: 0.5;
-}
-
-.gallery-tile-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  aspect-ratio: 1;
-  padding: 8px;
-  font-weight: bold;
-  position: relative;
-}
-
-.gallery-face-eyes {
-  font-size: 14px;
-  letter-spacing: 1px;
-}
-
-.gallery-face-mouth {
-  font-size: 12px;
-  margin-top: -2px;
-}
-
-.gallery-tile-value {
-  font-size: 18px;
-  margin-top: 4px;
-}
-
-.gallery-locked-icon {
-  font-size: 24px;
-}
-
-.gallery-info {
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.gallery-name {
-  font-size: 14px;
-  font-weight: bold;
-  color: white;
-}
-
-.gallery-bio {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
-  line-height: 1.3;
-}
-
-/* ========== END TILE PERSONALITY SYSTEM ========== */
+/* Simplified - removed unused danger, fever, tile face, and gallery styles */
 
 /* ========== PHASE 4: VISUAL JUICE EFFECTS ========== */
 
@@ -1204,217 +728,10 @@
 
 /* ========== END VIRAL SHARE SYSTEM ========== */
 
-/* ========== PHASE 7: NEXT TILE PREVIEW ========== */
-
-/* TASK 97: Next tile preview CSS */
-.next-tile-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  margin-left: auto;
-}
-
-.preview-label {
-  font-size: 10px;
-  font-weight: bold;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.preview-tiles {
-  display: flex;
-  gap: 4px;
-}
-
-.preview-tile {
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  position: relative;
-  animation: previewPop 200ms ease-out;
-}
-
-.preview-face {
-  font-size: 8px;
-  line-height: 1;
-}
-
-.preview-value {
-  font-size: 12px;
-  line-height: 1;
-}
-
-.preview-tile-1 {
-  opacity: 0.5;
-  transform: scale(0.85);
-}
-
-/* TASK 100: Preview animation on queue change */
-@keyframes previewPop {
-  0% { transform: scale(0.8); opacity: 0; }
-  60% { transform: scale(1.1); }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-/* TASK 99: Preview toggle button */
-.preview-toggle-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 10px 14px;
-  font-size: 18px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
-  line-height: 1;
-}
-
-.preview-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* ========== END NEXT TILE PREVIEW ========== */
-
-/* ========== PHASE 8: COMBO VISUALIZATION ========== */
-
-/* TASK 106: Combo display CSS */
-.combo-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 120px; /* Fixed height to prevent layout shift */
-  margin-top: 24px; /* More space from the game field */
-  margin-bottom: 0;
-  pointer-events: none;
-}
-
-.combo-display {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-weight: bold;
-  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.6);
-  animation: comboAppear 300ms ease-out;
-}
-
-.combo-count {
-  font-size: 80px;
-  line-height: 1;
-  color: #ffd700;
-}
-
-.combo-label {
-  font-size: 22px;
-  text-transform: uppercase;
-  letter-spacing: 3px;
-  color: #ff8c00;
-}
-
-@keyframes comboAppear {
-  0% { transform: scale(0.5); opacity: 0; }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-/* Scale up with combo */
-.combo-3 .combo-count { font-size: 88px; }
-.combo-5 .combo-count { font-size: 96px; }
-.combo-7 .combo-count { font-size: 104px; }
-.combo-10 .combo-count { font-size: 112px; }
-.combo-10 { animation: comboAppear 300ms ease-out, comboPulse 0.5s infinite; }
-
-@keyframes comboPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
-
-/* TASK 108: Combo timeout bar CSS */
-.combo-timeout-bar {
-  width: 150px;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  margin-top: 10px;
-  overflow: hidden;
-}
-
-.combo-timeout-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #ff8c00, #ffd700);
-  transition: width 50ms linear;
-}
-
-/* ========== END COMBO VISUALIZATION ========== */
-
-/* ========== PHASE 9: EXTRA FEATURES ========== */
-
-/* TASK 115: Undo button CSS */
-.undo-btn {
-  padding: 10px 14px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  font-size: 18px;
-  cursor: pointer;
-  transition: all 200ms;
-  line-height: 1;
-}
-
-.undo-btn:hover:not(.disabled) {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.05);
-}
-
-.undo-btn.disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-/* TASK 117: Animated score */
+/* Animated score */
 .animated-score {
   transition: transform 50ms ease;
 }
-
-/* ========== END EXTRA FEATURES ========== */
-
-/* ========== PHASE 11: DYNAMIC MUSIC SYSTEM ========== */
-
-/* TASK 144: Music toggle button */
-.music-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 10px 14px;
-  font-size: 18px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
-  line-height: 1;
-}
-
-.music-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.music-btn.active {
-  background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
-  border-color: #ff6b00;
-  animation: musicPulse 1s ease-in-out infinite;
-}
-
-@keyframes musicPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.4); }
-  50% { box-shadow: 0 0 0 6px rgba(255, 107, 0, 0); }
-}
-
-/* ========== END DYNAMIC MUSIC SYSTEM ========== */
 
 /* Responsive adjustments */
 @media (max-width: 420px) {
@@ -1437,6 +754,7 @@
 
   .merge2048-grid {
     padding: 8px;
+    --grid-gap: 8px;
   }
 
   .grid-background {
@@ -1448,18 +766,10 @@
     left: 8px;
     right: 8px;
     bottom: 8px;
+    gap: 8px;
   }
 
-  .tile {
-    /* Smaller gap on mobile: 8px instead of 12px */
-    /* cell-size = (100% - 24px) / 4 (3 gaps of 8px) */
-    width: calc((100% - 24px) / 4);
-    height: calc((100% - 24px) / 4);
-    /* Position: cell-size + gap = (100% - 24px) / 4 + 8px = (100% + 8px) / 4 */
-    top: calc(var(--tile-row) * (100% + 8px) / 4);
-    left: calc(var(--tile-col) * (100% + 8px) / 4);
-  }
-
+  /* Tile font sizes for mobile - position/size via inline styles */
   .tile-font-large {
     font-size: 28px;
   }
@@ -1523,6 +833,7 @@
 
   .merge2048-grid {
     padding: 6px;
+    --grid-gap: 6px;
   }
 
   .grid-background {
@@ -1534,16 +845,10 @@
     left: 6px;
     right: 6px;
     bottom: 6px;
+    gap: 6px;
   }
 
-  .tile {
-    /* Even smaller gap: 6px */
-    width: calc((100% - 18px) / 4);
-    height: calc((100% - 18px) / 4);
-    top: calc(var(--tile-row) * (100% + 6px) / 4);
-    left: calc(var(--tile-col) * (100% + 6px) / 4);
-  }
-
+  /* Tile font sizes for narrow screens - position/size via inline styles */
   .tile-font-large {
     font-size: 20px;
   }
@@ -1991,12 +1296,4 @@
 
 .arcade-screen .merge2048-grid-wrapper {
   margin-bottom: 0;
-}
-
-.arcade-screen .fever-meter-container {
-  margin-bottom: 2px;
-}
-
-.arcade-screen .combo-container {
-  top: 5px;
 }

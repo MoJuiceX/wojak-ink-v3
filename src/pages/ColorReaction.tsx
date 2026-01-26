@@ -8,8 +8,6 @@ import { useLeaderboard } from '@/hooks/data/useLeaderboard';
 import { useGameEffects, GameEffects } from '@/components/media';
 import { useGameHaptics } from '@/systems/haptics';
 import { GameSEO } from '@/components/seo/GameSEO';
-// ShareButton imported but reserved for future share panel feature
-// import { ShareButton } from '@/systems/sharing';
 import { captureGameArea } from '@/systems/sharing/captureDOM';
 import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScreen';
 import { generateGameScorecard } from '@/systems/sharing/GameScorecard';
@@ -34,12 +32,6 @@ import {
 } from './color-reaction-arcade-config';
 import type { MatchType } from './color-reaction-arcade-config';
 import './ColorReaction.css';
-
-// Debug mode - set to true to enable debug HUD and logging
-const DEBUG = false;
-
-// Sad images for game over screen
-const SAD_IMAGES = Array.from({ length: 19 }, (_, i) => `/assets/Games/games_media/sad_runner_${i + 1}.png`);
 
 
 // Game state interface — Arcade: dual attribute (fruit + color)
@@ -92,8 +84,19 @@ const MUSIC_PLAYLIST = [
 
 const ColorReaction: React.FC = () => {
   const isMobile = useIsMobile();
-  // TASK 93: Reduced motion mode - respect system preference
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  
+  // TASK 93: Reduced motion mode - respect system preference (reactive)
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+
+  // Listen for system preference changes
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
 
   // Arcade frame mute control (from GameModal)
   const { isMuted: arcadeMuted, musicManagedExternally } = useGameMute();
@@ -217,8 +220,6 @@ const ColorReaction: React.FC = () => {
 
   // Phase 3: Urgency system state
   const [urgencyLevel, setUrgencyLevel] = useState<'normal' | 'warning' | 'critical'>('normal');
-  // remainingTimeMs was removed - countdown ring provides sufficient visual feedback
-  // const [remainingTimeMs, setRemainingTimeMs] = useState<number | null>(null);
 
   // Phase 4: Perfect celebration state
   const [perfectFlash, setPerfectFlash] = useState(false);
@@ -229,10 +230,6 @@ const ColorReaction: React.FC = () => {
   // Phase 5: Visual juice state
   const [tapSquash, setTapSquash] = useState(false);
   const [impactFlash, setImpactFlash] = useState(false);
-  // matchGlow handled via CSS class on player-display when isMatchWindow is true
-  // const [matchGlow, setMatchGlow] = useState(false);
-  // speedUpCallout feature was removed - speed increases are subtle and don't need callout
-  // const [speedUpCallout, setSpeedUpCallout] = useState(false);
   const [backgroundPulse, setBackgroundPulse] = useState(false);
   const [streakFire, setStreakFire] = useState(false);
 
@@ -241,21 +238,13 @@ const ColorReaction: React.FC = () => {
   const [highScoreBeat, setHighScoreBeat] = useState(false);
   const [bestTimeBeat, setBestTimeBeat] = useState(false);
   const [currentRating, setCurrentRating] = useState<string | null>(null);
-  // sessionHighScore tracked via highScore state instead
-  // const [sessionHighScore, setSessionHighScore] = useState(0);
-  const [_comboMeterFill, setComboMeterFill] = useState(0); // 0-100 for combo meter (UI future use)
 
   // Phase 7: Failure & Warning States
   const [lastLifeWarning, setLastLifeWarning] = useState(false);
-  // showGameOverStats and showPlayAgain now handled by ArcadeGameOverScreen component
-  const [, setShowGameOverStats] = useState(false);
-  const [, setShowPlayAgain] = useState(false);
   const [floatingX, setFloatingX] = useState(false);
   const [floatingClock, setFloatingClock] = useState(false);
 
-  // Phase 8: Near-Miss & Close Call System (simplified for Arcade)
-  const [nearMissCallout] = useState<string | null>(null);
-  const [nearMissDelay] = useState<number | null>(null);
+  // Phase 8: Visual feedback states
   const [tooLateFeedback, setTooLateFeedback] = useState(false);
   const [mismatchFruit, setMismatchFruit] = useState(false);
   const [mismatchColor, setMismatchColor] = useState(false);
@@ -271,8 +260,6 @@ const ColorReaction: React.FC = () => {
   const [hitStop, setHitStop] = useState(false);
 
   // Phase 12: Viral & Share System
-  // showSharePanel reserved for future share panel feature
-  // const [showSharePanel, setShowSharePanel] = useState(false);
   const bestMomentsRef = useRef<{ type: string; value: number; timestamp: number }[]>([]);
 
   // Hide instruction after 15 seconds of gameplay
@@ -281,10 +268,7 @@ const ColorReaction: React.FC = () => {
   const instructionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Game over screen states
-  const [, setSadImage] = useState<string | null>(null);
   const [gameScreenshot, setGameScreenshot] = useState<string | null>(null);
-  // showLeaderboardPanel now handled by ArcadeGameOverScreen component
-  // const [showLeaderboardPanel, setShowLeaderboardPanel] = useState(false);
   const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('colorReactionHighScore') || '0', 10);
@@ -424,37 +408,8 @@ const ColorReaction: React.FC = () => {
   const prevMatchTypeRef = useRef<MatchType>('NO_MATCH'); // Track previous match type to prevent consecutive FULL
   const partialTapWarningsRef = useRef(0); // Track consecutive PARTIAL tap warnings (first = warning, second = life)
 
-  // Debug counters
-  const debugCountsRef = useRef({
-    cycles: 0,
-    targetUpdates: 0,
-    fullPlanned: 0,
-    partialPlanned: 0,
-    noPlanned: 0,
-    fullSpawned: 0,        // when you actually set matchActive true
-    misses: 0,
-    wrongTaps: 0,
-    successes: 0,
-  });
-
-  // Debug state for HUD
-  const [debugState, setDebugState] = useState({
-    cycleCount: 0,
-    targetJustUpdated: false,
-    fullMatchChancePct: 0,
-    partialChancePct: 0,
-    lastRoll1: 0,
-    lastRoll2: 0,
-    plannedMatchType: 'NO' as MatchType | 'NO',
-    targetFruit: 0,
-    targetColor: 0,
-    yourFruit: 0,
-    yourColor: 0,
-    isVisualFullMatch: false,
-    matchActive: false,
-    matchHandled: true,
-    matchId: 0,
-  });
+  // Game stats - tracks successful taps for leaderboard eligibility
+  const gameStatsRef = useRef({ successes: 0 });
 
   // Prevent double-tap from mobile firing both touchstart and click
   const lastWrongTapTimeRef = useRef(0);
@@ -527,7 +482,6 @@ const ColorReaction: React.FC = () => {
       instructionTimerRef.current = setTimeout(() => {
         setShowInstruction(false);
         showInstructionRef.current = false;
-        console.log('[CR] Tutorial period ended - hints hidden, decoy sounds enabled');
       }, 15000);
     } else if (gameState.status === 'idle') {
       // Reset when game returns to idle
@@ -554,41 +508,6 @@ const ColorReaction: React.FC = () => {
     gameStatusRef.current = gameState.status;
     
     // 2) INVARIANT LOGGER: Log on state change to verify rendered match state
-    if (gameState.status === 'playing') {
-      const stateMatch = gameState.targetFruit === gameState.yourFruit
-        && gameState.targetColor === gameState.yourColor;
-
-      const refMatch = targetFruitRef.current === yourFruitRef.current
-        && targetColorRef.current === yourColorRef.current;
-
-      console.log("[CR][render]", {
-        stateMatch,
-        refMatch,
-        matchActiveRef: matchActiveRef.current,
-        isMatchWindowRef: isMatchWindowRef.current,
-        isMatchWindowState: gameState.isMatchWindow,
-        targetFruit: gameState.targetFruit,
-        yourFruit: gameState.yourFruit,
-        targetColor: gameState.targetColor,
-        yourColor: gameState.yourColor,
-      });
-    }
-    
-    // Update debug state when game state changes
-    if (DEBUG && gameState.status === 'playing') {
-      const isVisualFullMatch = gameState.targetFruit === gameState.yourFruit && gameState.targetColor === gameState.yourColor;
-      setDebugState(prev => ({
-        ...prev,
-        targetFruit: gameState.targetFruit,
-        targetColor: gameState.targetColor,
-        yourFruit: gameState.yourFruit,
-        yourColor: gameState.yourColor,
-        isVisualFullMatch,
-        matchActive: matchActiveRef.current,
-        matchHandled: matchHandledRef.current,
-        matchId: currentRoundIdRef.current,
-      }));
-    }
   }, [gameState.isMatchWindow, gameState.targetFruit, gameState.targetColor, gameState.yourFruit, gameState.yourColor, gameState.status]);
 
   // Ref for tracking lives changes
@@ -661,8 +580,6 @@ const ColorReaction: React.FC = () => {
 
     // ========== ALL RANDOM DECISIONS HAPPEN HERE (OUTSIDE setGameState) ==========
     // This prevents React StrictMode double-call from producing different results
-    
-    debugCountsRef.current.cycles++;
     const cycleCount = cycleCountRef.current + 1;
     cycleCountRef.current = cycleCount;
 
@@ -675,7 +592,6 @@ const ColorReaction: React.FC = () => {
     let newTargetFruit = targetFruitRef.current;
     let newTargetColor = targetColorRef.current;
     if (targetJustUpdated) {
-      debugCountsRef.current.targetUpdates++;
       newTargetFruit = randomFruit();
       newTargetColor = randomColor();
     }
@@ -710,28 +626,16 @@ const ColorReaction: React.FC = () => {
     const effectiveShouldForce = shouldForceFullMatch && pastGrace && cooldownExpired;
     
     let matchType: MatchType;
-    let lastRoll1 = rand1;
-    let lastRoll2 = 0;
     
     if ((effectiveMustForce || effectiveShouldForce || rand1 < effectiveFullMatchChance) && canSpawnFull) {
       matchType = 'FULL_MATCH';
     } else {
       const rand2 = Math.random() * 100;
-      lastRoll2 = rand2;
       matchType = rand2 < partialChancePct ? 'PARTIAL_MATCH' : 'NO_MATCH';
     }
     
     // Update prev match type ref (for consecutive prevention)
     prevMatchTypeRef.current = matchType;
-
-    // Update debug counters
-    if (matchType === 'FULL_MATCH') {
-      debugCountsRef.current.fullPlanned++;
-    } else if (matchType === 'PARTIAL_MATCH') {
-      debugCountsRef.current.partialPlanned++;
-    } else {
-      debugCountsRef.current.noPlanned++;
-    }
 
     // Compute yourFruit/yourColor (computed ONCE)
     let newYourFruit: number;
@@ -782,46 +686,15 @@ const ColorReaction: React.FC = () => {
     if (matchType === 'FULL_MATCH') {
       matchActiveRef.current = true;
       lastFullMatchTimeRef.current = now;
-      debugCountsRef.current.fullSpawned++;
     } else {
       matchActiveRef.current = false;
     }
 
-    // Log ONCE (outside setGameState)
     const plannedVisualMatch = (newTargetFruit === newYourFruit && newTargetColor === newYourColor);
-    console.log("[CR][cycle]", {
-      cycleCount,
-      matchType,
-      plannedVisualMatch,
-      canSpawnFull,
-      cooldownExpired,
-      timeSinceLastFull: Math.round(timeSinceLastFullMatch),
-    });
 
     if (matchType === 'FULL_MATCH' && !plannedVisualMatch) {
       console.error("[CR][BUG] FULL_MATCH but plannedVisualMatch is FALSE!", {
         newTargetFruit, newTargetColor, newYourFruit, newYourColor
-      });
-    }
-
-    // Update debug HUD
-    if (DEBUG) {
-      setDebugState({
-        cycleCount,
-        targetJustUpdated,
-        fullMatchChancePct,
-        partialChancePct,
-        lastRoll1,
-        lastRoll2,
-        plannedMatchType: matchType,
-        targetFruit: newTargetFruit,
-        targetColor: newTargetColor,
-        yourFruit: newYourFruit,
-        yourColor: newYourColor,
-        isVisualFullMatch: plannedVisualMatch,
-        matchActive: matchActiveRef.current,
-        matchHandled: matchHandledRef.current,
-        matchId: currentRoundIdRef.current,
       });
     }
 
@@ -871,17 +744,6 @@ const ColorReaction: React.FC = () => {
       const windowMs = Math.min(1200, baseWindowMs + earlyGameBonus); // Cap at 1200ms max
       matchWindowMsRef.current = windowMs;
 
-      if (DEBUG) {
-        console.log('[DEBUG] FULL_MATCH window created:', {
-          matchId: localMatchId,
-          windowMs,
-          baseWindowMs,
-          earlyGameBonus,
-          gameTimeSeconds: Math.round(gameTimeSeconds),
-          currentScore,
-        });
-      }
-
       setMatchProgress(100);
       setUrgencyLevel('normal');
       
@@ -896,6 +758,16 @@ const ColorReaction: React.FC = () => {
         const elapsed = performance.now() - startTime;
         const progress = Math.max(0, 100 * (1 - elapsed / windowMs));
         setMatchProgress(progress);
+        
+        // Update urgency level based on remaining time
+        if (progress > 50) {
+          setUrgencyLevel('normal');
+        } else if (progress > 25) {
+          setUrgencyLevel('warning');
+        } else {
+          setUrgencyLevel('critical');
+        }
+        
         if (progress <= 0 && countdownIntervalRef.current) {
           clearInterval(countdownIntervalRef.current);
           countdownIntervalRef.current = null;
@@ -919,20 +791,9 @@ const ColorReaction: React.FC = () => {
           return;
         }
         
-        console.log("[CR][miss processed]", {
-          localMatchId,
-          currentMatchId: currentRoundIdRef.current,
-          before: { matchActive: matchActiveRef.current, handled: matchHandledRef.current },
-        });
-        
         matchHandledRef.current = true;
         matchActiveRef.current = false;
         isMatchWindowRef.current = false;
-        debugCountsRef.current.misses++;
-        
-        console.log("[CR][miss flags set]", {
-          after: { matchActive: matchActiveRef.current, handled: matchHandledRef.current, isMatchWindow: isMatchWindowRef.current },
-        });
         
         if (countdownIntervalRef.current) {
           clearInterval(countdownIntervalRef.current);
@@ -957,8 +818,6 @@ const ColorReaction: React.FC = () => {
           
           const currentLives = currentState.lives;
           const newLives = currentLives - 1;
-          
-          console.log(`[CR][MISS LIFE LOSS] Lives: ${currentLives} -> ${newLives}`);
           
           if (newLives <= 0) {
             gameStatusRef.current = 'gameover';
@@ -1037,9 +896,6 @@ const ColorReaction: React.FC = () => {
       // TASK 70: Score pop effect
       setScorePop(true);
       setTimeout(() => setScorePop(false), 200);
-
-      // TASK 63: Update combo meter fill (max at 20 streak)
-      setComboMeterFill(Math.min(100, (newStreak / 20) * 100));
 
       playCRCorrectTap(reactionMs);
 
@@ -1188,8 +1044,6 @@ const ColorReaction: React.FC = () => {
     resetCombo();
     // TASK 61: Reset streak fire on wrong tap
     setStreakFire(false);
-    // TASK 63: Reset combo meter
-    setComboMeterFill(0);
     // TASK 65: Streak break feedback (if had a streak going)
     if (hadStreak) {
       // Show streak broken message handled via floating score
@@ -1233,13 +1087,6 @@ const ColorReaction: React.FC = () => {
       playCRGameOver();
       // TASK 12: Game over haptic
       hapticGameOver();
-      // TASK 75 & 76 & 80 & 81: Game over sequence with delays
-      setShowGameOverStats(false);
-      setShowPlayAgain(false);
-      // Show stats after a brief delay
-      setTimeout(() => setShowGameOverStats(true), 500);
-      // Show play again button after stats reveal
-      setTimeout(() => setShowPlayAgain(true), 1500);
     }
     prevLivesRef.current = gameState.lives;
   }, [gameState.lives, gameState.status, handleWrongTap, playCRGameOver, playCRLifeLoss, playCRLastLifeWarning, showLivesWarning, hapticCRLoseLife, hapticCRLastLife, hapticGameOver]);
@@ -1330,26 +1177,11 @@ const ColorReaction: React.FC = () => {
 
     // Grace period after game starts
     if (now - gameStartTimeRef.current < GRACE_PERIOD_MS) {
-      console.log('[ColorReaction] Grace period - ignored');
       return;
     }
 
     const actualElapsed = matchStartTs !== null ? now - matchStartTs : 500;
     const isSuccess = matchActive && withinWindow && visualMatch;
-
-    // DEBUG: Log match check details when matchActive is true
-    if (DEBUG && matchActive) {
-      console.log('[DEBUG] Match check:', {
-        matchActive,
-        withinWindow,
-        visualMatch,
-        refsMatch: isVisualFullMatchRef,
-        stateMatch: isVisualFullMatch,
-        refs: { tf: tfRef, tc: tcRef, yf: yfRef, yc: ycRef },
-        state: { tf, tc, yf, yc },
-        isSuccess,
-      });
-    }
 
     if (isSuccess) {
       // CRITICAL: Set all guards FIRST before clearing timeout to prevent race condition
@@ -1404,7 +1236,7 @@ const ColorReaction: React.FC = () => {
         };
       });
 
-      debugCountsRef.current.successes++;
+      gameStatsRef.current.successes++;
       partialTapWarningsRef.current = 0; // Reset partial warnings on successful tap
       lastSuccessTapTimeRef.current = now; // Track success time to prevent "TOO LATE" on quick re-tap
       handleCorrectTap(actualPoints, rating, reactionMs, nextStreak);
@@ -1420,7 +1252,6 @@ const ColorReaction: React.FC = () => {
     } else if (visualMatch && !matchActive) {
       // CRITICAL: Skip "TOO LATE" if user just had a successful tap (prevents double feedback)
       if (now - lastSuccessTapTimeRef.current < SUCCESS_TAP_GRACE_MS) {
-        console.log('[CR] Skipping TOO LATE - recent success tap');
         return;
       }
       
@@ -1458,7 +1289,6 @@ const ColorReaction: React.FC = () => {
         return;
       }
       lastWrongTapTimeRef.current = now;
-      debugCountsRef.current.wrongTaps++;
       
       // FORGIVENESS: Check if this is a PARTIAL match (fruit OR color matches, but not both)
       // PARTIAL matches are easy to mistake for FULL
@@ -1470,7 +1300,6 @@ const ColorReaction: React.FC = () => {
         
         if (partialTapWarningsRef.current === 1) {
           // First PARTIAL tap - WARNING ONLY, no life loss
-          console.log('[CR] Partial tap #1 - warning only');
           triggerScreenShake(50);
           triggerPlayerFlash('wrong');
           showFloatingScore('CLOSE! BE CAREFUL', 'warning');
@@ -1482,7 +1311,6 @@ const ColorReaction: React.FC = () => {
           return;
         } else {
           // Second+ PARTIAL tap - NOW loses life (falls through to life loss below)
-          console.log('[CR] Partial tap #2+ - losing life');
           partialTapWarningsRef.current = 0; // Reset after penalty
           // Don't return - fall through to lose life
         }
@@ -1508,7 +1336,6 @@ const ColorReaction: React.FC = () => {
 
       // Capture screenshot before game over if this is the last life
       if (gameState.lives <= 1 && gameAreaRef.current) {
-        setSadImage(SAD_IMAGES[Math.floor(Math.random() * SAD_IMAGES.length)]);
         const currentHighScore = highScore;
         if (gameState.score > currentHighScore) {
           setIsNewPersonalBest(true);
@@ -1524,7 +1351,6 @@ const ColorReaction: React.FC = () => {
 
       setGameState((prev) => {
         const newLives = prev.lives - 1;
-        console.log(`[CR][WRONG TAP LIFE LOSS] Lives: ${prev.lives} -> ${newLives}`);
 
         if (newLives <= 0) {
           gameStatusRef.current = 'gameover';
@@ -1533,11 +1359,11 @@ const ColorReaction: React.FC = () => {
             musicAudioRef.current = null;
           }
           // Only submit score if minimum actions met (3 correct taps)
-          if (isSignedIn && debugCountsRef.current.successes >= 3) {
+          if (isSignedIn && gameStatsRef.current.successes >= 3) {
             submitScore(prev.score, undefined, {
               bestReactionTime: prev.bestReactionTime === Infinity ? null : Math.round(prev.bestReactionTime),
               maxStreak: maxStreakRef.current,
-              correctTaps: debugCountsRef.current.successes,
+              correctTaps: gameStatsRef.current.successes,
             });
           }
           return { ...prev, status: 'gameover', lives: 0, streak: 0 };
@@ -1546,54 +1372,6 @@ const ColorReaction: React.FC = () => {
       });
     }
   }, [scheduleNextCycle, handleCorrectTap, gameState.streak, gameState.lives, gameState.score, highScore, isSignedIn, submitScore, hapticCRTap, musicManagedExternally, playNextMusicTrack]);
-
-  // Simulation function to test spawn logic without UI
-  const simulateSpawns = useCallback((iter: number = 10000) => {
-    let score = 0;
-    let cycleCount = 0;
-    let full = 0;
-    let partial = 0;
-    let no = 0;
-    let forcedNonFull = 0;
-
-    for (let i = 0; i < iter; i++) {
-      cycleCount++;
-      const targetJustUpdated = (cycleCount % 2 === 0) || (Math.random() < 0.35);
-      if (targetJustUpdated) forcedNonFull++;
-
-      const fullPct = getFullMatchChancePct(score);
-      const partialPct = getPartialChancePct(score);
-
-      let type: MatchType;
-      if (targetJustUpdated) {
-        const rand = Math.random() * 100;
-        type = (rand < partialPct) ? 'PARTIAL_MATCH' : 'NO_MATCH';
-      } else {
-        const rand1 = Math.random() * 100;
-        if (rand1 < fullPct) {
-          type = 'FULL_MATCH';
-        } else {
-          const rand2 = Math.random() * 100;
-          type = (rand2 < partialPct) ? 'PARTIAL_MATCH' : 'NO_MATCH';
-        }
-      }
-
-      if (type === 'FULL_MATCH') full++;
-      else if (type === 'PARTIAL_MATCH') partial++;
-      else no++;
-    }
-
-    return { full, partial, no, forcedNonFull, total: iter };
-  }, []);
-
-  // Run simulation on mount when DEBUG is true
-  useEffect(() => {
-    if (DEBUG) {
-      const result = simulateSpawns(10000);
-      console.log('[DEBUG] Simulation results (10k cycles):', result);
-      console.log('[DEBUG] FULL percentage:', ((result.full / result.total) * 100).toFixed(2) + '%');
-    }
-  }, [simulateSpawns]);
 
   // Handle game restart - TASK 82: Retry animation (smooth transition)
   const handleRestart = useCallback((e?: React.MouseEvent) => {
@@ -1607,25 +1385,24 @@ const ColorReaction: React.FC = () => {
     setLivesWarning(null);
     resetAllEffects();
 
-    // Reset debug counters
-    debugCountsRef.current = {
-      cycles: 0,
-      targetUpdates: 0,
-      fullPlanned: 0,
-      partialPlanned: 0,
-      noPlanned: 0,
-      fullSpawned: 0,
-      misses: 0,
-      wrongTaps: 0,
-      successes: 0,
-    };
+    // Reset game over screen states to prevent stale data on replay
+    setGameScreenshot(null);
+    setIsNewPersonalBest(false);
+
+    // Reset timing refs to prevent edge case bugs on quick restart
+    lastWrongTapTimeRef.current = 0;
+    lastSuccessTapTimeRef.current = 0;
+    lastLifeLostTimeRef.current = 0;
+    bestMomentsRef.current = [];
+    matchStartTsRef.current = null;
+    matchWindowMsRef.current = 1000;
+
+    // Reset game stats
+    gameStatsRef.current = { successes: 0 };
     partialTapWarningsRef.current = 0; // Reset partial warnings on restart
 
     // Reset Phase 6, 7 & 10 states
-    setComboMeterFill(0);
     setLastLifeWarning(false);
-    setShowGameOverStats(false);
-    setShowPlayAgain(false);
     setFloatingX(false);
     setFloatingClock(false);
     setStreakFire(false);
@@ -1748,30 +1525,6 @@ const ColorReaction: React.FC = () => {
         >
           {/* Universal Game Effects Layer */}
           <GameEffects effects={effects} accentColor={COLORS[gameState.yourColor]?.hex ?? '#FF6B00'} />
-
-          {/* Debug HUD - Simplified, right side */}
-          {DEBUG && gameState.status === 'playing' && (
-            <div className="debug-hud">
-              <div style={{ marginBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '4px' }}>
-                <div>Cycle: {debugState.cycleCount}</div>
-                <div style={{ color: debugState.plannedMatchType === 'FULL_MATCH' ? '#00ff00' : '#888' }}>
-                  {debugState.plannedMatchType}
-                </div>
-              </div>
-              <div style={{ marginBottom: '4px' }}>
-                <div style={{ color: debugState.matchActive ? '#00ff00' : '#ff4444' }}>
-                  {debugState.matchActive ? '● ACTIVE' : '○ inactive'}
-                </div>
-                <div>ID: {debugState.matchId}</div>
-              </div>
-              <div style={{ fontSize: '9px', color: '#888' }}>
-                <div>✓ {debugCountsRef.current.successes} | ✗ {debugCountsRef.current.misses}</div>
-                <div>Full: {debugCountsRef.current.fullSpawned}/{debugCountsRef.current.fullPlanned}</div>
-              </div>
-            </div>
-          )}
-
-          {/* Mute button removed - arcade frame handles muting via GameMuteContext */}
 
           {/* Stats Panel */}
           <div className="stats-panel">
@@ -1932,16 +1685,6 @@ const ColorReaction: React.FC = () => {
             <div className={`rating-display rating-${currentRating.toLowerCase()}`}>{currentRating}</div>
           )}
 
-          {/* TASK 84 & 85: Near-miss callout with timing */}
-          {nearMissCallout && (
-            <div className="near-miss-callout">
-              <span className="near-miss-text">{nearMissCallout}</span>
-              {nearMissDelay !== null && (
-                <span className="near-miss-timing">+{nearMissDelay}ms late</span>
-              )}
-            </div>
-          )}
-
           {/* TASK 77: Floating X on wrong tap */}
           {floatingX && (
             <div className="floating-icon floating-x">✕</div>
@@ -1966,7 +1709,7 @@ const ColorReaction: React.FC = () => {
               onPlayAgain={handleRestart}
               onShare={handleShare}
               accentColor="#ff6b00"
-              meetsMinimumActions={debugCountsRef.current.successes >= 3}
+              meetsMinimumActions={gameStatsRef.current.successes >= 3}
               minimumActionsMessage="Get at least 3 correct taps to be on the leaderboard"
             />
           )}

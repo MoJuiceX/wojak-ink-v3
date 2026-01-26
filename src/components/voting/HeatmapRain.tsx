@@ -100,7 +100,7 @@ export function HeatmapRain({ votes, type, containerRef, onComplete }: HeatmapRa
     return () => clearTimeout(cleanupTimer);
   }, [votes, onComplete]);
 
-  // Handle emoji landing - position exactly where user clicked with slight pile offset
+  // Handle emoji landing - position exactly where user clicked
   const handleLand = (vote: VotePosition, clusterKey: string) => {
     const cluster = clusters.get(clusterKey) || [];
     const indexInCluster = cluster.findIndex(v => v.id === vote.id);
@@ -112,11 +112,11 @@ export function HeatmapRain({ votes, type, containerRef, onComplete }: HeatmapRa
     setPiledEmojis(prev => {
       const newEmoji: PiledEmoji = {
         id: vote.id,
-        // Center on click position with small random spread for pile effect
-        x: pos.x - emojiHalfSize + (Math.random() - 0.5) * 16,
-        y: pos.y - emojiHalfSize - indexInCluster * 6,
-        scale: 0.5 + Math.random() * 0.2,
-        rotation: (Math.random() - 0.5) * 40,
+        // Center exactly on click position - stack vertically for multiple votes in same spot
+        x: pos.x - emojiHalfSize,
+        y: pos.y - emojiHalfSize - indexInCluster * 8,
+        scale: 0.55,
+        rotation: (Math.random() - 0.5) * 20, // Slight rotation for visual interest
         zIndex: prev.length,
       };
       return [...prev, newEmoji];
@@ -168,8 +168,8 @@ export function HeatmapRain({ votes, type, containerRef, onComplete }: HeatmapRa
                 filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3))',
               }}
               initial={{
-                // Start from slightly randomized x position above the viewport
-                x: endPos.x - emojiHalfSize + (Math.random() - 0.5) * 80,
+                // Start from exact x position, just above viewport for clean drop
+                x: endPos.x - emojiHalfSize,
                 y: -60,
                 scale: 1.2,
                 rotate: Math.random() * 360,
@@ -184,7 +184,7 @@ export function HeatmapRain({ votes, type, containerRef, onComplete }: HeatmapRa
                 opacity: 1,
               }}
               transition={{
-                duration: 1.5 + Math.random() * 0.5,
+                duration: 1.2 + Math.random() * 0.3,
                 ease: [0.25, 0.1, 0.25, 1],
                 scale: {
                   times: [0, 0.9, 1],

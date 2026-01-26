@@ -1,13 +1,15 @@
 /**
  * Splatter effect - emoji splits into 4 pieces on impact
+ * Supports multiple simultaneous splatters via unique id
  */
 
 import { motion } from 'framer-motion';
 
 interface SplatterEffectProps {
+  id: string;
   type: 'donut' | 'poop';
   position: { x: number; y: number };
-  onComplete: () => void;
+  onComplete: (id: string) => void;
 }
 
 const pieceDirections = [
@@ -17,7 +19,7 @@ const pieceDirections = [
   { x: 50, y: 60, rotate: 90 },
 ];
 
-export function SplatterEffect({ type, position, onComplete }: SplatterEffectProps) {
+export function SplatterEffect({ id, type, position, onComplete }: SplatterEffectProps) {
   const emoji = type === 'donut' ? '🍩' : '💩';
 
   return (
@@ -30,7 +32,7 @@ export function SplatterEffect({ type, position, onComplete }: SplatterEffectPro
         zIndex: 9999,
       }}
     >
-      {/* Shockwave ring */}
+      {/* Shockwave ring - faster for snappier feel */}
       <motion.div
         style={{
           position: 'absolute',
@@ -43,10 +45,10 @@ export function SplatterEffect({ type, position, onComplete }: SplatterEffectPro
         }}
         initial={{ scale: 0.2, opacity: 1 }}
         animate={{ scale: 2.5, opacity: 0 }}
-        transition={{ duration: 0.4, ease: 'easeOut' }}
+        transition={{ duration: 0.32, ease: 'easeOut' }}
       />
 
-      {/* Inner flash */}
+      {/* Inner flash - faster */}
       <motion.div
         style={{
           position: 'absolute',
@@ -61,10 +63,10 @@ export function SplatterEffect({ type, position, onComplete }: SplatterEffectPro
         }}
         initial={{ scale: 0.5, opacity: 1 }}
         animate={{ scale: 2, opacity: 0 }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
       />
 
-      {/* 4 emoji pieces */}
+      {/* 4 emoji pieces - faster animation */}
       {pieceDirections.map((dir, index) => (
         <motion.div
           key={index}
@@ -83,14 +85,14 @@ export function SplatterEffect({ type, position, onComplete }: SplatterEffectPro
             opacity: [1, 0.8, 0],
             rotate: dir.rotate,
           }}
-          transition={{ duration: 0.45, ease: [0.25, 0.1, 0.6, 1] }}
-          onAnimationComplete={index === 0 ? onComplete : undefined}
+          transition={{ duration: 0.35, ease: [0.25, 0.1, 0.6, 1] }}
+          onAnimationComplete={index === 0 ? () => onComplete(id) : undefined}
         >
           {emoji}
         </motion.div>
       ))}
 
-      {/* Particle debris */}
+      {/* Particle debris - faster */}
       {[...Array(6)].map((_, i) => (
         <motion.div
           key={`particle-${i}`}
@@ -110,7 +112,7 @@ export function SplatterEffect({ type, position, onComplete }: SplatterEffectPro
             scale: 0,
             opacity: 0,
           }}
-          transition={{ duration: 0.5, ease: 'easeOut', delay: Math.random() * 0.1 }}
+          transition={{ duration: 0.4, ease: 'easeOut', delay: Math.random() * 0.08 }}
         />
       ))}
     </div>
