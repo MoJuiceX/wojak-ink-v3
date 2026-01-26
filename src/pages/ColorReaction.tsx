@@ -1583,6 +1583,7 @@ const ColorReaction: React.FC = () => {
       />
       <IonContent fullscreen scrollY={false}>
         <div
+          ref={gameAreaRef}
           className={`color-reaction-container ${isMobile ? 'mobile' : 'desktop'} ${screenShake && !prefersReducedMotion ? 'shaking' : ''} ${gameState.isMatchWindow ? `container-urgency-${urgencyLevel}` : ''} ${perfectFlash && !prefersReducedMotion ? 'perfect-flash' : ''} ${backgroundPulse && !prefersReducedMotion ? 'background-pulse' : ''} ${streakFire && !prefersReducedMotion ? 'streak-fire' : ''} ${lastLifeWarning ? 'last-life-danger' : ''} ${prefersReducedMotion ? 'reduced-motion' : ''} ${feverMode ? `fever-mode fever-intensity-${feverIntensity}` : ''} ${feverActivating ? 'fever-activating' : ''} ${cameraZoom && !prefersReducedMotion ? 'camera-zoom' : ''} ${hitStop ? 'hit-stop' : ''}`}
           onClick={gameState.status !== 'gameover' ? handleTap : undefined}
           onTouchStart={
@@ -1629,7 +1630,7 @@ const ColorReaction: React.FC = () => {
           )}
 
           {/* Game Area */}
-          <div className="game-area" ref={gameAreaRef}>
+          <div className="game-area">
             {/* TASK 48: Connection line between circles on PERFECT */}
             {showConnectionLine && (
               <div className="connection-line" />

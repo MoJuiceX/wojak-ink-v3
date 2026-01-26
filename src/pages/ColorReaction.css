@@ -108,6 +108,8 @@
   align-items: center;
   gap: 8px;
   position: relative;
+  /* Prevent layout shifts from affecting sibling sections during animations */
+  contain: layout;
 }
 
 .color-label {
@@ -465,9 +467,10 @@
 }
 
 @keyframes squash-bounce {
-  0% { transform: scale(1, 1); }
-  50% { transform: scale(1.1, 0.9); }
-  100% { transform: scale(1, 1); }
+  /* Use uniform scale to prevent layout reflow in flex containers */
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
 }
 
 /* Ensure player display never jumps to top-left */
