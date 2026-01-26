@@ -1026,7 +1026,7 @@ const BlockPuzzle: React.FC = () => {
     });
 
     if (result.success) {
-      console.log('[BlockPuzzle] Score submitted:', result);
+      // Score submitted successfully
     }
   }, [isSignedIn, scoreSubmitted, submitScore, highScore, totalLinesCleared, totalBlocksPlaced, gameStartTime]);
 
@@ -1069,12 +1069,10 @@ const BlockPuzzle: React.FC = () => {
     const currentGrid = gridStateRef.current;
 
     if (!piece) {
-      console.log('[BlockPuzzle] Piece not found:', pieceId);
       return false;
     }
 
     if (!canPlacePiece(currentGrid, piece.shape, row, col)) {
-      console.log('[BlockPuzzle] Cannot place at:', row, col);
       return false;
     }
 

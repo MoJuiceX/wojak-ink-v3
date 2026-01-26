@@ -17,7 +17,6 @@ import { ArcadeGameOverScreen } from '@/components/media/games/ArcadeGameOverScr
 import { getFlappyOrangeScorecardDataUrl, type FlappyScorecardData } from '@/systems/sharing/FlappyOrangeScorecard';
 // UI Components extracted from this file
 import {
-  DebugPanel,
   ShareModal,
   ChallengeBanners,
   Toast,
@@ -42,7 +41,6 @@ import {
   BARE_BONES_MODE,
   USE_MESSAGE_CHANNEL_LOOP,
   DEBUG_OVERLAY,
-  DEBUG_WEATHER,
   type WeatherType,
 } from './games/flappy-orange/config';
 import type {
@@ -1308,7 +1306,6 @@ const FlappyOrange: React.FC = () => {
       state.stars = generateStarsPure(CANVAS_WIDTH, CANVAS_HEIGHT);
       gameStartTimeRef.current = Date.now();
       setGameState('playing');
-      console.log('[FlappyOrange] Setting light sequence: play:active');
       triggerEvent('play:active');
       // Removed playGameStart beep - background music plays instead
     }
@@ -1888,30 +1885,6 @@ const FlappyOrange: React.FC = () => {
   }, [CANVAS_WIDTH, CANVAS_HEIGHT, BIRD_X]);
 
   // ============================================
-  // DEBUG PANEL - State for forcing updates
-  // ============================================
-  const [, setDebugWeather] = useState<WeatherType>('clear');
-  const [, setDebugTick] = useState(0);
-
-  // Update debug panel periodically
-  useEffect(() => {
-    if (!DEBUG_WEATHER) return;
-    const interval = setInterval(() => {
-      setDebugWeather(weatherRef.current.current);
-      setDebugTick(t => t + 1);
-    }, 500);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Enhanced setWeatherType - all weather fades in gradually
-  const debugSetWeather = useCallback((type: WeatherType) => {
-    setWeatherType(type);
-    setDebugWeather(type);
-    // Everything fades in gradually via intensity system - no immediate effects
-    // Lightning will trigger naturally once intensity builds up
-  }, [setWeatherType]);
-
-  // ============================================
   // RENDER
   // Document-level click listener for clicking anywhere to jump
   useEffect(() => {
@@ -1943,20 +1916,6 @@ const FlappyOrange: React.FC = () => {
   // ============================================
   return (
     <>
-      <DebugPanel
-        enabled={DEBUG_WEATHER}
-        weatherRef={weatherRef}
-        gameStateRef={gameStateRef}
-        fogTimerRef={fogTimerRef}
-        debugSetWeather={debugSetWeather}
-        toggleFog={toggleFog}
-        spawnBirdFlock={spawnBirdFlock}
-        spawnFallingLeaf={spawnFallingLeaf}
-        triggerLightningBolt={triggerLightningBolt}
-        generatePipeWithCoins={generatePipeWithCoins}
-        setDebugTick={setDebugTick}
-      />
-
       <div ref={containerRef} className={`flappy-container ${isMobile ? 'mobile' : 'desktop'}`}>
       <GameSEO
         gameName="Flappy Orange"
