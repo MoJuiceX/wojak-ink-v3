@@ -9,6 +9,19 @@
 import type { ClearParticle, TrailParticle, Shockwave } from './types';
 
 // ============================================
+// UNIQUE ID GENERATOR
+// Prevents duplicate React keys by combining timestamp with counter
+// ============================================
+let particleIdCounter = 0;
+
+function generateUniqueId(): number {
+  // Combine timestamp with incrementing counter for guaranteed uniqueness
+  // Counter wraps at 10000 to prevent overflow while still being unique enough
+  particleIdCounter = (particleIdCounter + 1) % 10000;
+  return Date.now() * 10000 + particleIdCounter;
+}
+
+// ============================================
 // PARTICLE CREATION FUNCTIONS
 // ============================================
 
@@ -29,7 +42,7 @@ export function createLineClearBurstParticles(
   const particles: ClearParticle[] = [];
   const baseColor = color.includes('gradient') ? '#ff6b00' : color;
 
-  cells.forEach((cell, cellIndex) => {
+  cells.forEach((cell, _cellIndex) => {
     const cellX = cell.col * cellSize + cellSize / 2;
     const cellY = cell.row * cellSize + cellSize / 2;
 
@@ -41,7 +54,7 @@ export function createLineClearBurstParticles(
       const speed = 3 + Math.random() * 6;
 
       particles.push({
-        id: Date.now() + cellIndex * 100 + i,
+        id: generateUniqueId(),
         x: cellX,
         y: cellY,
         vx: Math.cos(angle) * speed,
@@ -95,7 +108,7 @@ export function createPlacementParticles(
     { row: maxRow, col: maxCol, angle: Math.PI * 0.25 },  // Bottom-right
   ];
 
-  corners.forEach((corner, cornerIdx) => {
+  corners.forEach((corner, _cornerIdx) => {
     const x = corner.col * cellSize + cellSize / 2;
     const y = corner.row * cellSize + cellSize / 2;
 
@@ -105,7 +118,7 @@ export function createPlacementParticles(
       const speed = 2 + Math.random() * 2;
 
       particles.push({
-        id: Date.now() + cornerIdx * 10 + i,
+        id: generateUniqueId(),
         x,
         y,
         vx: Math.cos(angle) * speed,
@@ -140,7 +153,7 @@ export function createPerfectClearParticles(gridSize: number): ClearParticle[] {
     const speed = 4 + Math.random() * 6;
 
     particles.push({
-      id: Date.now() + i,
+      id: generateUniqueId(),
       x: centerX,
       y: centerY,
       vx: Math.cos(angle) * speed,
@@ -185,7 +198,7 @@ export function createTrailParticle(
   const baseColor = color.includes('gradient') ? '#ff6b00' : color;
 
   return {
-    id: Date.now() + Math.random(),
+    id: generateUniqueId(),
     x,
     y,
     size: 6 + Math.random() * 4,
@@ -212,7 +225,7 @@ export function createShockwave(
   maxSize = 300
 ): Shockwave {
   return {
-    id: Date.now(),
+    id: generateUniqueId(),
     x,
     y,
     size: 0,

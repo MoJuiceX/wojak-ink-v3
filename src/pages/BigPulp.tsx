@@ -18,6 +18,7 @@ import {
   MarketTab,
   AskTab,
   AttributesTab,
+  EmptyStateContent,
 } from '@/components/bigpulp';
 import { MyWojaksModal } from '@/components/bigpulp/MyWojaksModal';
 import { ALL_BADGES_FILTER } from '@/components/bigpulp/HeatMap';
@@ -337,18 +338,188 @@ function BottomPanel() {
   );
 }
 
-function MobileLayout() {
+// Mobile Empty State - shows when no NFT is selected
+function MobileEmptyState() {
+  const {
+    searchQuery,
+    setSearchQuery,
+    searchNFT,
+    surpriseMe,
+    isLoading,
+    error,
+    bigPulp,
+    currentNftHeadTrait,
+    onTypingComplete,
+    skipMessage,
+    marketStats,
+    topSales,
+    isMarketLoading,
+  } = useBigPulp();
+
+  // Wallet and owned NFTs state
+  const { status, address, getNFTs } = useSageWallet();
+  const isWalletConnected = status === 'connected' && !!address;
+  const [isMyWojaksOpen, setIsMyWojaksOpen] = useState(false);
+  const [ownedNFTs, setOwnedNFTs] = useState<OwnedNFT[]>([]);
+  const [isLoadingNFTs, setIsLoadingNFTs] = useState(false);
+
+  // Fetch owned NFTs when wallet is connected
+  useEffect(() => {
+    if (isWalletConnected) {
+      setIsLoadingNFTs(true);
+      getNFTs(WOJAK_COLLECTION_ID)
+        .then((nfts) => {
+          const mapped = nfts.map((nft) => ({
+            id: nft.encoded_id,
+            name: nft.name || 'Unknown Wojak',
+            thumbnailUrl: nft.preview_uri || nft.thumbnail_uri || nft.data_uri || '',
+            nftId: nft.name?.match(/#(\d+)/)?.[1] || '0000',
+          }));
+          setOwnedNFTs(mapped);
+        })
+        .catch((err) => {
+          console.error('[BigPulp] Failed to fetch owned NFTs:', err);
+          setOwnedNFTs([]);
+        })
+        .finally(() => {
+          setIsLoadingNFTs(false);
+        });
+    } else {
+      setOwnedNFTs([]);
+    }
+  }, [isWalletConnected, getNFTs]);
+
+  const handleSearch = useCallback(
+    (id: string) => {
+      searchNFT(id);
+    },
+    [searchNFT]
+  );
+
+  const handleNFTClick = useCallback((nftId: string) => {
+    const paddedId = nftId.padStart(4, '0');
+    setSearchQuery(paddedId);
+    searchNFT(paddedId);
+  }, [setSearchQuery, searchNFT]);
+
+  // Transform topSales for EmptyStateContent
+  const formattedTopSales = useMemo(() => {
+    if (!topSales) return undefined;
+    return topSales.map((sale, index) => ({
+      id: sale.nft.id,
+      name: sale.nft.name || `Wojak #${sale.nft.id}`,
+      imageUrl: sale.nft.imageUrl || `/assets/wojaks/${sale.nft.id.replace(/\D/g, '').padStart(4, '0')}.png`,
+      priceXch: sale.price || 0,
+      rank: index + 1,
+    }));
+  }, [topSales]);
+
   return (
-    <div className="space-y-6">
-      {/* Search + BigPulp Character */}
-      <TopLeftPanel />
+    <div className="flex flex-col gap-4" style={{ minHeight: 'calc(100dvh - 120px)' }}>
+      {/* Compact BigPulp Character */}
+      <div className="relative flex-shrink-0">
+        <BigPulpCharacter
+          message={bigPulp.message}
+          isTyping={bigPulp.isTyping}
+          headTrait={currentNftHeadTrait || undefined}
+          onTypingComplete={onTypingComplete}
+          onSkipMessage={skipMessage}
+          compact
+        />
 
-      {/* NFT Preview + Badges */}
-      <TopRightPanel />
+        {/* Search input - overlaid on character */}
+        <div className="absolute top-3 left-3 right-3" style={{ zIndex: 10 }}>
+          <NFTSearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            onSearch={handleSearch}
+            onSurprise={surpriseMe}
+            onMyWojaks={() => setIsMyWojaksOpen(true)}
+            hasWallet={isWalletConnected}
+            ownedCount={ownedNFTs.length}
+            isLoading={isLoading}
+            error={error || undefined}
+          />
+        </div>
 
-      {/* Market/Ask/Attributes - Full width white box */}
-      <BottomPanel />
+        {/* My Wojaks Modal */}
+        <MyWojaksModal
+          isOpen={isMyWojaksOpen}
+          onClose={() => setIsMyWojaksOpen(false)}
+          onSelect={handleNFTClick}
+          ownedNFTs={ownedNFTs}
+          isLoading={isLoadingNFTs}
+        />
+      </div>
+
+      {/* Empty State Content - Stats + Trending */}
+      <div className="flex-shrink-0">
+        <EmptyStateContent
+          stats={marketStats}
+          topSales={formattedTopSales}
+          onNFTClick={handleNFTClick}
+          isLoading={isMarketLoading}
+        />
+      </div>
+
+      {/* Market/Ask/Attributes Tabs - grows to fill remaining space */}
+      <div className="flex-1">
+        <BottomPanel />
+      </div>
     </div>
+  );
+}
+
+// Mobile NFT View - shows when an NFT is selected
+function MobileNFTView() {
+  return (
+    <div className="flex flex-col gap-4" style={{ minHeight: 'calc(100dvh - 120px)' }}>
+      {/* Search + BigPulp Character */}
+      <div className="flex-shrink-0">
+        <TopLeftPanel />
+      </div>
+
+      {/* NFT Preview + Metadata */}
+      <div className="flex-shrink-0">
+        <TopRightPanel />
+      </div>
+
+      {/* Market/Ask/Attributes Tabs - grows to fill */}
+      <div className="flex-1">
+        <BottomPanel />
+      </div>
+    </div>
+  );
+}
+
+function MobileLayout() {
+  const { currentAnalysis } = useBigPulp();
+  const hasNFTSelected = !!currentAnalysis;
+
+  return (
+    <AnimatePresence mode="wait">
+      {hasNFTSelected ? (
+        <motion.div
+          key="nft-view"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.2 }}
+        >
+          <MobileNFTView />
+        </motion.div>
+      ) : (
+        <motion.div
+          key="empty-state"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 20 }}
+          transition={{ duration: 0.2 }}
+        >
+          <MobileEmptyState />
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -397,7 +568,7 @@ function BigPulpContent() {
         description="Get AI-powered insights on Wojak Farmers Plot NFTs. Analyze trait rarity, view sales history, explore market heatmaps, and discover valuable combos. Your NFT intelligence companion on Chia blockchain."
         path="/bigpulp"
       />
-      <div style={{ padding: contentPadding }}>
+      <div style={{ padding: contentPadding, paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}>
         {/* SEO H1 - visually hidden but accessible */}
         <h1 className="sr-only">BigPulp AI - Wojak Farmers NFT Intelligence & Analysis</h1>
 

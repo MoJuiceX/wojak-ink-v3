@@ -837,7 +837,7 @@ const BlockPuzzle: React.FC = () => {
       const y = GRID_SIZE;
 
       const fireParticle: ClearParticle = {
-        id: Date.now() + Math.random(),
+        id: Date.now() * 10000 + Math.floor(Math.random() * 10000),
         x,
         y,
         vx: (Math.random() - 0.5) * 2,

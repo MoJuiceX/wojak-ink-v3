@@ -1,0 +1,285 @@
+/**
+ * Mobile Podium Styles
+ * 
+ * Unified podium section for top 3 players on mobile.
+ * Champion at top, runners-up in a row below.
+ */
+
+/* === CONTAINER === */
+.mobile-podium {
+  margin: 0 -12px 16px;
+  padding: 20px 16px 16px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 215, 0, 0.06) 0%,
+    rgba(255, 180, 0, 0.03) 40%,
+    transparent 100%
+  );
+  border-top: 1px solid rgba(255, 215, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  /* Ensure touch scrolling works */
+  touch-action: pan-y;
+}
+
+/* Subtle gold shimmer on top edge */
+.mobile-podium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 215, 0, 0.4) 50%,
+    transparent 100%
+  );
+}
+
+/* === CHAMPION SECTION === */
+.podium-champion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding-bottom: 16px;
+}
+
+.podium-champion:active {
+  opacity: 0.8;
+}
+
+/* Header with label and countdown */
+.champion-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.champion-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255, 215, 0, 0.8);
+}
+
+.champion-countdown {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Crown */
+.champion-crown {
+  font-size: 28px;
+  margin-bottom: 2px;
+  filter: drop-shadow(0 2px 8px rgba(255, 215, 0, 0.4));
+}
+
+/* Score row with medal */
+.champion-score-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Medal - inline with score */
+.champion-medal {
+  font-size: 24px;
+  filter: drop-shadow(0 2px 6px rgba(255, 215, 0, 0.5));
+}
+
+/* Avatar */
+.champion-avatar {
+  margin-bottom: 8px;
+}
+
+.champion-avatar .avatar {
+  width: 72px;
+  height: 72px;
+}
+
+/* Name - full, no truncation */
+.champion-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  word-break: break-word;
+  max-width: 100%;
+  padding: 0 16px;
+}
+
+/* Score - large gold gradient */
+.champion-score {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-top: 4px;
+  filter: drop-shadow(0 2px 4px rgba(255, 200, 0, 0.2));
+}
+
+/* === RUNNERS-UP ROW === */
+.podium-runners {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Runner Card (shared styles) */
+.runner-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.runner-card:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Silver (#2) styling */
+.runner-card.silver {
+  background: linear-gradient(
+    180deg,
+    rgba(192, 192, 192, 0.1) 0%,
+    rgba(192, 192, 192, 0.03) 100%
+  );
+  border: 1px solid rgba(192, 192, 192, 0.15);
+}
+
+/* Bronze (#3) styling */
+.runner-card.bronze {
+  background: linear-gradient(
+    180deg,
+    rgba(205, 127, 50, 0.1) 0%,
+    rgba(205, 127, 50, 0.03) 100%
+  );
+  border: 1px solid rgba(205, 127, 50, 0.15);
+}
+
+/* Runner Avatar */
+.runner-avatar {
+  margin-bottom: 6px;
+}
+
+.runner-avatar .avatar {
+  width: 48px;
+  height: 48px;
+}
+
+/* Runner Name - truncated */
+.runner-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  padding: 0 4px;
+}
+
+/* Runner Score Row with medal */
+.runner-score-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* Runner Medal - inline with score */
+.runner-medal {
+  font-size: 16px;
+}
+
+.runner-card.silver .runner-medal {
+  filter: drop-shadow(0 1px 3px rgba(192, 192, 192, 0.4));
+}
+
+.runner-card.bronze .runner-medal {
+  filter: drop-shadow(0 1px 3px rgba(205, 127, 50, 0.4));
+}
+
+/* Runner Score */
+.runner-score {
+  font-size: 16px;
+  font-weight: 700;
+  color: #F97316;
+}
+
+/* === RESPONSIVE: Very small screens === */
+@media (max-width: 320px) {
+  .mobile-podium {
+    padding: 16px 12px 12px;
+  }
+
+  .champion-crown {
+    font-size: 24px;
+  }
+
+  .champion-medal {
+    font-size: 18px;
+  }
+
+  .champion-score-row {
+    gap: 6px;
+  }
+
+  .champion-avatar .avatar {
+    width: 64px;
+    height: 64px;
+  }
+
+  .champion-name {
+    font-size: 16px;
+  }
+
+  .champion-score {
+    font-size: 28px;
+  }
+
+  .runner-card {
+    padding: 10px 6px;
+  }
+
+  .runner-medal {
+    font-size: 14px;
+  }
+
+  .runner-score-row {
+    gap: 3px;
+  }
+
+  .runner-avatar .avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .runner-name {
+    font-size: 12px;
+  }
+
+  .runner-score {
+    font-size: 14px;
+  }
+}
+
+/* Desktop visibility is controlled by JavaScript (isMobile hook) */
+/* No need for CSS hiding - the component only renders on mobile */

@@ -54,31 +54,33 @@ export function randomColorExcept(exclude: number): number {
   return i;
 }
 
-/** Cycle speed (ms). 1000–2500.
- * More gradual: -150ms per 100 points (was -200ms)
- * Higher minimum: 1000ms (was 900ms) - less frantic at high scores
+/** Cycle speed (ms). 900–2400.
+ * BALANCED: -120ms per 100 points (gradual ramp)
+ * Minimum: 900ms - intense but not frantic
  */
 export function getCycleMs(score: number): number {
-  const reduction = Math.floor(score / 100) * 150;
-  return clamp(2500 - reduction, 1000, 2500);
+  const reduction = Math.floor(score / 100) * 120;
+  return clamp(2400 - reduction, 900, 2400);
 }
 
-/** Match window (ms). Use current streak (before hit). 600–1000.
- * More gradual difficulty: -25ms per 100 points (was -45ms)
- * Higher minimum: 600ms (was 500ms) - gives players a fair chance
+/** Match window (ms). Use current streak (before hit). 500–950.
+ * BALANCED: -30ms per 100 points (gradual tightening)
+ * Minimum: 500ms - challenging but fair
+ * Streak penalty: -12ms per streak level (mild pressure)
  */
 export function getMatchWindowMs(score: number, streak: number): number {
-  const w = 1000 - Math.floor(score / 100) * 25 - streak * 10;
-  return clamp(w, 600, 1000);
+  const w = 950 - Math.floor(score / 100) * 30 - streak * 12;
+  return clamp(w, 500, 950);
 }
 
 /** Full match chance %. Target: match every 3-5 seconds.
- * Early: 70% on 2500ms cycle = ~3.6s average (more frequent for engagement)
- * Late: 45% on 900ms cycle = ~2s average (but cycles are faster, so still feels frequent)
+ * BALANCED: Start at 60% (engaging), drop to 40% (tense)
+ * Early: 60% on 2400ms cycle = ~4s average
+ * Late: 40% on 900ms cycle = ~2.25s average
  */
 export function getFullMatchChancePct(score: number): number {
-  const p = 70 - Math.floor(score / 200) * 5;
-  return clamp(p, 45, 70);
+  const p = 60 - Math.floor(score / 200) * 4;
+  return clamp(p, 40, 60);
 }
 
 /** Partial chance % (among non-full). 55–80. */

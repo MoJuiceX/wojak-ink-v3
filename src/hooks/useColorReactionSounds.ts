@@ -462,35 +462,41 @@ export const useColorReactionSounds = () => {
     if (isMutedRef.current) return;
     const ctx = getAudioContext();
 
-    // Simple, pleasant "pop" activation sound - plays instantly
-    // Main tone - warm and satisfying
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
-    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15); // Drops to A4
-
-    gain.gain.setValueAtTime(0.4, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.2);
-
-    // Subtle harmonic for warmth (plays simultaneously)
-    const harmonic = ctx.createOscillator();
-    const harmonicGain = ctx.createGain();
-
-    harmonic.type = 'sine';
-    harmonic.frequency.value = 1320; // E6 (perfect fifth above A5)
-
-    harmonicGain.gain.setValueAtTime(0.15, ctx.currentTime);
-    harmonicGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
-
-    harmonic.connect(harmonicGain).connect(ctx.destination);
-    harmonic.start(ctx.currentTime);
-    harmonic.stop(ctx.currentTime + 0.12);
+    // Pleasant ascending "ready, set, GO!" fanfare
+    // Quick ascending arpeggio in C major - feels exciting and positive
+    const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6 (C major arpeggio)
+    
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      
+      const delay = i * 0.08; // Quick staccato
+      const volume = i === 3 ? 0.35 : 0.25; // Last note slightly louder
+      const duration = i === 3 ? 0.3 : 0.12; // Last note held longer
+      
+      gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+      gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + delay + duration);
+      
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + duration + 0.05);
+    });
+    
+    // Add a subtle shimmer on the final note for extra sparkle
+    const shimmer = ctx.createOscillator();
+    const shimmerGain = ctx.createGain();
+    shimmer.type = 'sine';
+    shimmer.frequency.value = 2093; // C7 (octave above final note)
+    shimmerGain.gain.setValueAtTime(0, ctx.currentTime + 0.24);
+    shimmerGain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.26);
+    shimmerGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.45);
+    shimmer.connect(shimmerGain).connect(ctx.destination);
+    shimmer.start(ctx.currentTime + 0.24);
+    shimmer.stop(ctx.currentTime + 0.5);
   }, [getAudioContext]);
 
   // ========== TASK 28: Game Over Sound ==========

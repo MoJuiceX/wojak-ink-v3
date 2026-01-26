@@ -482,6 +482,8 @@
   border-radius: 12px;
   padding: 5px;
   box-sizing: border-box;
+  /* CRITICAL: Position relative for particle layer and shockwave positioning */
+  position: relative;
   /* Neon glow effect */
   box-shadow:
     0 0 35px rgba(255, 107, 0, 0.12),

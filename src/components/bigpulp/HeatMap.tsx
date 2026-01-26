@@ -10,8 +10,6 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X, RefreshCw, Clock, Check, ChevronDown, Award, Info } from 'lucide-react';
 import type { HeatMapCell, HeatMapViewMode } from '@/types/bigpulp';
 import {
-  HEATMAP_CONFIG,
-  RARITY_BINS,
   getColorForIntensity,
   getHighDensityPattern,
   getNextCellPosition,
@@ -51,8 +49,79 @@ const REFRESH_COOLDOWN_SECONDS = 30;
 // Cooldown tooltip message
 const COOLDOWN_MESSAGE = "Chill brother, you are already up to date. Give the APIs a break. We don't want to hit rate limits.";
 
-// Cache Status Indicator - shows data freshness with optimistic visual feedback
-function CacheStatusIndicator({
+// Compact refresh button with time indicator
+function CompactRefreshButton({
+  metadata,
+  onRefresh,
+}: {
+  metadata?: CacheMetadata | null;
+  onRefresh: () => void;
+}) {
+  const [refreshState, setRefreshState] = useState<'idle' | 'spinning' | 'success'>('idle');
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setCooldownSeconds((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownSeconds]);
+
+  const isOnCooldown = cooldownSeconds > 0;
+  const ageText = metadata ? formatCacheAge(metadata.ageMinutes) : '';
+
+  const handleRefresh = () => {
+    if (refreshState !== 'idle' || isOnCooldown) return;
+    onRefresh();
+    setCooldownSeconds(30);
+    setRefreshState('spinning');
+    setTimeout(() => {
+      setRefreshState('success');
+      setTimeout(() => setRefreshState('idle'), 1200);
+    }, 600);
+  };
+
+  return (
+    <motion.button
+      type="button"
+      onClick={handleRefresh}
+      disabled={isOnCooldown}
+      className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs"
+      style={{
+        background: refreshState === 'success' 
+          ? 'rgba(34,197,94,0.15)' 
+          : 'rgba(255,255,255,0.05)',
+        border: refreshState === 'success'
+          ? '1px solid rgba(34,197,94,0.3)'
+          : '1px solid rgba(255,255,255,0.08)',
+        color: refreshState === 'success' 
+          ? 'rgb(34,197,94)' 
+          : 'var(--color-text-muted)',
+        cursor: isOnCooldown ? 'not-allowed' : 'pointer',
+        opacity: isOnCooldown ? 0.5 : 1,
+      }}
+      whileHover={isOnCooldown ? {} : { scale: 1.05 }}
+      whileTap={isOnCooldown ? {} : { scale: 0.95 }}
+    >
+      {refreshState === 'spinning' ? (
+        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+          <RefreshCw size={12} />
+        </motion.div>
+      ) : refreshState === 'success' ? (
+        <Check size={12} />
+      ) : (
+        <RefreshCw size={12} />
+      )}
+      <span>
+        {refreshState === 'spinning' ? 'Updating' : refreshState === 'success' ? 'Done' : isOnCooldown ? `${cooldownSeconds}s` : ageText || 'Refresh'}
+      </span>
+    </motion.button>
+  );
+}
+
+// @ts-ignore - Legacy component kept for reference
+export function _LegacyCacheStatusIndicator({
   metadata,
   onRefresh,
 }: {
@@ -222,6 +291,23 @@ function CacheStatusIndicator({
   );
 }
 
+// Compact filter chip with icon
+interface FilterChipConfig {
+  id: HeatMapViewMode;
+  label: string;
+  shortLabel: string;
+  color: string;
+  bgColor: string;
+}
+
+const FILTER_CHIPS: FilterChipConfig[] = [
+  { id: 'all', label: 'All', shortLabel: 'All', color: 'rgba(255,255,255,0.9)', bgColor: 'rgba(255,255,255,0.1)' },
+  { id: 'sleepy-deals', label: 'Sleepy Deals', shortLabel: 'Sleepy', color: 'rgb(34,197,94)', bgColor: 'rgba(34,197,94,0.15)' },
+  { id: 'floor-snipes', label: 'Floor', shortLabel: 'Floor', color: 'rgb(59,130,246)', bgColor: 'rgba(59,130,246,0.15)' },
+  { id: 'whale-territory', label: 'Premium', shortLabel: 'Moon', color: 'rgb(251,191,36)', bgColor: 'rgba(251,191,36,0.15)' },
+  { id: 'delusion-zones', label: 'DYOR', shortLabel: 'DYOR', color: 'rgb(239,68,68)', bgColor: 'rgba(239,68,68,0.15)' },
+];
+
 function ViewModeButtons({
   viewMode,
   onViewModeChange,
@@ -243,26 +329,29 @@ function ViewModeButtons({
   };
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {VIEW_MODES.map((mode) => (
-        <button
-          key={mode.id}
-          className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-          style={{
-            background:
-              viewMode === mode.id
-                ? 'var(--color-brand-primary)'
-                : 'var(--color-glass-bg)',
-            color: viewMode === mode.id ? 'white' : 'var(--color-text-secondary)',
-            border: `1px solid ${viewMode === mode.id ? 'var(--color-brand-primary)' : 'var(--color-border)'}`,
-          }}
-          onClick={() => handleClick(mode.id)}
-          onMouseEnter={() => onHover(mode.id)}
-          onMouseLeave={onHoverEnd}
-        >
-          {mode.label}
-        </button>
-      ))}
+    <div className="flex gap-1.5 flex-wrap">
+      {FILTER_CHIPS.map((chip) => {
+        const isActive = viewMode === chip.id;
+        return (
+          <motion.button
+            key={chip.id}
+            className="px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
+            style={{
+              background: isActive ? chip.bgColor : 'rgba(255,255,255,0.05)',
+              color: isActive ? chip.color : 'var(--color-text-muted)',
+              border: isActive ? `1px solid ${chip.color}40` : '1px solid transparent',
+              boxShadow: isActive ? `0 0 8px ${chip.color}30` : 'none',
+            }}
+            onClick={() => handleClick(chip.id)}
+            onMouseEnter={() => onHover(chip.id)}
+            onMouseLeave={onHoverEnd}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {chip.shortLabel}
+          </motion.button>
+        );
+      })}
     </div>
   );
 }
@@ -605,6 +694,58 @@ function CellDetailModal({
   );
 }
 
+// Compact cell for mobile - fits 10 columns without scrolling
+function HeatMapCellCompact({
+  cell,
+  isHighlighted,
+  onClick,
+  themeId,
+  showZoneBorder,
+}: {
+  cell: HeatMapCell;
+  isHighlighted: boolean;
+  onClick: () => void;
+  themeId: string;
+  showZoneBorder: boolean;
+}) {
+  const backgroundColor = getColorForIntensity(cell.intensity, themeId);
+  const isEmpty = cell.count === 0;
+
+  return (
+    <motion.button
+      type="button"
+      className="flex-1 flex items-center justify-center font-bold"
+      style={{
+        background: isEmpty 
+          ? 'rgba(255,255,255,0.02)' 
+          : backgroundColor,
+        borderRadius: '4px',
+        height: '28px',
+        minWidth: 0,
+        fontSize: '10px',
+        cursor: isEmpty ? 'default' : 'pointer',
+        color: isEmpty 
+          ? 'transparent'
+          : cell.intensity > 0.3
+            ? 'white'
+            : 'var(--color-text-primary)',
+        textShadow: cell.intensity > 0.3 ? '0 1px 1px rgba(0,0,0,0.5)' : 'none',
+        border: showZoneBorder && !isEmpty
+          ? '2px solid rgba(255,149,0,0.8)'
+          : '1px solid rgba(255,255,255,0.03)',
+        boxShadow: !isEmpty && cell.intensity > 0.3 
+          ? `0 0 ${4 + cell.intensity * 8}px rgba(255,149,0,${cell.intensity * 0.3})`
+          : 'none',
+        opacity: isHighlighted ? 1 : 0.35,
+      }}
+      onClick={isEmpty ? undefined : onClick}
+      whileTap={isEmpty ? undefined : { scale: 0.9 }}
+    >
+      {cell.count > 0 && cell.count}
+    </motion.button>
+  );
+}
+
 function HeatMapCell({
   cell,
   isHighlighted,
@@ -634,34 +775,54 @@ function HeatMapCell({
   // Staggered delay based on position for wave effect
   const staggerDelay = (rowIndex * 0.02) + (colIndex * 0.015);
 
+  // Premium cell styling based on intensity
+  const getCellBackground = () => {
+    if (isEmpty) {
+      return 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)';
+    }
+    // Overlay gradient on top of intensity color for premium look
+    return `linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(0,0,0,0.1) 100%), ${backgroundColor}`;
+  };
+
+  const getCellShadow = () => {
+    if (isEmpty) return 'none';
+    if (cell.intensity > 0.5) {
+      return `inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.3), 0 0 ${8 + cell.intensity * 12}px rgba(255,149,0,${0.1 + cell.intensity * 0.2})`;
+    }
+    return 'inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 2px rgba(0,0,0,0.2)';
+  };
+
   return (
     <motion.button
       role="gridcell"
       aria-label={cell.label}
       tabIndex={isEmpty ? -1 : (isFocused ? 0 : -1)}
-      className="relative flex-1 flex items-center justify-center text-xs font-medium"
+      className="relative flex-1 flex items-center justify-center text-xs font-bold"
       style={{
-        backgroundColor,
+        background: getCellBackground(),
         backgroundImage: pattern,
-        borderRadius: HEATMAP_CONFIG.cellBorderRadius,
-        minWidth: HEATMAP_CONFIG.cellMinSize,
-        minHeight: 32,
-        height: 32,
+        borderRadius: '8px',
+        minWidth: '36px',
+        minHeight: '36px',
+        height: '36px',
         outline: 'none',
         cursor: isEmpty ? 'default' : 'pointer',
-        color:
-          cell.intensity > 0.5
+        color: isEmpty 
+          ? 'var(--color-text-muted)'
+          : cell.intensity > 0.4
             ? 'white'
-            : 'var(--color-text-secondary)',
-        // Zone border: full opacity for cells with NFTs, reduced for empty cells
+            : 'var(--color-text-primary)',
+        textShadow: cell.intensity > 0.4 ? '0 1px 2px rgba(0,0,0,0.5)' : 'none',
+        boxShadow: getCellShadow(),
+        // Zone border: premium glow effect
         border: showZoneBorder
-          ? `2px solid ${isEmpty ? 'rgba(255, 149, 0, 0.3)' : 'var(--color-brand-primary)'}`
-          : '2px solid transparent',
+          ? `2px solid ${isEmpty ? 'rgba(255, 149, 0, 0.2)' : 'rgba(255, 149, 0, 0.8)'}`
+          : '1px solid rgba(255,255,255,0.05)',
       }}
       initial={false}
       animate={{
-        opacity: isHighlighted ? 1 : 0.25,
-        filter: isHighlighted ? 'brightness(1.1)' : 'brightness(0.8)',
+        opacity: isHighlighted ? 1 : 0.3,
+        filter: isHighlighted ? 'brightness(1)' : 'brightness(0.7) saturate(0.5)',
       }}
       transition={prefersReducedMotion ? { duration: 0 } : {
         duration: 0.3,
@@ -669,11 +830,12 @@ function HeatMapCell({
         ease: 'easeOut',
       }}
       whileHover={isEmpty ? undefined : {
-        filter: 'brightness(1.3)',
-        boxShadow: 'inset 0 0 12px rgba(255,255,255,0.3)',
+        scale: 1.1,
+        zIndex: 10,
+        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.3), 0 4px 12px rgba(0,0,0,0.4), 0 0 20px rgba(255,149,0,0.3)`,
       }}
       whileTap={isEmpty ? undefined : {
-        filter: 'brightness(0.9)',
+        scale: 0.95,
       }}
       onClick={isEmpty ? undefined : onClick}
       onFocus={isEmpty ? undefined : onFocus}
@@ -681,15 +843,12 @@ function HeatMapCell({
       {/* Pulsing inner glow for zone cells with NFTs only */}
       {showZoneBorder && !isEmpty && !prefersReducedMotion && (
         <motion.div
-          className="absolute inset-1 rounded pointer-events-none"
-          style={{
-            borderRadius: HEATMAP_CONFIG.cellBorderRadius - 2,
-          }}
+          className="absolute inset-0 rounded-lg pointer-events-none"
           animate={{
             boxShadow: [
-              'inset 0 0 4px var(--color-brand-glow)',
-              'inset 0 0 10px var(--color-brand-glow)',
-              'inset 0 0 4px var(--color-brand-glow)',
+              'inset 0 0 6px rgba(255,149,0,0.3)',
+              'inset 0 0 12px rgba(255,149,0,0.5)',
+              'inset 0 0 6px rgba(255,149,0,0.3)',
             ],
           }}
           transition={{
@@ -710,7 +869,7 @@ export function HeatMap({
   onViewModeChange,
   onCellClick,
   cacheMetadata,
-  isRefetching,
+  isRefetching: _isRefetching,
   onRefresh,
   badges,
   selectedBadge,
@@ -794,17 +953,26 @@ export function HeatMap({
     );
   }
 
+  // Compact row labels for mobile
+  const getRowLabel = (index: number): string => {
+    const labels = ['10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', '100%'];
+    return labels[index] || '';
+  };
+
   return (
-    <div className="space-y-4">
-      {/* View mode buttons + badge filter + cache status */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <ViewModeButtons
-            viewMode={viewMode}
-            onViewModeChange={onViewModeChange}
-            onHover={setHoveredMode}
-            onHoverEnd={() => setHoveredMode(null)}
-          />
+    <div className="space-y-3">
+      {/* Compact header: Filters + Badge + Refresh in organized rows */}
+      <div className="space-y-2">
+        {/* Row 1: View mode filter chips */}
+        <ViewModeButtons
+          viewMode={viewMode}
+          onViewModeChange={onViewModeChange}
+          onHover={setHoveredMode}
+          onHoverEnd={() => setHoveredMode(null)}
+        />
+        
+        {/* Row 2: Badge filter + Cache refresh (compact) */}
+        <div className="flex items-center gap-2">
           {badges && badges.length > 0 && onBadgeChange && (
             <BadgeDropdown
               badges={badges}
@@ -812,31 +980,34 @@ export function HeatMap({
               onBadgeChange={onBadgeChange}
             />
           )}
+          <div className="flex-1" />
+          {onRefresh && (
+            <CompactRefreshButton
+              metadata={cacheMetadata}
+              onRefresh={onRefresh}
+            />
+          )}
         </div>
-        <CacheStatusIndicator
-          metadata={cacheMetadata}
-          isRefetching={isRefetching}
-          onRefresh={onRefresh}
-        />
       </div>
 
-      {/* Heat map grid - flexible width */}
+      {/* Heat map grid - compact, no horizontal scroll */}
       <div
-        className="p-4 rounded-xl"
+        className="p-2 rounded-xl"
         style={{
-          background: 'var(--color-glass-bg)',
-          border: '1px solid var(--color-border)',
+          background: 'linear-gradient(135deg, rgba(25,25,25,0.95) 0%, rgba(15,15,15,0.98) 100%)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03), 0 4px 20px rgba(0,0,0,0.4)',
         }}
       >
-        {/* Column headers (price bins) - dynamically calculated from data */}
-        <div className="flex gap-1 mb-2 ml-16">
+        {/* Column headers (price bins) - compact */}
+        <div className="flex gap-0.5 mb-1 ml-7">
           {dynamicPriceBins.map((bin) => (
             <div
               key={bin.index}
-              className="flex-1 text-center text-xs"
+              className="flex-1 text-center font-semibold"
               style={{
                 color: 'var(--color-text-muted)',
-                minWidth: HEATMAP_CONFIG.cellMinSize,
+                fontSize: '8px',
               }}
             >
               {bin.label}
@@ -844,43 +1015,43 @@ export function HeatMap({
           ))}
         </div>
 
-        {/* Grid - wider than tall */}
+        {/* Grid - compact cells that fit mobile */}
         <div
           ref={gridRef}
           role="grid"
           aria-label="Market heat map showing NFT distribution by rarity and price"
-          className="flex flex-col gap-1"
+          className="flex flex-col gap-0.5"
           onKeyDown={handleKeyDown}
         >
           {data.map((row, rowIndex) => (
-            <div key={rowIndex} role="row" className="flex gap-1 items-center">
-              {/* Row header (rarity bin) */}
+            <div key={rowIndex} role="row" className="flex gap-0.5 items-center">
+              {/* Row header - compact */}
               <div
-                className="w-16 text-right text-xs pr-2 flex-shrink-0"
-                style={{ color: 'var(--color-text-muted)' }}
+                className="w-7 text-right pr-0.5 flex-shrink-0 font-semibold"
+                style={{ 
+                  fontSize: '8px',
+                  color: rowIndex <= 2 
+                    ? 'rgba(251,191,36,0.9)' 
+                    : rowIndex >= 7 
+                      ? 'rgba(239,68,68,0.7)' 
+                      : 'var(--color-text-muted)',
+                }}
               >
-                {RARITY_BINS[rowIndex]?.label || ''}
+                {getRowLabel(rowIndex)}
               </div>
 
-              {/* Cells - render all columns (now dynamically calculated) */}
+              {/* Cells - compact sizing */}
               {row.map((cell, colIndex) => {
                 const cellIsHighlighted = isHighlighted(rowIndex, colIndex);
-                // Show zone border when highlighted AND we're not in "all" mode
                 const showZoneBorder = cellIsHighlighted && effectiveMode !== 'all';
                 return (
-                  <HeatMapCell
+                  <HeatMapCellCompact
                     key={`${rowIndex}-${colIndex}`}
                     cell={cell}
                     isHighlighted={cellIsHighlighted}
-                    isFocused={
-                      focusedCell.row === rowIndex && focusedCell.col === colIndex
-                    }
                     onClick={() => handleCellClick(cell)}
-                    onFocus={() => setFocusedCell({ row: rowIndex, col: colIndex })}
                     themeId={themeId}
                     showZoneBorder={showZoneBorder}
-                    rowIndex={rowIndex}
-                    colIndex={colIndex}
                   />
                 );
               })}
@@ -888,10 +1059,18 @@ export function HeatMap({
           ))}
         </div>
 
-        {/* Axis labels */}
-        <div className="flex justify-between mt-4 text-xs">
-          <span style={{ color: 'var(--color-text-muted)' }}>Rarity ↓</span>
-          <span style={{ color: 'var(--color-text-muted)' }}>Price (XCH) →</span>
+        {/* Axis labels - positioned correctly */}
+        <div className="flex justify-between mt-1.5 ml-7" style={{ fontSize: '8px' }}>
+          <div className="flex flex-col leading-tight">
+            <span style={{ color: 'rgba(251,191,36,0.8)' }}>Rare</span>
+            <span style={{ color: 'var(--color-text-muted)', fontSize: '6px' }}>↓</span>
+            <span style={{ color: 'rgba(239,68,68,0.7)' }}>Common</span>
+          </div>
+          <div className="flex items-center gap-0.5 mr-1" style={{ color: 'var(--color-text-muted)' }}>
+            <span style={{ color: 'rgba(34,197,94,0.8)' }}>Cheap</span>
+            <span style={{ fontSize: '6px' }}>→</span>
+            <span style={{ color: 'rgba(251,191,36,0.8)' }}>Expensive</span>
+          </div>
         </div>
       </div>
 

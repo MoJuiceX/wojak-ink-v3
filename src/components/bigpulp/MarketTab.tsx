@@ -2,6 +2,7 @@
  * MarketTab Component
  *
  * Market analysis tab with heat map and price distribution.
+ * Shows insight cards on mobile, heatmap on desktop.
  */
 
 import { useState, useCallback } from 'react';
@@ -14,11 +15,8 @@ import type {
   HeatMapViewMode,
 } from '@/types/bigpulp';
 import { HeatMap } from './HeatMap';
-import {
-  statsCardVariants,
-  statsContainerVariants,
-  tabContentVariants,
-} from '@/config/bigpulpAnimations';
+import { PremiumToggleGroup } from './PremiumButton';
+import { tabContentVariants } from '@/config/bigpulpAnimations';
 import type { CacheMetadata } from '@/services/heatmapCache';
 import type { BadgeOption } from './HeatMap';
 
@@ -39,49 +37,7 @@ interface MarketTabProps {
   onBadgeChange?: (badge: string | null) => void;
 }
 
-type VisualizationType = 'heatmap' | 'distribution';
-
-function StatCard({
-  label,
-  value,
-  subValue,
-}: {
-  label: string;
-  value: string;
-  subValue?: string;
-}) {
-  const prefersReducedMotion = useReducedMotion();
-
-  return (
-    <motion.div
-      className="p-3 rounded-xl text-center"
-      style={{
-        background: 'var(--color-glass-bg)',
-        border: '1px solid var(--color-border)',
-      }}
-      variants={prefersReducedMotion ? undefined : statsCardVariants}
-      whileHover="hover"
-    >
-      <p
-        className="text-xl font-bold"
-        style={{ color: 'var(--color-brand-primary)' }}
-      >
-        {value}
-      </p>
-      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-        {label}
-      </p>
-      {subValue && (
-        <p
-          className="text-xs mt-1"
-          style={{ color: 'var(--color-text-secondary)' }}
-        >
-          {subValue}
-        </p>
-      )}
-    </motion.div>
-  );
-}
+type VisualizationType = 'insights' | 'heatmap' | 'distribution';
 
 function PriceDistributionChart({
   data,
@@ -91,6 +47,7 @@ function PriceDistributionChart({
   // Filter out empty bins
   const nonEmptyBins = data.bins.filter((b) => b.count > 0);
   const maxCount = Math.max(...nonEmptyBins.map((b) => b.count), 1);
+  const chartHeight = 160;
 
   return (
     <div
@@ -100,56 +57,60 @@ function PriceDistributionChart({
         border: '1px solid var(--color-border)',
       }}
     >
-      {/* Chart - only show non-empty bins */}
-      <div className="flex items-end gap-1 mb-4" style={{ height: '180px' }}>
-        {nonEmptyBins.map((bin, index) => {
-          const heightPx = maxCount > 0 ? (bin.count / maxCount) * 160 : 0;
+      {/* Chart - bars aligned at bottom */}
+      <div className="mb-4">
+        {/* Bar area - fixed height, all bars align to bottom */}
+        <div 
+          className="flex gap-1 items-end"
+          style={{ height: `${chartHeight}px` }}
+        >
+          {nonEmptyBins.map((bin, index) => {
+            const heightPx = maxCount > 0 ? (bin.count / maxCount) * chartHeight : 0;
 
-          return (
-            <div
-              key={index}
-              className="flex-1 flex flex-col items-center justify-end h-full"
-            >
-              {/* Bar container - fixed height for percentage to work */}
-              <div className="w-full flex-1 flex items-end">
-                <motion.div
-                  className="w-full rounded-t-md relative group"
-                  style={{
-                    background:
-                      'linear-gradient(to top, var(--color-brand-primary), var(--color-brand-glow))',
-                    height: heightPx,
-                    minHeight: bin.count > 0 ? 8 : 0,
-                    transformOrigin: 'bottom',
-                  }}
-                  initial={{ scaleY: 0 }}
-                  animate={{ scaleY: 1 }}
-                  transition={{ duration: 0.5, delay: index * 0.05 }}
-                >
-                  {/* Tooltip on hover */}
-                  <div
-                    className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10"
-                    style={{
-                      background: 'var(--color-bg-secondary)',
-                      border: '1px solid var(--color-border)',
-                      color: 'var(--color-text-primary)',
-                    }}
-                  >
-                    {bin.count} ({bin.percentage}%)
-                  </div>
-                </motion.div>
-              </div>
-
-              {/* Label */}
-              <p
-                className="text-xs mt-2 text-center truncate w-full"
-                style={{ color: 'var(--color-text-muted)' }}
-                title={bin.range}
+            return (
+              <motion.div
+                key={index}
+                className="flex-1 rounded-t-md relative group"
+                style={{
+                  background:
+                    'linear-gradient(to top, var(--color-brand-primary), var(--color-brand-glow))',
+                  height: `${heightPx}px`,
+                  minHeight: bin.count > 0 ? 8 : 0,
+                  transformOrigin: 'bottom',
+                }}
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ duration: 0.5, delay: index * 0.05 }}
               >
-                {bin.range.replace(' XCH', '')}
-              </p>
-            </div>
-          );
-        })}
+                {/* Tooltip on hover */}
+                <div
+                  className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10"
+                  style={{
+                    background: 'var(--color-bg-secondary)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-text-primary)',
+                  }}
+                >
+                  {bin.count} ({bin.percentage}%)
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Labels - separate row, all same height */}
+        <div className="flex gap-1 mt-2">
+          {nonEmptyBins.map((bin, index) => (
+            <p
+              key={index}
+              className="flex-1 text-xs text-center truncate"
+              style={{ color: 'var(--color-text-muted)' }}
+              title={bin.range}
+            >
+              {bin.range.replace(' XCH', '')}
+            </p>
+          ))}
+        </div>
       </div>
 
       {/* Summary */}
@@ -177,27 +138,6 @@ function PriceDistributionChart({
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-function StatCardSkeleton() {
-  return (
-    <div
-      className="p-3 rounded-xl animate-pulse"
-      style={{
-        background: 'var(--color-glass-bg)',
-        border: '1px solid var(--color-border)',
-      }}
-    >
-      <div
-        className="h-6 w-16 rounded mx-auto mb-2"
-        style={{ background: 'var(--color-border)' }}
-      />
-      <div
-        className="h-3 w-12 rounded mx-auto"
-        style={{ background: 'var(--color-border)' }}
-      />
     </div>
   );
 }
@@ -247,6 +187,8 @@ export function MarketTab({
   onBadgeChange,
 }: MarketTabProps) {
   const prefersReducedMotion = useReducedMotion();
+  
+  // Default to heatmap
   const [visualizationType, setVisualizationType] =
     useState<VisualizationType>('heatmap');
 
@@ -255,21 +197,22 @@ export function MarketTab({
     // TODO: Open cell detail modal
   }, []);
 
+  // Toggle options - same for mobile and desktop now
+  const toggleOptions = [
+    { id: 'heatmap' as const, label: 'Heat Map', icon: Flame },
+    { id: 'distribution' as const, label: 'Chart', icon: BarChart3 },
+  ];
+
   // Loading skeleton
   if (isLoading || !stats) {
     return (
-      <div className="space-y-6 p-4">
-        <div>
-          <div
-            className="h-4 w-32 rounded mb-3 animate-pulse"
-            style={{ background: 'var(--color-border)' }}
-          />
-          <div className="grid grid-cols-3 gap-3">
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-          </div>
-        </div>
+      <div className="space-y-4">
+        {/* Stats skeleton */}
+        <div
+          className="h-16 rounded-xl animate-pulse"
+          style={{ background: 'var(--color-border)' }}
+        />
+        {/* Toggle skeleton */}
         <div className="flex gap-2">
           <div
             className="flex-1 h-10 rounded-lg animate-pulse"
@@ -280,6 +223,7 @@ export function MarketTab({
             style={{ background: 'var(--color-border)' }}
           />
         </div>
+        {/* Heatmap skeleton */}
         <HeatMapSkeleton />
       </div>
     );
@@ -293,75 +237,19 @@ export function MarketTab({
       animate="visible"
       exit="exit"
     >
-      {/* Market Stats */}
-      <div>
-        <motion.div
-          className="grid grid-cols-3 gap-3"
-          variants={prefersReducedMotion ? undefined : statsContainerVariants}
-          initial="initial"
-          animate="animate"
-        >
-          <StatCard
-            label="Listed"
-            value={stats.listedCount.toString()}
-            subValue={`${((stats.listedCount / stats.totalSupply) * 100).toFixed(1)}% of supply`}
-          />
-          <StatCard
-            label="Trades"
-            value={stats.totalTrades.toLocaleString()}
-            subValue="All time"
-          />
-          <StatCard
-            label="Volume"
-            value={`${Math.floor(stats.totalVolume).toLocaleString()} XCH`}
-            subValue="All time"
-          />
-        </motion.div>
-      </div>
-
-      {/* Visualization Toggle */}
-      <div className="flex gap-2">
-        <button
-          className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors"
-          style={{
-            background:
-              visualizationType === 'heatmap'
-                ? 'var(--color-brand-primary)'
-                : 'var(--color-glass-bg)',
-            color:
-              visualizationType === 'heatmap'
-                ? 'white'
-                : 'var(--color-text-secondary)',
-            border: `1px solid ${visualizationType === 'heatmap' ? 'var(--color-brand-primary)' : 'var(--color-border)'}`,
-          }}
-          onClick={() => setVisualizationType('heatmap')}
-        >
-          <Flame size={16} />
-          Heat Map
-        </button>
-        <button
-          className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors"
-          style={{
-            background:
-              visualizationType === 'distribution'
-                ? 'var(--color-brand-primary)'
-                : 'var(--color-glass-bg)',
-            color:
-              visualizationType === 'distribution'
-                ? 'white'
-                : 'var(--color-text-secondary)',
-            border: `1px solid ${visualizationType === 'distribution' ? 'var(--color-brand-primary)' : 'var(--color-border)'}`,
-          }}
-          onClick={() => setVisualizationType('distribution')}
-        >
-          <BarChart3 size={16} />
-          Distribution
-        </button>
-      </div>
+      {/* Visualization Toggle - Premium styled */}
+      <PremiumToggleGroup
+        options={toggleOptions}
+        value={visualizationType === 'insights' ? 'heatmap' : visualizationType}
+        onChange={setVisualizationType}
+        size="md"
+        fullWidth
+      />
 
       {/* Visualization */}
       <AnimatePresence mode="wait">
-        {visualizationType === 'heatmap' && heatMapData && (
+        {/* Heat Map */}
+        {(visualizationType === 'heatmap' || visualizationType === 'insights') && heatMapData && (
           <motion.div
             key="heatmap"
             initial={{ opacity: 0, y: 10 }}
@@ -384,6 +272,7 @@ export function MarketTab({
           </motion.div>
         )}
 
+        {/* Both: Distribution Chart */}
         {visualizationType === 'distribution' && priceDistribution && (
           <motion.div
             key="distribution"

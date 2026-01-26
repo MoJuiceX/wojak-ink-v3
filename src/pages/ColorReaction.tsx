@@ -1,4 +1,4 @@
-import { IonPage, IonContent } from '@ionic/react';
+// Removed IonPage/IonContent - they caused iOS overscroll bounce on tap
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Howler } from 'howler';
 import { useIsMobile } from '@/hooks/useMediaQuery';
@@ -251,12 +251,19 @@ const ColorReaction: React.FC = () => {
   const [feverIntensity, setFeverIntensity] = useState(0); // 0-3 intensity levels
   const [feverActivating, setFeverActivating] = useState(false);
 
-  // Phase 11: Camera & Advanced Visual Effects
-  const [cameraZoom, setCameraZoom] = useState(false);
+  // Phase 11: Advanced Visual Effects
   const [hitStop, setHitStop] = useState(false);
 
+  // Phase 13: Pressure Mode - visual intensity at high scores
+  const [pressureLevel, setPressureLevel] = useState(0); // 0-4
+
   // Phase 12: Viral & Share System
-  const bestMomentsRef = useRef<{ type: string; value: number; timestamp: number }[]>([]);
+  // bestMomentsRef commented out - tracked but never displayed
+  // const bestMomentsRef = useRef<{ type: string; value: number; timestamp: number }[]>([]);
+
+  // #region agent log - DISABLED to prevent layout thrashing
+  // Debug instrumentation removed - was causing the very layout shifts we were debugging
+  // #endregion
 
   // Hide instruction after 15 seconds of gameplay
   const [showInstruction, setShowInstruction] = useState(true);
@@ -408,7 +415,7 @@ const ColorReaction: React.FC = () => {
   const processingCycleRef = useRef(false); // Prevent concurrent scheduleNextCycle calls
   const isFirstCycleRef = useRef(true); // Prevent FULL_MATCH on first cycle (ease-in)
   const prevMatchTypeRef = useRef<MatchType>('NO_MATCH'); // Track previous match type to prevent consecutive FULL
-  const partialTapWarningsRef = useRef(0); // Track consecutive PARTIAL tap warnings (first = warning, second = life)
+  const wrongTapWarningsRef = useRef(0); // Track wrong tap warnings (first = warning, second = life)
 
   // Game stats - tracks successful taps for leaderboard eligibility
   const gameStatsRef = useRef({ successes: 0 });
@@ -475,6 +482,23 @@ const ColorReaction: React.FC = () => {
     }
   }, [gameState.streak]);
 
+  // Update pressure level based on score (visual intensity)
+  // Higher thresholds for smoother progression
+  useEffect(() => {
+    const score = gameState.score;
+    let newLevel = 0;
+    if (score >= 2000) {
+      newLevel = 4; // THE ZONE - maximum intensity
+    } else if (score >= 1400) {
+      newLevel = 3; // High intensity
+    } else if (score >= 900) {
+      newLevel = 2; // Medium intensity
+    } else if (score >= 500) {
+      newLevel = 1; // Subtle intensity
+    }
+    setPressureLevel(newLevel);
+  }, [gameState.score]);
+
   // Hide instruction after 15 seconds of gameplay (tutorial period)
   // During tutorial: show hints + play match sound
   // After tutorial: no hints + play decoy sounds to confuse
@@ -509,7 +533,6 @@ const ColorReaction: React.FC = () => {
     yourColorRef.current = gameState.yourColor;
     gameStatusRef.current = gameState.status;
     
-    // 2) INVARIANT LOGGER: Log on state change to verify rendered match state
   }, [gameState.isMatchWindow, gameState.targetFruit, gameState.targetColor, gameState.yourFruit, gameState.yourColor, gameState.status]);
 
   // Sync context pause state to ref
@@ -795,23 +818,23 @@ const ColorReaction: React.FC = () => {
       matchHandledRef.current = false;
       matchStartTsRef.current = now;
       
-      // EARLY GAME BONUS: Give more time to react at the start
-      // Very gradual reduction over 3 minutes (180 seconds)
+      // EARLY GAME BONUS: Grace period to learn the game
+      // Gradual ramp over 2 minutes for smooth difficulty curve
       const gameTimeSeconds = (now - gameStartTimeRef.current) / 1000;
       let earlyGameBonus = 0;
-      if (gameTimeSeconds < 45) {
-        earlyGameBonus = 300; // First 45 seconds: very forgiving
-      } else if (gameTimeSeconds < 90) {
-        earlyGameBonus = 200; // 45-90 seconds: still quite forgiving
-      } else if (gameTimeSeconds < 135) {
-        earlyGameBonus = 100; // 90-135 seconds (1.5-2.25 min): moderately forgiving
-      } else if (gameTimeSeconds < 180) {
-        earlyGameBonus = 50; // 135-180 seconds (2.25-3 min): slightly forgiving
+      if (gameTimeSeconds < 20) {
+        earlyGameBonus = 200; // First 20 seconds: tutorial mode
+      } else if (gameTimeSeconds < 45) {
+        earlyGameBonus = 150; // 20-45 seconds: still learning
+      } else if (gameTimeSeconds < 75) {
+        earlyGameBonus = 100; // 45-75 seconds: getting comfortable
+      } else if (gameTimeSeconds < 120) {
+        earlyGameBonus = 50; // 75-120 seconds: nearly full difficulty
       }
-      // After 3 minutes: no bonus, full difficulty
+      // After 2 minutes: full difficulty
       
       const baseWindowMs = getMatchWindowMs(currentScore, 0);
-      const windowMs = Math.min(1200, baseWindowMs + earlyGameBonus); // Cap at 1200ms max
+      const windowMs = Math.min(1100, baseWindowMs + earlyGameBonus); // Cap at 1100ms max
       matchWindowMsRef.current = windowMs;
 
       setMatchProgress(100);
@@ -884,6 +907,10 @@ const ColorReaction: React.FC = () => {
         matchHandledRef.current = true;
         matchActiveRef.current = false;
         isMatchWindowRef.current = false;
+        
+        // CRITICAL: Set life loss cooldown to prevent double punishment
+        // Player already lost a life for timing out - don't punish again if they tap late
+        lastLifeLostTimeRef.current = performance.now();
         
         if (countdownIntervalRef.current) {
           clearInterval(countdownIntervalRef.current);
@@ -1045,10 +1072,6 @@ const ColorReaction: React.FC = () => {
       setBackgroundPulse(true);
       setTimeout(() => setBackgroundPulse(false), 300);
 
-      // TASK 108: Camera zoom pulse on tap
-      setCameraZoom(true);
-      setTimeout(() => setCameraZoom(false), 150);
-
       // TASK 110: Hit-stop on correct tap (scaled by rating)
       const hitStopDuration = rating === 'PERFECT' ? 80 : rating === 'GREAT' ? 50 : 30;
       setHitStop(true);
@@ -1085,8 +1108,8 @@ const ColorReaction: React.FC = () => {
         // TASK 42: Major particle burst for PERFECT
         triggerShockwave('#FFD700', 1.0); // Larger gold shockwave
         triggerSparks('#FFD700'); // Gold sparks
-        // TASK 117: Track best moments for sharing
-        bestMomentsRef.current.push({ type: 'perfect', value: reactionMs, timestamp: performance.now() });
+        // TASK 117: Track best moments for sharing (disabled - not displayed)
+        // bestMomentsRef.current.push({ type: 'perfect', value: reactionMs, timestamp: performance.now() });
       }
 
       // TASK 11 & 23: Streak milestones with confetti, haptics, and sounds
@@ -1189,7 +1212,7 @@ const ColorReaction: React.FC = () => {
   // Handle tap - uses refs for immediate state access (avoids stale closures on mobile)
   const handleTap = useCallback(() => {
     const now = performance.now();
-
+    
     // Debounce
     if (now - lastTapTimeRef.current < TAP_DEBOUNCE_MS) {
       return;
@@ -1206,7 +1229,9 @@ const ColorReaction: React.FC = () => {
 
     // TASK 49: Squash effect on every tap
     setTapSquash(true);
-    setTimeout(() => setTapSquash(false), 100);
+    setTimeout(() => {
+      setTapSquash(false);
+    }, 100);
 
     const currentStatus = gameStatusRef.current;
     // CRITICAL FIX: Refs are updated SYNCHRONOUSLY when FULL_MATCH is created, but gameState updates ASYNCHRONOUSLY
@@ -1337,7 +1362,7 @@ const ColorReaction: React.FC = () => {
       });
 
       gameStatsRef.current.successes++;
-      partialTapWarningsRef.current = 0; // Reset partial warnings on successful tap
+      wrongTapWarningsRef.current = 0; // Reset wrong tap warnings on successful tap
       lastSuccessTapTimeRef.current = now; // Track success time to prevent "TOO LATE" on quick re-tap
       handleCorrectTap(actualPoints, rating, reactionMs, nextStreak);
       
@@ -1349,39 +1374,8 @@ const ColorReaction: React.FC = () => {
           scheduleNextCycle(gameState.score + actualPoints, 'handleTap-success');
         }
       }, 300); // 300ms delay - enough to see success feedback, not too long to feel sluggish
-    } else if (visualMatch && !matchActive) {
-      // CRITICAL: Skip "TOO LATE" if user just had a successful tap (prevents double feedback)
-      if (now - lastSuccessTapTimeRef.current < SUCCESS_TAP_GRACE_MS) {
-        return;
-      }
-      
-      // CRITICAL FIX: "Too late" - clear the match window and continue the game
-      // The match window expired, so clear it and schedule next cycle
-      matchActiveRef.current = false;
-      isMatchWindowRef.current = false;
-      setMatchProgress(0);
-      if (matchWindowTimeoutRef.current) {
-        clearTimeout(matchWindowTimeoutRef.current);
-        matchWindowTimeoutRef.current = null;
-      }
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-        countdownIntervalRef.current = null;
-      }
-      
-      setTooLateFeedback(true);
-      setTimeout(() => setTooLateFeedback(false), 600);
-      triggerScreenShake(80);
-      triggerPlayerFlash('wrong');
-      showFloatingScore('TOO LATE', 'warning');
-      
-      // CRITICAL: Schedule next cycle so game continues
-      setGameState((prev) => ({
-        ...prev,
-        isMatchWindow: false,
-      }));
-      scheduleNextCycle(gameState.score, 'handleTap-too-late');
-    } else {
+    } else if (!visualMatch) {
+      // WRONG TAP: Colors/fruits DON'T match - handle this FIRST before "too late"
       if (matchActive && matchHandledRef.current) {
         return;
       }
@@ -1390,19 +1384,21 @@ const ColorReaction: React.FC = () => {
       }
       lastWrongTapTimeRef.current = now;
       
-      // FORGIVENESS: Check if this is a PARTIAL match (fruit OR color matches, but not both)
-      // PARTIAL matches are easy to mistake for FULL
-      // First PARTIAL tap = warning, Second PARTIAL tap = lose life
+      // FORGIVENESS: Only during tutorial (first 20 seconds)
+      // After tutorial: every wrong tap costs a life immediately
       const isPartialMatch = (tf === yf && tc !== yc) || (tf !== yf && tc === yc);
+      const gameTimeSeconds = (now - gameStartTimeRef.current) / 1000;
+      const inTutorial = gameTimeSeconds < 20;
       
-      if (isPartialMatch) {
-        partialTapWarningsRef.current++;
+      if (inTutorial) {
+        wrongTapWarningsRef.current++;
         
-        if (partialTapWarningsRef.current === 1) {
-          // First PARTIAL tap - WARNING ONLY, no life loss
+        if (wrongTapWarningsRef.current === 1) {
+          // First wrong tap during tutorial - WARNING ONLY
           triggerScreenShake(50);
           triggerPlayerFlash('wrong');
-          showFloatingScore('CLOSE! BE CAREFUL', 'warning');
+          const warningMsg = isPartialMatch ? 'CLOSE! BE CAREFUL' : 'WRONG! BE CAREFUL';
+          showFloatingScore(warningMsg, 'warning');
           // Just reset streak, don't lose life
           setGameState((prev) => ({
             ...prev,
@@ -1410,13 +1406,14 @@ const ColorReaction: React.FC = () => {
           }));
           return;
         } else {
-          // Second+ PARTIAL tap - NOW loses life (falls through to life loss below)
-          partialTapWarningsRef.current = 0; // Reset after penalty
-          // Don't return - fall through to lose life
+          // Second+ wrong tap during tutorial - loses life
+          wrongTapWarningsRef.current = 0;
+          // Don't return - fall through to life loss below
         }
       }
+      // After tutorial: No forgiveness - immediate life loss
       
-      // NO_MATCH tap - this is a real mistake, loses life
+      // Wrong tap after warning - loses life
       const now2 = performance.now();
       if (now2 - lastLifeLostTimeRef.current < LIFE_LOSS_COOLDOWN_MS) {
         return;
@@ -1441,6 +1438,80 @@ const ColorReaction: React.FC = () => {
       } else {
         setGameState((prev) => ({ ...prev, lives: prev.lives - 1, streak: 0 }));
       }
+    } else if (visualMatch && !matchActive) {
+      // TOO LATE: Colors match but the match window has expired
+      // CRITICAL: Skip if user just had a successful tap (prevents double feedback)
+      if (now - lastSuccessTapTimeRef.current < SUCCESS_TAP_GRACE_MS) {
+        return;
+      }
+      
+      // Debounce rapid taps
+      if (now - lastWrongTapTimeRef.current < WRONG_TAP_COOLDOWN_MS) {
+        return;
+      }
+      lastWrongTapTimeRef.current = now;
+      
+      // Clear the match window
+      matchActiveRef.current = false;
+      isMatchWindowRef.current = false;
+      setMatchProgress(0);
+      if (matchWindowTimeoutRef.current) {
+        clearTimeout(matchWindowTimeoutRef.current);
+        matchWindowTimeoutRef.current = null;
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      
+      // TOO LATE: Only give warnings during tutorial (first 20 seconds)
+      const gameTimeSecondsLate = (now - gameStartTimeRef.current) / 1000;
+      const inTutorialLate = gameTimeSecondsLate < 20;
+      
+      if (inTutorialLate) {
+        wrongTapWarningsRef.current++;
+        
+        if (wrongTapWarningsRef.current === 1) {
+          // First "too late" tap during tutorial - WARNING ONLY
+          setTooLateFeedback(true);
+          setTimeout(() => setTooLateFeedback(false), 600);
+          triggerScreenShake(50);
+          triggerPlayerFlash('wrong');
+          showFloatingScore('TOO LATE! BE CAREFUL', 'warning');
+          setGameState((prev) => ({
+            ...prev,
+            isMatchWindow: false,
+            streak: 0,
+          }));
+          scheduleNextCycle(gameState.score, 'handleTap-too-late-warning');
+          return;
+        }
+        
+        // Second+ "too late" during tutorial - loses life
+        wrongTapWarningsRef.current = 0;
+      }
+      // After tutorial: No forgiveness - immediate life loss
+      
+      const now2 = performance.now();
+      if (now2 - lastLifeLostTimeRef.current < LIFE_LOSS_COOLDOWN_MS) {
+        scheduleNextCycle(gameState.score, 'handleTap-too-late-cooldown');
+        return;
+      }
+      lastLifeLostTimeRef.current = now2;
+      
+      setTooLateFeedback(true);
+      setTimeout(() => setTooLateFeedback(false), 600);
+      triggerScreenShake(80);
+      triggerPlayerFlash('wrong');
+      showFloatingScore('TOO LATE!', 'wrong');
+      
+      // Handle game over or continue with reduced lives
+      if (gameState.lives <= 1) {
+        handleGameOver(gameState.score, gameState.bestReactionTime);
+      } else {
+        setGameState((prev) => ({ ...prev, lives: prev.lives - 1, streak: 0, isMatchWindow: false }));
+        scheduleNextCycle(gameState.score, 'handleTap-too-late-life-loss');
+      }
     }
   }, [scheduleNextCycle, handleCorrectTap, handleGameOver, gameState.streak, gameState.lives, gameState.score, gameState.bestReactionTime, hapticCRTap, musicManagedExternally, playNextMusicTrack]);
 
@@ -1464,15 +1535,15 @@ const ColorReaction: React.FC = () => {
     lastWrongTapTimeRef.current = 0;
     lastSuccessTapTimeRef.current = 0;
     lastLifeLostTimeRef.current = 0;
-    bestMomentsRef.current = [];
+    // bestMomentsRef.current = [];
     matchStartTsRef.current = null;
     matchWindowMsRef.current = 1000;
 
     // Reset game stats
     gameStatsRef.current = { successes: 0 };
-    partialTapWarningsRef.current = 0; // Reset partial warnings on restart
+    wrongTapWarningsRef.current = 0; // Reset wrong tap warnings on restart
 
-    // Reset Phase 6, 7 & 10 states
+    // Reset Phase 6, 7, 10 & 13 states
     setLastLifeWarning(false);
     setFloatingX(false);
     setFloatingClock(false);
@@ -1484,6 +1555,7 @@ const ColorReaction: React.FC = () => {
     setMismatchFruit(false);
     setMismatchColor(false);
     setReactionTimePopup(null);
+    setPressureLevel(0);
 
     setGameState({
       ...initialGameState,
@@ -1572,8 +1644,11 @@ const ColorReaction: React.FC = () => {
     </div>
   );
 
+  // #region agent log - removed render log to reduce noise
+  // #endregion
+
   return (
-    <IonPage>
+    <>
       <GameSEO
         gameName="Color Reaction"
         gameSlug="color-reaction"
@@ -1581,22 +1656,14 @@ const ColorReaction: React.FC = () => {
         genre="Arcade"
         difficulty="Easy"
       />
-      <IonContent fullscreen scrollY={false}>
-        <div
-          ref={gameAreaRef}
-          className={`color-reaction-container ${isMobile ? 'mobile' : 'desktop'} ${screenShake && !prefersReducedMotion ? 'shaking' : ''} ${gameState.isMatchWindow ? `container-urgency-${urgencyLevel}` : ''} ${perfectFlash && !prefersReducedMotion ? 'perfect-flash' : ''} ${backgroundPulse && !prefersReducedMotion ? 'background-pulse' : ''} ${streakFire && !prefersReducedMotion ? 'streak-fire' : ''} ${lastLifeWarning ? 'last-life-danger' : ''} ${prefersReducedMotion ? 'reduced-motion' : ''} ${feverMode ? `fever-mode fever-intensity-${feverIntensity}` : ''} ${feverActivating ? 'fever-activating' : ''} ${cameraZoom && !prefersReducedMotion ? 'camera-zoom' : ''} ${hitStop ? 'hit-stop' : ''}`}
-          onClick={gameState.status !== 'gameover' ? handleTap : undefined}
-          onTouchStart={
-            gameState.status !== 'gameover'
-              ? (e) => {
-                  e.preventDefault();
-                  handleTap();
-                }
-              : undefined
-          }
-        >
+      <div
+        ref={gameAreaRef}
+        className={`color-reaction-container ${isMobile ? 'mobile' : 'desktop'} ${screenShake && !prefersReducedMotion ? 'shaking' : ''} ${gameState.isMatchWindow ? `container-urgency-${urgencyLevel}` : ''} ${perfectFlash && !prefersReducedMotion ? 'perfect-flash' : ''} ${backgroundPulse && !prefersReducedMotion ? 'background-pulse' : ''} ${streakFire && !prefersReducedMotion ? 'streak-fire' : ''} ${lastLifeWarning ? 'last-life-danger' : ''} ${prefersReducedMotion ? 'reduced-motion' : ''} ${feverMode ? `fever-mode fever-intensity-${feverIntensity}` : ''} ${feverActivating ? 'fever-activating' : ''} ${hitStop ? 'hit-stop' : ''} ${pressureLevel > 0 ? `pressure-level-${pressureLevel}` : ''}`}
+        onPointerDown={gameState.status !== 'gameover' ? handleTap : undefined}
+      >
           {/* Universal Game Effects Layer */}
           <GameEffects effects={effects} accentColor={COLORS[gameState.yourColor]?.hex ?? '#FF6B00'} />
+
 
           {/* Stats Panel */}
           <div className="stats-panel">
@@ -1656,31 +1723,33 @@ const ColorReaction: React.FC = () => {
               <span className="color-label">YOUR</span>
               {/* TASK 34: Add shake class in critical state */}
               <div className={`player-circle-wrapper ${urgencyLevel === 'critical' ? 'critical-shake' : ''}`} style={{ width: displaySize + 20, height: displaySize + 20 }}>
-                {/* Countdown ring - TASK 30: Color transitions based on urgency */}
-                {gameState.isMatchWindow && (
-                  <svg className={`countdown-ring urgency-${urgencyLevel}`} viewBox="0 0 100 100">
-                    <circle
-                      className="countdown-ring-bg"
-                      cx="50"
-                      cy="50"
-                      r="46"
-                      fill="none"
-                      stroke="rgba(255,255,255,0.2)"
-                      strokeWidth="4"
-                    />
-                    <circle
-                      className="countdown-ring-progress"
-                      cx="50"
-                      cy="50"
-                      r="46"
-                      fill="none"
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      strokeDasharray={`${matchProgress * 2.89} 289`}
-                      transform="rotate(-90 50 50)"
-                    />
-                  </svg>
-                )}
+                {/* Countdown ring - ALWAYS rendered but hidden to prevent layout shifts */}
+                <svg 
+                  className={`countdown-ring urgency-${urgencyLevel}`} 
+                  viewBox="0 0 100 100"
+                  style={{ opacity: gameState.isMatchWindow ? 1 : 0, pointerEvents: 'none' }}
+                >
+                  <circle
+                    className="countdown-ring-bg"
+                    cx="50"
+                    cy="50"
+                    r="46"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeWidth="4"
+                  />
+                  <circle
+                    className="countdown-ring-progress"
+                    cx="50"
+                    cy="50"
+                    r="46"
+                    fill="none"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeDasharray={`${matchProgress * 2.89} 289`}
+                    transform="rotate(-90 50 50)"
+                  />
+                </svg>
                 <div
                   className={`color-display player-display ${gameState.isMatchWindow ? 'matching match-glow' : ''} ${playerFlash ? `flash-${playerFlash}` : ''} ${perfectPulse ? 'perfect-pulse' : ''} ${tapSquash ? 'tap-squash' : ''} ${impactFlash ? 'impact-flash' : ''} ${tooLateFeedback ? 'too-late-flash' : ''} ${mismatchColor ? 'mismatch-color' : ''}`}
                   style={{
@@ -1785,9 +1854,8 @@ const ColorReaction: React.FC = () => {
               minimumActionsMessage="Get at least 3 correct taps to be on the leaderboard"
             />
           )}
-        </div>
-      </IonContent>
-    </IonPage>
+      </div>
+    </>
   );
 };
 

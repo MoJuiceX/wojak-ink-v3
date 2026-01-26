@@ -1,0 +1,127 @@
+/**
+ * Champion Card Styles
+ * 
+ * Mobile-first design for the #1 ranked player.
+ * Full-width card that's part of the scroll flow.
+ */
+
+.champion-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 20px 20px;
+  margin: 0 -12px 16px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 215, 0, 0.08) 0%,
+    rgba(255, 180, 0, 0.04) 50%,
+    transparent 100%
+  );
+  border-top: 1px solid rgba(255, 215, 0, 0.25);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle gold shimmer on edges */
+.champion-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 215, 0, 0.4) 50%,
+    transparent 100%
+  );
+}
+
+.champion-card:active {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 215, 0, 0.12) 0%,
+    rgba(255, 180, 0, 0.06) 50%,
+    transparent 100%
+  );
+}
+
+.champion-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255, 215, 0, 0.7);
+  margin-bottom: 8px;
+}
+
+.champion-crown {
+  font-size: 28px;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 2px 8px rgba(255, 215, 0, 0.4));
+}
+
+.champion-avatar {
+  margin: 4px 0 8px;
+}
+
+/* Ensure avatar is properly sized */
+.champion-avatar .avatar {
+  width: 72px;
+  height: 72px;
+}
+
+.champion-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 4px;
+  text-align: center;
+  /* NO truncation - show full name */
+  word-break: break-word;
+  max-width: 100%;
+  padding: 0 16px;
+}
+
+.champion-score {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-top: 4px;
+  filter: drop-shadow(0 2px 4px rgba(255, 200, 0, 0.2));
+}
+
+.champion-rank-badge {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 215, 0, 0.6);
+  margin-top: 8px;
+}
+
+/* Desktop: Hide champion card (use podium instead) */
+@media (min-width: 481px) {
+  .champion-card {
+    display: none;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 320px) {
+  .champion-card {
+    padding: 20px 16px 16px;
+  }
+  
+  .champion-name {
+    font-size: 16px;
+  }
+  
+  .champion-score {
+    font-size: 28px;
+  }
+}

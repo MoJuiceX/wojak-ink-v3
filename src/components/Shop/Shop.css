@@ -622,6 +622,20 @@
   box-shadow: none;
 }
 
+/* Sign in button state */
+.buy-button.signin-required {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.buy-button.signin-required:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+  box-shadow: none;
+  transform: none;
+}
+
 /* Preview styles for shop items */
 .preview-frame {
   width: 60px;
@@ -985,5 +999,409 @@
   100% {
     transform: translate(30px, -10px) scale(0.5);
     opacity: 0;
+  }
+}
+
+/* ============================================================
+   MOBILE REDESIGN - Fixed Card with Inner Carousel
+   ============================================================ */
+
+/* Desktop: Hide mobile-specific elements */
+.buy-text-mobile {
+  display: none;
+}
+.mobile-shop-container {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  /* === HEADER: Clean & Centered === */
+  .shop-header {
+    text-align: center;
+    padding: 16px 16px 12px;
+  }
+  
+  .shop-header::before {
+    display: none;
+  }
+  
+  .shop-header h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  
+  .shop-title-row {
+    justify-content: center;
+  }
+  
+  .shop-header .close-button {
+    display: none;
+  }
+  
+  /* === PURCHASE MESSAGE === */
+  .purchase-message {
+    margin: 0 16px 12px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  
+  .purchase-message.error {
+    background: rgba(239, 68, 68, 0.1);
+    border: none;
+    color: rgba(239, 68, 68, 0.9);
+  }
+  
+  /* === CATEGORY TABS: Clean Pills === */
+  .category-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .category-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .category-tab {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  
+  .category-tab svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .category-tab.active {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(234, 88, 12, 0.2));
+    border-color: rgba(249, 115, 22, 0.4);
+    color: #fff;
+  }
+  
+  .category-tab.disabled {
+    opacity: 0.35;
+  }
+  
+  .coming-soon-badge {
+    display: none;
+  }
+
+  /* === HIDE DESKTOP GRID ON MOBILE === */
+  .items-grid {
+    display: none;
+  }
+
+  /* === MOBILE SHOP CONTAINER === */
+  .mobile-shop-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 16px 100px;
+    gap: 20px;
+  }
+
+  /* === FIXED CARD FRAME === */
+  .mobile-card-frame {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    min-height: 380px;
+    background: rgba(25, 25, 35, 0.98);
+    border-radius: 28px;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    box-shadow: 
+      0 20px 60px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  }
+
+  /* Tier-based card styling */
+  .mobile-card-frame.tier-basic {
+    border-color: rgba(34, 197, 94, 0.3);
+    box-shadow: 
+      0 20px 60px rgba(0, 0, 0, 0.4),
+      0 0 40px rgba(34, 197, 94, 0.1),
+      0 0 0 1px rgba(34, 197, 94, 0.1) inset;
+  }
+
+  .mobile-card-frame.tier-premium {
+    border-color: rgba(255, 215, 0, 0.35);
+    background: linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, rgba(25, 25, 35, 0.98) 30%);
+    box-shadow: 
+      0 20px 60px rgba(0, 0, 0, 0.4),
+      0 0 50px rgba(255, 215, 0, 0.12),
+      0 0 0 1px rgba(255, 215, 0, 0.15) inset;
+  }
+
+  /* === INNER CAROUSEL - This is what swipes === */
+  .mobile-carousel {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-carousel::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* === CAROUSEL SLIDE === */
+  .carousel-slide {
+    flex-shrink: 0;
+    width: 100%;
+    min-height: 380px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 24px;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    cursor: pointer;
+  }
+
+  /* === CAROUSEL PREVIEW (Emoji) === */
+  .carousel-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 160px;
+    height: 160px;
+    margin-bottom: 16px;
+    background: none;
+  }
+
+  .carousel-preview .preview-emoji {
+    font-size: 6rem;
+    line-height: 1;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    /* Clean - no backgrounds or borders */
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    /* Subtle glow using text-shadow/filter */
+    filter: drop-shadow(0 0 40px rgba(249, 115, 22, 0.2));
+  }
+
+  .carousel-slide.active .carousel-preview .preview-emoji {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 50px rgba(249, 115, 22, 0.35));
+  }
+
+  /* Tier-specific glow colors - Basic (green) */
+  .mobile-card-frame.tier-basic .carousel-preview .preview-emoji {
+    filter: drop-shadow(0 0 40px rgba(34, 197, 94, 0.25));
+  }
+
+  .mobile-card-frame.tier-basic .carousel-slide.active .carousel-preview .preview-emoji {
+    filter: drop-shadow(0 0 50px rgba(34, 197, 94, 0.4));
+  }
+
+  /* Tier-specific glow colors - Premium (gold) */
+  .mobile-card-frame.tier-premium .carousel-preview .preview-emoji {
+    filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.2));
+  }
+
+  .mobile-card-frame.tier-premium .carousel-slide.active .carousel-preview .preview-emoji {
+    filter: drop-shadow(0 0 50px rgba(255, 215, 0, 0.35));
+  }
+
+  /* === CAROUSEL NAME === */
+  .carousel-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+
+  /* === CAROUSEL TIER BADGE === */
+  .carousel-tier {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+
+  .carousel-tier.tier-free {
+    background: rgba(156, 163, 175, 0.2);
+    color: rgba(156, 163, 175, 0.9);
+  }
+
+  .carousel-tier.tier-basic {
+    background: rgba(34, 197, 94, 0.15);
+    color: rgba(74, 222, 128, 0.95);
+  }
+
+  .carousel-tier.tier-premium {
+    background: rgba(255, 215, 0, 0.15);
+    color: rgba(255, 215, 0, 0.95);
+  }
+
+  /* === CAROUSEL ACTION BUTTON === */
+  .carousel-action {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .carousel-btn {
+    padding: 16px 48px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .carousel-btn.buy {
+    background: linear-gradient(135deg, #F97316, #EA580C);
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(249, 115, 22, 0.35);
+  }
+
+  .carousel-btn.buy:active {
+    transform: scale(0.97);
+  }
+
+  .carousel-btn.buy.signin-required {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.4), rgba(234, 88, 12, 0.3));
+    border: 1px dashed rgba(249, 115, 22, 0.5);
+    box-shadow: none;
+  }
+
+  .carousel-btn.buy.not-affordable {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+    box-shadow: none;
+  }
+
+  .carousel-btn.buy:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.4);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  .carousel-btn.equip {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
+  }
+
+  .carousel-btn.equip.unequip {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    box-shadow: none;
+  }
+
+  .carousel-owned {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 16px;
+  }
+
+  /* === NAVIGATION ARROWS === */
+  .carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 10;
+    backdrop-filter: blur(8px);
+  }
+
+  .carousel-nav:active {
+    transform: translateY(-50%) scale(0.95);
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .carousel-nav.prev {
+    left: 8px;
+  }
+
+  .carousel-nav.next {
+    right: 8px;
+  }
+
+  .carousel-nav.hidden {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  /* === PAGINATION DOTS === */
+  .carousel-dots {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    padding: 4px 0;
+  }
+
+  .carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+  }
+
+  .carousel-dot.active {
+    width: 24px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #F97316, #EA580C);
+  }
+
+  .carousel-dot:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.35);
+  }
+
+  /* === LOADING & EMPTY STATES === */
+  .loading-state {
+    padding: 60px 20px;
+  }
+
+  .empty-state {
+    padding: 60px 20px;
+    text-align: center;
   }
 }

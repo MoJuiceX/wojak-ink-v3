@@ -175,6 +175,14 @@ const WojakRunner: React.FC = () => {
   const resetComboRef = useRef(resetCombo);
   const addScorePopupRef = useRef(addScorePopup);
 
+  // Refs for synchronous score submission (avoids stale closure in game loop)
+  const isSignedInRef = useRef(isSignedIn);
+  const scoreSubmittedRef = useRef(scoreSubmitted);
+  const submitScoreRef = useRef(submitScore);
+  useEffect(() => { isSignedInRef.current = isSignedIn; }, [isSignedIn]);
+  useEffect(() => { scoreSubmittedRef.current = scoreSubmitted; }, [scoreSubmitted]);
+  useEffect(() => { submitScoreRef.current = submitScore; }, [submitScore]);
+
   // Player bottom offset ref for game loop (higher on mobile to clear icon bar)
   const playerBottomOffsetRef = useRef(PLAYER_BOTTOM_OFFSET);
   useEffect(() => {
@@ -364,6 +372,7 @@ const WojakRunner: React.FC = () => {
     lastSpawnRef.current = 0;
     lastDistanceMilestoneRef.current = 0;
     setScoreSubmitted(false);
+    scoreSubmittedRef.current = false; // Reset ref for new game
     setIsNewPersonalBest(false);
     setGameScreenshot(null); // Reset to prevent stale screenshot on replay
     // Reset streak and effects
@@ -383,10 +392,15 @@ const WojakRunner: React.FC = () => {
   };
 
   // Auto-submit score to global leaderboard (for signed-in users)
+  // NOTE: This is now a FALLBACK - primary submission happens synchronously in game loop
   const submitScoreGlobal = useCallback(async (finalScore: number, orangesCollected: number) => {
+    // Check ref first to prevent race conditions with synchronous submission
+    if (scoreSubmittedRef.current) return;
+    
     // Check minimum actions: need 3 oranges collected for leaderboard
     if (!isSignedIn || scoreSubmitted || finalScore === 0 || orangesCollected < 3) return;
 
+    scoreSubmittedRef.current = true;
     setScoreSubmitted(true);
     const result = await submitScore(finalScore, undefined, {
       distance: distance,
@@ -638,6 +652,24 @@ const WojakRunner: React.FC = () => {
             } else {
               triggerEventRef.current('game:over');
             }
+            
+            // CRITICAL: Submit score SYNCHRONOUSLY before setGameState
+            // This ensures score is submitted even if modal closes quickly
+            const orangesCollected = collectedIdsRef.current.size;
+            if (isSignedInRef.current && !scoreSubmittedRef.current && 
+                finalScore > 0 && orangesCollected >= 3) {
+              scoreSubmittedRef.current = true;
+              setScoreSubmitted(true);
+              submitScoreRef.current(finalScore, undefined, {
+                distance: Math.floor(distance),
+                orangesCollected,
+              }).then(result => {
+                if (result.success && result.isNewHighScore) {
+                  setIsNewPersonalBest(true);
+                }
+              });
+            }
+            
             setGameState('gameover');
             if (finalScore > highScore) {
               setHighScore(finalScore);

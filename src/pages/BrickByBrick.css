@@ -330,7 +330,7 @@
   align-items: center;
   pointer-events: none;
   z-index: 100;
-  animation: combo-entrance 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: combo-swing-up 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .combo-number {
@@ -374,6 +374,24 @@
   100% { transform: translateX(-50%) scale(1) rotate(0deg); opacity: 1; }
 }
 
+/* Swing-up animation when combo increases */
+@keyframes combo-swing-up {
+  0% { 
+    transform: translateX(-50%) translateY(15px) scale(0.85) rotate(-8deg); 
+    opacity: 0.6; 
+  }
+  40% { 
+    transform: translateX(-50%) translateY(-8px) scale(1.1) rotate(4deg); 
+  }
+  70% { 
+    transform: translateX(-50%) translateY(3px) scale(0.97) rotate(-2deg); 
+  }
+  100% { 
+    transform: translateX(-50%) translateY(0) scale(1) rotate(0deg); 
+    opacity: 1; 
+  }
+}
+
 @keyframes combo-pulse {
   0% { transform: scale(1); }
   100% { transform: scale(1.08); }
@@ -385,54 +403,78 @@
 }
 
 /* Combo level escalation - WARM colors (orange → gold → white hot) */
-/* Simplified for performance - removed infinite animations and expensive filters */
-.combo-level-2 .combo-number { color: #ff9500; text-shadow: 0 0 15px rgba(255, 149, 0, 0.6), 0 2px 4px rgba(0,0,0,0.4); }
-.combo-level-3 .combo-number { color: #ffa500; text-shadow: 0 0 15px rgba(255, 165, 0, 0.6), 0 2px 4px rgba(0,0,0,0.4); }
-.combo-level-4 .combo-number { color: #ffb700; text-shadow: 0 0 18px rgba(255, 183, 0, 0.7), 0 2px 4px rgba(0,0,0,0.4); }
-.combo-level-5 .combo-number { color: #ffc800; text-shadow: 0 0 20px rgba(255, 200, 0, 0.7), 0 2px 4px rgba(0,0,0,0.4); font-size: 80px; }
-.combo-level-6 .combo-number { color: #ffd500; text-shadow: 0 0 20px rgba(255, 213, 0, 0.8), 0 2px 4px rgba(0,0,0,0.4); font-size: 84px; }
-.combo-level-7 .combo-number { color: #ffe135; text-shadow: 0 0 22px rgba(255, 225, 53, 0.8), 0 2px 4px rgba(0,0,0,0.4); font-size: 88px; }
-.combo-level-8 .combo-number { color: #ffec5c; text-shadow: 0 0 24px rgba(255, 236, 92, 0.8), 0 2px 4px rgba(0,0,0,0.4); font-size: 92px; }
-.combo-level-9 .combo-number { color: #fff480; text-shadow: 0 0 26px rgba(255, 244, 128, 0.8), 0 2px 4px rgba(0,0,0,0.4); font-size: 96px; }
+/* Progressive sizing: smooth curve from 2x to 10x+ */
+/* Base is 72px, each level adds more (accelerating growth) */
+.combo-level-2 .combo-number { color: #ff9500; text-shadow: 0 0 12px rgba(255, 149, 0, 0.5), 0 2px 4px rgba(0,0,0,0.4); font-size: 52px; }
+.combo-level-3 .combo-number { color: #ffa500; text-shadow: 0 0 14px rgba(255, 165, 0, 0.55), 0 2px 4px rgba(0,0,0,0.4); font-size: 58px; }
+.combo-level-4 .combo-number { color: #ffb700; text-shadow: 0 0 16px rgba(255, 183, 0, 0.6), 0 2px 4px rgba(0,0,0,0.4); font-size: 66px; }
+.combo-level-5 .combo-number { color: #ffc800; text-shadow: 0 0 18px rgba(255, 200, 0, 0.65), 0 2px 4px rgba(0,0,0,0.4); font-size: 74px; }
+.combo-level-6 .combo-number { color: #ffd500; text-shadow: 0 0 20px rgba(255, 213, 0, 0.7), 0 2px 4px rgba(0,0,0,0.4); font-size: 82px; }
+.combo-level-7 .combo-number { color: #ffe135; text-shadow: 0 0 22px rgba(255, 225, 53, 0.75), 0 2px 4px rgba(0,0,0,0.4); font-size: 90px; }
+.combo-level-8 .combo-number { color: #ffec5c; text-shadow: 0 0 24px rgba(255, 236, 92, 0.8), 0 2px 4px rgba(0,0,0,0.4); font-size: 96px; }
+.combo-level-9 .combo-number { color: #fff480; text-shadow: 0 0 26px rgba(255, 244, 128, 0.85), 0 2px 4px rgba(0,0,0,0.4); font-size: 102px; }
 .combo-level-10 .combo-number {
   color: #fff;
   text-shadow: 0 0 30px #ffd700, 0 2px 4px rgba(0,0,0,0.4);
-  font-size: 100px;
+  font-size: 108px;
 }
 
-/* Perfect/Great bonus flash - top center */
+/* Perfect/Great bonus flash - appears near stack, floats up-right and fades */
 .bonus-flash {
   position: absolute;
-  top: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
-  padding: 8px 24px;
-  border-radius: 30px;
+  padding: 6px 16px;
+  border-radius: 20px;
   pointer-events: none;
   z-index: 101;
   animation: flash-in-out 1.2s ease-out forwards;
 }
 
+/* New floating animation - starts centered, moves up and to the right */
+.bonus-flash.bonus-flash-float {
+  animation: flash-float-up-right 1s ease-out forwards;
+}
+
 .bonus-flash.perfect {
   background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
   color: #1a1a2e;
-  box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.3);
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
 }
 
 .bonus-flash.great {
   background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: #fff;
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 0 0 40px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.5), 0 0 30px rgba(34, 197, 94, 0.2);
 }
 
+/* Original animation (fallback) */
 @keyframes flash-in-out {
   0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
   15% { transform: translateX(-50%) scale(1.2); opacity: 1; }
   30% { transform: translateX(-50%) scale(1); opacity: 1; }
   100% { transform: translateX(-50%) scale(0.8); opacity: 0; }
+}
+
+/* New animation: pop in, then float up and to the right while fading */
+@keyframes flash-float-up-right {
+  0% { 
+    transform: translateX(-50%) scale(0.5); 
+    opacity: 0; 
+  }
+  15% { 
+    transform: translateX(-50%) scale(1.1); 
+    opacity: 1; 
+  }
+  30% { 
+    transform: translateX(-50%) scale(1); 
+    opacity: 1; 
+  }
+  100% { 
+    transform: translateX(20%) translateY(-60px) scale(0.8); 
+    opacity: 0; 
+  }
 }
 
 /* Combo Streak Meter - vertical bar on right side */
@@ -525,13 +567,18 @@
   transform: none;
 }
 
-.os-effects-portal .bonus-flash,
 .os-effects-portal .score-popup,
 .os-effects-portal .epic-callout,
 .os-effects-portal .floating-emoji {
   top: auto;
   left: auto;
   transform: none;
+}
+
+/* Bonus flash uses animation for transform, so don't override */
+.os-effects-portal .bonus-flash {
+  top: auto;
+  /* left and transform controlled by animation */
 }
 
 /* Screen shake effect */
@@ -2702,10 +2749,16 @@
     height: 40px;
   }
 
-  /* Effects - scale for mobile visibility */
-  .combo-number {
-    font-size: 80px;
-  }
+  /* Effects - progressive scaling for mobile (proportional to desktop) */
+  .combo-level-2 .combo-number { font-size: 42px; }
+  .combo-level-3 .combo-number { font-size: 48px; }
+  .combo-level-4 .combo-number { font-size: 54px; }
+  .combo-level-5 .combo-number { font-size: 62px; }
+  .combo-level-6 .combo-number { font-size: 70px; }
+  .combo-level-7 .combo-number { font-size: 78px; }
+  .combo-level-8 .combo-number { font-size: 84px; }
+  .combo-level-9 .combo-number { font-size: 90px; }
+  .combo-level-10 .combo-number { font-size: 96px; }
 
   .combo-label {
     font-size: 16px;
@@ -2795,9 +2848,16 @@
     height: 40px;
   }
 
-  .combo-number {
-    font-size: 40px;
-  }
+  /* Progressive scaling for small mobile */
+  .combo-level-2 .combo-number { font-size: 28px; }
+  .combo-level-3 .combo-number { font-size: 32px; }
+  .combo-level-4 .combo-number { font-size: 36px; }
+  .combo-level-5 .combo-number { font-size: 42px; }
+  .combo-level-6 .combo-number { font-size: 48px; }
+  .combo-level-7 .combo-number { font-size: 54px; }
+  .combo-level-8 .combo-number { font-size: 58px; }
+  .combo-level-9 .combo-number { font-size: 62px; }
+  .combo-level-10 .combo-number { font-size: 66px; }
 
   .epic-callout {
     font-size: 28px;

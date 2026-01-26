@@ -1,7 +1,7 @@
 /**
  * TabNavigation Component
  *
- * Tab navigation for the right panel with animated indicator.
+ * Premium tab navigation with animated indicator and glass morphism.
  */
 
 import { useRef, useState, useEffect, useCallback } from 'react';
@@ -19,13 +19,14 @@ interface TabNavigationProps {
 interface TabConfig {
   id: BigPulpTab;
   label: string;
+  shortLabel: string; // For mobile
   icon: React.ElementType;
 }
 
 const TABS: TabConfig[] = [
-  { id: 'market', label: 'Market', icon: BarChart3 },
-  { id: 'ask', label: 'Ask Big Pulp', icon: HelpCircle },
-  { id: 'attributes', label: 'Attributes', icon: List },
+  { id: 'market', label: 'Market', shortLabel: 'Market', icon: BarChart3 },
+  { id: 'ask', label: 'Ask BigPulp', shortLabel: 'BigPulp', icon: HelpCircle },
+  { id: 'attributes', label: 'Attributes', shortLabel: 'Traits', icon: List },
 ];
 
 export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
@@ -79,15 +80,19 @@ export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
       className="relative"
       role="tablist"
       aria-label="Analysis sections"
+      style={{
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%)',
+        borderBottom: '1px solid var(--color-border)',
+      }}
     >
       {/* Tab buttons */}
-      <div className="flex">
+      <div className="flex p-1.5 gap-1">
         {TABS.map((tab, index) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
 
           return (
-            <button
+            <motion.button
               key={tab.id}
               ref={(el) => {
                 if (el) tabsRef.current.set(tab.id, el);
@@ -97,46 +102,90 @@ export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
               aria-controls={`panel-${tab.id}`}
               id={`tab-${tab.id}`}
               tabIndex={isActive ? 0 : -1}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative"
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold transition-all relative rounded-lg"
               style={{
                 color: isActive
                   ? 'var(--color-brand-primary)'
                   : 'var(--color-text-muted)',
+                background: isActive
+                  ? 'linear-gradient(135deg, rgba(255,149,0,0.15) 0%, rgba(255,149,0,0.05) 100%)'
+                  : 'transparent',
+                border: isActive
+                  ? '1px solid rgba(255,149,0,0.3)'
+                  : '1px solid transparent',
+                boxShadow: isActive
+                  ? '0 2px 8px rgba(255,149,0,0.15), inset 0 1px 0 rgba(255,255,255,0.05)'
+                  : 'none',
               }}
               onClick={() => {
                 haptic.tap();
                 onTabChange(tab.id);
               }}
               onKeyDown={(e) => handleKeyDown(e, index)}
+              whileHover={
+                prefersReducedMotion
+                  ? undefined
+                  : {
+                      scale: 1.02,
+                      background: isActive
+                        ? 'linear-gradient(135deg, rgba(255,149,0,0.2) 0%, rgba(255,149,0,0.08) 100%)'
+                        : 'rgba(255,255,255,0.05)',
+                    }
+              }
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
             >
-              <Icon size={18} />
-              <span>{tab.label}</span>
-            </button>
+              <Icon
+                size={18}
+                style={{
+                  opacity: isActive ? 1 : 0.7,
+                }}
+              />
+              {/* Full label on desktop, short on mobile */}
+              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="sm:hidden">{tab.shortLabel}</span>
+              
+              {/* Active glow effect */}
+              {isActive && !prefersReducedMotion && (
+                <motion.div
+                  className="absolute inset-0 rounded-lg pointer-events-none"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  style={{
+                    boxShadow: 'inset 0 0 12px rgba(255,149,0,0.1)',
+                  }}
+                />
+              )}
+            </motion.button>
           );
         })}
       </div>
 
-      {/* Active indicator */}
-      <motion.div
-        className="absolute bottom-0 h-0.5 rounded-full"
-        style={{
-          background: 'var(--color-brand-primary)',
-          boxShadow: '0 0 8px var(--color-brand-glow)',
-          left: indicatorStyle.left,
-          width: indicatorStyle.width,
-        }}
-        animate={{
-          left: indicatorStyle.left,
-          width: indicatorStyle.width,
-        }}
-        transition={prefersReducedMotion ? { duration: 0 } : TAB_TRANSITION}
-      />
-
-      {/* Bottom border */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-px"
-        style={{ background: 'var(--color-border)' }}
-      />
+      {/* Subtle animated glow under active tab */}
+      {!prefersReducedMotion && (
+        <motion.div
+          className="absolute bottom-0 h-0.5 rounded-full"
+          style={{
+            background: 'linear-gradient(90deg, transparent, var(--color-brand-primary), transparent)',
+            boxShadow: '0 0 12px var(--color-brand-glow)',
+            left: indicatorStyle.left + 8,
+            width: indicatorStyle.width - 16,
+          }}
+          animate={{
+            left: indicatorStyle.left + 8,
+            width: indicatorStyle.width - 16,
+            opacity: [0.5, 1, 0.5],
+          }}
+          transition={{
+            left: prefersReducedMotion ? { duration: 0 } : TAB_TRANSITION,
+            width: prefersReducedMotion ? { duration: 0 } : TAB_TRANSITION,
+            opacity: {
+              duration: 2,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            },
+          }}
+        />
+      )}
     </div>
   );
 }

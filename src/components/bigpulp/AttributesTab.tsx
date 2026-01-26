@@ -1,22 +1,19 @@
 /**
  * AttributesTab Component
  *
- * Searchable, sortable attributes table with expandable rows.
+ * Mobile-first card-based attributes browser with search and filters.
+ * Premium design with expandable cards showing sales data.
  */
 
 import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Search, ChevronDown, ChevronUp, ArrowUpDown } from 'lucide-react';
+import { Search, ChevronDown, TrendingUp, Clock, Tag } from 'lucide-react';
 import type {
   AttributeStats,
   AttributeSortField,
   AttributeSortState,
 } from '@/types/bigpulp';
-import {
-  tableRowVariants,
-  tableRowExpandVariants,
-  tabContentVariants,
-} from '@/config/bigpulpAnimations';
+import { tabContentVariants } from '@/config/bigpulpAnimations';
 
 interface AttributesTabProps {
   attributes: AttributeStats[];
@@ -25,15 +22,71 @@ interface AttributesTabProps {
   isLoading?: boolean;
 }
 
-const SORT_FIELDS: { field: AttributeSortField; label: string }[] = [
-  { field: 'category', label: 'Category' },
-  { field: 'value', label: 'Attribute' },
-  { field: 'totalSales', label: 'Sales' },
-  { field: 'avgPrice', label: 'Avg XCH' },
-  { field: 'minPrice', label: 'Min' },
-  { field: 'maxPrice', label: 'Max' },
-  { field: 'lastSaleDate', label: 'Last Sale' },
+// Sort options for mobile
+const SORT_OPTIONS: { field: AttributeSortField; label: string }[] = [
+  { field: 'avgPrice', label: 'Avg Price' },
+  { field: 'totalSales', label: 'Most Sales' },
+  { field: 'lastSaleDate', label: 'Recent' },
+  { field: 'value', label: 'A-Z' },
 ];
+
+// Category color mapping for visual identification
+const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string; cardBg: string }> = {
+  'Background': {
+    bg: 'rgba(59, 130, 246, 0.15)',
+    border: 'rgba(59, 130, 246, 0.3)',
+    text: 'rgb(96, 165, 250)',
+    cardBg: 'rgba(59, 130, 246, 0.04)',
+  },
+  'Head': {
+    bg: 'rgba(168, 85, 247, 0.15)',
+    border: 'rgba(168, 85, 247, 0.3)',
+    text: 'rgb(192, 132, 252)',
+    cardBg: 'rgba(168, 85, 247, 0.04)',
+  },
+  'Clothes': {
+    bg: 'rgba(34, 197, 94, 0.15)',
+    border: 'rgba(34, 197, 94, 0.3)',
+    text: 'rgb(74, 222, 128)',
+    cardBg: 'rgba(34, 197, 94, 0.04)',
+  },
+  'Face Wear': {
+    bg: 'rgba(251, 191, 36, 0.15)',
+    border: 'rgba(251, 191, 36, 0.3)',
+    text: 'rgb(251, 191, 36)',
+    cardBg: 'rgba(251, 191, 36, 0.04)',
+  },
+  'Mouth': {
+    bg: 'rgba(239, 68, 68, 0.15)',
+    border: 'rgba(239, 68, 68, 0.3)',
+    text: 'rgb(248, 113, 113)',
+    cardBg: 'rgba(239, 68, 68, 0.04)',
+  },
+  'Base': {
+    bg: 'rgba(236, 72, 153, 0.15)',
+    border: 'rgba(236, 72, 153, 0.3)',
+    text: 'rgb(244, 114, 182)',
+    cardBg: 'rgba(236, 72, 153, 0.04)',
+  },
+  'Eyes': {
+    bg: 'rgba(6, 182, 212, 0.15)',
+    border: 'rgba(6, 182, 212, 0.3)',
+    text: 'rgb(34, 211, 238)',
+    cardBg: 'rgba(6, 182, 212, 0.04)',
+  },
+};
+
+// Default color for unknown categories
+const DEFAULT_CATEGORY_COLOR = {
+  bg: 'rgba(251, 146, 60, 0.15)',
+  border: 'rgba(251, 146, 60, 0.3)',
+  text: 'var(--color-brand-primary)',
+  cardBg: 'rgba(251, 146, 60, 0.04)',
+};
+
+function getCategoryColor(category: string) {
+  return CATEGORY_COLORS[category] || DEFAULT_CATEGORY_COLOR;
+}
 
 // XCH to USD conversion rate
 const XCH_USD_RATE = 5.25;
@@ -47,21 +100,22 @@ function formatRelativeTime(date: Date | undefined): string {
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return '1 day ago';
-  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays === 1) return '1d ago';
+  if (diffDays < 7) return `${diffDays}d ago`;
   if (diffDays < 30) {
     const weeks = Math.floor(diffDays / 7);
-    return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+    return `${weeks}w ago`;
   }
   if (diffDays < 365) {
     const months = Math.floor(diffDays / 30);
-    return months === 1 ? '1 month ago' : `${months} months ago`;
+    return `${months}mo ago`;
   }
   const years = Math.floor(diffDays / 365);
-  return years === 1 ? '1 year ago' : `${years} years ago`;
+  return `${years}y ago`;
 }
 
-function AttributeRow({
+// Premium Attribute Card for mobile
+function AttributeCard({
   attribute,
   isExpanded,
   onToggle,
@@ -73,328 +127,211 @@ function AttributeRow({
   index: number;
 }) {
   const prefersReducedMotion = useReducedMotion();
+  const hasSales = attribute.totalSales > 0;
+  const categoryColor = getCategoryColor(attribute.category);
 
   return (
-    <>
-      <motion.tr
-        className="cursor-pointer transition-colors"
-        style={{
-          background: isExpanded
-            ? 'var(--color-glass-hover)'
-            : 'transparent',
-        }}
+    <motion.div
+      className="rounded-xl overflow-hidden"
+      style={{
+        background: isExpanded 
+          ? `linear-gradient(135deg, ${categoryColor.cardBg} 0%, rgba(255,255,255,0.01) 100%)`
+          : `linear-gradient(135deg, ${categoryColor.cardBg} 0%, rgba(255,255,255,0.02) 100%)`,
+        border: isExpanded 
+          ? `1px solid ${categoryColor.border}` 
+          : `1px solid rgba(255,255,255,0.08)`,
+        boxShadow: isExpanded 
+          ? `0 4px 20px ${categoryColor.bg}` 
+          : '0 2px 8px rgba(0,0,0,0.2)',
+      }}
+      initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.03 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      {/* Card Header - Always visible */}
+      <button
+        type="button"
+        className="w-full p-3 text-left"
         onClick={onToggle}
-        variants={prefersReducedMotion ? undefined : tableRowVariants}
-        initial="initial"
-        animate="animate"
-        transition={{ delay: index * 0.02 }}
         aria-expanded={isExpanded}
       >
-        <td
-          className="py-3 px-4 text-sm"
-          style={{ color: 'var(--color-text-muted)' }}
-        >
-          {attribute.category}
-        </td>
-        <td className="py-3 px-4">
-          <div className="flex items-center gap-2">
-            <motion.div
-              animate={{ rotate: isExpanded ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronDown
-                size={14}
-                style={{ color: 'var(--color-text-muted)' }}
-              />
-            </motion.div>
+        {/* Top row: Category badge + Attribute name + Expand icon */}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <span
-              className="font-medium text-sm"
+              className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0"
+              style={{
+                background: categoryColor.bg,
+                color: categoryColor.text,
+                border: `1px solid ${categoryColor.border}`,
+              }}
+            >
+              {attribute.category}
+            </span>
+            <span
+              className="font-semibold text-sm truncate"
               style={{ color: 'var(--color-text-primary)' }}
             >
               {attribute.value}
             </span>
           </div>
-        </td>
-        <td
-          className="py-3 px-4 text-center text-sm font-mono"
-          style={{ color: attribute.totalSales > 0 ? 'var(--color-text-secondary)' : 'var(--color-text-muted)' }}
-        >
-          {attribute.totalSales > 0 ? attribute.totalSales : '-'}
-        </td>
-        <td className="py-3 px-4 text-center">
-          {attribute.avgPrice > 0 ? (
-            <div>
-              <span
-                className="text-sm font-mono"
-                style={{ color: 'var(--color-brand-primary)' }}
-              >
-                {attribute.avgPrice.toFixed(2)}
-              </span>
-              <span
-                className="text-xs block"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                ${(attribute.avgPrice * XCH_USD_RATE).toFixed(2)}
-              </span>
-            </div>
-          ) : (
-            <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>-</span>
-          )}
-        </td>
-        <td
-          className="py-3 px-4 text-center text-sm font-mono"
-          style={{ color: attribute.minPrice > 0 ? 'var(--color-text-secondary)' : 'var(--color-text-muted)' }}
-        >
-          {attribute.minPrice > 0 ? attribute.minPrice.toFixed(2) : '-'}
-        </td>
-        <td
-          className="py-3 px-4 text-center text-sm font-mono"
-          style={{ color: attribute.maxPrice > 0 ? 'var(--color-text-secondary)' : 'var(--color-text-muted)' }}
-        >
-          {attribute.maxPrice > 0 ? attribute.maxPrice.toFixed(2) : '-'}
-        </td>
-        <td
-          className="py-3 px-4 text-center text-sm"
-          style={{ color: attribute.lastSaleDate ? 'var(--color-text-secondary)' : 'var(--color-text-muted)' }}
-        >
-          {formatRelativeTime(attribute.lastSaleDate)}
-        </td>
-      </motion.tr>
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex-shrink-0"
+          >
+            <ChevronDown size={16} style={{ color: 'var(--color-text-muted)' }} />
+          </motion.div>
+        </div>
 
-      {/* Expanded content with individual sales */}
+        {/* Stats row - compact grid */}
+        <div className="grid grid-cols-4 gap-2">
+          {/* Avg Price */}
+          <div className="text-center">
+            <p className="text-[10px] mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Avg</p>
+            <p
+              className="text-sm font-bold font-mono"
+              style={{ color: hasSales ? 'var(--color-brand-primary)' : 'var(--color-text-muted)' }}
+            >
+              {hasSales ? attribute.avgPrice.toFixed(2) : '-'}
+            </p>
+            {hasSales && (
+              <p className="text-[9px]" style={{ color: 'var(--color-text-muted)' }}>
+                ${(attribute.avgPrice * XCH_USD_RATE).toFixed(0)}
+              </p>
+            )}
+          </div>
+
+          {/* Min */}
+          <div className="text-center">
+            <p className="text-[10px] mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Min</p>
+            <p
+              className="text-sm font-semibold font-mono"
+              style={{ color: hasSales ? 'rgba(34,197,94,0.9)' : 'var(--color-text-muted)' }}
+            >
+              {hasSales ? attribute.minPrice.toFixed(2) : '-'}
+            </p>
+          </div>
+
+          {/* Max */}
+          <div className="text-center">
+            <p className="text-[10px] mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Max</p>
+            <p
+              className="text-sm font-semibold font-mono"
+              style={{ color: hasSales ? 'rgba(251,191,36,0.9)' : 'var(--color-text-muted)' }}
+            >
+              {hasSales ? attribute.maxPrice.toFixed(2) : '-'}
+            </p>
+          </div>
+
+          {/* Sales/Time */}
+          <div className="text-center">
+            <p className="text-[10px] mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Sales</p>
+            <p
+              className="text-sm font-semibold"
+              style={{ color: hasSales ? 'var(--color-text-secondary)' : 'var(--color-text-muted)' }}
+            >
+              {hasSales ? attribute.totalSales : '-'}
+            </p>
+            {hasSales && attribute.lastSaleDate && (
+              <p className="text-[9px]" style={{ color: 'var(--color-text-muted)' }}>
+                {formatRelativeTime(attribute.lastSaleDate)}
+              </p>
+            )}
+          </div>
+        </div>
+      </button>
+
+      {/* Expanded content */}
       <AnimatePresence>
         {isExpanded && (
-          <motion.tr>
-            <td colSpan={7}>
-              <motion.div
-                variants={prefersReducedMotion ? undefined : tableRowExpandVariants}
-                initial="collapsed"
-                animate="expanded"
-                exit="collapsed"
-                style={{ overflow: 'hidden' }}
-              >
-                <div
-                  className="p-4"
-                  style={{
-                    background: 'var(--color-bg-tertiary)',
-                    borderTop: '1px solid var(--color-border)',
-                  }}
-                >
-                  <div className="flex flex-col gap-4">
-                    {/* Header with calculation breakdown */}
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <h4
-                        className="text-sm font-medium"
-                        style={{ color: 'var(--color-text-primary)' }}
-                      >
-                        {attribute.category}: {attribute.value}
-                      </h4>
-                      <div className="flex items-center gap-3">
-                        <span
-                          className="text-xs px-2 py-1 rounded"
-                          style={{
-                            background: attribute.rarity < 5 ? 'var(--color-brand-primary)' : 'var(--color-glass-bg)',
-                            color: attribute.rarity < 5 ? 'white' : 'var(--color-text-muted)',
-                          }}
-                        >
-                          {attribute.count} NFTs ({attribute.rarity.toFixed(1)}%)
-                        </span>
-                        {attribute.totalSales > 0 && (
-                          <span
-                            className="text-xs px-2 py-1 rounded"
-                            style={{
-                              background: 'var(--color-glass-bg)',
-                              color: 'var(--color-brand-primary)',
-                            }}
-                          >
-                            {attribute.totalSales} sales → Avg: {attribute.avgPrice.toFixed(2)} XCH
-                          </span>
-                        )}
-                      </div>
-                    </div>
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div
+              className="px-3 pb-3 pt-2"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              {/* Rarity info */}
+              <div className="flex items-center gap-2 mb-3">
+                <Tag size={12} style={{ color: 'var(--color-text-muted)' }} />
+                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  {attribute.count} NFTs have this trait ({attribute.rarity.toFixed(1)}% rarity)
+                </span>
+              </div>
 
-                    {/* Stats Summary */}
-                    {attribute.totalSales > 0 && (
-                      <div className="grid grid-cols-4 gap-3">
-                        <div
-                          className="p-2 rounded-lg text-center"
-                          style={{ background: 'var(--color-glass-bg)' }}
-                        >
-                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                            Total Sales
-                          </p>
-                          <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                            {attribute.totalSales}
-                          </p>
-                        </div>
-                        <div
-                          className="p-2 rounded-lg text-center"
-                          style={{ background: 'var(--color-glass-bg)' }}
-                        >
-                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                            Average
-                          </p>
-                          <p className="text-sm font-medium" style={{ color: 'var(--color-brand-primary)' }}>
-                            {attribute.avgPrice.toFixed(2)} XCH
-                          </p>
-                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                            ${(attribute.avgPrice * XCH_USD_RATE).toFixed(2)}
-                          </p>
-                        </div>
-                        <div
-                          className="p-2 rounded-lg text-center"
-                          style={{ background: 'var(--color-glass-bg)' }}
-                        >
-                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                            Min
-                          </p>
-                          <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                            {attribute.minPrice.toFixed(2)} XCH
-                          </p>
-                        </div>
-                        <div
-                          className="p-2 rounded-lg text-center"
-                          style={{ background: 'var(--color-glass-bg)' }}
-                        >
-                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                            Max
-                          </p>
-                          <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                            {attribute.maxPrice.toFixed(2)} XCH
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Individual Sales Grid with NFT Previews */}
-                    {attribute.recentSales && attribute.recentSales.length > 0 ? (
-                      <div>
-                        <p className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>
-                          Recent Sales
-                        </p>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                          {attribute.recentSales.slice(0, 16).map((sale, idx) => (
-                            <div
-                              key={`${sale.nftId}-${idx}`}
-                              className="rounded-lg overflow-hidden"
-                              style={{
-                                background: 'var(--color-glass-bg)',
-                                border: '1px solid var(--color-border)',
-                              }}
-                            >
-                              <img
-                                src={sale.nftImage}
-                                alt={`Wojak #${sale.nftId}`}
-                                className="w-full aspect-square object-cover"
-                                loading="lazy"
-                              />
-                              <div className="p-1.5 text-center">
-                                <p
-                                  className="text-xs font-medium truncate"
-                                  style={{ color: 'var(--color-text-primary)' }}
-                                >
-                                  #{sale.nftId}
-                                </p>
-                                <p
-                                  className="text-xs font-mono"
-                                  style={{ color: 'var(--color-brand-primary)' }}
-                                >
-                                  {sale.price.toFixed(2)} XCH
-                                </p>
-                                <p
-                                  className="text-[10px]"
-                                  style={{ color: 'var(--color-text-muted)' }}
-                                >
-                                  {formatRelativeTime(sale.date)}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {attribute.recentSales.length > 16 && (
-                          <p
-                            className="text-xs text-center mt-2"
-                            style={{ color: 'var(--color-text-muted)' }}
-                          >
-                            +{attribute.recentSales.length - 16} more sales
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <p
-                        className="text-sm text-center py-4"
-                        style={{ color: 'var(--color-text-muted)' }}
+              {/* Recent sales thumbnails */}
+              {attribute.recentSales && attribute.recentSales.length > 0 ? (
+                <div>
+                  <p className="text-xs mb-2 flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
+                    <Clock size={10} /> Recent Sales
+                  </p>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {attribute.recentSales.slice(0, 6).map((sale, idx) => (
+                      <div
+                        key={`${sale.nftId}-${idx}`}
+                        className="flex-shrink-0 w-16 rounded-lg overflow-hidden"
+                        style={{
+                          background: 'rgba(0,0,0,0.3)',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                        }}
                       >
-                        No sales recorded for this trait
-                      </p>
-                    )}
+                        <img
+                          src={sale.nftImage}
+                          alt={`#${sale.nftId}`}
+                          className="w-full aspect-square object-cover"
+                          loading="lazy"
+                        />
+                        <div className="p-1 text-center">
+                          <p className="text-[10px] font-mono" style={{ color: 'var(--color-brand-primary)' }}>
+                            {sale.price.toFixed(1)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </motion.div>
-            </td>
-          </motion.tr>
+              ) : (
+                <p className="text-xs text-center py-2" style={{ color: 'var(--color-text-muted)' }}>
+                  No sales recorded
+                </p>
+              )}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </motion.div>
   );
 }
 
-function TableRowSkeleton() {
+// Loading skeleton for cards
+function CardSkeleton() {
   return (
-    <tr className="animate-pulse">
-      <td className="py-3 px-4">
-        <div
-          className="h-4 w-16 rounded"
-          style={{ background: 'var(--color-border)' }}
-        />
-      </td>
-      <td className="py-3 px-4">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-4 h-4 rounded"
-            style={{ background: 'var(--color-border)' }}
-          />
-          <div
-            className="h-4 w-20 rounded"
-            style={{ background: 'var(--color-border)' }}
-          />
-        </div>
-      </td>
-      <td className="py-3 px-4">
-        <div
-          className="h-4 w-8 rounded mx-auto"
-          style={{ background: 'var(--color-border)' }}
-        />
-      </td>
-      <td className="py-3 px-4">
-        <div
-          className="h-4 w-12 rounded mx-auto mb-1"
-          style={{ background: 'var(--color-border)' }}
-        />
-        <div
-          className="h-3 w-8 rounded mx-auto"
-          style={{ background: 'var(--color-border)' }}
-        />
-      </td>
-      <td className="py-3 px-4">
-        <div
-          className="h-4 w-10 rounded mx-auto"
-          style={{ background: 'var(--color-border)' }}
-        />
-      </td>
-      <td className="py-3 px-4">
-        <div
-          className="h-4 w-10 rounded mx-auto"
-          style={{ background: 'var(--color-border)' }}
-        />
-      </td>
-      <td className="py-3 px-4">
-        <div
-          className="h-4 w-16 rounded mx-auto"
-          style={{ background: 'var(--color-border)' }}
-        />
-      </td>
-    </tr>
+    <div
+      className="rounded-xl p-3 animate-pulse"
+      style={{
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.06)',
+      }}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <div className="h-4 w-16 rounded" style={{ background: 'var(--color-border)' }} />
+        <div className="h-4 w-24 rounded" style={{ background: 'var(--color-border)' }} />
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="text-center">
+            <div className="h-3 w-8 rounded mx-auto mb-1" style={{ background: 'var(--color-border)' }} />
+            <div className="h-5 w-10 rounded mx-auto" style={{ background: 'var(--color-border)' }} />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -403,69 +340,15 @@ export function AttributesTab({
   isLoading = false,
 }: AttributesTabProps) {
   const prefersReducedMotion = useReducedMotion();
-
-  // Loading skeleton
-  if (isLoading) {
-    return (
-      <div className="space-y-4 p-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div
-            className="flex-1 h-10 rounded-lg animate-pulse"
-            style={{ background: 'var(--color-border)' }}
-          />
-          <div
-            className="w-40 h-10 rounded-lg animate-pulse"
-            style={{ background: 'var(--color-border)' }}
-          />
-        </div>
-        <div
-          className="h-3 w-48 rounded animate-pulse"
-          style={{ background: 'var(--color-border)' }}
-        />
-        <div
-          className="rounded-xl overflow-hidden"
-          style={{
-            background: 'var(--color-glass-bg)',
-            border: '1px solid var(--color-border)',
-          }}
-        >
-          <table className="w-full">
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                {SORT_FIELDS.map(({ field, label }) => (
-                  <th
-                    key={field}
-                    className={`py-3 px-4 text-xs font-medium ${field === 'value' ? 'text-left' : 'text-center'}`}
-                    style={{ color: 'var(--color-text-muted)' }}
-                  >
-                    {label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({ length: 8 }).map((_, i) => (
-                <TableRowSkeleton key={i} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  }
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sortState, setSortState] = useState<AttributeSortState>({
     field: 'avgPrice',
     direction: 'desc',
   });
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
-  // Get unique categories from attributes
-  const uniqueCategories = useMemo(() => {
-    const cats = new Set(attributes.map((a) => a.category));
-    return Array.from(cats).sort();
-  }, [attributes]);
+  // Note: uniqueCategories removed - using CATEGORY_COLORS for legend instead
 
   // Filter and sort attributes
   const filteredAttributes = useMemo(() => {
@@ -515,7 +398,6 @@ export function AttributesTab({
           comparison = a.maxPrice - b.maxPrice;
           break;
         case 'lastSaleDate':
-          // Sort by date - items with no date go to the end
           const aTime = a.lastSaleDate?.getTime() || 0;
           const bTime = b.lastSaleDate?.getTime() || 0;
           comparison = aTime - bTime;
@@ -529,148 +411,161 @@ export function AttributesTab({
     return result;
   }, [attributes, searchQuery, selectedCategory, sortState]);
 
-  const handleSort = useCallback((field: AttributeSortField) => {
+  const handleSortChange = useCallback((field: AttributeSortField) => {
     setSortState((prev) => ({
       field,
-      direction:
-        prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc',
+      direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc',
     }));
   }, []);
 
-  const handleRowToggle = useCallback((key: string) => {
-    setExpandedRow((prev) => (prev === key ? null : key));
+  const handleCardToggle = useCallback((key: string) => {
+    setExpandedCard((prev) => (prev === key ? null : key));
   }, []);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-3 p-3">
+        <div className="flex gap-2">
+          <div className="flex-1 h-10 rounded-lg animate-pulse" style={{ background: 'var(--color-border)' }} />
+          <div className="w-24 h-10 rounded-lg animate-pulse" style={{ background: 'var(--color-border)' }} />
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => <CardSkeleton key={i} />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
-      className="space-y-4 p-4"
+      className="space-y-3 p-3"
       variants={prefersReducedMotion ? undefined : tabContentVariants}
       initial="hidden"
       animate="visible"
       exit="exit"
     >
-      {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Category filter */}
-        <select
-          value={selectedCategory || ''}
-          onChange={(e) => setSelectedCategory(e.target.value || null)}
-          className="px-3 py-2 rounded-lg text-sm"
-          style={{
-            background: 'var(--color-glass-bg)',
-            border: '1px solid var(--color-border)',
-            color: 'var(--color-text-primary)',
-          }}
-        >
-          <option value="">All Categories</option>
-          {uniqueCategories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
+      {/* Category Legend - scrollable chips */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+        {Object.entries(CATEGORY_COLORS).map(([category, colors]) => (
+          <button
+            key={category}
+            type="button"
+            onClick={() => setSelectedCategory(selectedCategory === category ? null : category)}
+            className="flex-shrink-0 px-2 py-1 rounded-lg text-[10px] font-medium transition-all"
+            style={{
+              background: selectedCategory === category ? colors.bg : 'transparent',
+              border: `1px solid ${selectedCategory === category ? colors.border : 'rgba(255,255,255,0.08)'}`,
+              color: selectedCategory === category ? colors.text : 'var(--color-text-muted)',
+              boxShadow: selectedCategory === category ? `0 2px 8px ${colors.bg}` : 'none',
+            }}
+          >
+            <span
+              className="inline-block w-2 h-2 rounded-full mr-1"
+              style={{ background: colors.text }}
+            />
+            {category}
+          </button>
+        ))}
+      </div>
 
-        {/* Search */}
-        <div
-          className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg"
-          style={{
-            background: 'var(--color-glass-bg)',
-            border: '1px solid var(--color-border)',
-          }}
-        >
-          <Search size={16} style={{ color: 'var(--color-text-muted)' }} />
-          <input
-            type="text"
-            placeholder="Search attributes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-sm"
-            style={{ color: 'var(--color-text-primary)' }}
+      {/* Search bar - full width, premium styled */}
+      <div
+        className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+        style={{
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}
+      >
+        <Search size={16} style={{ color: 'var(--color-text-muted)' }} />
+        <input
+          type="text"
+          placeholder="Search attributes..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 bg-transparent outline-none text-sm"
+          style={{ color: 'var(--color-text-primary)' }}
+        />
+      </div>
+
+      {/* Sort dropdown + active filter indicator */}
+      <div className="flex items-center gap-2">
+        {/* Active filter indicator */}
+        {selectedCategory && (
+          <button
+            type="button"
+            onClick={() => setSelectedCategory(null)}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs"
+            style={{
+              background: getCategoryColor(selectedCategory).bg,
+              border: `1px solid ${getCategoryColor(selectedCategory).border}`,
+              color: getCategoryColor(selectedCategory).text,
+            }}
+          >
+            <span>{selectedCategory}</span>
+            <span className="ml-1">×</span>
+          </button>
+        )}
+
+        <div className="flex-1" />
+
+        {/* Sort dropdown */}
+        <div className="relative">
+          <select
+            value={sortState.field}
+            onChange={(e) => handleSortChange(e.target.value as AttributeSortField)}
+            className="px-3 py-1.5 rounded-lg text-xs appearance-none pr-7"
+            style={{
+              background: 'rgba(251,146,60,0.1)',
+              border: '1px solid rgba(251,146,60,0.2)',
+              color: 'var(--color-brand-primary)',
+            }}
+          >
+            {SORT_OPTIONS.map(({ field, label }) => (
+              <option key={field} value={field}>{label}</option>
+            ))}
+          </select>
+          <TrendingUp 
+            size={10} 
+            className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
+            style={{ color: 'var(--color-brand-primary)' }}
           />
         </div>
       </div>
 
-      {/* Table */}
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{
-          background: 'var(--color-glass-bg)',
-          border: '1px solid var(--color-border)',
-        }}
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full" style={{ tableLayout: 'fixed' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                {SORT_FIELDS.map(({ field, label }) => {
-                  const isLeftAligned = field === 'category' || field === 'value';
-                  return (
-                    <th
-                      key={field}
-                      className={`py-3 px-4 text-xs font-medium cursor-pointer transition-colors ${isLeftAligned ? 'text-left' : 'text-center'}`}
-                      style={{
-                        color:
-                          sortState.field === field
-                            ? 'var(--color-brand-primary)'
-                            : 'var(--color-text-muted)',
-                      }}
-                      onClick={() => handleSort(field)}
-                      aria-sort={
-                        sortState.field === field
-                          ? sortState.direction === 'asc'
-                            ? 'ascending'
-                            : 'descending'
-                          : 'none'
-                      }
-                    >
-                      <div
-                        className={`flex items-center gap-1 ${isLeftAligned ? '' : 'justify-center'}`}
-                      >
-                        {label}
-                        {sortState.field === field ? (
-                          sortState.direction === 'asc' ? (
-                            <ChevronUp size={12} />
-                          ) : (
-                            <ChevronDown size={12} />
-                          )
-                        ) : (
-                          <ArrowUpDown
-                            size={12}
-                            style={{ opacity: 0.3 }}
-                          />
-                        )}
-                      </div>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAttributes.map((attr, index) => {
-                const key = `${attr.category}-${attr.value}`;
-                return (
-                  <AttributeRow
-                    key={key}
-                    attribute={attr}
-                    isExpanded={expandedRow === key}
-                    onToggle={() => handleRowToggle(key)}
-                    index={index}
-                  />
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      {/* Results count */}
+      <p className="text-xs px-1" style={{ color: 'var(--color-text-muted)' }}>
+        {filteredAttributes.length} attributes found
+      </p>
 
-        {filteredAttributes.length === 0 && (
-          <div
-            className="p-8 text-center"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
-            No attributes found matching your search
-          </div>
-        )}
+      {/* Card list */}
+      <div className="space-y-2">
+        {filteredAttributes.map((attr, index) => {
+          const key = `${attr.category}-${attr.value}`;
+          return (
+            <AttributeCard
+              key={key}
+              attribute={attr}
+              isExpanded={expandedCard === key}
+              onToggle={() => handleCardToggle(key)}
+              index={index}
+            />
+          );
+        })}
       </div>
+
+      {filteredAttributes.length === 0 && (
+        <div
+          className="p-8 text-center rounded-xl"
+          style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            color: 'var(--color-text-muted)',
+          }}
+        >
+          No attributes found matching your search
+        </div>
+      )}
     </motion.div>
   );
 }

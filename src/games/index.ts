@@ -12,7 +12,7 @@ export { default as OrangePong } from './OrangePong';
 export { default as WojakRunner } from './WojakRunner';
 export { default as OrangeJuggle } from './OrangeJuggle';
 export { default as KnifeGame } from './KnifeGame';
-export { default as ColorReaction } from './ColorReaction';
+// ColorReaction moved to /src/pages/ColorReaction.tsx
 export { default as Orange2048 } from './Orange2048';
 
 // Game Configs
@@ -21,7 +21,7 @@ export { ORANGE_PONG_CONFIG } from './OrangePong/config';
 export { WOJAK_RUNNER_CONFIG } from './WojakRunner/config';
 export { ORANGE_JUGGLE_CONFIG } from './OrangeJuggle/config';
 export { KNIFE_GAME_CONFIG } from './KnifeGame/config';
-export { COLOR_REACTION_CONFIG } from './ColorReaction/config';
+// COLOR_REACTION_CONFIG removed - game moved to pages
 export { ORANGE_2048_CONFIG } from './Orange2048/config';
 
 // Game types

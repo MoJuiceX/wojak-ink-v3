@@ -293,8 +293,16 @@ const MemoryMatch: React.FC = () => {
   // Refs for timer (to avoid score dependencies in timer useEffect)
   const totalScoreRef = useRef(totalScore);
   const highScoreRef = useRef(highScore);
+  const roundRef = useRef(round);
+  const totalMatchesFoundRef = useRef(totalMatchesFound);
+  const scoreSubmittedRef = useRef(scoreSubmitted);
+  const isSignedInRef = useRef(isSignedIn);
   useEffect(() => { totalScoreRef.current = totalScore; }, [totalScore]);
   useEffect(() => { highScoreRef.current = highScore; }, [highScore]);
+  useEffect(() => { roundRef.current = round; }, [round]);
+  useEffect(() => { totalMatchesFoundRef.current = totalMatchesFound; }, [totalMatchesFound]);
+  useEffect(() => { scoreSubmittedRef.current = scoreSubmitted; }, [scoreSubmitted]);
+  useEffect(() => { isSignedInRef.current = isSignedIn; }, [isSignedIn]);
 
   // Ref for musicManagedExternally (to check in startGame)
   const musicManagedExternallyRef = useRef(musicManagedExternally);
@@ -693,6 +701,7 @@ const MemoryMatch: React.FC = () => {
     setTotalScore(0);
     setTotalMatchesFound(0); // NEW: Reset for leaderboard minimum check
     setScoreSubmitted(false);
+    scoreSubmittedRef.current = false; // Reset ref for new game
     setIsNewPersonalBest(false);
     await startRound(1, true);
   };
@@ -791,7 +800,11 @@ const MemoryMatch: React.FC = () => {
   };
 
   // Auto-submit score to global leaderboard (for signed-in users)
+  // NOTE: This is now a FALLBACK - primary submission happens synchronously in timer callback
   const submitScoreGlobal = useCallback(async (finalScore: number, finalRound: number, matchesFound: number) => {
+    // Check ref first to prevent race conditions with synchronous submission
+    if (scoreSubmittedRef.current) return;
+    
     // NEW: Check minimum actions (3 matches) for leaderboard eligibility
     if (!isSignedIn || scoreSubmitted || matchesFound < 3) return;
 
@@ -804,6 +817,7 @@ const MemoryMatch: React.FC = () => {
     // Don't submit negative or zero scores to leaderboard
     if (finalScore <= 0) return;
 
+    scoreSubmittedRef.current = true; // Set ref immediately to prevent race conditions
     setScoreSubmitted(true);
     const result = await submitScore(finalScore, finalRound, {
       roundsCompleted: finalRound - 1,
@@ -1282,6 +1296,30 @@ const MemoryMatch: React.FC = () => {
           } else {
             triggerEvent('game:over');
           }
+          
+          // CRITICAL: Submit score SYNCHRONOUSLY here, not in useEffect
+          // This ensures score is submitted even if modal closes quickly
+          if (isSignedInRef.current && !scoreSubmittedRef.current && 
+              totalMatchesFoundRef.current >= 3 && totalScoreRef.current > 0) {
+            scoreSubmittedRef.current = true; // Prevent double submission
+            setScoreSubmitted(true);
+            submitScore(totalScoreRef.current, roundRef.current, {
+              roundsCompleted: roundRef.current - 1,
+              matchesFound: totalMatchesFoundRef.current,
+            }).then(result => {
+              if (result.success && result.isNewHighScore) {
+                setIsNewPersonalBest(true);
+              } else if (!result.success) {
+                console.error('[MemoryMatch] Failed to submit score:', result.error);
+              }
+            });
+            // Update local high score
+            if (totalScoreRef.current > highScoreRef.current) {
+              setHighScore(totalScoreRef.current);
+              localStorage.setItem('memoryMatchHighScore', String(totalScoreRef.current));
+            }
+          }
+          
           setGameState('gameover');
           return 0;
         }
@@ -1306,7 +1344,7 @@ const MemoryMatch: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameState, showExitDialog, isPaused, isContextPaused, playGameOver, playWarning, playWojakChime, hapticGameOver, hapticWarning, triggerEvent, triggerGlobalScreenShake, triggerVignette, hapticUrgencyTick]);
+  }, [gameState, showExitDialog, isPaused, isContextPaused, playGameOver, playWarning, playWojakChime, hapticGameOver, hapticWarning, triggerEvent, triggerGlobalScreenShake, triggerVignette, hapticUrgencyTick, submitScore]);
 
   // Auto-submit score for signed-in users when game ends
   useEffect(() => {

@@ -14,6 +14,8 @@ interface BigPulpCharacterProps {
   headTrait?: string;
   onTypingComplete?: () => void;
   onSkipMessage?: () => void;
+  /** Compact mode for mobile empty state - smaller height, inline layout */
+  compact?: boolean;
 }
 
 // Head trait to BigPulp image mapping
@@ -57,6 +59,7 @@ export function BigPulpCharacter({
   headTrait,
   onTypingComplete,
   onSkipMessage,
+  compact = false,
 }: BigPulpCharacterProps) {
   const [displayedText, setDisplayedText] = useState('');
   const [isAnimatingText, setIsAnimatingText] = useState(false);
@@ -153,7 +156,7 @@ export function BigPulpCharacter({
   };
 
   return (
-    <div className="bigpulp-character-container">
+    <div className={`bigpulp-character-container ${compact ? 'compact' : ''}`}>
       {/* Speech Bubble - positioned at top */}
       <div
         className={`speech-bubble ${displayedText ? 'visible' : ''} ${hasOverflow ? 'has-overflow' : ''}`}

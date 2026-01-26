@@ -1,8 +1,15 @@
 /* Color Reaction Game Styles - Mobile First */
 
+/* Prevent tap highlight on mobile */
+.color-reaction-container,
+.color-reaction-container * {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none !important;
+}
+
 /* Override combo position - move to left side so it doesn't block labels */
 .color-reaction-container .effect-combo {
-  top: 50%;
+  top: 54%;
   left: 15%;
   transform: translate(-50%, -50%);
 }
@@ -30,6 +37,9 @@
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  /* Prevent iOS overscroll/bounce */
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
   /* Create proper stacking context */
   isolation: isolate;
   z-index: 0;
@@ -59,6 +69,7 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  position: relative; /* For absolute positioning of multiplier badge */
 }
 
 .stat-label {
@@ -88,7 +99,7 @@
   opacity: 0.4;
 }
 
-/* Game Area - contains both circles */
+/* Game Area - FIXED heights to prevent any layout recalculation */
 .game-area {
   display: flex;
   flex-direction: column;
@@ -101,15 +112,20 @@
   z-index: 2;
 }
 
-/* Color Sections */
+/* Color Sections - FIXED heights to prevent layout shifts */
 .color-section {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   position: relative;
-  /* Prevent layout shifts from affecting sibling sections during animations */
-  contain: layout;
+  /* CRITICAL: Fixed height prevents ANY recalculation */
+  height: 280px;
+  min-height: 280px;
+  max-height: 280px;
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .color-label {
@@ -129,7 +145,8 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  /* NO transform transitions - prevents layout jumps */
+  transition: box-shadow 0.15s ease, filter 0.15s ease;
 }
 
 .color-emoji {
@@ -138,7 +155,6 @@
 
 .target-display {
   border: 4px solid rgba(255, 255, 255, 0.3);
-  /* CRITICAL: Ensure target background color is always same brightness as player */
   filter: brightness(1);
   opacity: 1;
 }
@@ -156,10 +172,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Prevent layout shifts during animations */
-  contain: layout;
-  width: 254px;  /* 20% bigger: 215 * 1.18 ≈ 254 to match circle */
+  width: 254px;
   height: 254px;
+  flex-shrink: 0;
 }
 
 /* Desktop: ensure wrapper matches circle size for proper alignment */
@@ -217,18 +232,21 @@
 }
 
 @keyframes ring-pulse-normal {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
+  /* NO TRANSFORM - use opacity only */
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
 }
 
 @keyframes ring-pulse-warning {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.04); opacity: 0.9; }
+  /* NO TRANSFORM - use opacity only */
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
 }
 
 @keyframes ring-pulse-critical {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.06); opacity: 0.85; }
+  /* NO TRANSFORM - use opacity only */
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
 }
 
 /* TASK 32: TAP NOW text urgency - pulses and changes color */
@@ -379,16 +397,16 @@
   100% { filter: brightness(1); }
 }
 
-/* TASK 45: Circle pulse on PERFECT */
+/* TASK 45: Circle pulse on PERFECT - NO TRANSFORM */
 .perfect-pulse {
   animation: perfect-circle-pulse 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  transform-origin: center center !important;
 }
 
 @keyframes perfect-circle-pulse {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.2); }
-  100% { transform: scale(1); }
+  /* Use glow effect instead of scale to prevent layout jumps */
+  0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.8), 0 8px 32px rgba(0, 0, 0, 0.3); filter: brightness(1); }
+  30% { box-shadow: 0 0 30px 10px rgba(255, 215, 0, 0.9), 0 8px 32px rgba(0, 0, 0, 0.3); filter: brightness(1.2); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0), 0 8px 32px rgba(0, 0, 0, 0.3); filter: brightness(1); }
 }
 
 /* TASK 47: Reaction time display with emphasis */
@@ -430,6 +448,38 @@
   100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 }
 
+/* Reaction time popup - MUST be absolutely positioned to prevent layout shifts */
+.reaction-time-popup {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  pointer-events: none;
+  animation: popup-fade 0.3s ease-out;
+  z-index: 100;
+}
+
+.reaction-time-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #4ade80;
+  text-shadow: 0 2px 8px rgba(74, 222, 128, 0.5);
+}
+
+.reaction-time-unit {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+@keyframes popup-fade {
+  0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
 @keyframes reaction-glow {
   0% { text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.5); }
   100% { text-shadow: 0 0 30px rgba(255, 215, 0, 1), 0 0 60px rgba(255, 215, 0, 0.7), 0 4px 8px rgba(0, 0, 0, 0.5); }
@@ -460,31 +510,30 @@
 
 /* ========== PHASE 5: VISUAL JUICE ENHANCEMENT ========== */
 
-/* TASK 49: Circle squash on tap */
+/* TASK 49: Circle squash on tap - NO TRANSFORM to prevent layout jumps */
 .tap-squash {
   animation: squash-bounce 0.1s ease-out forwards;
-  transform-origin: center center !important;
 }
 
 @keyframes squash-bounce {
-  /* Use uniform scale to prevent layout reflow in flex containers */
-  0% { transform: scale(1); }
-  50% { transform: scale(1.08); }
-  100% { transform: scale(1); }
+  /* Use filter/shadow instead of transform to prevent jump */
+  0% { filter: brightness(1); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
+  50% { filter: brightness(1.15); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4); }
+  100% { filter: brightness(1); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
 }
 
-/* Ensure player display never jumps to top-left */
-.player-display {
-  transform-origin: center center;
+/* Ensure player display is stable */
+.player-circle-wrapper .player-display {
   position: relative;
+  flex-shrink: 0;
+  /* Simple transitions, no fancy containment */
+  transition: background-color 0.2s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
 
-/* TASK 50: Color change animation with bounce (handled by transition + this) */
+/* TASK 50: Color change animation with bounce */
 .color-display {
-  transition: background-color 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.15s ease, box-shadow 0.15s ease;
-  /* Prevent glitch from top-left by ensuring initial transform state */
-  transform: scale(1);
-  will-change: transform, background-color;
+  transition: background-color 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease, filter 0.15s ease;
+  will-change: background-color, box-shadow, filter;
 }
 
 /* TASK 51: Impact flash on correct - white expanding circle */
@@ -555,6 +604,18 @@
 }
 
 /* TASK 53: Enhanced floating score with rating styling */
+/* BASE CLASS - CRITICAL: Must be position absolute to not affect layout! */
+.floating-score {
+  position: absolute;
+  font-size: 28px;
+  font-weight: bold;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  z-index: 50;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translate(-50%, -50%); /* Center on the x,y coordinates */
+}
+
 .floating-score.correct {
   color: #2ecc71;
   text-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
@@ -612,15 +673,19 @@
 
 /* ========== PHASE 6: STREAK & SCORING POLISH ========== */
 
-/* TASK 66: Score multiplier badge */
+/* TASK 66: Score multiplier badge - positioned absolutely to not affect layout */
 .multiplier-badge {
-  display: inline-block;
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
   font-size: 12px;
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 10px;
-  margin-left: 4px;
+  white-space: nowrap;
   animation: multiplier-pulse 0.5s ease-in-out infinite alternate;
+  pointer-events: none;
 }
 
 .multiplier-badge.x2 {
@@ -711,8 +776,8 @@
 /* TASK 71: Rating color coding */
 .rating-display {
   position: absolute;
-  /* Position just under the score box, on the right */
-  top: 18%;
+  /* Position above the YOUR circle (bottom half of screen) */
+  top: 52%;
   right: 15%;
   font-size: 16px;
   font-weight: 900;
@@ -822,6 +887,68 @@
 @keyframes danger-vignette {
   0%, 100% { box-shadow: inset 0 0 100px rgba(231, 76, 60, 0.3); }
   50% { box-shadow: inset 0 0 150px rgba(231, 76, 60, 0.4); }
+}
+
+/* Lives Warning - MUST be position absolute! */
+.lives-warning {
+  position: absolute;
+  top: 16%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  font-weight: bold;
+  color: #ff4757;
+  text-shadow: 0 0 20px rgba(255, 71, 87, 0.8), 0 2px 10px rgba(0, 0, 0, 0.5);
+  z-index: 55;
+  animation: lives-warning-pulse 0.5s ease-in-out infinite;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@keyframes lives-warning-pulse {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* Epic Callout - MUST be position absolute! */
+.epic-callout {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 4px 30px rgba(0, 0, 0, 0.5);
+  z-index: 60;
+  animation: epic-callout-anim 1.5s ease forwards;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@keyframes epic-callout-anim {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+  80% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0;
+  }
 }
 
 /* TASK 77: Floating X on wrong tap */
@@ -1096,6 +1223,7 @@
 .fever-text {
   font-size: 28px;
   font-weight: 900;
+  white-space: nowrap;
   color: #ff6b00;
   text-shadow: 0 0 20px rgba(255, 107, 0, 0.8), 0 4px 10px rgba(0, 0, 0, 0.5);
   text-transform: uppercase;
@@ -1130,18 +1258,7 @@
 
 /* ========== END FEVER MODE & ADVANCED COMBOS ========== */
 
-/* ========== PHASE 11: CAMERA & ADVANCED VISUAL EFFECTS ========== */
-
-/* TASK 108: Camera zoom pulse on tap */
-.camera-zoom {
-  animation: camera-zoom-pulse 0.15s ease-out;
-}
-
-@keyframes camera-zoom-pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-  100% { transform: scale(1); }
-}
+/* ========== PHASE 11: ADVANCED VISUAL EFFECTS ========== */
 
 /* TASK 110: Hit-stop on correct tap (frame freeze) */
 .hit-stop {
@@ -1286,22 +1403,21 @@
   }
 }
 
-/* Pulse animation when colors match */
+/* Pulse animation when colors match - NO TRANSFORM to prevent jump on class removal */
 @keyframes pulse-match {
   0%, 100% {
-    transform: scale(1);
     box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    filter: brightness(1);
   }
   50% {
-    transform: scale(1.08);
     box-shadow: 0 0 40px rgba(255, 255, 255, 0.8);
+    filter: brightness(1.1);
   }
 }
 
 .player-display.matching {
   animation: pulse-match 0.5s ease-in-out infinite;
   border-color: rgba(255, 255, 255, 0.8);
-  transform-origin: center center !important;
 }
 
 /* Flash animations for correct/wrong taps */
@@ -1343,12 +1459,12 @@
 }
 
 @keyframes too-late-flash {
-  0%, 100% { filter: brightness(1); transform: scale(1); }
-  15% { filter: brightness(1.4); }
-  30% { filter: brightness(0.85); transform: translateX(-2px); }
-  45% { filter: brightness(1); transform: translateX(2px); }
-  60% { transform: translateX(-1px); }
-  75% { transform: translateX(1px); }
+  /* NO TRANSFORM - use filter only for subtle feedback */
+  0%, 100% { filter: brightness(1) saturate(1); }
+  15% { filter: brightness(1.3) saturate(0.8); }
+  30% { filter: brightness(0.9) saturate(0.7); }
+  50% { filter: brightness(1.1) saturate(0.9); }
+  75% { filter: brightness(0.95) saturate(1); }
 }
 
 /* Arcade: wrong-tap mismatch highlight */
@@ -1927,13 +2043,153 @@
   width: auto;
 }
 
-/* Fix player circle position to prevent glitch from left */
-.arcade-screen .player-display {
-  position: relative;
-}
+/* Arcade: player-display positioning handled by base rule */
 
 /* Connection line horizontal in arcade */
 .arcade-screen .connection-line {
   width: 100px;
   height: 6px;
+}
+
+/* ============================================
+   PRESSURE MODE - Visual intensity at high scores
+   Makes the game feel more intense and exciting
+   ============================================ */
+
+/* Level 1: Subtle intensity (500+ score) */
+.color-reaction-container.pressure-level-1 {
+  background: linear-gradient(180deg, 
+    rgba(30, 10, 10, 0.95) 0%, 
+    var(--color-bg-secondary) 100%);
+}
+
+.pressure-level-1 .stats-panel {
+  border: 1px solid rgba(255, 100, 0, 0.3);
+}
+
+/* Level 2: Medium intensity (900+ score) */
+.color-reaction-container.pressure-level-2 {
+  background: linear-gradient(180deg, 
+    rgba(40, 15, 10, 0.95) 0%, 
+    rgba(20, 10, 15, 0.95) 100%);
+  animation: pressure-pulse-2 2.5s ease-in-out infinite;
+}
+
+.pressure-level-2 .stats-panel {
+  border: 2px solid rgba(255, 100, 0, 0.5);
+  box-shadow: 0 0 20px rgba(255, 100, 0, 0.2);
+}
+
+.pressure-level-2 .color-display {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 30px rgba(255, 100, 0, 0.15);
+}
+
+@keyframes pressure-pulse-2 {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.05); }
+}
+
+/* Level 3: High intensity (1400+ score) */
+.color-reaction-container.pressure-level-3 {
+  background: linear-gradient(180deg, 
+    rgba(50, 15, 10, 0.95) 0%, 
+    rgba(30, 10, 20, 0.95) 100%);
+  animation: pressure-pulse-3 2s ease-in-out infinite;
+}
+
+.pressure-level-3 .stats-panel {
+  border: 2px solid rgba(255, 80, 0, 0.7);
+  box-shadow: 0 0 30px rgba(255, 80, 0, 0.3);
+  animation: stats-glow 1.2s ease-in-out infinite;
+}
+
+.pressure-level-3 .color-display {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 80, 0, 0.25);
+}
+
+.pressure-level-3 .color-label {
+  animation: label-pulse 1s ease-in-out infinite;
+}
+
+@keyframes pressure-pulse-3 {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.08); }
+}
+
+@keyframes stats-glow {
+  0%, 100% { box-shadow: 0 0 30px rgba(255, 80, 0, 0.3); }
+  50% { box-shadow: 0 0 50px rgba(255, 80, 0, 0.5); }
+}
+
+@keyframes label-pulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+/* Level 4: Maximum intensity (2000+ score) - THE ZONE */
+.color-reaction-container.pressure-level-4 {
+  background: linear-gradient(180deg, 
+    rgba(60, 10, 10, 0.98) 0%, 
+    rgba(40, 5, 25, 0.98) 100%);
+  animation: pressure-pulse-4 1s ease-in-out infinite;
+}
+
+.pressure-level-4::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(255, 60, 0, 0.1) 100%);
+  pointer-events: none;
+  animation: vignette-pulse 0.8s ease-in-out infinite;
+}
+
+.pressure-level-4 .stats-panel {
+  border: 3px solid rgba(255, 60, 0, 0.8);
+  box-shadow: 0 0 40px rgba(255, 60, 0, 0.5);
+  animation: stats-glow-intense 0.6s ease-in-out infinite;
+}
+
+.pressure-level-4 .color-display {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 60px rgba(255, 60, 0, 0.35);
+}
+
+.pressure-level-4 .color-label {
+  animation: label-pulse-intense 0.5s ease-in-out infinite;
+  color: rgba(255, 200, 150, 0.9);
+}
+
+@keyframes pressure-pulse-4 {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.15); }
+}
+
+@keyframes vignette-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes stats-glow-intense {
+  0%, 100% { box-shadow: 0 0 40px rgba(255, 60, 0, 0.5); }
+  50% { box-shadow: 0 0 70px rgba(255, 60, 0, 0.8); }
+}
+
+@keyframes label-pulse-intense {
+  0%, 100% { opacity: 0.9; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+/* Reduced motion: disable all pressure animations */
+.color-reaction-container.reduced-motion.pressure-level-2,
+.color-reaction-container.reduced-motion.pressure-level-3,
+.color-reaction-container.reduced-motion.pressure-level-4 {
+  animation: none;
+}
+
+.color-reaction-container.reduced-motion.pressure-level-4::before {
+  animation: none;
+}
+
+.reduced-motion .stats-panel,
+.reduced-motion .color-label {
+  animation: none !important;
 }

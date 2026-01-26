@@ -23,6 +23,7 @@ import { ChevronDown, Trophy, Gamepad2, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFriends } from '../../contexts/FriendsContext';
 import { LeaderboardEntry } from './LeaderboardEntry';
+import { MobilePodium } from './MobilePodium';
 import { NFTGatePrompt } from './NFTGatePrompt';
 import { CountdownTimer } from './CountdownTimer';
 import { YourPositionBar } from './YourPositionBar';
@@ -33,6 +34,7 @@ import type { GameId } from '../../types/leaderboard';
 import { GAME_NAMES, ACTIVE_GAME_IDS, DISABLED_GAME_IDS } from '../../types/leaderboard';
 import type { TierName } from '@/lib/leaderboard/tierCalculation';
 import './Leaderboard.css';
+import './MobilePodium.css';
 
 // Type for leaderboard entry from API
 interface LeaderboardEntryData {
@@ -394,16 +396,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
           </div>
         </motion.div>
 
-        {/* ===== PODIUM HERO SECTION ===== */}
-        <div className="leaderboard-podium-hero">
-          <AnimatePresence mode="wait">
+        {/* ===== MOBILE: Podium + List Layout ===== */}
+        {isMobile && (
+          <>
+            {/* Loading State - Mobile */}
             {isLoading && (
               <motion.div
-                key="loading"
-                className="podium-loading"
+                className="mobile-loading"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
               >
                 <motion.div
                   className="loading-trophy"
@@ -413,118 +414,49 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                   }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
-                  <Trophy size={48} />
+                  <Trophy size={40} />
                 </motion.div>
                 <p>Loading rankings...</p>
               </motion.div>
             )}
 
-            {!isLoading && !error && filteredEntries.length >= 3 && (
-              <motion.div
-                key="podium"
-                className="podium"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <motion.div
-                  className="podium-entry second"
-                  initial={{ y: 40, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <LeaderboardEntry
-                    entry={filteredEntries[1]}
-                    isPodium
-                    podiumPosition={2}
-                    index={1}
-                    isFriend={isFriend(filteredEntries[1].userId)}
-                  />
-                </motion.div>
-                <motion.div
-                  className="podium-entry first"
-                  initial={{ y: 40, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <LeaderboardEntry
-                    entry={filteredEntries[0]}
-                    isPodium
-                    podiumPosition={1}
-                    index={0}
-                    isFriend={isFriend(filteredEntries[0].userId)}
-                  />
-                </motion.div>
-                <motion.div
-                  className="podium-entry third"
-                  initial={{ y: 40, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <LeaderboardEntry
-                    entry={filteredEntries[2]}
-                    isPodium
-                    podiumPosition={3}
-                    index={2}
-                    isFriend={isFriend(filteredEntries[2].userId)}
-                  />
-                </motion.div>
-              </motion.div>
+            {/* Mobile Podium - Top 3 (champion + runners-up) */}
+            {!isLoading && !error && filteredEntries.length > 0 && (
+              <MobilePodium
+                entries={filteredEntries.slice(0, 3)}
+                timeframe={timeframe}
+              />
             )}
 
-            {!isLoading && !error && filteredEntries.length > 0 && filteredEntries.length < 3 && (
+            {/* List starting from #4 - Mobile */}
+            {!isLoading && !error && filteredEntries.length > 3 && (
               <motion.div
-                key="partial-podium"
-                className="podium partial"
+                className="leaderboard-list mobile-list"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                transition={{ delay: 0.2 }}
               >
-                {filteredEntries.map((entry, index) => (
-                  <motion.div
-                    key={entry.userId}
-                    className={`podium-entry ${index === 0 ? 'first' : index === 1 ? 'second' : 'third'}`}
-                    initial={{ y: 40, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.1 * (index + 1) }}
-                  >
-                    <LeaderboardEntry
-                      entry={entry}
-                      isPodium
-                      podiumPosition={(index + 1) as 1 | 2 | 3}
-                      index={index}
-                      isFriend={isFriend(entry.userId)}
-                    />
-                  </motion.div>
+                {filteredEntries.slice(3).map((entry, index) => (
+                  <LeaderboardEntry
+                    key={`${entry.userId}-${entry.rank}`}
+                    entry={entry}
+                    index={index + 3}
+                    isFriend={isFriend(entry.userId)}
+                  />
                 ))}
               </motion.div>
             )}
 
+            {/* Empty State - Mobile */}
             {!isLoading && !error && filteredEntries.length === 0 && (
               <motion.div
-                key="empty"
-                className="podium-empty"
+                className="mobile-empty"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
               >
-                <motion.div
-                  className="trophy-container"
-                  animate={prefersReducedMotion ? {} : {
-                    y: [0, -15, 0],
-                    rotateY: [0, 10, 0, -10, 0],
-                  }}
-                  transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                >
+                <div className="trophy-container">
                   <span className="trophy-icon">{filter === 'friends' ? '👥' : '🏆'}</span>
-                  {!prefersReducedMotion && (
-                    <>
-                      <motion.span className="sparkle sparkle-1" animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity }}>✨</motion.span>
-                      <motion.span className="sparkle sparkle-2" animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity, delay: 0.7 }}>✨</motion.span>
-                      <motion.span className="sparkle sparkle-3" animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity, delay: 1.4 }}>✨</motion.span>
-                    </>
-                  )}
-                </motion.div>
+                </div>
                 <h2 className="empty-title">
                   {filter === 'friends' ? 'No Friends Playing Yet' : 'The Arena Awaits'}
                 </h2>
@@ -553,13 +485,12 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               </motion.div>
             )}
 
+            {/* Error State - Mobile */}
             {!isLoading && error && (
               <motion.div
-                key="error"
-                className="podium-error"
+                className="mobile-error"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
               >
                 <p>Failed to load leaderboard</p>
                 <button onClick={() => fetchLeaderboard(selectedGame, timeframe)}>
@@ -567,14 +498,192 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 </button>
               </motion.div>
             )}
-          </AnimatePresence>
-        </div>
+          </>
+        )}
+
+        {/* ===== DESKTOP: Original Podium Hero Section ===== */}
+        {!isMobile && (
+          <div className="leaderboard-podium-hero">
+            <AnimatePresence mode="wait">
+              {isLoading && (
+                <motion.div
+                  key="loading"
+                  className="podium-loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <motion.div
+                    className="loading-trophy"
+                    animate={prefersReducedMotion ? {} : {
+                      rotate: [0, 10, -10, 0],
+                      y: [0, -5, 0],
+                    }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <Trophy size={48} />
+                  </motion.div>
+                  <p>Loading rankings...</p>
+                </motion.div>
+              )}
+
+              {!isLoading && !error && filteredEntries.length >= 3 && (
+                <motion.div
+                  key="podium"
+                  className="podium"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <motion.div
+                    className="podium-entry second"
+                    initial={{ y: 40, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <LeaderboardEntry
+                      entry={filteredEntries[1]}
+                      isPodium
+                      podiumPosition={2}
+                      index={1}
+                      isFriend={isFriend(filteredEntries[1].userId)}
+                    />
+                  </motion.div>
+                  <motion.div
+                    className="podium-entry first"
+                    initial={{ y: 40, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <LeaderboardEntry
+                      entry={filteredEntries[0]}
+                      isPodium
+                      podiumPosition={1}
+                      index={0}
+                      isFriend={isFriend(filteredEntries[0].userId)}
+                    />
+                  </motion.div>
+                  <motion.div
+                    className="podium-entry third"
+                    initial={{ y: 40, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    <LeaderboardEntry
+                      entry={filteredEntries[2]}
+                      isPodium
+                      podiumPosition={3}
+                      index={2}
+                      isFriend={isFriend(filteredEntries[2].userId)}
+                    />
+                  </motion.div>
+                </motion.div>
+              )}
+
+              {!isLoading && !error && filteredEntries.length > 0 && filteredEntries.length < 3 && (
+                <motion.div
+                  key="partial-podium"
+                  className="podium partial"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  {filteredEntries.map((entry, index) => (
+                    <motion.div
+                      key={entry.userId}
+                      className={`podium-entry ${index === 0 ? 'first' : index === 1 ? 'second' : 'third'}`}
+                      initial={{ y: 40, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.1 * (index + 1) }}
+                    >
+                      <LeaderboardEntry
+                        entry={entry}
+                        isPodium
+                        podiumPosition={(index + 1) as 1 | 2 | 3}
+                        index={index}
+                        isFriend={isFriend(entry.userId)}
+                      />
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+
+              {!isLoading && !error && filteredEntries.length === 0 && (
+                <motion.div
+                  key="empty"
+                  className="podium-empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <motion.div
+                    className="trophy-container"
+                    animate={prefersReducedMotion ? {} : {
+                      y: [0, -15, 0],
+                      rotateY: [0, 10, 0, -10, 0],
+                    }}
+                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <span className="trophy-icon">{filter === 'friends' ? '👥' : '🏆'}</span>
+                    {!prefersReducedMotion && (
+                      <>
+                        <motion.span className="sparkle sparkle-1" animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity }}>✨</motion.span>
+                        <motion.span className="sparkle sparkle-2" animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity, delay: 0.7 }}>✨</motion.span>
+                        <motion.span className="sparkle sparkle-3" animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity, delay: 1.4 }}>✨</motion.span>
+                      </>
+                    )}
+                  </motion.div>
+                  <h2 className="empty-title">
+                    {filter === 'friends' ? 'No Friends Playing Yet' : 'The Arena Awaits'}
+                  </h2>
+                  <p className="empty-subtitle">
+                    {filter === 'friends'
+                      ? friends.length === 0
+                        ? 'Add friends to see their scores here!'
+                        : 'None of your friends have played this game yet.'
+                      : timeframe === 'daily'
+                      ? 'No scores yet today. Be the first!'
+                      : timeframe === 'weekly'
+                      ? 'No scores this week. Claim your glory!'
+                      : 'Be the first to set a record!'}
+                  </p>
+                  <motion.button
+                    className="play-now-btn"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      window.location.href = filter === 'friends' && friends.length === 0 ? '/friends' : '/games';
+                    }}
+                  >
+                    <Gamepad2 size={18} />
+                    {filter === 'friends' && friends.length === 0 ? 'Find Friends' : 'Start Playing'}
+                  </motion.button>
+                </motion.div>
+              )}
+
+              {!isLoading && error && (
+                <motion.div
+                  key="error"
+                  className="podium-error"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <p>Failed to load leaderboard</p>
+                  <button onClick={() => fetchLeaderboard(selectedGame, timeframe)}>
+                    Retry
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
 
         {/* NFT Gate Prompt */}
         {user && !isNftHolder && <NFTGatePrompt />}
 
-        {/* ===== LIST (#4 onwards) ===== */}
-        {!isLoading && !error && filteredEntries.length > 3 && (
+        {/* ===== DESKTOP: List (#4 onwards) ===== */}
+        {!isMobile && !isLoading && !error && filteredEntries.length > 3 && (
           <motion.div
             className="leaderboard-list"
             initial={{ opacity: 0 }}

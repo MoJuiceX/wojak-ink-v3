@@ -129,6 +129,18 @@ const OrangePong: React.FC = () => {
   const resetComboRef = useRef(resetCombo);
   const addScorePopupRef = useRef(addScorePopup);
 
+  // Refs for synchronous score submission (avoids stale closure in game loop)
+  const isSignedInRef = useRef(isSignedIn);
+  const scoreSubmittedRef = useRef(scoreSubmitted);
+  const totalPointsRef = useRef(totalPoints);
+  const playerScoreRef = useRef(playerScore);
+  const submitScoreRef = useRef(submitScore);
+  useEffect(() => { isSignedInRef.current = isSignedIn; }, [isSignedIn]);
+  useEffect(() => { scoreSubmittedRef.current = scoreSubmitted; }, [scoreSubmitted]);
+  useEffect(() => { totalPointsRef.current = totalPoints; }, [totalPoints]);
+  useEffect(() => { playerScoreRef.current = playerScore; }, [playerScore]);
+  useEffect(() => { submitScoreRef.current = submitScore; }, [submitScore]);
+
   // Keep refs updated
   useEffect(() => {
     playPaddleHitRef.current = playPaddleHit;
@@ -184,6 +196,7 @@ const OrangePong: React.FC = () => {
     setAiY(centerY);
     playerYRef.current = centerY;
     setScoreSubmitted(false);
+    scoreSubmittedRef.current = false; // Reset ref for new game
     setIsNewPersonalBest(false);
     // Reset rally and effects
     rallyRef.current = 0;
@@ -206,7 +219,11 @@ const OrangePong: React.FC = () => {
   }, []);
 
   // Auto-submit score to global leaderboard (for signed-in users)
+  // NOTE: This is now a FALLBACK - primary submission happens synchronously in game loop
   const submitScoreGlobal = useCallback(async (finalScore: number) => {
+    // Check ref first to prevent race conditions with synchronous submission
+    if (scoreSubmittedRef.current) return;
+    
     if (!isSignedIn || scoreSubmitted || finalScore === 0) return;
 
     // Update local high score
@@ -215,6 +232,7 @@ const OrangePong: React.FC = () => {
       localStorage.setItem('orangePongHighScore', String(finalScore));
     }
 
+    scoreSubmittedRef.current = true;
     setScoreSubmitted(true);
     const result = await submitScore(finalScore, undefined, {
       matchResult: playerScore >= WIN_SCORE ? 'won' : 'lost',
@@ -433,6 +451,22 @@ const OrangePong: React.FC = () => {
                 playWinSoundRef.current();
                 triggerConfettiRef.current();
                 showEpicCalloutRef.current('🏆 VICTORY!');
+                
+                // CRITICAL: Submit score SYNCHRONOUSLY before setGameState
+                // Calculate final score: current totalPoints + scoreAmount just added
+                const finalScore = totalPointsRef.current + scoreAmount;
+                if (isSignedInRef.current && !scoreSubmittedRef.current && finalScore > 0) {
+                  scoreSubmittedRef.current = true;
+                  setScoreSubmitted(true);
+                  submitScoreRef.current(finalScore, undefined, {
+                    matchResult: 'won',
+                  }).then(result => {
+                    if (result.success && result.isNewHighScore) {
+                      setIsNewPersonalBest(true);
+                    }
+                  });
+                }
+                
                 setGameState('gameover');
               } else {
                 showEpicCalloutRef.current('🎯 SCORE!');
@@ -459,6 +493,21 @@ const OrangePong: React.FC = () => {
                 // AI wins - game over, keep accumulated points
                 playGameOverRef.current();
                 showEpicCalloutRef.current('💀 GAME OVER');
+                
+                // CRITICAL: Submit score SYNCHRONOUSLY before setGameState
+                const finalScore = totalPointsRef.current;
+                if (isSignedInRef.current && !scoreSubmittedRef.current && finalScore > 0) {
+                  scoreSubmittedRef.current = true;
+                  setScoreSubmitted(true);
+                  submitScoreRef.current(finalScore, undefined, {
+                    matchResult: 'lost',
+                  }).then(result => {
+                    if (result.success && result.isNewHighScore) {
+                      setIsNewPersonalBest(true);
+                    }
+                  });
+                }
+                
                 setGameState('gameover');
               } else {
                 setTimeout(() => resetBall(1), 500);

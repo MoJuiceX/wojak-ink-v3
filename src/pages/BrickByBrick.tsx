@@ -378,6 +378,20 @@ const BrickByBrick: React.FC = () => {
   // Freeze frame support (for perfect drops)
   const freezeUntilRef = useRef(0);
 
+  // Refs for synchronous score submission (avoids stale closure in dropBlock)
+  const isSignedInRef = useRef(isSignedIn);
+  const scoreSubmittedRef = useRef(scoreSubmitted);
+  const scoreRef = useRef(score);
+  const levelRef = useRef(level);
+  const levelScoreRef = useRef(levelScore);
+  const submitScoreRef = useRef(submitScore);
+  useEffect(() => { isSignedInRef.current = isSignedIn; }, [isSignedIn]);
+  useEffect(() => { scoreSubmittedRef.current = scoreSubmitted; }, [scoreSubmitted]);
+  useEffect(() => { scoreRef.current = score; }, [score]);
+  useEffect(() => { levelRef.current = level; }, [level]);
+  useEffect(() => { levelScoreRef.current = levelScore; }, [levelScore]);
+  useEffect(() => { submitScoreRef.current = submitScore; }, [submitScore]);
+
   // Page visibility tracking
   const [isPaused, setIsPaused] = useState(false);
 
@@ -483,6 +497,7 @@ const BrickByBrick: React.FC = () => {
     setCombo(0);
     setLastDropBonus('');
     setScoreSubmitted(false);
+    scoreSubmittedRef.current = false; // Reset ref for new game
     setIsNewPersonalBest(false);
 
     // Reset animation refs for fixed timestep loop
@@ -543,6 +558,11 @@ const BrickByBrick: React.FC = () => {
     setDirection(1);
     setCombo(0);
     setLastDropBonus('');
+    
+    // Prevent immediate drops after clicking "Next Level" (300ms cooldown)
+    lastTapTimeRef.current = Date.now();
+    isDropping.current = false;
+    
     spawnNewBlock(baseBlock.width);
     setGameState('playing');
     // Arcade lights: Next level started
@@ -550,10 +570,15 @@ const BrickByBrick: React.FC = () => {
   };
 
   // Auto-submit score to global leaderboard (for signed-in users)
+  // NOTE: This is now a FALLBACK - primary submission happens synchronously in dropBlock
   const submitScoreGlobal = useCallback(async (finalScore: number, finalLevel: number) => {
+    // Check ref first to prevent race conditions with synchronous submission
+    if (scoreSubmittedRef.current) return;
+    
     // Check minimum actions: 3 blocks dropped for leaderboard
     if (!isSignedIn || scoreSubmitted || finalScore === 0 || dropCountRef.current < 3) return;
 
+    scoreSubmittedRef.current = true;
     setScoreSubmitted(true);
     const result = await submitScore(finalScore, finalLevel, {
       blocksStacked: levelScore,
@@ -623,6 +648,23 @@ const BrickByBrick: React.FC = () => {
       } else {
         triggerEvent('game:over');
       }
+      
+      // CRITICAL: Submit score SYNCHRONOUSLY before setGameState
+      // This ensures score is submitted even if modal closes quickly
+      if (isSignedInRef.current && !scoreSubmittedRef.current && 
+          scoreRef.current > 0 && dropCountRef.current >= 3) {
+        scoreSubmittedRef.current = true;
+        setScoreSubmitted(true);
+        submitScoreRef.current(scoreRef.current, levelRef.current, {
+          blocksStacked: levelScoreRef.current,
+          blocksDropped: dropCountRef.current,
+        }).then(result => {
+          if (result.success && result.isNewHighScore) {
+            setIsNewPersonalBest(true);
+          }
+        });
+      }
+      
       setGameState('gameover');
       if (score > highScore) {
         setHighScore(score);
@@ -719,7 +761,7 @@ const BrickByBrick: React.FC = () => {
     dropPoints = Math.max(1, dropPoints); // Minimum 1 point
 
     if (newCombo >= 3) {
-      bonusText += `${newCombo}x Combo!`;
+      // Combo text removed from bonusText - shown in main combo-celebration instead
       playCombo(newCombo);
       hapticCombo(newCombo); // Escalating haptic for combos
       // Removed lightning effect for performance
@@ -963,13 +1005,22 @@ const BrickByBrick: React.FC = () => {
   // ============================================================================
   // EFFECT POSITIONING - Dynamic zones that move as tower grows
   // ============================================================================
-  // COMBOS: Start at 35% on mobile, move higher (lower %) as tower grows
-  // This ensures combo never covers the dropping block
-  const baseComboY = isMobile ? 35 : 8;
-  const towerHeight = blocks.length;
-  // Move combo up by 1.5% per block stacked (max 20% reduction to stay visible)
-  const comboReduction = Math.min(towerHeight * 1.5, 20);
-  const comboEffectY = Math.max(baseComboY - comboReduction, isMobile ? 15 : 5);
+  // Calculate where the moving block actually appears on screen (in pixels from bottom)
+  const movingBlockBottom = Math.min(
+    GROUND_HEIGHT + blocks.length * BLOCK_HEIGHT + MOVING_BLOCK_MARGIN - cameraOffset,
+    CONTAINER_HEIGHT - BLOCK_HEIGHT - 20
+  );
+  // Convert to "from top" position (where the TOP of the moving block is)
+  const movingBlockTopFromBottom = movingBlockBottom + BLOCK_HEIGHT;
+  const movingBlockTopFromTop = CONTAINER_HEIGHT - movingBlockTopFromBottom;
+  
+  // Position effects ABOVE the moving block with consistent gaps
+  const COMBO_GAP = isMobile ? 8 : 10; // Gap between combo and moving block top (reduced for tighter feel)
+  const BONUS_GAP = isMobile ? 3 : 5; // Gap between bonus flash and moving block top
+  
+  // Convert to percentage of container height (clamped to reasonable bounds)
+  const comboEffectY = Math.max(5, Math.min(45, ((movingBlockTopFromTop - COMBO_GAP) / CONTAINER_HEIGHT) * 100));
+  const bonusFlashY = Math.max(15, Math.min(55, ((movingBlockTopFromTop - BONUS_GAP) / CONTAINER_HEIGHT) * 100));
 
   // Show last 12 blocks for rendering (anything below camera offset will be off-screen)
   const visibleBlocks = blocks.slice(-12);
@@ -1091,7 +1142,7 @@ const BrickByBrick: React.FC = () => {
                   if (touch && touch.clientX > viewportWidth - 60 && touch.clientY < 110) {
                     return; // Let the button handle it
                   }
-                  e.preventDefault();
+                  // Note: touchAction: 'none' in style handles scroll prevention (passive listener compatible)
                   if (isPaused) {
                     resumeGame();
                   } else {
@@ -1293,6 +1344,7 @@ const BrickByBrick: React.FC = () => {
                   {/* Epic Combo Celebration - always centered on top of blocks */}
                   {combo >= 2 && (
                     <div
+                      key={combo} /* Re-mount on combo change to trigger swing animation */
                       className={`combo-celebration combo-level-${Math.min(combo, 10)}`}
                       style={{
                         position: 'absolute',
@@ -1308,20 +1360,15 @@ const BrickByBrick: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Perfect/Great Flash - simplified for performance */}
+                  {/* Perfect/Great Flash - appears near stack, animates up-right and fades */}
                   {lastDropBonus && (
                     <div
                       key={`bonus-${dropId}`}
-                      className={`bonus-flash ${lastDropBonus.includes('PERFECT') ? 'perfect' : 'great'}`}
+                      className={`bonus-flash bonus-flash-float ${lastDropBonus.includes('PERFECT') ? 'perfect' : 'great'}`}
                       style={{
                         position: 'absolute',
-                        ...(isMobile ? {
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                        } : {
-                          right: '8%',
-                        }),
-                        top: `${comboEffectY}%`,
+                        left: '50%',
+                        top: `${bonusFlashY}%`,
                       }}
                     >
                       {lastDropBonus.includes('PERFECT') ? '⚡ PERFECT' : lastDropBonus.includes('Great') ? '✓ GREAT' : lastDropBonus}
@@ -1489,8 +1536,18 @@ const BrickByBrick: React.FC = () => {
         <div
           ref={gameAreaRef}
           className="stack-area"
-          onClick={handleTap}
-          onTouchStart={(e) => { e.preventDefault(); handleTap(); }}
+          style={{ touchAction: 'none' }}
+          onClick={(e) => {
+            // Don't trigger handleTap if clicking on a button
+            if ((e.target as HTMLElement).closest('ion-button, button')) return;
+            handleTap();
+          }}
+          onTouchStart={(e) => {
+            // Don't trigger handleTap if touching a button
+            if ((e.target as HTMLElement).closest('ion-button, button')) return;
+            // Note: touchAction: 'none' in style handles scroll prevention (passive listener compatible)
+            handleTap();
+          }}
         >
           {gameState === 'levelComplete' && (
             <div className="game-menu">
@@ -1514,7 +1571,13 @@ const BrickByBrick: React.FC = () => {
                   {level === 9 && 'Last level - you got this!'}
                 </p>
               </div>
-              <IonButton onClick={startNextLevel} className="play-btn">
+              <IonButton 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startNextLevel();
+                }} 
+                className="play-btn"
+              >
                 Next Level
               </IonButton>
             </div>

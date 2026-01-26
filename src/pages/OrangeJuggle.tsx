@@ -198,6 +198,18 @@ const OrangeJuggle: React.FC = () => {
   const bananaCountRef = useRef(0); // Track consecutive bananas for speed boost
   const isReversedRef = useRef(false); // Whether controls are reversed
 
+  // Refs for synchronous score submission (avoids stale closure in game loop)
+  const isSignedInRef = useRef(isSignedIn);
+  const scoreSubmittedRef = useRef(scoreSubmitted);
+  const levelRef = useRef(level);
+  const lostByCamelRef = useRef(lostByCamel);
+  const submitScoreRef = useRef(submitScore);
+  useEffect(() => { isSignedInRef.current = isSignedIn; }, [isSignedIn]);
+  useEffect(() => { scoreSubmittedRef.current = scoreSubmitted; }, [scoreSubmitted]);
+  useEffect(() => { levelRef.current = level; }, [level]);
+  useEffect(() => { lostByCamelRef.current = lostByCamel; }, [lostByCamel]);
+  useEffect(() => { submitScoreRef.current = submitScore; }, [submitScore]);
+
   // Ref for game loop to check dialog state
   const showExitDialogRef = useRef(false);
 
@@ -422,6 +434,7 @@ const OrangeJuggle: React.FC = () => {
     setScore(0);
     setCombo(0);
     setScoreSubmitted(false);
+    scoreSubmittedRef.current = false; // Reset ref for new game
     setIsNewPersonalBest(false);
     objectsRef.current = [];
     setObjects([]);
@@ -483,6 +496,7 @@ const OrangeJuggle: React.FC = () => {
 
     setLevel(nextLevel);
     setScoreSubmitted(false);
+    scoreSubmittedRef.current = false; // Reset ref for new level
     objectsRef.current = [];
     setObjects([]);
     setCombo(0);
@@ -1041,6 +1055,22 @@ const OrangeJuggle: React.FC = () => {
         hapticOJCamelImpact(); // Heavy game over pulse
         // Set camel loss state
         setLostByCamel(true);
+        
+        // CRITICAL: Submit score SYNCHRONOUSLY before setGameState
+        const finalScore = scoreRef.current;
+        if (isSignedInRef.current && !scoreSubmittedRef.current && finalScore > 0) {
+          scoreSubmittedRef.current = true;
+          setScoreSubmitted(true);
+          submitScoreRef.current(finalScore, levelRef.current, {
+            lostByCamel: true,
+            completed: false,
+          }).then(result => {
+            if (result.success && result.isNewHighScore) {
+              setIsNewPersonalBest(true);
+            }
+          });
+        }
+        
         // Reset to level 1 and show save score screen
         setLevel(1);
         setGameState('saveScore');
@@ -1084,6 +1114,21 @@ const OrangeJuggle: React.FC = () => {
             if (level >= 5) {
               // Completed all levels - go to save score screen
               hapticHighScore(); // Victory haptic
+              
+              // CRITICAL: Submit score SYNCHRONOUSLY before setGameState
+              if (isSignedInRef.current && !scoreSubmittedRef.current && currentScore > 0) {
+                scoreSubmittedRef.current = true;
+                setScoreSubmitted(true);
+                submitScoreRef.current(currentScore, level, {
+                  lostByCamel: false,
+                  completed: true,
+                }).then(result => {
+                  if (result.success && result.isNewHighScore) {
+                    setIsNewPersonalBest(true);
+                  }
+                });
+              }
+              
               setGameState('saveScore');
               if (currentScore > highScore) {
                 setHighScore(currentScore);
@@ -1097,6 +1142,21 @@ const OrangeJuggle: React.FC = () => {
             // Didn't reach target score - game over
             playGameOver();
             hapticGameOver();
+            
+            // CRITICAL: Submit score SYNCHRONOUSLY before setGameState
+            if (isSignedInRef.current && !scoreSubmittedRef.current && currentScore > 0) {
+              scoreSubmittedRef.current = true;
+              setScoreSubmitted(true);
+              submitScoreRef.current(currentScore, level, {
+                lostByCamel: false,
+                completed: false,
+              }).then(result => {
+                if (result.success && result.isNewHighScore) {
+                  setIsNewPersonalBest(true);
+                }
+              });
+            }
+            
             setGameState('saveScore'); // Still allow saving score
             if (currentScore > highScore) {
               setHighScore(currentScore);
@@ -1117,9 +1177,14 @@ const OrangeJuggle: React.FC = () => {
   }, [gameState, gameMode, level, highScore]);
 
   // Submit score to global leaderboard (for signed-in users)
+  // NOTE: This is now a FALLBACK - primary submission happens synchronously in game loop
   const submitScoreGlobal = useCallback(
     async (finalScore: number, finalLevel: number) => {
+      // Check ref first to prevent race conditions with synchronous submission
+      if (scoreSubmittedRef.current) return;
+      
       if (!isSignedIn || scoreSubmitted || finalScore === 0) return;
+      scoreSubmittedRef.current = true;
       setScoreSubmitted(true);
       const result = await submitScore(finalScore, finalLevel, {
         lostByCamel,

@@ -5,8 +5,8 @@
  * Categories: Emojis, Frames, Name Effects, Titles, Backgrounds, Celebrations, BigPulp Items
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Sparkles, Crown, Flame, Zap, Star, Package, Target, Palette, Gift } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Loader2, Sparkles, Crown, Flame, Zap, Star, Package, Target, Palette, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { CurrencyDisplay } from '../Currency/CurrencyDisplay';
@@ -14,6 +14,7 @@ import { EmojiRing } from './EmojiRing';
 import { EmojiFrame, EMOJI_FRAME_MAP } from './EmojiFrame';
 import { ItemInfoButton } from './ItemInfoButton';
 import { DrawerStylePreview } from './DrawerStylePreview';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import './Shop.css';
 import './frames.css';
 import './ItemInfoButton.css';
@@ -127,8 +128,9 @@ interface ShopProps {
 }
 
 export function Shop({ onClose }: ShopProps) {
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
   const { refreshBalance, currency } = useCurrency();
+  const isMobile = useIsMobile();
   const [activeCategory, setActiveCategory] = useState('consumable');
   const [items, setItems] = useState<ShopItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -138,6 +140,10 @@ export function Shop({ onClose }: ShopProps) {
   const [equipingId, setEquipingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
+  
+  // Mobile carousel state
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   // Fetch shop items (with owned status if authenticated)
   const fetchItems = useCallback(async () => {
@@ -344,6 +350,39 @@ export function Shop({ onClose }: ShopProps) {
 
   const filteredItems = getFilteredItems();
 
+  // Reset carousel when category changes
+  useEffect(() => {
+    setCarouselIndex(0);
+    if (carouselRef.current) {
+      carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+    }
+  }, [activeCategory]);
+
+  // Carousel navigation
+  const goToItem = (index: number) => {
+    const clampedIndex = Math.max(0, Math.min(index, filteredItems.length - 1));
+    setCarouselIndex(clampedIndex);
+    if (carouselRef.current) {
+      const itemWidth = carouselRef.current.scrollWidth / filteredItems.length;
+      carouselRef.current.scrollTo({ left: itemWidth * clampedIndex, behavior: 'smooth' });
+    }
+  };
+
+  const nextItem = () => goToItem(carouselIndex + 1);
+  const prevItem = () => goToItem(carouselIndex - 1);
+
+  // Handle scroll snap to update current index
+  const handleCarouselScroll = () => {
+    if (carouselRef.current && filteredItems.length > 0) {
+      const scrollLeft = carouselRef.current.scrollLeft;
+      const itemWidth = carouselRef.current.scrollWidth / filteredItems.length;
+      const newIndex = Math.round(scrollLeft / itemWidth);
+      if (newIndex !== carouselIndex && newIndex >= 0 && newIndex < filteredItems.length) {
+        setCarouselIndex(newIndex);
+      }
+    }
+  };
+
   // Render item preview based on category
   const renderItemPreview = (item: ShopItem, isLarge = false) => {
     // Emoji badges - show the emoji
@@ -444,7 +483,7 @@ export function Shop({ onClose }: ShopProps) {
       {/* Header */}
       <div className="shop-header">
         <div className="shop-title-row">
-          <h1>Tang Gang Shop</h1>
+          <h1>Two Grove Shop</h1>
           {onClose && (
             <button className="close-button" onClick={onClose}>
               ✕
@@ -481,13 +520,132 @@ export function Shop({ onClose }: ShopProps) {
         })}
       </div>
 
-      {/* Items Grid */}
+      {/* Items Display */}
       {isLoading ? (
         <div className="loading-state">
           <Loader2 className="animate-spin" size={32} />
           <span>Loading shop...</span>
         </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="empty-state">
+          <p>No items in this category yet!</p>
+        </div>
+      ) : isMobile ? (
+        /* ===== MOBILE: Fixed Card with Inner Carousel ===== */
+        <div className="mobile-shop-container">
+          {/* Fixed Card Frame */}
+          <div className={`mobile-card-frame tier-${filteredItems[carouselIndex]?.tier || 'basic'}`}>
+            {/* Inner Carousel - Only this scrolls */}
+            <div 
+              ref={carouselRef}
+              className="mobile-carousel"
+              onScroll={handleCarouselScroll}
+            >
+              {filteredItems.map((item, index) => {
+                const owned = isOwned(item);
+                const equippedItem = isEquipped(item);
+                const affordable = canAfford(item);
+                const isPurchasing = purchasingId === item.id;
+                const isEquiping = equipingId === item.id;
+                const canEquip = ['frame', 'title', 'name_effect', 'background', 'celebration'].includes(item.category);
+
+                return (
+                  <div 
+                    key={item.id} 
+                    className={`carousel-slide ${index === carouselIndex ? 'active' : ''}`}
+                    onClick={() => setPreviewItem(item)}
+                  >
+                    {/* Emoji Preview */}
+                    <div className="carousel-preview">
+                      {renderItemPreview(item)}
+                    </div>
+
+                    {/* Item Name */}
+                    <div className="carousel-name">{item.name}</div>
+
+                    {/* Tier Badge (subtle) */}
+                    <div className={`carousel-tier tier-${item.tier}`}>
+                      {item.tier}
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="carousel-action" onClick={e => e.stopPropagation()}>
+                      {owned ? (
+                        canEquip ? (
+                          <button
+                            className={`carousel-btn equip ${equippedItem ? 'unequip' : ''}`}
+                            onClick={() => handleEquip(item)}
+                            disabled={isEquiping}
+                          >
+                            {isEquiping ? (
+                              <Loader2 className="animate-spin" size={14} />
+                            ) : equippedItem ? (
+                              'Unequip'
+                            ) : (
+                              'Equip'
+                            )}
+                          </button>
+                        ) : (
+                          <span className="carousel-owned">✓ Owned</span>
+                        )
+                      ) : (
+                        <button
+                          className={`carousel-btn buy ${!isSignedIn ? 'signin-required' : ''} ${!affordable && isSignedIn ? 'not-affordable' : ''}`}
+                          disabled={isPurchasing || (item.is_limited === 1 && item.stock_remaining === 0)}
+                          onClick={() => handlePurchase(item)}
+                        >
+                          {isPurchasing ? (
+                            <Loader2 className="animate-spin" size={14} />
+                          ) : item.is_limited === 1 && item.stock_remaining === 0 ? (
+                            'Sold Out'
+                          ) : (
+                            item.price_oranges > 0 ? `🍊 ${item.price_oranges}` : item.price_gems > 0 ? `💎 ${item.price_gems}` : 'Free'
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Navigation Arrows */}
+            {filteredItems.length > 1 && (
+              <>
+                <button 
+                  className={`carousel-nav prev ${carouselIndex === 0 ? 'hidden' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); prevItem(); }}
+                  aria-label="Previous item"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+                <button 
+                  className={`carousel-nav next ${carouselIndex === filteredItems.length - 1 ? 'hidden' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); nextItem(); }}
+                  aria-label="Next item"
+                >
+                  <ChevronRight size={24} />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Pagination Dots */}
+          {filteredItems.length > 1 && (
+            <div className="carousel-dots">
+              {filteredItems.map((_, index) => (
+                <button
+                  key={index}
+                  className={`carousel-dot ${index === carouselIndex ? 'active' : ''}`}
+                  onClick={() => goToItem(index)}
+                  aria-label={`Go to item ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       ) : (
+        /* ===== DESKTOP: Original Grid Layout ===== */
         <div className="items-grid">
           {filteredItems.map((item) => {
             const owned = isOwned(item);
@@ -575,18 +733,23 @@ export function Shop({ onClose }: ShopProps) {
                         )}
                       </div>
                       <button
-                        className="buy-button"
-                        disabled={!affordable || isPurchasing || (item.is_limited === 1 && item.stock_remaining === 0)}
+                        className={`buy-button ${!isSignedIn ? 'signin-required' : ''} ${!affordable && isSignedIn ? 'not-affordable' : ''}`}
+                        disabled={isPurchasing || (item.is_limited === 1 && item.stock_remaining === 0)}
                         onClick={() => handlePurchase(item)}
                       >
                         {isPurchasing ? (
                           <Loader2 className="animate-spin" size={14} />
                         ) : item.is_limited === 1 && item.stock_remaining === 0 ? (
                           'Sold Out'
-                        ) : affordable ? (
-                          'Buy'
                         ) : (
-                          'Need more'
+                          <>
+                            <span className="buy-text-desktop">
+                              {item.price_oranges > 0 ? `🍊 ${item.price_oranges}` : item.price_gems > 0 ? `💎 ${item.price_gems}` : 'Free'}
+                            </span>
+                            <span className="buy-text-mobile">
+                              {item.price_oranges > 0 ? `🍊 ${item.price_oranges}` : item.price_gems > 0 ? `💎 ${item.price_gems}` : 'Free'}
+                            </span>
+                          </>
                         )}
                       </button>
                     </>
@@ -595,12 +758,6 @@ export function Shop({ onClose }: ShopProps) {
               </div>
             );
           })}
-
-          {filteredItems.length === 0 && (
-            <div className="empty-state">
-              <p>No items in this category yet!</p>
-            </div>
-          )}
         </div>
       )}
 
