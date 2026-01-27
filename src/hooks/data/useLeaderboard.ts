@@ -94,7 +94,7 @@ async function fetchLeaderboard(
  */
 export function useLeaderboard(gameId: GameId) {
   const queryClient = useQueryClient();
-  const { authenticatedFetch, isSignedIn } = useAuthenticatedFetch();
+  const { authenticatedFetch, isSignedIn, isLoaded: isAuthLoaded } = useAuthenticatedFetch();
   const { profile } = useUserProfile();
   const { recordGamePlayed, recordLeaderboardRank, checkAchievements } = useAchievements();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -220,6 +220,7 @@ export function useLeaderboard(gameId: GameId) {
 
     // Auth state
     isSignedIn,
+    isAuthLoaded, // Whether Clerk has finished initializing
     userDisplayName,
     isSubmitting,
   };

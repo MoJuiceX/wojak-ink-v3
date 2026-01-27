@@ -198,6 +198,7 @@ const MemoryMatch: React.FC = () => {
     leaderboard: globalLeaderboard,
     submitScore,
     isSignedIn,
+    isAuthLoaded,
     userDisplayName,
     isSubmitting,
   } = useLeaderboard('memory-match');
@@ -297,6 +298,7 @@ const MemoryMatch: React.FC = () => {
   const totalMatchesFoundRef = useRef(totalMatchesFound);
   const scoreSubmittedRef = useRef(scoreSubmitted);
   const isSignedInRef = useRef(isSignedIn);
+  const isAuthLoadedRef = useRef(isAuthLoaded);
   const submitScoreRef = useRef(submitScore);
   useEffect(() => { totalScoreRef.current = totalScore; }, [totalScore]);
   useEffect(() => { highScoreRef.current = highScore; }, [highScore]);
@@ -304,6 +306,7 @@ const MemoryMatch: React.FC = () => {
   useEffect(() => { totalMatchesFoundRef.current = totalMatchesFound; }, [totalMatchesFound]);
   useEffect(() => { scoreSubmittedRef.current = scoreSubmitted; }, [scoreSubmitted]);
   useEffect(() => { isSignedInRef.current = isSignedIn; }, [isSignedIn]);
+  useEffect(() => { isAuthLoadedRef.current = isAuthLoaded; }, [isAuthLoaded]);
   useEffect(() => { submitScoreRef.current = submitScore; }, [submitScore]);
 
   // Ref for musicManagedExternally (to check in startGame)
@@ -1350,7 +1353,7 @@ const MemoryMatch: React.FC = () => {
   // Adding submitScore would cause the timer to restart on every render, breaking the countdown
   }, [gameState, showExitDialog, isPaused, isContextPaused, playGameOver, playWarning, playWojakChime, hapticGameOver, hapticWarning, triggerEvent, triggerGlobalScreenShake, triggerVignette, hapticUrgencyTick]);
 
-  // Auto-submit score for signed-in users when game ends
+  // Auto-submit score for signed-in users when game ends (FALLBACK)
   useEffect(() => {
     if (gameState === 'gameover' && isSignedIn && !scoreSubmitted) {
       submitScoreGlobal(totalScore, round, totalMatchesFound);

@@ -45,6 +45,7 @@ export function useAuthenticatedFetch() {
   return {
     authenticatedFetch,
     isSignedIn: auth.isSignedIn,
+    isLoaded: auth.isLoaded, // Whether Clerk has finished initializing
   };
 }
 
