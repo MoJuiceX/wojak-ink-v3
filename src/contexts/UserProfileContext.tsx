@@ -51,6 +51,7 @@ interface UserProfileState {
   needsOnboarding: boolean;
   unreadMessages: number;
   error: string | null;
+  isAdmin: boolean; // Admin status for chat bypass (from CHAT_ADMIN_USER_IDS env var)
 }
 
 interface UserProfileContextValue extends UserProfileState {
@@ -98,6 +99,7 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
     needsOnboarding: false,
     unreadMessages: 0,
     error: null,
+    isAdmin: false,
   });
 
   const fetchedRef = useRef(false);
@@ -172,6 +174,7 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
           hasProfile: !!profile,
           displayName: profile?.displayName,
           needsOnboarding,
+          isAdmin: data.isAdmin,
         });
 
         setState(s => ({
@@ -181,6 +184,7 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
           isLoaded: true,
           needsOnboarding,
           error: null,
+          isAdmin: data.isAdmin ?? false,
         }));
         return;
       }
@@ -385,6 +389,7 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
         needsOnboarding: false,
         unreadMessages: 0,
         error: null,
+        isAdmin: false,
       });
       return;
     }

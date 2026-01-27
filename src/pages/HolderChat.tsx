@@ -693,7 +693,7 @@ function ChatInterface({ chatToken, userName, userAvatar }: ChatInterfaceProps) 
 
 export default function HolderChat() {
   const { authenticatedFetch, isSignedIn, isLoaded } = useAuthenticatedFetch();
-  const { profile, effectiveDisplayName } = useUserProfile();
+  const { profile, effectiveDisplayName, isAdmin } = useUserProfile();
 
   // State
   const [isVerifying, setIsVerifying] = useState(false);
@@ -704,7 +704,8 @@ export default function HolderChat() {
   const nftCount = profile?.nftCount ?? null;
   const walletAddress = profile?.walletAddress;
   const hasVerified = nftCount !== null;
-  const isEligible = hasVerified && isEligibleForRoom(nftCount, CHAT_TYPE);
+  // Admins bypass NFT verification requirement
+  const isEligible = isAdmin || (hasVerified && isEligibleForRoom(nftCount, CHAT_TYPE));
 
   const userName = effectiveDisplayName || `Holder #${nftCount || 0}`;
   const userAvatar =
@@ -717,7 +718,8 @@ export default function HolderChat() {
       return;
     }
 
-    if (!hasVerified || !walletAddress) {
+    // Admins can enter without wallet verification
+    if (!isAdmin && (!hasVerified || !walletAddress)) {
       setError('Please verify your wallet on the Account page first');
       return;
     }
@@ -727,9 +729,10 @@ export default function HolderChat() {
 
     try {
       // Verify eligibility with server (uses stored nftCount for verification)
+      // For admins without wallet, pass empty string - server will handle it
       const verifyRes = await authenticatedFetch('/api/chat/verify-eligibility', {
         method: 'POST',
-        body: JSON.stringify({ walletAddress, chatType: CHAT_TYPE }),
+        body: JSON.stringify({ walletAddress: walletAddress || '', chatType: CHAT_TYPE }),
       });
 
       const verifyData = await verifyRes.json();
@@ -746,9 +749,10 @@ export default function HolderChat() {
       }
 
       // Get chat token for this room
+      // For admins without wallet, pass empty string - server will handle it
       const tokenRes = await authenticatedFetch('/api/chat/token', {
         method: 'POST',
-        body: JSON.stringify({ walletAddress, chatType: CHAT_TYPE }),
+        body: JSON.stringify({ walletAddress: walletAddress || '', chatType: CHAT_TYPE }),
       });
 
       if (!tokenRes.ok) {
@@ -764,22 +768,23 @@ export default function HolderChat() {
     } finally {
       setIsVerifying(false);
     }
-  }, [isSignedIn, hasVerified, walletAddress, authenticatedFetch]);
+  }, [isSignedIn, isAdmin, hasVerified, walletAddress, authenticatedFetch]);
 
   // Auto-connect eligible users (skip the GatedEntry screen)
+  // Admins can connect even without a wallet
   useEffect(() => {
     if (
       isLoaded &&
       isSignedIn &&
       isEligible &&
-      walletAddress &&
+      (walletAddress || isAdmin) &&
       !chatToken &&
       !isVerifying &&
       !error
     ) {
       handleEnterChat();
     }
-  }, [isLoaded, isSignedIn, isEligible, walletAddress, chatToken, isVerifying, error, handleEnterChat]);
+  }, [isLoaded, isSignedIn, isEligible, walletAddress, isAdmin, chatToken, isVerifying, error, handleEnterChat]);
 
   // Loading state
   if (!isLoaded) {

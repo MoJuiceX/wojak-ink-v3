@@ -40,15 +40,11 @@ function RoomCardSkeleton() {
 export default function ChatHub() {
   const navigate = useNavigate();
   const { isLoaded } = useAuthenticatedFetch();
-  const { profile, isSignedIn, effectiveDisplayName } = useUserProfile();
+  const { profile, isSignedIn, effectiveDisplayName, isAdmin } = useUserProfile();
 
   // Get NFT count from profile (null = never verified)
   const nftCount = profile?.nftCount;
   const hasVerified = nftCount !== null && nftCount !== undefined;
-
-  // TODO: Fetch isAdmin from API or profile - for now always false
-  // Admins are determined server-side when entering the chat
-  const isAdmin = false;
 
   const handleEnterRoom = (chatType: ChatType) => {
     navigate(CHAT_ROOMS[chatType].path);
@@ -113,7 +109,8 @@ export default function ChatHub() {
           <div className="gc-room-grid">
             {Object.entries(CHAT_ROOMS).map(([key, room]) => {
               const chatType = key as ChatType;
-              const isEligible = hasVerified && isEligibleForRoom(nftCount!, chatType, isAdmin);
+              // Admins bypass NFT verification entirely
+              const isEligible = isAdmin || (hasVerified && isEligibleForRoom(nftCount!, chatType, false));
               const neededMore = room.minNfts - (nftCount || 0);
 
               return (
@@ -148,16 +145,16 @@ export default function ChatHub() {
                     </div>
                   )}
 
-                  {/* State 2: Signed in, wallet not verified - show lock */}
-                  {isSignedIn && !hasVerified && (
+                  {/* State 2: Signed in, wallet not verified (non-admins only) - show lock */}
+                  {isSignedIn && !hasVerified && !isAdmin && (
                     <div className="gc-room-action-area gc-room-action-area--locked">
                       <Lock size={20} aria-label="Locked - verify wallet to check eligibility" />
                       <span className="gc-room-locked-text">Locked</span>
                     </div>
                   )}
 
-                  {/* State 3: Verified but not eligible - show progress */}
-                  {isSignedIn && hasVerified && !isEligible && (
+                  {/* State 3: Verified but not eligible (non-admins only) - show progress */}
+                  {isSignedIn && hasVerified && !isEligible && !isAdmin && (
                     <div className="gc-room-action-area gc-room-action-area--progress">
                       <div 
                         className="gc-room-progress"
@@ -186,8 +183,8 @@ export default function ChatHub() {
                     </div>
                   )}
 
-                  {/* State 4: Eligible - show enter button */}
-                  {isSignedIn && hasVerified && isEligible && (
+                  {/* State 4: Eligible (including admins) - show enter button */}
+                  {isSignedIn && isEligible && (
                     <div className="gc-room-action-area">
                       <button
                         className="gc-room-button gc-room-button--enter"

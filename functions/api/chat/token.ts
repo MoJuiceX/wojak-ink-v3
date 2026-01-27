@@ -310,24 +310,29 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     );
   }
 
-  // Validate wallet address
-  if (!walletAddress || !isValidChiaAddress(walletAddress)) {
+  const roomConfig = CHAT_ROOMS[chatType];
+
+  // Check if user is admin (bypasses NFT requirement)
+  const adminUserIds = env.CHAT_ADMIN_USER_IDS?.split(',').map(id => id.trim()) || [];
+  const isAdmin = adminUserIds.includes(auth.userId);
+
+  // Validate wallet address (admins can bypass this requirement)
+  if (!isAdmin && (!walletAddress || !isValidChiaAddress(walletAddress))) {
     return new Response(
       JSON.stringify({ error: 'Valid Chia wallet address required' }),
       { status: 400, headers: corsHeaders }
     );
   }
 
-  const roomConfig = CHAT_ROOMS[chatType];
-
   try {
-    // Check if user is admin (bypasses NFT requirement)
-    const adminUserIds = env.CHAT_ADMIN_USER_IDS?.split(',').map(id => id.trim()) || [];
-    const isAdmin = adminUserIds.includes(auth.userId);
-
-    // CRITICAL: Server-side verification of NFT count
-    // Never trust client-provided counts (uses cache fallback if MintGarden unavailable)
-    const nftCount = await fetchWojakNftCount(walletAddress, env.DB);
+    // For admins without wallet, use 0 NFT count but allow access
+    // For regular users, verify NFT count from MintGarden
+    let nftCount = 0;
+    if (walletAddress && isValidChiaAddress(walletAddress)) {
+      // CRITICAL: Server-side verification of NFT count
+      // Never trust client-provided counts (uses cache fallback if MintGarden unavailable)
+      nftCount = await fetchWojakNftCount(walletAddress, env.DB);
+    }
 
     // Check eligibility for requested room (admins bypass)
     if (!isAdmin && nftCount < roomConfig.minNfts) {
@@ -346,7 +351,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     // Create short-lived chat token with room info
     const { token, expiresAt } = await createChatToken(env.CHAT_JWT_SECRET, {
       userId: auth.userId,
-      walletAddress,
+      walletAddress: walletAddress || 'admin', // Use 'admin' placeholder for admins without wallet
       nftCount,
       isAdmin,
       chatType,

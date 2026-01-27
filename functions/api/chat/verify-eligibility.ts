@@ -249,8 +249,27 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   const { walletAddress } = body;
 
-  // Validate wallet address
+  // Check if user is admin (bypasses NFT requirement) - check early for proper response
+  const adminUserIds = env.CHAT_ADMIN_USER_IDS?.split(',').map(id => id.trim()) || [];
+  const isAdmin = adminUserIds.includes(auth.userId);
+
+  // Validate wallet address (admins can bypass this requirement)
   if (!walletAddress) {
+    // Admins without wallet still get full access
+    if (isAdmin) {
+      return new Response(
+        JSON.stringify({
+          nftCount: 0,
+          isAdmin: true,
+          eligibility: {
+            whale: { eligible: true, minRequired: CHAT_ROOMS.whale.minNfts },
+            holder: { eligible: true, minRequired: CHAT_ROOMS.holder.minNfts },
+          },
+          message: 'Welcome, Admin! You have full access to all chat rooms.',
+        }),
+        { status: 200, headers: corsHeaders }
+      );
+    }
     return new Response(
       JSON.stringify({
         nftCount: 0,
@@ -273,9 +292,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    // Check if user is admin (bypasses NFT requirement)
-    const adminUserIds = env.CHAT_ADMIN_USER_IDS?.split(',').map(id => id.trim()) || [];
-    const isAdmin = adminUserIds.includes(auth.userId);
 
     // Fetch NFT count from MintGarden (with cache fallback)
     const { count: nftCount, fromCache } = await fetchWojakNftCount(walletAddress, env.DB);

@@ -10,6 +10,7 @@ import { authenticateRequest } from '../lib/auth';
 interface Env {
   CLERK_DOMAIN: string;
   DB: D1Database; // D1 binding
+  CHAT_ADMIN_USER_IDS?: string; // Comma-separated list of admin user IDs
 }
 
 interface AvatarData {
@@ -381,6 +382,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   const { userId } = auth;
 
+  // Check if user is admin (bypasses NFT requirements for chat)
+  const adminUserIds = env.CHAT_ADMIN_USER_IDS?.split(',').map(id => id.trim()) || [];
+  const isAdmin = adminUserIds.includes(userId);
+
   try {
     // Ensure user exists
     await ensureUser(env.DB, userId);
@@ -410,6 +415,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           userId,
+          isAdmin,
           profile: profile
             ? {
                 displayName: profile.display_name,
@@ -479,6 +485,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           success: true,
+          isAdmin,
           profile: profile
             ? {
                 displayName: profile.display_name,
