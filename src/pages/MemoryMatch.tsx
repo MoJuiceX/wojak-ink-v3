@@ -297,12 +297,14 @@ const MemoryMatch: React.FC = () => {
   const totalMatchesFoundRef = useRef(totalMatchesFound);
   const scoreSubmittedRef = useRef(scoreSubmitted);
   const isSignedInRef = useRef(isSignedIn);
+  const submitScoreRef = useRef(submitScore);
   useEffect(() => { totalScoreRef.current = totalScore; }, [totalScore]);
   useEffect(() => { highScoreRef.current = highScore; }, [highScore]);
   useEffect(() => { roundRef.current = round; }, [round]);
   useEffect(() => { totalMatchesFoundRef.current = totalMatchesFound; }, [totalMatchesFound]);
   useEffect(() => { scoreSubmittedRef.current = scoreSubmitted; }, [scoreSubmitted]);
   useEffect(() => { isSignedInRef.current = isSignedIn; }, [isSignedIn]);
+  useEffect(() => { submitScoreRef.current = submitScore; }, [submitScore]);
 
   // Ref for musicManagedExternally (to check in startGame)
   const musicManagedExternallyRef = useRef(musicManagedExternally);
@@ -1303,7 +1305,7 @@ const MemoryMatch: React.FC = () => {
               totalMatchesFoundRef.current >= 3 && totalScoreRef.current > 0) {
             scoreSubmittedRef.current = true; // Prevent double submission
             setScoreSubmitted(true);
-            submitScore(totalScoreRef.current, roundRef.current, {
+            submitScoreRef.current(totalScoreRef.current, roundRef.current, {
               roundsCompleted: roundRef.current - 1,
               matchesFound: totalMatchesFoundRef.current,
             }).then(result => {
@@ -1344,7 +1346,9 @@ const MemoryMatch: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameState, showExitDialog, isPaused, isContextPaused, playGameOver, playWarning, playWojakChime, hapticGameOver, hapticWarning, triggerEvent, triggerGlobalScreenShake, triggerVignette, hapticUrgencyTick, submitScore]);
+  // NOTE: submitScore intentionally NOT in deps - we use refs and call it inside the callback
+  // Adding submitScore would cause the timer to restart on every render, breaking the countdown
+  }, [gameState, showExitDialog, isPaused, isContextPaused, playGameOver, playWarning, playWojakChime, hapticGameOver, hapticWarning, triggerEvent, triggerGlobalScreenShake, triggerVignette, hapticUrgencyTick]);
 
   // Auto-submit score for signed-in users when game ends
   useEffect(() => {
