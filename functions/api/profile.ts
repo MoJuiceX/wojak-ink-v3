@@ -261,6 +261,15 @@ async function upsertProfile(
   userId: string,
   data: ProfileData
 ): Promise<void> {
+  // Log what we're about to save
+  console.log('[Profile] upsertProfile called with avatar:', JSON.stringify({
+    type: data.avatar?.type,
+    value: data.avatar?.value?.substring(0, 50),
+    source: data.avatar?.source,
+    nftId: data.avatar?.nftId,
+    nftLauncherId: data.avatar?.nftLauncherId,
+  }));
+  
   // Try with avatar columns first
   try {
     await db
@@ -470,10 +479,18 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
 
       // Save
+      console.log('[Profile] Saving profile data:', JSON.stringify(data));
       await upsertProfile(env.DB, userId, data);
+      console.log('[Profile] Upsert complete');
 
       // Return updated profile
       const profile = await getProfile(env.DB, userId);
+      console.log('[Profile] Retrieved profile after save:', JSON.stringify({
+        avatar_type: profile?.avatar_type,
+        avatar_value: profile?.avatar_value?.substring(0, 50),
+        avatar_source: profile?.avatar_source,
+        avatar_nft_id: profile?.avatar_nft_id,
+      }));
 
       return new Response(
         JSON.stringify({

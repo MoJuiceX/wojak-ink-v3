@@ -45,7 +45,7 @@ const NINJA_COVERING_MASKS = ['copium', 'hannibal', 'bandana'];
 /**
  * Full-face masks that render on top of everything (skull masks, fake it mask)
  */
-const FULL_FACE_MASKS = ['skull_mask', 'skull-mask', 'fake_it', 'fake-it'];
+const FULL_FACE_MASKS = ['skull_mask', 'skull-mask', 'fake_it', 'fake-it', 'medievalbepe'];
 
 /**
  * Heads that need EyesOverHead virtual layer (right half of eyes rendered above head)
