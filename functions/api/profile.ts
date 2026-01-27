@@ -41,12 +41,13 @@ function getRandomEmoji(): string {
   return VALID_EMOJIS[Math.floor(Math.random() * VALID_EMOJIS.length)];
 }
 
-// CORS headers
+// CORS headers - include no-cache to prevent stale profile data
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Content-Type': 'application/json',
+  'Cache-Control': 'no-store, no-cache, must-revalidate',
 };
 
 /**
@@ -69,130 +70,60 @@ async function ensureUser(db: D1Database, userId: string): Promise<void> {
  * Note: Falls back gracefully if columns don't exist yet
  */
 async function getProfile(db: D1Database, userId: string) {
-  // Try with all columns including avatar, NFT count, and user created_at
-  try {
-    const result = await db
-      .prepare(`SELECT
-        u.created_at as user_created_at,
-        p.display_name,
-        p.x_handle,
-        p.wallet_address,
-        p.current_streak,
-        p.longest_streak,
-        p.last_played_date,
-        p.avatar_type,
-        p.avatar_value,
-        p.avatar_source,
-        p.avatar_nft_id,
-        p.avatar_nft_launcher_id,
-        p.owned_nft_ids,
-        p.nft_count,
-        p.nft_verified_at,
-        p.updated_at
-      FROM profiles p
-      JOIN users u ON u.id = p.user_id
-      WHERE p.user_id = ?`)
-      .bind(userId)
-      .first<{
-        user_created_at: string;
-        display_name: string | null;
-        x_handle: string | null;
-        wallet_address: string | null;
-        current_streak: number | null;
-        longest_streak: number | null;
-        last_played_date: string | null;
-        avatar_type: string | null;
-        avatar_value: string | null;
-        avatar_source: string | null;
-        avatar_nft_id: string | null;
-        avatar_nft_launcher_id: string | null;
-        owned_nft_ids: string | null;
-        nft_count: number | null;
-        nft_verified_at: string | null;
-        updated_at: string;
-      }>();
+  // Query profile with all columns - no fallback, columns should exist
+  console.log('[Profile] getProfile called for userId:', userId);
+  
+  const result = await db
+    .prepare(`SELECT
+      u.created_at as user_created_at,
+      p.display_name,
+      p.x_handle,
+      p.wallet_address,
+      p.current_streak,
+      p.longest_streak,
+      p.last_played_date,
+      p.avatar_type,
+      p.avatar_value,
+      p.avatar_source,
+      p.avatar_nft_id,
+      p.avatar_nft_launcher_id,
+      p.owned_nft_ids,
+      p.nft_count,
+      p.nft_verified_at,
+      p.updated_at
+    FROM profiles p
+    JOIN users u ON u.id = p.user_id
+    WHERE p.user_id = ?`)
+    .bind(userId)
+    .first<{
+      user_created_at: string;
+      display_name: string | null;
+      x_handle: string | null;
+      wallet_address: string | null;
+      current_streak: number | null;
+      longest_streak: number | null;
+      last_played_date: string | null;
+      avatar_type: string | null;
+      avatar_value: string | null;
+      avatar_source: string | null;
+      avatar_nft_id: string | null;
+      avatar_nft_launcher_id: string | null;
+      owned_nft_ids: string | null;
+      nft_count: number | null;
+      nft_verified_at: string | null;
+      updated_at: string;
+    }>();
 
-    return result;
-  } catch (error) {
-    // Fallback: avatar columns might not exist yet
-    console.log('[Profile] Falling back to query without avatar columns');
-    try {
-      const result = await db
-        .prepare(`SELECT
-          u.created_at as user_created_at,
-          p.display_name,
-          p.x_handle,
-          p.wallet_address,
-          p.current_streak,
-          p.longest_streak,
-          p.last_played_date,
-          p.updated_at
-        FROM profiles p
-        JOIN users u ON u.id = p.user_id
-        WHERE p.user_id = ?`)
-        .bind(userId)
-        .first<{
-          user_created_at: string;
-          display_name: string | null;
-          x_handle: string | null;
-          wallet_address: string | null;
-          current_streak: number | null;
-          longest_streak: number | null;
-          last_played_date: string | null;
-          updated_at: string;
-        }>();
-
-      // Return with default avatar values
-      return result ? {
-        ...result,
-        avatar_type: null,
-        avatar_value: null,
-        avatar_source: null,
-        avatar_nft_id: null,
-        avatar_nft_launcher_id: null,
-        owned_nft_ids: null,
-        nft_count: null,
-        nft_verified_at: null,
-      } : null;
-    } catch {
-      // Final fallback: basic columns only
-      console.log('[Profile] Falling back to basic query');
-      const result = await db
-        .prepare(`SELECT
-          u.created_at as user_created_at,
-          p.display_name,
-          p.x_handle,
-          p.wallet_address,
-          p.updated_at
-        FROM profiles p
-        JOIN users u ON u.id = p.user_id
-        WHERE p.user_id = ?`)
-        .bind(userId)
-        .first<{
-          user_created_at: string;
-          display_name: string | null;
-          x_handle: string | null;
-          wallet_address: string | null;
-          updated_at: string;
-        }>();
-
-      return result ? {
-        ...result,
-        current_streak: null,
-        longest_streak: null,
-        last_played_date: null,
-        avatar_type: null,
-        avatar_value: null,
-        avatar_source: null,
-        avatar_nft_id: null,
-        avatar_nft_launcher_id: null,
-        owned_nft_ids: null,
-        nft_count: null,
-        nft_verified_at: null,
-      } : null;
-    }
-  }
+  console.log('[Profile] getProfile result:', JSON.stringify({
+    hasResult: !!result,
+    avatar_type: result?.avatar_type,
+    avatar_value: result?.avatar_value?.substring(0, 50),
+    avatar_source: result?.avatar_source,
+  }));
+  
+  return result;
 }
+
 
 /**
  * Validate profile data
@@ -339,53 +270,78 @@ async function upsertProfile(
 
       console.log('[Profile] UPDATE SQL:', sql);
       console.log('[Profile] UPDATE values:', JSON.stringify(values));
+      console.log('[Profile] Value types:', values.map(v => typeof v).join(', '));
 
-      const result = await db.prepare(sql).bind(...values).run();
-      
-      console.log('[Profile] UPDATE result:', JSON.stringify({
-        success: result.success,
-        changes: result.meta?.changes,
-        duration: result.meta?.duration,
-      }));
+      try {
+        const result = await db.prepare(sql).bind(...values).run();
+        
+        console.log('[Profile] UPDATE result:', JSON.stringify({
+          success: result.success,
+          changes: result.meta?.changes,
+          duration: result.meta?.duration,
+        }));
 
-      if (result.meta?.changes === 0) {
-        console.error('[Profile] WARNING: UPDATE affected 0 rows!');
+        if (result.meta?.changes === 0) {
+          console.error('[Profile] WARNING: UPDATE affected 0 rows!');
+        }
+
+        // VERIFICATION: Immediately read back the avatar data to confirm it was written
+        const verify = await db
+          .prepare('SELECT avatar_type, avatar_value, avatar_source FROM profiles WHERE user_id = ?')
+          .bind(userId)
+          .first<{ avatar_type: string | null; avatar_value: string | null; avatar_source: string | null }>();
+        
+        console.log('[Profile] VERIFY after UPDATE:', JSON.stringify({
+          avatar_type: verify?.avatar_type,
+          avatar_value: verify?.avatar_value?.substring(0, 50),
+          avatar_source: verify?.avatar_source,
+        }));
+      } catch (updateError) {
+        console.error('[Profile] UPDATE FAILED:', updateError);
+        console.error('[Profile] UPDATE error message:', updateError instanceof Error ? updateError.message : String(updateError));
+        throw updateError;
       }
     }
   } else {
     // INSERT new profile
     console.log('[Profile] Profile does not exist, performing INSERT');
     
-    const result = await db
-      .prepare(
-        `INSERT INTO profiles (
-          user_id, display_name, x_handle, wallet_address,
-          avatar_type, avatar_value, avatar_source, avatar_nft_id, avatar_nft_launcher_id,
-          owned_nft_ids, nft_count, nft_verified_at, updated_at
+    try {
+      const result = await db
+        .prepare(
+          `INSERT INTO profiles (
+            user_id, display_name, x_handle, wallet_address,
+            avatar_type, avatar_value, avatar_source, avatar_nft_id, avatar_nft_launcher_id,
+            owned_nft_ids, nft_count, nft_verified_at, updated_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
-      )
-      .bind(
-        userId,
-        data.displayName || null,
-        data.xHandle || null,
-        data.walletAddress || null,
-        data.avatar?.type || 'emoji',
-        data.avatar?.value || '🎮',
-        data.avatar?.source || 'default',
-        data.avatar?.nftId || null,
-        data.avatar?.nftLauncherId || null,
-        data.ownedNftIds ? JSON.stringify(data.ownedNftIds) : null,
-        data.nftCount ?? null,
-        data.nftVerifiedAt || null
-      )
-      .run();
+        .bind(
+          userId,
+          data.displayName || null,
+          data.xHandle || null,
+          data.walletAddress || null,
+          data.avatar?.type || 'emoji',
+          data.avatar?.value || '🎮',
+          data.avatar?.source || 'default',
+          data.avatar?.nftId || null,
+          data.avatar?.nftLauncherId || null,
+          data.ownedNftIds ? JSON.stringify(data.ownedNftIds) : null,
+          data.nftCount ?? null,
+          data.nftVerifiedAt || null
+        )
+        .run();
 
-    console.log('[Profile] INSERT result:', JSON.stringify({
-      success: result.success,
-      changes: result.meta?.changes,
-      lastRowId: result.meta?.last_row_id,
-    }));
+      console.log('[Profile] INSERT result:', JSON.stringify({
+        success: result.success,
+        changes: result.meta?.changes,
+        lastRowId: result.meta?.last_row_id,
+      }));
+    } catch (insertError) {
+      console.error('[Profile] INSERT FAILED:', insertError);
+      console.error('[Profile] INSERT error message:', insertError instanceof Error ? insertError.message : String(insertError));
+      throw insertError;
+    }
   }
 }
 
