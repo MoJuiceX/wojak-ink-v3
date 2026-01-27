@@ -44,8 +44,8 @@ export function useAuthenticatedFetch() {
 
   return {
     authenticatedFetch,
-    isSignedIn: auth.isSignedIn,
-    isLoaded: auth.isLoaded, // Whether Clerk has finished initializing
+    isSignedIn: auth.isSignedIn ?? false, // Ensure boolean, not undefined
+    isLoaded: auth.isLoaded ?? false, // Whether Clerk has finished initializing
   };
 }
 

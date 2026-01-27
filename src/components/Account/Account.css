@@ -1,4 +1,256 @@
-/* ============ Profile Header ============ */
+/* ============ Premium Design Tokens ============ */
+.account-dashboard--premium {
+  --card-bg: rgba(20, 20, 28, 0.85);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-radius: 16px;
+  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  --accent-gradient: linear-gradient(135deg, #ff6b00 0%, #ff9500 100%);
+  --spacing-tight: 0.75rem;
+  --spacing-normal: 1rem;
+}
+
+/* ============ Premium Profile Header ============ */
+.profile-header-premium {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--card-bg, rgba(20, 20, 28, 0.85));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  margin-bottom: 1rem;
+}
+
+.profile-header__identity {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.profile-header__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-header__name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+
+.profile-header__name-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-header__streak {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.streak-badge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-muted);
+}
+
+.streak-badge--current.active {
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+}
+
+.streak-badge--best.active {
+  background: rgba(255, 215, 0, 0.15);
+  color: #ffd700;
+}
+
+.profile-header__member {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  margin-top: 0.25rem;
+}
+
+/* Wallet CTA in header */
+.profile-header__wallet {
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.wallet-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.wallet-cta__text {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.wallet-cta__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wallet-cta__btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+/* Wallet connected status */
+.wallet-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.wallet-status__info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.wallet-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-tertiary);
+}
+
+.wallet-status__dot.dot--success {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+}
+
+.wallet-status__dot.dot--warning {
+  background: #eab308;
+}
+
+.wallet-status__dot.dot--neutral {
+  background: #6b7280;
+}
+
+.wallet-status__address {
+  font-family: monospace;
+  color: var(--color-text-secondary);
+}
+
+.wallet-status__divider {
+  color: var(--color-text-tertiary);
+}
+
+.wallet-status__nfts {
+  color: var(--color-text-primary);
+}
+
+.wallet-status__nfts strong {
+  color: #22c55e;
+}
+
+.wallet-status__actions {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.wallet-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wallet-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary);
+}
+
+.wallet-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wallet-icon-btn--danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.wallet-error {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  color: #ef4444;
+}
+
+/* Desktop: wallet moves to side */
+@media (min-width: 768px) {
+  .profile-header-premium {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  
+  .profile-header__identity {
+    flex: 1;
+  }
+  
+  .profile-header__wallet {
+    max-width: 280px;
+    padding-top: 0;
+    padding-left: 1rem;
+    border-top: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  
+  .wallet-cta {
+    align-items: flex-start;
+  }
+}
+
+/* ============ Legacy Profile Header (fallback) ============ */
 .profile-header {
   display: flex;
   gap: 1.5rem;
@@ -27,6 +279,11 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.avatar-edit-button:hover {
+  transform: scale(1.1);
 }
 
 .profile-info {
@@ -52,12 +309,19 @@
   color: var(--color-text-tertiary);
   cursor: pointer;
   padding: 4px;
+  transition: color 0.2s;
+}
+
+.edit-name-button:hover {
+  color: var(--color-text-primary);
 }
 
 .profile-x-handle {
+  display: block;
   color: var(--color-brand-primary);
   text-decoration: none;
   font-size: 0.875rem;
+  margin-top: 2px;
 }
 
 .profile-badges {
@@ -101,7 +365,63 @@
   font-size: 0.875rem;
 }
 
-/* ============ Currency Stats ============ */
+/* ============ Premium Stats Card ============ */
+.stats-card-premium {
+  background: var(--card-bg, rgba(20, 20, 28, 0.85));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.stats-card__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.625rem 0.375rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.2s;
+}
+
+.stat-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+.stat-item .stat-icon {
+  font-size: 1.25rem;
+  margin-bottom: 2px;
+}
+
+.stat-item .stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.stat-item .stat-label {
+  font-size: 0.6rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 400px) {
+  .stats-card__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============ Legacy Currency Stats (fallback) ============ */
 .currency-stats {
   margin-bottom: 1.5rem;
 }
@@ -225,7 +545,188 @@
   font-style: italic;
 }
 
-/* ============ NFT Gallery ============ */
+/* ============ Premium NFT Gallery (Horizontal Scroll) ============ */
+.nft-gallery-premium {
+  background: var(--card-bg, rgba(20, 20, 28, 0.85));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.nft-gallery__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.nft-gallery__header h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.nft-gallery__header .count {
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+  font-size: 0.875rem;
+}
+
+.see-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0.375rem 0.625rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.see-all-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--color-text-primary);
+}
+
+.nft-gallery__scroll {
+  display: flex;
+  gap: 0.625rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.5rem;
+  margin: 0 -0.25rem;
+  padding: 0.25rem;
+}
+
+.nft-gallery__scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.nft-gallery__scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+}
+
+.nft-gallery__scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+.nft-gallery__scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.nft-item {
+  flex-shrink: 0;
+  width: 68px;
+  height: 68px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  scroll-snap-align: start;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.nft-item:hover {
+  transform: scale(1.05);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.nft-item--active {
+  border-color: #ffd700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+}
+
+.nft-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nft-item__id {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  font-size: 0.5rem;
+  padding: 1px 3px;
+  border-radius: 2px;
+  font-family: monospace;
+}
+
+.nft-item__badge {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: #ffd700;
+  color: #000;
+  font-size: 0.5rem;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-weight: 700;
+}
+
+/* Expanded grid view */
+.nft-gallery--expanded .nft-gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.625rem;
+}
+
+@media (max-width: 480px) {
+  .nft-gallery--expanded .nft-gallery__grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Empty state */
+.nft-gallery--empty {
+  text-align: center;
+}
+
+.nft-gallery-empty-state {
+  padding: 1.5rem 1rem;
+}
+
+.nft-gallery-empty-state .empty-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.nft-gallery-empty-state p {
+  color: var(--color-text-tertiary);
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem 0;
+}
+
+.browse-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-brand-primary);
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
+.browse-link:hover {
+  text-decoration: underline;
+}
+
+/* ============ Legacy NFT Gallery (fallback) ============ */
 .nft-gallery-section {
   margin-bottom: 1.5rem;
 }
@@ -314,6 +815,51 @@
   color: var(--color-brand-primary);
   text-decoration: none;
   font-size: 0.875rem;
+}
+
+/* ============ Quick Actions Bar ============ */
+.quick-actions-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.quick-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quick-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 107, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.quick-action-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 480px) {
+  .quick-action-btn span {
+    display: none;
+  }
+  
+  .quick-action-btn {
+    padding: 0.75rem 1rem;
+  }
 }
 
 /* ============ Inventory ============ */
@@ -536,40 +1082,48 @@
 /* ============ Account Actions ============ */
 .account-actions {
   display: flex;
-  flex-direction: column;
   gap: 0.75rem;
-  margin-top: 1.5rem;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .action-button {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 1rem;
   border-radius: 10px;
   font-weight: 500;
-  font-size: 0.875rem;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
+  font-size: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--color-text-primary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .action-button:hover {
-  border-color: var(--color-brand-primary);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.action-button:active {
+  transform: translateY(0);
 }
 
 .action-signout {
   background: transparent;
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.2);
   color: #ef4444;
 }
 
 .action-signout:hover {
-  border-color: #ef4444;
-  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
 }
 
 /* ============ Profile Loading/Error States ============ */
@@ -721,13 +1275,51 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 @media (min-width: 768px) {
   .account-widgets-row {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* Expanded widgets with premium styling */
+.account-widgets-row--expanded .account-widget {
+  background: var(--card-bg, rgba(20, 20, 28, 0.85));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: var(--card-border, rgba(255, 255, 255, 0.08));
+  min-height: 200px;
+}
+
+.account-widgets-row--expanded .widget-header h3 {
+  font-size: 1.1rem;
+}
+
+.account-widgets-row--expanded .friends-avatars {
+  gap: 0.625rem;
+}
+
+.account-widgets-row--expanded .friend-avatar {
+  min-width: 56px;
+  padding: 0.625rem;
+}
+
+.account-widgets-row--expanded .avatar-emoji {
+  font-size: 1.5rem;
+}
+
+.account-widgets-row--expanded .achievement-cards {
+  gap: 0.625rem;
+}
+
+.account-widgets-row--expanded .achievement-mini-card {
+  padding: 0.5rem 0.75rem;
+}
+
+.account-widgets-row--expanded .achievement-icon {
+  font-size: 1.125rem;
 }
 
 /* ============ Widget Base Styles ============ */
@@ -959,4 +1551,103 @@
   font-size: 0.7rem;
   color: #f97316;
   margin-top: 0.375rem;
+}
+
+/* ============ Premium Game Scores ============ */
+.account-dashboard--premium .game-scores-section {
+  background: var(--card-bg, rgba(20, 20, 28, 0.85));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.account-dashboard--premium .game-scores-section .section-title {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.account-dashboard--premium .games-grid {
+  gap: 0.5rem;
+}
+
+.account-dashboard--premium .game-score-card {
+  padding: 0.625rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+  transition: all 0.2s;
+}
+
+.account-dashboard--premium .game-score-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+.account-dashboard--premium .game-emoji {
+  font-size: 1.25rem;
+}
+
+.account-dashboard--premium .game-name {
+  font-size: 0.8rem;
+}
+
+/* ============ Premium Inventory ============ */
+.account-dashboard--premium .inventory-section {
+  background: var(--card-bg, rgba(20, 20, 28, 0.85));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.account-dashboard--premium .inventory-section .section-title {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+/* ============ Micro-interactions & Animations ============ */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Skeleton loading animation */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============ Reduced Motion Support ============ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .spin {
+    animation: none;
+  }
 }

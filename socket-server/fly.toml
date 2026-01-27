@@ -1,0 +1,24 @@
+# Fly.io configuration for Wojak Chat MVP
+# Deploy with: fly deploy
+
+app = "wojak-chat"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[env]
+  NODE_ENV = "production"
+  ALLOWED_ORIGINS = "https://wojak.ink,http://localhost:5173"
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1

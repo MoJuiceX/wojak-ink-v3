@@ -419,6 +419,24 @@
   font-size: 108px;
 }
 
+/* Desktop: Enhanced combo glow at high levels (GPU-friendly) */
+@media (min-width: 769px) {
+  .combo-level-8 .combo-number,
+  .combo-level-9 .combo-number {
+    text-shadow:
+      0 0 30px rgba(255, 244, 128, 0.9),
+      0 0 60px rgba(255, 200, 0, 0.5),
+      0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+  
+  .combo-level-10 .combo-number {
+    text-shadow:
+      0 0 35px #ffd700,
+      0 0 70px rgba(255, 215, 0, 0.6),
+      0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+}
+
 /* Perfect/Great bonus flash - appears near stack, floats up-right and fades */
 .bonus-flash {
   position: absolute;
@@ -451,28 +469,28 @@
 
 /* Original animation (fallback) */
 @keyframes flash-in-out {
-  0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
-  15% { transform: translateX(-50%) scale(1.2); opacity: 1; }
-  30% { transform: translateX(-50%) scale(1); opacity: 1; }
-  100% { transform: translateX(-50%) scale(0.8); opacity: 0; }
+  0% { transform: scale(0.5); opacity: 0; }
+  15% { transform: scale(1.2); opacity: 1; }
+  30% { transform: scale(1); opacity: 1; }
+  100% { transform: translateX(40px) translateY(-60px) scale(0.8); opacity: 0; }
 }
 
-/* New animation: pop in, then float up and to the right while fading */
+/* Animation: pop in to the right of combo, then float up-right toward corner and fade */
 @keyframes flash-float-up-right {
   0% { 
-    transform: translateX(-50%) scale(0.5); 
+    transform: scale(0.5); 
     opacity: 0; 
   }
   15% { 
-    transform: translateX(-50%) scale(1.1); 
+    transform: scale(1.1); 
     opacity: 1; 
   }
   30% { 
-    transform: translateX(-50%) scale(1); 
+    transform: scale(1); 
     opacity: 1; 
   }
   100% { 
-    transform: translateX(20%) translateY(-60px) scale(0.8); 
+    transform: translateX(60px) translateY(-100px) scale(0.7); 
     opacity: 0; 
   }
 }

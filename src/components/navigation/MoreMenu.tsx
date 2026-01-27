@@ -15,6 +15,7 @@ import {
   Landmark,
   Settings,
   User,
+  MessageCircle,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -53,6 +54,15 @@ const menuItems: MenuItem[] = [
     route: '/leaderboard',
     iconColor: '#fbbf24',
     iconBg: 'rgba(251, 191, 36, 0.15)',
+  },
+  {
+    icon: MessageCircle,
+    label: '1% Holder Chat',
+    description: 'Exclusive chat for top holders',
+    route: '/chat',
+    badge: '42+ NFTs',
+    iconColor: '#f59e0b',
+    iconBg: 'rgba(245, 158, 11, 0.15)',
   },
   {
     icon: Users,
@@ -180,6 +190,7 @@ export function MoreMenu({ isOpen, onClose }: MoreMenuProps) {
               {menuItems.map((item) => {
                 const Icon = item.icon;
                 const isDisabled = item.badge === 'Soon';
+                const isSpecialBadge = item.badge && item.badge !== 'Soon';
                 
                 return (
                   <button
@@ -221,8 +232,10 @@ export function MoreMenu({ isOpen, onClose }: MoreMenuProps) {
                           <span
                             className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase"
                             style={{
-                              background: 'rgba(167, 139, 250, 0.2)',
-                              color: '#a78bfa',
+                              background: isSpecialBadge
+                                ? 'rgba(245, 158, 11, 0.2)'
+                                : 'rgba(167, 139, 250, 0.2)',
+                              color: isSpecialBadge ? '#f59e0b' : '#a78bfa',
                             }}
                           >
                             {item.badge}

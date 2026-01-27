@@ -22,3 +22,7 @@ id = "3d3382d37eeb4d4dac250fcf03b3f24d"
 [vars]
 COLLECTION_ID = "col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah"
 SECONDARY_SALES_CUTOFF = "2025-12-20T00:00:00Z"
+
+# Secrets (set via `wrangler pages secret put` or Cloudflare Dashboard):
+# - CLERK_DOMAIN: Your Clerk domain (e.g., your-app.clerk.accounts.dev)
+# - CHAT_JWT_SECRET: Secret for signing chat tokens (generate with: openssl rand -base64 32)

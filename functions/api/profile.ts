@@ -26,6 +26,9 @@ interface ProfileData {
   walletAddress?: string;
   avatar?: AvatarData;
   ownedNftIds?: string[];
+  // NFT verification for chat access
+  nftCount?: number | null;
+  nftVerifiedAt?: string | null;
 }
 
 // Valid emoji list for validation and random assignment
@@ -62,29 +65,36 @@ async function ensureUser(db: D1Database, userId: string): Promise<void> {
 
 /**
  * Get user profile with streak and avatar info
+ * JOINs users table to get created_at for "Member for X days" display
  * Note: Falls back gracefully if columns don't exist yet
  */
 async function getProfile(db: D1Database, userId: string) {
-  // Try with all columns including avatar
+  // Try with all columns including avatar, NFT count, and user created_at
   try {
     const result = await db
       .prepare(`SELECT
-        display_name,
-        x_handle,
-        wallet_address,
-        current_streak,
-        longest_streak,
-        last_played_date,
-        avatar_type,
-        avatar_value,
-        avatar_source,
-        avatar_nft_id,
-        avatar_nft_launcher_id,
-        owned_nft_ids,
-        updated_at
-      FROM profiles WHERE user_id = ?`)
+        u.created_at as user_created_at,
+        p.display_name,
+        p.x_handle,
+        p.wallet_address,
+        p.current_streak,
+        p.longest_streak,
+        p.last_played_date,
+        p.avatar_type,
+        p.avatar_value,
+        p.avatar_source,
+        p.avatar_nft_id,
+        p.avatar_nft_launcher_id,
+        p.owned_nft_ids,
+        p.nft_count,
+        p.nft_verified_at,
+        p.updated_at
+      FROM profiles p
+      JOIN users u ON u.id = p.user_id
+      WHERE p.user_id = ?`)
       .bind(userId)
       .first<{
+        user_created_at: string;
         display_name: string | null;
         x_handle: string | null;
         wallet_address: string | null;
@@ -97,6 +107,8 @@ async function getProfile(db: D1Database, userId: string) {
         avatar_nft_id: string | null;
         avatar_nft_launcher_id: string | null;
         owned_nft_ids: string | null;
+        nft_count: number | null;
+        nft_verified_at: string | null;
         updated_at: string;
       }>();
 
@@ -107,16 +119,20 @@ async function getProfile(db: D1Database, userId: string) {
     try {
       const result = await db
         .prepare(`SELECT
-          display_name,
-          x_handle,
-          wallet_address,
-          current_streak,
-          longest_streak,
-          last_played_date,
-          updated_at
-        FROM profiles WHERE user_id = ?`)
+          u.created_at as user_created_at,
+          p.display_name,
+          p.x_handle,
+          p.wallet_address,
+          p.current_streak,
+          p.longest_streak,
+          p.last_played_date,
+          p.updated_at
+        FROM profiles p
+        JOIN users u ON u.id = p.user_id
+        WHERE p.user_id = ?`)
         .bind(userId)
         .first<{
+          user_created_at: string;
           display_name: string | null;
           x_handle: string | null;
           wallet_address: string | null;
@@ -135,19 +151,25 @@ async function getProfile(db: D1Database, userId: string) {
         avatar_nft_id: null,
         avatar_nft_launcher_id: null,
         owned_nft_ids: null,
+        nft_count: null,
+        nft_verified_at: null,
       } : null;
     } catch {
       // Final fallback: basic columns only
       console.log('[Profile] Falling back to basic query');
       const result = await db
         .prepare(`SELECT
-          display_name,
-          x_handle,
-          wallet_address,
-          updated_at
-        FROM profiles WHERE user_id = ?`)
+          u.created_at as user_created_at,
+          p.display_name,
+          p.x_handle,
+          p.wallet_address,
+          p.updated_at
+        FROM profiles p
+        JOIN users u ON u.id = p.user_id
+        WHERE p.user_id = ?`)
         .bind(userId)
         .first<{
+          user_created_at: string;
           display_name: string | null;
           x_handle: string | null;
           wallet_address: string | null;
@@ -165,6 +187,8 @@ async function getProfile(db: D1Database, userId: string) {
         avatar_nft_id: null,
         avatar_nft_launcher_id: null,
         owned_nft_ids: null,
+        nft_count: null,
+        nft_verified_at: null,
       } : null;
     }
   }
@@ -244,9 +268,9 @@ async function upsertProfile(
         `INSERT INTO profiles (
           user_id, display_name, x_handle, wallet_address,
           avatar_type, avatar_value, avatar_source, avatar_nft_id, avatar_nft_launcher_id,
-          owned_nft_ids, updated_at
+          owned_nft_ids, nft_count, nft_verified_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         ON CONFLICT(user_id) DO UPDATE SET
           display_name = COALESCE(?, profiles.display_name),
           x_handle = COALESCE(?, profiles.x_handle),
@@ -257,6 +281,8 @@ async function upsertProfile(
           avatar_nft_id = ?,
           avatar_nft_launcher_id = ?,
           owned_nft_ids = COALESCE(?, profiles.owned_nft_ids),
+          nft_count = COALESCE(?, profiles.nft_count),
+          nft_verified_at = COALESCE(?, profiles.nft_verified_at),
           updated_at = datetime('now')`
       )
       .bind(
@@ -270,6 +296,8 @@ async function upsertProfile(
         data.avatar?.nftId || null,
         data.avatar?.nftLauncherId || null,
         data.ownedNftIds ? JSON.stringify(data.ownedNftIds) : null,
+        data.nftCount ?? null,
+        data.nftVerifiedAt || null,
         // Update values
         data.displayName !== undefined ? data.displayName || null : null,
         data.xHandle !== undefined ? data.xHandle || null : null,
@@ -279,7 +307,9 @@ async function upsertProfile(
         data.avatar?.source || null,
         data.avatar?.nftId || null,
         data.avatar?.nftLauncherId || null,
-        data.ownedNftIds ? JSON.stringify(data.ownedNftIds) : null
+        data.ownedNftIds ? JSON.stringify(data.ownedNftIds) : null,
+        data.nftCount !== undefined ? data.nftCount : null,
+        data.nftVerifiedAt !== undefined ? data.nftVerifiedAt : null
       )
       .run();
   } catch (error) {
@@ -389,6 +419,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                   nftLauncherId: profile.avatar_nft_launcher_id,
                 },
                 ownedNftIds: profile.owned_nft_ids ? JSON.parse(profile.owned_nft_ids) : [],
+                nftCount: profile.nft_count,
+                nftVerifiedAt: profile.nft_verified_at,
+                createdAt: profile.user_created_at,
                 updatedAt: profile.updated_at,
               }
             : null,
@@ -447,6 +480,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                   nftLauncherId: profile.avatar_nft_launcher_id,
                 },
                 ownedNftIds: profile.owned_nft_ids ? JSON.parse(profile.owned_nft_ids) : [],
+                nftCount: profile.nft_count,
+                nftVerifiedAt: profile.nft_verified_at,
+                createdAt: profile.user_created_at,
                 updatedAt: profile.updated_at,
               }
             : null,

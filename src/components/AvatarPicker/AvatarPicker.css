@@ -124,6 +124,24 @@
   font-size: 1rem;
 }
 
+/* Error Message */
+.avatar-modal-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 20px 12px;
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #f87171;
+  font-size: 0.875rem;
+}
+
+.avatar-modal-error svg {
+  flex-shrink: 0;
+}
+
 /* ===== EMOJI PICKER ===== */
 
 .emoji-picker {

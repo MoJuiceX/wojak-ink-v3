@@ -1,0 +1,124 @@
+/**
+ * Rate Limiting for Cloudflare Workers
+ * 
+ * Simple rate limiting using D1 database for distributed tracking.
+ * Falls back to allowing requests if D1 is unavailable.
+ */
+
+interface RateLimitConfig {
+  windowMs: number;      // Time window in milliseconds
+  maxRequests: number;   // Max requests per window
+  keyPrefix: string;     // Prefix for rate limit keys (e.g., 'chat-verify')
+}
+
+interface RateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  resetAt: number;
+}
+
+/**
+ * Check and update rate limit for a given key
+ * Uses user ID if authenticated, otherwise IP address
+ */
+export async function checkRateLimit(
+  db: D1Database | undefined,
+  key: string,
+  config: RateLimitConfig
+): Promise<RateLimitResult> {
+  const now = Date.now();
+  const windowStart = now - config.windowMs;
+  const resetAt = now + config.windowMs;
+
+  // If no database, allow the request (fail open)
+  if (!db) {
+    return { allowed: true, remaining: config.maxRequests - 1, resetAt };
+  }
+
+  const rateLimitKey = `${config.keyPrefix}:${key}`;
+
+  try {
+    // Clean up old entries and count current window
+    await db.prepare(
+      `DELETE FROM rate_limits WHERE key = ? AND timestamp < ?`
+    ).bind(rateLimitKey, windowStart).run();
+
+    const countResult = await db.prepare(
+      `SELECT COUNT(*) as count FROM rate_limits WHERE key = ? AND timestamp >= ?`
+    ).bind(rateLimitKey, windowStart).first<{ count: number }>();
+
+    const currentCount = countResult?.count || 0;
+
+    if (currentCount >= config.maxRequests) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt,
+      };
+    }
+
+    // Record this request
+    await db.prepare(
+      `INSERT INTO rate_limits (key, timestamp) VALUES (?, ?)`
+    ).bind(rateLimitKey, now).run();
+
+    return {
+      allowed: true,
+      remaining: config.maxRequests - currentCount - 1,
+      resetAt,
+    };
+  } catch (error) {
+    // If rate limiting fails, allow the request (fail open)
+    console.error('[RateLimit] Error:', error);
+    return { allowed: true, remaining: config.maxRequests - 1, resetAt };
+  }
+}
+
+/**
+ * Get rate limit key from request
+ * Prefers user ID from auth, falls back to IP
+ */
+export function getRateLimitKey(
+  request: Request,
+  userId?: string
+): string {
+  if (userId) {
+    return `user:${userId}`;
+  }
+  
+  // Fall back to IP address
+  const ip = request.headers.get('CF-Connecting-IP') || 
+             request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ||
+             'unknown';
+  return `ip:${ip}`;
+}
+
+/**
+ * Create rate limit response headers
+ */
+export function getRateLimitHeaders(result: RateLimitResult, config: RateLimitConfig): Record<string, string> {
+  return {
+    'X-RateLimit-Limit': config.maxRequests.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': Math.floor(result.resetAt / 1000).toString(),
+  };
+}
+
+// Pre-configured rate limits for chat endpoints
+export const CHAT_RATE_LIMITS = {
+  verifyEligibility: {
+    windowMs: 60 * 1000,  // 1 minute
+    maxRequests: 10,      // 10 requests per minute
+    keyPrefix: 'chat-verify',
+  },
+  token: {
+    windowMs: 60 * 1000,  // 1 minute
+    maxRequests: 5,       // 5 token requests per minute
+    keyPrefix: 'chat-token',
+  },
+  presence: {
+    windowMs: 10 * 1000,  // 10 seconds
+    maxRequests: 30,      // 30 requests per 10 seconds (for polling)
+    keyPrefix: 'chat-presence',
+  },
+} as const;

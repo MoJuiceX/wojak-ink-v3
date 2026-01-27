@@ -21,6 +21,7 @@ export interface UserProfile {
   displayName: string | null;
   xHandle: string | null;
   walletAddress: string | null;
+  createdAt: string | null; // Account creation date (from users table)
   updatedAt: string | null;
   // Streak tracking
   currentStreak: number;
@@ -29,6 +30,9 @@ export interface UserProfile {
   // Avatar fields
   avatar: UserAvatar;
   ownedNftIds: string[]; // List of NFT edition numbers user owns
+  // NFT verification for chat access
+  nftCount: number | null; // null = never verified, 0+ = verified count
+  nftVerifiedAt: string | null; // ISO timestamp of last verification
 }
 
 export interface UserMessage {
@@ -144,6 +148,7 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
           displayName: apiProfile.displayName,
           xHandle: apiProfile.xHandle,
           walletAddress: apiProfile.walletAddress,
+          createdAt: apiProfile.createdAt || null,
           updatedAt: apiProfile.updatedAt,
           currentStreak: apiProfile.currentStreak || 0,
           longestStreak: apiProfile.longestStreak || 0,
@@ -151,6 +156,9 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
           // Avatar fields - create default if not set
           avatar: apiProfile.avatar || createDefaultAvatar(),
           ownedNftIds: apiProfile.ownedNftIds || [],
+          // NFT verification for chat access
+          nftCount: apiProfile.nftCount ?? null,
+          nftVerifiedAt: apiProfile.nftVerifiedAt || null,
         } : null;
 
         // Save to localStorage as backup
@@ -197,12 +205,15 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
         displayName: storedProfile?.displayName || null,
         xHandle: storedProfile?.xHandle || null,
         walletAddress: storedProfile?.walletAddress || null,
+        createdAt: storedProfile?.createdAt || null,
         updatedAt: storedProfile?.updatedAt || null,
         currentStreak: storedProfile?.currentStreak || 0,
         longestStreak: storedProfile?.longestStreak || 0,
         lastPlayedDate: storedProfile?.lastPlayedDate || null,
         avatar: randomAvatar,
         ownedNftIds: storedProfile?.ownedNftIds || [],
+        nftCount: storedProfile?.nftCount ?? null,
+        nftVerifiedAt: storedProfile?.nftVerifiedAt || null,
       };
 
       // Save the profile with the random avatar
@@ -286,12 +297,15 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
       displayName: null,
       xHandle: null,
       walletAddress: null,
+      createdAt: null,
       updatedAt: null,
       currentStreak: 0,
       longestStreak: 0,
       lastPlayedDate: null,
       avatar: createDefaultAvatar(),
       ownedNftIds: [],
+      nftCount: null,
+      nftVerifiedAt: null,
     };
 
     const updatedProfile: UserProfile = {

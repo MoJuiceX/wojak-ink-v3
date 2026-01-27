@@ -43,7 +43,35 @@ const LEVEL_CONFIG: Record<number, { startSpeed: number; speedIncrease: number; 
   10: { startSpeed: 5.5, speedIncrease: 0.14, blocksToComplete: 15, minBlockWidth: 12, theme: 'inferno' },
 };
 
-const MAX_LEVEL = 10;
+const MAX_LEVEL = 30;
+
+// Dynamic level config for levels 11-30 (infinite mode with increasing difficulty)
+const getLevelConfig = (level: number): { startSpeed: number; speedIncrease: number; blocksToComplete: number; minBlockWidth: number; theme: string } => {
+  if (level <= 10) return LEVEL_CONFIG[level];
+  
+  const extraLevels = level - 10;
+  
+  if (level <= 20) {
+    // Phase 1: Gentle increase (levels 11-20) - spread players across these levels
+    return {
+      startSpeed: 5.5 + (extraLevels * 0.15),      // 5.5 → 7.0
+      speedIncrease: 0.14 + Math.min(0.04, extraLevels * 0.004), // 0.14 → 0.18
+      blocksToComplete: 15 + Math.floor(extraLevels * 0.5), // 15 → 20
+      minBlockWidth: Math.max(8, 12 - Math.floor(extraLevels * 0.4)), // 12 → 8
+      theme: 'inferno',
+    };
+  } else {
+    // Phase 2: Steeper increase (levels 21-30) - elite filter
+    const hardLevels = level - 20;
+    return {
+      startSpeed: 7.0 + (hardLevels * 0.2),       // 7.0 → 9.0
+      speedIncrease: 0.18,                         // Capped to prevent impossible end-of-level speeds
+      blocksToComplete: Math.min(25, 20 + hardLevels), // 20 → 25 (capped)
+      minBlockWidth: Math.max(6, 8 - Math.floor(hardLevels * 0.2)), // 8 → 6
+      theme: 'inferno',
+    };
+  }
+};
 
 // Scoring configuration
 const SCORING = {
@@ -485,7 +513,7 @@ const BrickByBrick: React.FC = () => {
       y: 0,
     };
 
-    const config = LEVEL_CONFIG[1];
+    const config = getLevelConfig(1);
     const newBlocks = [baseBlock];
     setBlocks(newBlocks);
     blocksRef.current = newBlocks; // Sync ref immediately for accurate collision detection
@@ -525,7 +553,7 @@ const BrickByBrick: React.FC = () => {
     hapticLevelUp();
 
     const newLevel = Math.min(level + 1, MAX_LEVEL);
-    const config = LEVEL_CONFIG[newLevel];
+    const config = getLevelConfig(newLevel);
 
     // Add level completion bonus
     const levelBonus = SCORING.levelBonus * level;
@@ -621,7 +649,7 @@ const BrickByBrick: React.FC = () => {
     // Increment drop counter for stable effect keys
     dropCountRef.current += 1;
 
-    const config = LEVEL_CONFIG[level];
+    const config = getLevelConfig(level);
     const lastBlock = currentBlocks[currentBlocks.length - 1];
 
     // Calculate overlap using ref for accurate current position
@@ -799,20 +827,20 @@ const BrickByBrick: React.FC = () => {
       if (level < MAX_LEVEL) {
         playWinSound();
         hapticLevelUp(); // Level complete haptic
-        // Arcade lights: Escalating level complete celebration
-        if (level <= 3) {
-          // Early levels (1-3): quick flash
+        // Arcade lights: Escalating level complete celebration (extended for levels 11-30)
+        if (level <= 5) {
+          // Early levels (1-5): quick flash
           triggerEvent('level:up');
-        } else if (level <= 7) {
-          // Mid levels (4-7): bigger blaze
+        } else if (level <= 15) {
+          // Mid levels (6-15): bigger blaze
           triggerEvent('progress:complete');
         } else {
-          // Late levels (8-9): full fireworks (level 10 is game:win)
+          // Late levels (16-29): full fireworks
           triggerEvent('game:win');
         }
         setGameState('levelComplete');
       } else {
-        // Won the game at level 10!
+        // Completed level 30 - ultimate victory! (practically impossible)
         playWinSound();
         hapticHighScore(); // Epic win haptic
         // Arcade lights: Game won (final level)
@@ -1014,32 +1042,46 @@ const BrickByBrick: React.FC = () => {
   const movingBlockTopFromBottom = movingBlockBottom + BLOCK_HEIGHT;
   const movingBlockTopFromTop = CONTAINER_HEIGHT - movingBlockTopFromBottom;
   
-  // Position effects ABOVE the moving block with consistent gaps
-  const COMBO_GAP = isMobile ? 8 : 10; // Gap between combo and moving block top (reduced for tighter feel)
-  const BONUS_GAP = isMobile ? 3 : 5; // Gap between bonus flash and moving block top
+  // Calculate combo element height based on level (font + label + fire emoji + swing animation)
+  const getComboHeight = (level: number, mobile: boolean): number => {
+    const clampedLevel = Math.min(Math.max(level, 2), 10);
+    if (mobile) {
+      // Mobile font sizes: 42px (lv2) → 96px (lv10) from CSS
+      const fontSizes = [42, 48, 54, 62, 70, 78, 84, 90, 96];
+      const fontSize = fontSizes[clampedLevel - 2] || 42;
+      const labelHeight = 10;
+      const fireHeight = level >= 5 ? 20 : 0; // Fire emoji extends above at level 5+
+      const swingPadding = 10; // Animation movement buffer
+      return fontSize + labelHeight + fireHeight + swingPadding;
+    }
+    // Desktop font sizes: 52px (lv2) → 108px (lv10) from CSS
+    const fontSizes = [52, 58, 66, 74, 82, 90, 96, 102, 108];
+    const fontSize = fontSizes[clampedLevel - 2] || 52;
+    const labelHeight = 12;
+    const fireHeight = level >= 5 ? 28 : 0; // Fire emoji extends above at level 5+
+    const swingPadding = 15; // Animation movement buffer (larger on desktop)
+    return fontSize + labelHeight + fireHeight + swingPadding;
+  };
+
+  // Position combo so its BOTTOM edge clears the moving block TOP
+  const COMBO_CLEARANCE = isMobile ? 12 : 20; // Gap between combo bottom and block top
+  const comboHeight = getComboHeight(combo, isMobile);
+  const comboTopFromTop = movingBlockTopFromTop - COMBO_CLEARANCE - comboHeight;
+  const comboEffectY = Math.max(2, (comboTopFromTop / CONTAINER_HEIGHT) * 100);
   
-  // Convert to percentage of container height (clamped to reasonable bounds)
-  const comboEffectY = Math.max(5, Math.min(45, ((movingBlockTopFromTop - COMBO_GAP) / CONTAINER_HEIGHT) * 100));
-  const bonusFlashY = Math.max(15, Math.min(55, ((movingBlockTopFromTop - BONUS_GAP) / CONTAINER_HEIGHT) * 100));
+  // Bonus flash positioned relative to combo (slightly below)
+  // @ts-expect-error Reserved for future use
+  const _bonusFlashY = comboEffectY + 5;
 
   // Show last 12 blocks for rendering (anything below camera offset will be off-screen)
   const visibleBlocks = blocks.slice(-12);
 
-  // Parallax with acceleration - reaches sky faster as tower grows
-  // Higher base rate + exponential acceleration creates smooth "climbing into sky" effect
-  const PARALLAX_BASE_RATE = 25; // Base pixels per block (was 15)
-  const PARALLAX_ACCELERATION = 0.8; // Extra pixels per block^1.3 (accelerates climb)
-  const PARALLAX_CAMERA_RATE = 0.4; // Additional shift based on camera movement
-  const MAX_BACKGROUND_OFFSET = 450; // Increased travel to reach sky (was 350)
-  const blocksStacked = blocks.length;
-
-  // Accelerating formula: starts at base rate, speeds up with height
-  const blockContribution = (blocksStacked * PARALLAX_BASE_RATE) + 
-    (Math.pow(blocksStacked, 1.3) * PARALLAX_ACCELERATION);
-  const backgroundOffset = Math.min(
-    blockContribution + (cameraOffset * PARALLAX_CAMERA_RATE),
-    MAX_BACKGROUND_OFFSET
-  );
+  // Parallax based on level progress - always reaches sky at level completion
+  // Ground visible at level start → sky visible at level end
+  const MAX_BACKGROUND_OFFSET = 450;
+  const currentLevelConfig = getLevelConfig(level);
+  const levelProgress = Math.min(levelScore / currentLevelConfig.blocksToComplete, 1);
+  const backgroundOffset = levelProgress * MAX_BACKGROUND_OFFSET;
 
   return (
     <div className="stack-container">
@@ -1110,7 +1152,7 @@ const BrickByBrick: React.FC = () => {
                   </div>
                   <div className="stat-item progress-stat">
                     <span className="stat-label">Progress</span>
-                    <span className="stat-value">{levelScore}/{LEVEL_CONFIG[level].blocksToComplete}</span>
+                    <span className="stat-value">{levelScore}/{getLevelConfig(level).blocksToComplete}</span>
                   </div>
                   <div className="stat-item score-stat">
                     <span className="stat-label">Score</span>
@@ -1174,7 +1216,7 @@ const BrickByBrick: React.FC = () => {
                     <span className="hud-value">{level}</span>
                   </div>
                   <div className="hud-item">
-                    <span className="hud-label">{levelScore}/{LEVEL_CONFIG[level].blocksToComplete}</span>
+                    <span className="hud-label">{levelScore}/{getLevelConfig(level).blocksToComplete}</span>
                   </div>
                   <div className="hud-item">
                     <span className="hud-label">SCORE</span>
@@ -1360,15 +1402,15 @@ const BrickByBrick: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Perfect/Great Flash - appears near stack, animates up-right and fades */}
+                  {/* Perfect/Great Flash - starts to the RIGHT of combo, floats up-right and fades */}
                   {lastDropBonus && (
                     <div
                       key={`bonus-${dropId}`}
                       className={`bonus-flash bonus-flash-float ${lastDropBonus.includes('PERFECT') ? 'perfect' : 'great'}`}
                       style={{
                         position: 'absolute',
-                        left: '50%',
-                        top: `${bonusFlashY}%`,
+                        left: '62%',  // Start to the right of combo (not center)
+                        top: `${comboEffectY}%`,  // Same height as combo
                       }}
                     >
                       {lastDropBonus.includes('PERFECT') ? '⚡ PERFECT' : lastDropBonus.includes('Great') ? '✓ GREAT' : lastDropBonus}
@@ -1395,7 +1437,7 @@ const BrickByBrick: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Milestone Celebration (5x, 10x, 15x, 20x) - simplified for performance */}
+                  {/* Milestone Celebration (5x, 10x, 15x, 20x) - positioned ABOVE combo as header */}
                   {showMilestone && (
                     <div
                       className={`milestone-celebration milestone-${showMilestone}`}
@@ -1403,7 +1445,7 @@ const BrickByBrick: React.FC = () => {
                         position: 'absolute',
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        top: `${comboEffectY + 12}%`,
+                        top: `${Math.max(0, comboEffectY - (isMobile ? 8 : 10))}%`,
                       }}
                     >
                       <div className="milestone-text">

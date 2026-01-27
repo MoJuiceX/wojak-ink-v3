@@ -9,4 +9,6 @@ export { CurrencyStats } from './CurrencyStats';
 export { GameScoresGrid } from './GameScoresGrid';
 export { NftGallery } from './NftGallery';
 export { InventorySection } from './InventorySection';
-export { RecentActivity } from './RecentActivity';
+export { QuickActionsBar } from './QuickActionsBar';
+export { FriendsWidget } from './FriendsWidget';
+export { AchievementsWidget } from './AchievementsWidget';

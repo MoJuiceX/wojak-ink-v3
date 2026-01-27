@@ -1,7 +1,7 @@
 /**
- * CurrencyStats Component
+ * CurrencyStats Component (Premium Compact Version)
  *
- * Displays oranges, gems, and voting emoji counts.
+ * Compact 4-column grid showing all currency stats.
  */
 
 import './Account.css';
@@ -20,56 +20,29 @@ export function CurrencyStats({
   gems,
   donuts,
   poops,
-  lifetimeOranges,
-  lifetimeGems,
 }: CurrencyStatsProps) {
   return (
-    <div className="currency-stats">
-      <h2 className="section-title">Currency & Voting</h2>
-
-      <div className="stats-grid">
-        <div className="stat-card stat-oranges">
+    <div className="stats-card-premium">
+      <div className="stats-card__grid">
+        <div className="stat-item stat-item--orange">
           <span className="stat-icon">🍊</span>
-          <div className="stat-content">
-            <span className="stat-value">{oranges.toLocaleString()}</span>
-            <span className="stat-label">Oranges</span>
-            {lifetimeOranges !== undefined && (
-              <span className="stat-lifetime">
-                {lifetimeOranges.toLocaleString()} lifetime
-              </span>
-            )}
-          </div>
+          <span className="stat-value">{oranges.toLocaleString()}</span>
+          <span className="stat-label">Oranges</span>
         </div>
-
-        <div className="stat-card stat-gems">
+        <div className="stat-item stat-item--gem">
           <span className="stat-icon">💎</span>
-          <div className="stat-content">
-            <span className="stat-value">{gems.toLocaleString()}</span>
-            <span className="stat-label">Gems</span>
-            {lifetimeGems !== undefined && (
-              <span className="stat-lifetime">
-                {lifetimeGems.toLocaleString()} lifetime
-              </span>
-            )}
-          </div>
+          <span className="stat-value">{gems.toLocaleString()}</span>
+          <span className="stat-label">Gems</span>
         </div>
-
-        <div className="stat-card stat-donuts">
+        <div className="stat-item stat-item--donut">
           <span className="stat-icon">🍩</span>
-          <div className="stat-content">
-            <span className="stat-value">{donuts}</span>
-            <span className="stat-label">Donuts</span>
-            <span className="stat-hint">For game voting</span>
-          </div>
+          <span className="stat-value">{donuts}</span>
+          <span className="stat-label">Donuts</span>
         </div>
-
-        <div className="stat-card stat-poops">
+        <div className="stat-item stat-item--poop">
           <span className="stat-icon">💩</span>
-          <div className="stat-content">
-            <span className="stat-value">{poops}</span>
-            <span className="stat-label">Poops</span>
-            <span className="stat-hint">For game voting</span>
-          </div>
+          <span className="stat-value">{poops}</span>
+          <span className="stat-label">Poops</span>
         </div>
       </div>
     </div>

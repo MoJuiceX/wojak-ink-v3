@@ -1,13 +1,14 @@
 /**
- * Account Page
+ * Account Page (Premium Redesign)
  *
- * User account dashboard with all profile data.
+ * Mobile-first premium dashboard with integrated wallet/streak in header,
+ * horizontal NFT scroll, compact stats, and expanded social widgets.
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SignedOut, SignInButton, useClerk, useAuth } from '@clerk/clerk-react';
-import { LogOut, Settings, Flame, Trophy, Palette, ExternalLink } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -19,12 +20,12 @@ import { CurrencyStats } from '@/components/Account/CurrencyStats';
 import { GameScoresGrid } from '@/components/Account/GameScoresGrid';
 import { NftGallery } from '@/components/Account/NftGallery';
 import { InventorySection } from '@/components/Account/InventorySection';
-import { RecentActivity } from '@/components/Account/RecentActivity';
 import { FriendsWidget } from '@/components/Account/FriendsWidget';
 import { AchievementsWidget } from '@/components/Account/AchievementsWidget';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { DrawerEditor } from '@/components/Shop/DrawerEditor';
 import { GiftModal } from '@/components/Account/GiftModal';
+import { QuickActionsBar } from '@/components/Account/QuickActionsBar';
 
 import '@/components/Account/Account.css';
 
@@ -94,9 +95,6 @@ export default function Account() {
   // Gift modal state
   const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
   const [selectedGiftItem, setSelectedGiftItem] = useState<any>(null);
-
-  // Mock activities - replace with actual activity tracking
-  const [activities] = useState<any[]>([]);
 
   // Inventory items from shop
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
@@ -316,64 +314,29 @@ export default function Account() {
         }}
         className="account-page"
       >
-        <div className="account-dashboard">
-          {/* Profile Header */}
+        <div className="account-dashboard account-dashboard--premium">
+          {/* 1. Profile Header with Wallet + Streak integrated */}
           <ProfileHeader
             avatar={profile?.avatar || { type: 'emoji', value: '🎮', source: 'default' }}
             displayName={effectiveDisplayName}
             xHandle={profile?.xHandle}
             walletAddress={profile?.walletAddress}
-            createdAt={new Date(profile?.updatedAt || Date.now())}
+            createdAt={new Date(profile?.createdAt || Date.now())}
             isOwnProfile={true}
+            currentStreak={profile?.currentStreak || 0}
+            longestStreak={profile?.longestStreak || 0}
           />
 
-          {/* Play Streak Stats */}
-          {(profile?.currentStreak !== undefined || profile?.longestStreak !== undefined) && (
-            <div className="streak-section">
-              <h2 className="section-title">Play Streak</h2>
-              <div className="streak-stats">
-                <div className={`streak-card ${profile?.currentStreak ? 'streak-card-active' : ''}`}>
-                  <Flame
-                    size={24}
-                    className="streak-icon"
-                    style={{
-                      color: profile?.currentStreak ? '#f97316' : 'var(--color-text-muted)',
-                    }}
-                  />
-                  <div>
-                    <div
-                      className="streak-value"
-                      style={{ color: profile?.currentStreak ? '#f97316' : 'var(--color-text-muted)' }}
-                    >
-                      {profile?.currentStreak || 0}
-                    </div>
-                    <div className="streak-label">Day Streak</div>
-                  </div>
-                </div>
+          {/* 2. NFT Collection - Immediately after header */}
+          <NftGallery
+            ownedNftIds={ownedNftIds}
+            currentAvatar={profile?.avatar || { type: 'emoji', value: '🎮', source: 'default' }}
+            walletConnected={walletStatus === 'connected'}
+            isOwnProfile={true}
+            onSelectNft={handleSelectNft}
+          />
 
-                <div className="streak-card">
-                  <Trophy
-                    size={24}
-                    className="streak-icon"
-                    style={{
-                      color: profile?.longestStreak ? '#ffd700' : 'var(--color-text-muted)',
-                    }}
-                  />
-                  <div>
-                    <div
-                      className="streak-value"
-                      style={{ color: profile?.longestStreak ? '#ffd700' : 'var(--color-text-muted)' }}
-                    >
-                      {profile?.longestStreak || 0}
-                    </div>
-                    <div className="streak-label">Best Streak</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Currency & Voting Stats */}
+          {/* 3. Currency Stats - Compact */}
           <CurrencyStats
             oranges={currency?.oranges || 0}
             gems={currency?.gems || 0}
@@ -383,101 +346,33 @@ export default function Account() {
             lifetimeGems={currency?.lifetimeGems}
           />
 
-          {/* Game Scores */}
+          {/* 4. Game Scores */}
           <GameScoresGrid userId={userId || ''} />
 
-          {/* NFT Collection */}
-          <NftGallery
-            ownedNftIds={ownedNftIds}
-            currentAvatar={profile?.avatar || { type: 'emoji', value: '🎮', source: 'default' }}
-            walletConnected={walletStatus === 'connected'}
-            isOwnProfile={true}
-            onSelectNft={handleSelectNft}
+          {/* 5. Quick Actions Bar */}
+          <QuickActionsBar
+            onCustomize={() => setIsDrawerEditorOpen(true)}
+            drawerUrl={`/drawer/${userId}`}
           />
 
-          {/* Shop Inventory */}
-          <InventorySection
-            items={inventoryItems}
-            isOwnProfile={true}
-            onEquip={handleEquip}
-            onUnequip={handleUnequip}
-            onGift={handleGift}
-          />
-
-          {/* Drawer Customization */}
-          <div className="drawer-customize-section">
-            <h2 className="section-title">Achievement Drawer</h2>
-            <p className="section-description">
-              Customize your public profile showcase
-            </p>
-            <div className="drawer-actions">
-              <button
-                className="customize-drawer-btn"
-                onClick={() => setIsDrawerEditorOpen(true)}
-              >
-                <Palette size={18} />
-                Customize Drawer
-              </button>
-              <a
-                href={`/drawer/${userId}`}
-                className="view-drawer-btn"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <ExternalLink size={18} />
-                View Drawer
-              </a>
-            </div>
-          </div>
-
-          {/* Drawer Editor Modal */}
-          <DrawerEditor
-            isOpen={isDrawerEditorOpen}
-            onClose={() => setIsDrawerEditorOpen(false)}
-          />
-
-          {/* Gift Modal */}
-          <GiftModal
-            isOpen={isGiftModalOpen}
-            onClose={() => {
-              setIsGiftModalOpen(false);
-              setSelectedGiftItem(null);
-            }}
-            preselectedItem={selectedGiftItem}
-            onGiftSent={async () => {
-              // Refresh inventory after gifting
-              try {
-                const token = await getToken();
-                const res = await fetch('/api/inventory', {
-                  headers: { Authorization: `Bearer ${token}` },
-                });
-                if (res.ok) {
-                  const data = await res.json();
-                  // Flatten categories into items array
-                  const allItems: any[] = [];
-                  if (data.categories) {
-                    for (const category of Object.keys(data.categories)) {
-                      allItems.push(...data.categories[category]);
-                    }
-                  }
-                  setInventoryItems(allItems);
-                }
-              } catch (err) {
-                console.error('[Account] Failed to refresh inventory:', err);
-              }
-            }}
-          />
-
-          {/* Recent Activity */}
-          <RecentActivity activities={activities} />
-
-          {/* Social Widgets Row */}
-          <div className="account-widgets-row">
+          {/* 6. Social Widgets Row - Expanded */}
+          <div className="account-widgets-row account-widgets-row--expanded">
             <FriendsWidget />
             <AchievementsWidget />
           </div>
 
-          {/* Account Actions */}
+          {/* 7. Inventory - Only show if user has items */}
+          {inventoryItems.length > 0 && (
+            <InventorySection
+              items={inventoryItems}
+              isOwnProfile={true}
+              onEquip={handleEquip}
+              onUnequip={handleUnequip}
+              onGift={handleGift}
+            />
+          )}
+
+          {/* 8. Account Actions */}
           <div className="account-actions">
             <button
               className="action-button"
@@ -496,6 +391,42 @@ export default function Account() {
             </button>
           </div>
         </div>
+
+        {/* Modals */}
+        <DrawerEditor
+          isOpen={isDrawerEditorOpen}
+          onClose={() => setIsDrawerEditorOpen(false)}
+        />
+
+        <GiftModal
+          isOpen={isGiftModalOpen}
+          onClose={() => {
+            setIsGiftModalOpen(false);
+            setSelectedGiftItem(null);
+          }}
+          preselectedItem={selectedGiftItem}
+          onGiftSent={async () => {
+            // Refresh inventory after gifting
+            try {
+              const token = await getToken();
+              const res = await fetch('/api/inventory', {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (res.ok) {
+                const data = await res.json();
+                const allItems: any[] = [];
+                if (data.categories) {
+                  for (const category of Object.keys(data.categories)) {
+                    allItems.push(...data.categories[category]);
+                  }
+                }
+                setInventoryItems(allItems);
+              }
+            } catch (err) {
+              console.error('[Account] Failed to refresh inventory:', err);
+            }
+          }}
+        />
       </div>
     </PageTransition>
   );

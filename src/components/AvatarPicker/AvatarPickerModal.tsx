@@ -2,12 +2,13 @@
  * Avatar Picker Modal
  *
  * Simple modal for selecting emoji or NFT avatar.
- * Uses div-based modal instead of IonModal for reliable touch handling.
+ * Uses React Portal to ensure proper z-index stacking above all content.
  */
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { useSageWallet } from '@/sage-wallet';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { Avatar } from '../Avatar/Avatar';
@@ -22,7 +23,7 @@ interface AvatarPickerModalProps {
 }
 
 export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
-  const { profile, updateAvatar, updateProfile } = useUserProfile();
+  const { profile, updateAvatar, updateProfile, refreshProfile } = useUserProfile();
   const { status: walletStatus, address: walletAddress, connect: connectWallet } = useSageWallet();
 
   // Default to NFT tab if user already has an NFT avatar
@@ -34,6 +35,7 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
   );
   const [selectedNft, setSelectedNft] = useState<NFT | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Determine if wallet is connected
   const isWalletConnected = walletStatus === 'connected';
@@ -43,16 +45,23 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
     console.log('[AvatarPicker] Emoji selected:', emoji);
     setSelectedEmoji(emoji);
     setIsSaving(true);
+    setError(null);
     try {
       const newAvatar: UserAvatar = {
         type: 'emoji',
         value: emoji,
         source: 'user',
       };
-      await updateAvatar(newAvatar);
-      onClose();
-    } catch (error) {
-      console.error('Failed to save avatar:', error);
+      const success = await updateAvatar(newAvatar);
+      if (success) {
+        console.log('[AvatarPicker] Emoji avatar saved successfully');
+        onClose();
+      } else {
+        setError('Failed to save avatar. Please try again.');
+      }
+    } catch (err) {
+      console.error('[AvatarPicker] Failed to save emoji avatar:', err);
+      setError('Failed to save avatar. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -60,9 +69,17 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
 
   // Handle NFT selection - auto-save with wallet address
   const handleNftSelect = async (nft: NFT) => {
-    console.log('[AvatarPicker] NFT selected:', nft.id, 'wallet:', walletAddress);
+    console.log('[AvatarPicker] NFT selected:', nft.id, 'wallet:', walletAddress, 'imageUrl:', nft.imageUrl);
     setSelectedNft(nft);
     setIsSaving(true);
+    setError(null);
+    
+    if (!walletAddress) {
+      setError('Wallet not connected. Please reconnect your wallet.');
+      setIsSaving(false);
+      return;
+    }
+    
     try {
       const newAvatar: UserAvatar = {
         type: 'nft',
@@ -71,15 +88,27 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
         nftId: nft.id,
         nftLauncherId: nft.launcherId,
       };
+      
+      console.log('[AvatarPicker] Saving NFT avatar:', newAvatar);
+      
       // Save both avatar AND wallet address together
       // This ensures the API validation passes (NFT avatars require wallet_address)
-      await updateProfile({
+      const success = await updateProfile({
         avatar: newAvatar,
-        walletAddress: walletAddress || undefined,
+        walletAddress: walletAddress,
       });
-      onClose();
-    } catch (error) {
-      console.error('Failed to save avatar:', error);
+      
+      if (success) {
+        console.log('[AvatarPicker] NFT avatar saved successfully');
+        // Force refresh profile to ensure UI updates
+        await refreshProfile();
+        onClose();
+      } else {
+        setError('Failed to save avatar. Please try again.');
+      }
+    } catch (err) {
+      console.error('[AvatarPicker] Failed to save NFT avatar:', err);
+      setError('Failed to save avatar. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -110,6 +139,11 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
 
   // Sync state with profile when it changes or modal opens
   useEffect(() => {
+    if (isOpen) {
+      // Clear error when modal opens
+      setError(null);
+    }
+    
     if (profile?.avatar) {
       // Update tab to match current avatar type
       setActiveTab(profile.avatar.type === 'nft' ? 'nft' : 'emoji');
@@ -145,7 +179,9 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
   const previewType = activeTab === 'nft' && selectedNft ? 'nft' : 'emoji';
   const previewValue = activeTab === 'nft' && selectedNft ? selectedNft.imageUrl : selectedEmoji;
 
-  return (
+  // Use portal to render modal at document.body level
+  // This ensures proper z-index stacking above all content
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -204,6 +240,14 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
               </button>
             </div>
 
+            {/* Error message */}
+            {error && (
+              <div className="avatar-modal-error">
+                <AlertCircle size={16} />
+                <span>{error}</span>
+              </div>
+            )}
+
             {/* Tab Content */}
             <div className="avatar-modal-body">
               {activeTab === 'emoji' ? (
@@ -247,6 +291,9 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
       )}
     </AnimatePresence>
   );
+
+  // Render to document.body via portal to escape stacking contexts
+  return createPortal(modalContent, document.body);
 }
 
 export default AvatarPickerModal;

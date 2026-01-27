@@ -37,11 +37,14 @@ import { GameErrorBoundary } from '@/components/games/GameError';
 const Gallery = lazy(() => import('./pages/Gallery'));
 const Treasury = lazy(() => import('./pages/Treasury'));
 const BigPulp = lazy(() => import('./pages/BigPulp'));
+// Chat pages
+const ChatHub = lazy(() => import('./pages/ChatHub'));
+const WhaleChat = lazy(() => import('./pages/GatedChat')); // Whale chat (42+ NFTs) - formerly GatedChat
+const HolderChat = lazy(() => import('./pages/HolderChat')); // Holder chat (1+ NFT)
 const Generator = lazy(() => import('./pages/Generator'));
 const GamesHub = lazy(() => import('./pages/GamesHub'));
 const Media = lazy(() => import('./pages/Media'));
 const Settings = lazy(() => import('./pages/Settings'));
-const Landing = lazy(() => import('./pages/Landing'));
 
 // Auth
 const Account = lazy(() => import('./pages/Account'));
@@ -95,7 +98,7 @@ const markBootComplete = () => {
 };
 
 // Routes that should be publicly accessible without boot sequence
-const PUBLIC_ROUTES = ['/landing', '/drawer/', '/profile/'];
+const PUBLIC_ROUTES = ['/drawer/', '/profile/'];
 
 // Inner app component with access to router
 function AppContent() {
@@ -112,28 +115,25 @@ function AppContent() {
     (import.meta.env.DEV && SKIP_BOOT_IN_DEV) || (SKIP_BOOT_IN_DEV && isLocalhost()) || hasSeenBoot() || isPublicRoute
   );
 
-  // Landing page doesn't need boot sequence (covered by isPublicRoute but kept for clarity)
-  const isLandingPage = location.pathname === '/landing';
-
   const handleStartupComplete = () => {
     // Mark boot as complete for this session
     markBootComplete();
-    // Navigate to Landing page FIRST, before showing content
-    navigate('/landing', { replace: true });
+    // Navigate to Gallery page after boot sequence
+    navigate('/gallery', { replace: true });
     // Small delay ensures navigation completes before content becomes visible
     setTimeout(() => {
       setIsStartupComplete(true);
     }, 50);
   };
 
-  // Show content if: startup complete, OR on landing page, OR localhost testing
-  const showContent = import.meta.env.DEV || isLocalhost() || isStartupComplete || isLandingPage;
+  // Show content if: startup complete OR localhost testing
+  const showContent = import.meta.env.DEV || isLocalhost() || isStartupComplete;
 
   return (
     <PreloadProvider>
       <GalleryProvider>
         <LayoutProvider>
-          {/* Boot Sequence - shows until complete, then navigates to Landing */}
+          {/* Boot Sequence - shows until complete, then navigates to Gallery */}
           {/* Skip boot for public routes (drawer, profile) so shareable links work */}
           {!isStartupComplete && !isPublicRoute && (
             <StartupSequence onComplete={handleStartupComplete} />
@@ -161,16 +161,6 @@ function AppContent() {
           >
             <ErrorBoundary>
               <Routes>
-                {/* Landing page - full screen, no AppLayout */}
-                <Route
-                  path="landing"
-                  element={
-                    <Suspense fallback={<PageSkeleton type="gallery" />}>
-                      <Landing />
-                    </Suspense>
-                  }
-                />
-
                 {/* All routes with AppLayout (header, nav, etc.) */}
                 <Route path="/" element={<AppLayout />}>
                   <Route index element={<Navigate to="/gallery" replace />} />
@@ -203,6 +193,31 @@ function AppContent() {
                     element={
                       <Suspense fallback={<PageSkeleton type="bigpulp" />}>
                         <BigPulp />
+                      </Suspense>
+                    }
+                  />
+                  {/* Chat routes */}
+                  <Route
+                    path="chat"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="settings" />}>
+                        <ChatHub />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="chat/whale"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="settings" />}>
+                        <WhaleChat />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="chat/holder"
+                    element={
+                      <Suspense fallback={<PageSkeleton type="settings" />}>
+                        <HolderChat />
                       </Suspense>
                     }
                   />
@@ -435,8 +450,9 @@ function AppContent() {
                   <Route path="media/games/*" element={<Navigate to="/games" replace />} />
                 </Route>
 
-                {/* Auth Routes - Onboarding now uses modal, redirect to gallery */}
+                {/* Legacy routes - redirect to gallery */}
                 <Route path="onboarding" element={<Navigate to="/gallery" replace />} />
+                <Route path="landing" element={<Navigate to="/gallery" replace />} />
               </Routes>
             </ErrorBoundary>
             <ProfileGuard />

@@ -1,16 +1,19 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import path from 'path'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  const useHttps = process.env.HTTPS === 'true'
 
   return {
     plugins: [
       react(),
       tailwindcss(),
-    ],
+      useHttps && basicSsl(),
+    ].filter(Boolean),
     resolve: {
       alias: {
         '@': '/src',
@@ -52,6 +55,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: true, // Allow network access
+      allowedHosts: ['localhost', '.trycloudflare.com', '.loca.lt', '.ngrok.io', '.ngrok-free.app'],
       proxy: {
         // API routes - proxy to production for dev testing with real database
         '/api': {

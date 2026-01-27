@@ -1,11 +1,12 @@
 /**
- * NftGallery Component
+ * NftGallery Component (Premium Version)
  *
- * Mini-gallery of owned Wojak Farmers Plot NFTs.
- * Highlights the one currently set as avatar.
+ * Horizontal scrollable row of owned Wojak Farmers Plot NFTs.
+ * Compact design showing 4-5 visible items with scroll.
  */
 
-import { ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { ExternalLink, ChevronRight } from 'lucide-react';
 import { getNftImageUrl } from '@/services/constants';
 import type { UserAvatar } from '@/types/avatar';
 import './Account.css';
@@ -27,34 +28,30 @@ export function NftGallery({
   isOwnProfile,
   onSelectNft,
 }: NftGalleryProps) {
+  const [showAll, setShowAll] = useState(false);
   const currentNftId = currentAvatar.type === 'nft' ? currentAvatar.nftId : null;
 
+  // Don't render if wallet not connected - the CTA is in the header now
   if (!walletConnected && isOwnProfile) {
-    return (
-      <div className="nft-gallery-section">
-        <h2 className="section-title">NFT Collection</h2>
-        <div className="nft-gallery-empty">
-          <span className="empty-icon">💼</span>
-          <p>Connect your wallet to display your NFTs</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (ownedNftIds.length === 0) {
     return (
-      <div className="nft-gallery-section">
-        <h2 className="section-title">NFT Collection</h2>
-        <div className="nft-gallery-empty">
+      <div className="nft-gallery-premium nft-gallery--empty">
+        <div className="nft-gallery__header">
+          <h2>NFT Collection</h2>
+        </div>
+        <div className="nft-gallery-empty-state">
           <span className="empty-icon">🖼️</span>
-          <p>No Wojak Farmers Plot NFTs</p>
+          <p>No Wojak Farmers Plot NFTs found</p>
           <a
             href={MINTGARDEN_COLLECTION_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="mint-link"
+            className="browse-link"
           >
-            Browse collection on MintGarden
+            Browse collection
             <ExternalLink size={12} />
           </a>
         </div>
@@ -62,34 +59,73 @@ export function NftGallery({
     );
   }
 
-  return (
-    <div className="nft-gallery-section">
-      <h2 className="section-title">
-        NFT Collection
-        <span className="nft-count">({ownedNftIds.length})</span>
-      </h2>
+  // Show expanded grid view
+  if (showAll) {
+    return (
+      <div className="nft-gallery-premium nft-gallery--expanded">
+        <div className="nft-gallery__header">
+          <h2>NFT Collection <span className="count">({ownedNftIds.length})</span></h2>
+          <button className="see-all-btn" onClick={() => setShowAll(false)}>
+            Collapse
+          </button>
+        </div>
+        <div className="nft-gallery__grid">
+          {ownedNftIds.map((nftId) => {
+            const isCurrentAvatar = nftId === currentNftId;
+            return (
+              <div
+                key={nftId}
+                className={`nft-item ${isCurrentAvatar ? 'nft-item--active' : ''}`}
+                onClick={() => isOwnProfile && onSelectNft?.(nftId)}
+                role={isOwnProfile ? 'button' : undefined}
+                tabIndex={isOwnProfile ? 0 : undefined}
+                onKeyDown={(e) => e.key === 'Enter' && isOwnProfile && onSelectNft?.(nftId)}
+              >
+                <img
+                  src={getNftImageUrl(nftId)}
+                  alt={`Wojak #${nftId}`}
+                  loading="lazy"
+                />
+                <span className="nft-item__id">#{nftId}</span>
+                {isCurrentAvatar && <span className="nft-item__badge">Avatar</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
-      <div className="nft-gallery-grid">
+  return (
+    <div className="nft-gallery-premium">
+      <div className="nft-gallery__header">
+        <h2>NFT Collection <span className="count">({ownedNftIds.length})</span></h2>
+        {ownedNftIds.length > 5 && (
+          <button className="see-all-btn" onClick={() => setShowAll(true)}>
+            See All <ChevronRight size={14} />
+          </button>
+        )}
+      </div>
+      
+      <div className="nft-gallery__scroll">
         {ownedNftIds.map((nftId) => {
           const isCurrentAvatar = nftId === currentNftId;
-
           return (
             <div
               key={nftId}
-              className={`nft-gallery-item ${isCurrentAvatar ? 'is-avatar' : ''}`}
+              className={`nft-item ${isCurrentAvatar ? 'nft-item--active' : ''}`}
               onClick={() => isOwnProfile && onSelectNft?.(nftId)}
               role={isOwnProfile ? 'button' : undefined}
               tabIndex={isOwnProfile ? 0 : undefined}
+              onKeyDown={(e) => e.key === 'Enter' && isOwnProfile && onSelectNft?.(nftId)}
             >
               <img
                 src={getNftImageUrl(nftId)}
                 alt={`Wojak #${nftId}`}
                 loading="lazy"
               />
-              <span className="nft-id">#{nftId}</span>
-              {isCurrentAvatar && (
-                <span className="avatar-indicator">Avatar</span>
-              )}
+              <span className="nft-item__id">#{nftId}</span>
+              {isCurrentAvatar && <span className="nft-item__badge">Avatar</span>}
             </div>
           );
         })}
