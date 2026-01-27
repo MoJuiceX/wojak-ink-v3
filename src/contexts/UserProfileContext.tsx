@@ -262,12 +262,17 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
 
   // Update profile (API with localStorage fallback)
   const updateProfile = useCallback(async (data: Partial<UserProfile>): Promise<boolean> => {
-    if (!isSignedIn) return false;
+    if (!isSignedIn) {
+      console.log('[UserProfile] Not signed in, cannot update profile');
+      return false;
+    }
+
+    console.log('[UserProfile] Updating profile with data:', data);
 
     try {
-      // Try API first with timeout
+      // Try API first with timeout (increased to 10s for reliability)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const response = await authenticatedFetch('/api/profile', {
         method: 'POST',
@@ -277,6 +282,7 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
 
       if (response.ok) {
         const result = await response.json();
+        console.log('[UserProfile] API update successful:', result);
         // Also save to localStorage
         if (result.profile) {
           saveProfileToStorage(result.profile);
@@ -287,12 +293,20 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
           needsOnboarding: !result.profile?.displayName,
         }));
         return true;
+      } else {
+        // API returned an error response
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[UserProfile] API returned error:', response.status, errorData);
+        // Don't fall through to localStorage - return false to indicate failure
+        // This ensures the user sees an error message
+        return false;
       }
     } catch (error) {
-      console.log('[UserProfile] API update failed, using localStorage fallback');
+      console.error('[UserProfile] API update failed with exception:', error);
     }
 
-    // Fallback: update localStorage directly
+    // Fallback: update localStorage directly (only for network/timeout errors)
+    console.log('[UserProfile] Using localStorage fallback');
     const currentProfile = state.profile || {
       displayName: null,
       xHandle: null,

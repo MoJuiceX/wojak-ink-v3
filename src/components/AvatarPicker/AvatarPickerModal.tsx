@@ -23,7 +23,7 @@ interface AvatarPickerModalProps {
 }
 
 export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
-  const { profile, updateAvatar, updateProfile, refreshProfile } = useUserProfile();
+  const { profile, updateAvatar, updateProfile } = useUserProfile();
   const { status: walletStatus, address: walletAddress, connect: connectWallet } = useSageWallet();
 
   // Default to NFT tab if user already has an NFT avatar
@@ -100,8 +100,9 @@ export function AvatarPickerModal({ isOpen, onClose }: AvatarPickerModalProps) {
       
       if (success) {
         console.log('[AvatarPicker] NFT avatar saved successfully');
-        // Force refresh profile to ensure UI updates
-        await refreshProfile();
+        // NOTE: Don't call refreshProfile() here - it would fetch from API
+        // and potentially overwrite local state if API save failed.
+        // updateProfile already updates the state directly.
         onClose();
       } else {
         setError('Failed to save avatar. Please try again.');
