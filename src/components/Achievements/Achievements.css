@@ -315,3 +315,82 @@
   font-weight: 600;
   cursor: pointer;
 }
+
+/* ============ Lightbox Specific Styles ============ */
+.achievements-lightbox-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  margin: -1.25rem -1.25rem 0;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stat-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.progress-bar-container {
+  flex: 1;
+  max-width: 200px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #F97316, #EA580C);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.progress-text {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+}
+
+.achievements-lightbox-tabs {
+  margin: 0.75rem -1.25rem;
+  padding: 0 1.25rem 0.75rem;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+}
+
+.achievements-lightbox-tabs .lightbox-tab {
+  white-space: nowrap;
+}
+
+.tab-badge.highlight {
+  background: linear-gradient(135deg, #F97316, #EA580C);
+  color: white;
+}
+
+.achievements-lightbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+@media (max-width: 639px) {
+  .achievements-lightbox-stats {
+    margin: -1rem -1rem 0;
+    padding: 0.625rem 1rem;
+  }
+
+  .achievements-lightbox-tabs {
+    margin: 0.5rem -1rem;
+    padding: 0 1rem 0.5rem;
+  }
+
+  .achievements-lightbox-grid {
+    grid-template-columns: 1fr;
+  }
+}

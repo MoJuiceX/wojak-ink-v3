@@ -1,48 +1,52 @@
 /**
  * QuickActionsBar Component
  *
- * Compact action bar for quick access to Achievements, Customize Drawer, and View Drawer.
+ * Premium action bar for quick access to Achievements, Customize, and Profile Card.
+ * Styled to match game score cards.
  */
 
-import { useNavigate } from 'react-router-dom';
-import { Trophy, Palette, ExternalLink } from 'lucide-react';
+import { Trophy, Palette, User } from 'lucide-react';
 import './Account.css';
 
 interface QuickActionsBarProps {
+  onAchievements: () => void;
   onCustomize: () => void;
-  drawerUrl: string;
+  onViewProfileCard: () => void;
 }
 
-export function QuickActionsBar({ onCustomize, drawerUrl }: QuickActionsBarProps) {
-  const navigate = useNavigate();
-
+export function QuickActionsBar({
+  onAchievements,
+  onCustomize,
+  onViewProfileCard,
+}: QuickActionsBarProps) {
   return (
     <div className="quick-actions-bar">
       <button
+        type="button"
         className="quick-action-btn"
-        onClick={() => navigate('/achievements')}
+        onClick={onAchievements}
       >
-        <Trophy size={16} />
+        <Trophy size={20} />
         <span>Achievements</span>
       </button>
-      
+
       <button
+        type="button"
         className="quick-action-btn"
         onClick={onCustomize}
       >
-        <Palette size={16} />
+        <Palette size={20} />
         <span>Customize</span>
       </button>
-      
-      <a
-        href={drawerUrl}
+
+      <button
+        type="button"
         className="quick-action-btn"
-        target="_blank"
-        rel="noopener noreferrer"
+        onClick={onViewProfileCard}
       >
-        <ExternalLink size={16} />
-        <span>View Drawer</span>
-      </a>
+        <User size={20} />
+        <span>Profile Card</span>
+      </button>
     </div>
   );
 }

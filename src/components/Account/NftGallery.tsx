@@ -1,14 +1,19 @@
 /**
- * NftGallery Component (Premium Version)
+ * NftGallery Component (Premium Carousel Version)
  *
- * Horizontal scrollable row of owned Wojak Farmers Plot NFTs.
- * Compact design showing 4-5 visible items with scroll.
+ * Horizontal Swiper carousel of owned Wojak Farmers Plot NFTs.
+ * Features momentum scrolling, navigation arrows, and micro-interactions.
  */
 
-import { useState } from 'react';
-import { ExternalLink, ChevronRight } from 'lucide-react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, FreeMode } from 'swiper/modules';
+import { motion } from 'framer-motion';
+import { ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getNftImageUrl } from '@/services/constants';
 import type { UserAvatar } from '@/types/avatar';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/free-mode';
 import './Account.css';
 
 const MINTGARDEN_COLLECTION_URL = 'https://mintgarden.io/collections/wojak-farmers-plot-col1kfy44w3nlkqq8z3j8z9mhc3nw9pzwvlsmhsyhc0z6a7luvzukfsufegk5';
@@ -28,7 +33,6 @@ export function NftGallery({
   isOwnProfile,
   onSelectNft,
 }: NftGalleryProps) {
-  const [showAll, setShowAll] = useState(false);
   const currentNftId = currentAvatar.type === 'nft' ? currentAvatar.nftId : null;
 
   // Don't render if wallet not connected - the CTA is in the header now
@@ -59,23 +63,40 @@ export function NftGallery({
     );
   }
 
-  // Show expanded grid view
-  if (showAll) {
-    return (
-      <div className="nft-gallery-premium nft-gallery--expanded">
-        <div className="nft-gallery__header">
-          <h2>NFT Collection <span className="count">({ownedNftIds.length})</span></h2>
-          <button className="see-all-btn" onClick={() => setShowAll(false)}>
-            Collapse
+  return (
+    <div className="nft-gallery-premium">
+      <div className="nft-gallery__header">
+        <h2>NFT Collection <span className="count">({ownedNftIds.length})</span></h2>
+        <div className="nft-gallery__nav">
+          <button className="swiper-btn swiper-btn-prev" aria-label="Previous NFTs">
+            <ChevronLeft size={16} />
+          </button>
+          <button className="swiper-btn swiper-btn-next" aria-label="Next NFTs">
+            <ChevronRight size={16} />
           </button>
         </div>
-        <div className="nft-gallery__grid">
-          {ownedNftIds.map((nftId) => {
-            const isCurrentAvatar = nftId === currentNftId;
-            return (
-              <div
-                key={nftId}
+      </div>
+      
+      <Swiper
+        modules={[Navigation, FreeMode]}
+        spaceBetween={12}
+        slidesPerView="auto"
+        freeMode={{ enabled: true, momentum: true, momentumRatio: 0.5 }}
+        navigation={{ 
+          prevEl: '.swiper-btn-prev', 
+          nextEl: '.swiper-btn-next',
+          disabledClass: 'swiper-btn--disabled'
+        }}
+        className="nft-swiper"
+      >
+        {ownedNftIds.map((nftId) => {
+          const isCurrentAvatar = nftId === currentNftId;
+          return (
+            <SwiperSlide key={nftId} style={{ width: 'auto' }}>
+              <motion.div
                 className={`nft-item ${isCurrentAvatar ? 'nft-item--active' : ''}`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => isOwnProfile && onSelectNft?.(nftId)}
                 role={isOwnProfile ? 'button' : undefined}
                 tabIndex={isOwnProfile ? 0 : undefined}
@@ -88,48 +109,11 @@ export function NftGallery({
                 />
                 <span className="nft-item__id">#{nftId}</span>
                 {isCurrentAvatar && <span className="nft-item__badge">Avatar</span>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="nft-gallery-premium">
-      <div className="nft-gallery__header">
-        <h2>NFT Collection <span className="count">({ownedNftIds.length})</span></h2>
-        {ownedNftIds.length > 5 && (
-          <button className="see-all-btn" onClick={() => setShowAll(true)}>
-            See All <ChevronRight size={14} />
-          </button>
-        )}
-      </div>
-      
-      <div className="nft-gallery__scroll">
-        {ownedNftIds.map((nftId) => {
-          const isCurrentAvatar = nftId === currentNftId;
-          return (
-            <div
-              key={nftId}
-              className={`nft-item ${isCurrentAvatar ? 'nft-item--active' : ''}`}
-              onClick={() => isOwnProfile && onSelectNft?.(nftId)}
-              role={isOwnProfile ? 'button' : undefined}
-              tabIndex={isOwnProfile ? 0 : undefined}
-              onKeyDown={(e) => e.key === 'Enter' && isOwnProfile && onSelectNft?.(nftId)}
-            >
-              <img
-                src={getNftImageUrl(nftId)}
-                alt={`Wojak #${nftId}`}
-                loading="lazy"
-              />
-              <span className="nft-item__id">#{nftId}</span>
-              {isCurrentAvatar && <span className="nft-item__badge">Avatar</span>}
-            </div>
+              </motion.div>
+            </SwiperSlide>
           );
         })}
-      </div>
+      </Swiper>
     </div>
   );
 }

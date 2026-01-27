@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SignedOut, SignInButton, useClerk, useAuth } from '@clerk/clerk-react';
 import { LogOut, Settings } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -16,12 +17,13 @@ import { useSageWallet } from '@/sage-wallet';
 import { useLayout } from '@/hooks/useLayout';
 
 import { ProfileHeader } from '@/components/Account/ProfileHeader';
-import { CurrencyStats } from '@/components/Account/CurrencyStats';
 import { GameScoresGrid } from '@/components/Account/GameScoresGrid';
 import { NftGallery } from '@/components/Account/NftGallery';
 import { InventorySection } from '@/components/Account/InventorySection';
 import { FriendsWidget } from '@/components/Account/FriendsWidget';
 import { AchievementsWidget } from '@/components/Account/AchievementsWidget';
+import { FriendsLightbox } from '@/components/Account/FriendsLightbox';
+import { AchievementsLightbox } from '@/components/Account/AchievementsLightbox';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { DrawerEditor } from '@/components/Shop/DrawerEditor';
 import { GiftModal } from '@/components/Account/GiftModal';
@@ -91,6 +93,11 @@ export default function Account() {
 
   // Drawer editor state
   const [isDrawerEditorOpen, setIsDrawerEditorOpen] = useState(false);
+
+  // Lightbox states
+  const [showFriendsLightbox, setShowFriendsLightbox] = useState(false);
+  const [friendsLightboxTab, setFriendsLightboxTab] = useState<'friends' | 'find'>('friends');
+  const [showAchievementsLightbox, setShowAchievementsLightbox] = useState(false);
 
   // Gift modal state
   const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
@@ -314,68 +321,101 @@ export default function Account() {
         }}
         className="account-page"
       >
-        <div className="account-dashboard account-dashboard--premium">
-          {/* 1. Profile Header with Wallet + Streak integrated */}
-          <ProfileHeader
-            avatar={profile?.avatar || { type: 'emoji', value: '🎮', source: 'default' }}
-            displayName={effectiveDisplayName}
-            xHandle={profile?.xHandle}
-            walletAddress={profile?.walletAddress}
-            createdAt={new Date(profile?.createdAt || Date.now())}
-            isOwnProfile={true}
-            currentStreak={profile?.currentStreak || 0}
-            longestStreak={profile?.longestStreak || 0}
-          />
+        <motion.div 
+          className="account-dashboard account-dashboard--premium"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.08 }
+            }
+          }}
+        >
+          {/* 1. Profile Header with Wallet + Streak + Currency integrated */}
+          <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
+            <ProfileHeader
+              avatar={profile?.avatar || { type: 'emoji', value: '🎮', source: 'default' }}
+              displayName={effectiveDisplayName}
+              xHandle={profile?.xHandle}
+              walletAddress={profile?.walletAddress}
+              createdAt={new Date(profile?.createdAt || Date.now())}
+              isOwnProfile={true}
+              currentStreak={profile?.currentStreak || 0}
+              longestStreak={profile?.longestStreak || 0}
+              oranges={currency?.oranges || 0}
+              gems={currency?.gems || 0}
+              donuts={votingCounts.donuts}
+              poops={votingCounts.poops}
+            />
+          </motion.div>
 
           {/* 2. NFT Collection - Immediately after header */}
-          <NftGallery
-            ownedNftIds={ownedNftIds}
-            currentAvatar={profile?.avatar || { type: 'emoji', value: '🎮', source: 'default' }}
-            walletConnected={walletStatus === 'connected'}
-            isOwnProfile={true}
-            onSelectNft={handleSelectNft}
-          />
-
-          {/* 3. Currency Stats - Compact */}
-          <CurrencyStats
-            oranges={currency?.oranges || 0}
-            gems={currency?.gems || 0}
-            donuts={votingCounts.donuts}
-            poops={votingCounts.poops}
-            lifetimeOranges={currency?.lifetimeOranges}
-            lifetimeGems={currency?.lifetimeGems}
-          />
+          <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
+            <NftGallery
+              ownedNftIds={ownedNftIds}
+              currentAvatar={profile?.avatar || { type: 'emoji', value: '🎮', source: 'default' }}
+              walletConnected={walletStatus === 'connected'}
+              isOwnProfile={true}
+              onSelectNft={handleSelectNft}
+            />
+          </motion.div>
 
           {/* 4. Game Scores */}
-          <GameScoresGrid userId={userId || ''} />
+          <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
+            <GameScoresGrid userId={userId || ''} />
+          </motion.div>
 
           {/* 5. Quick Actions Bar */}
-          <QuickActionsBar
-            onCustomize={() => setIsDrawerEditorOpen(true)}
-            drawerUrl={`/drawer/${userId}`}
-          />
+          <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
+            <QuickActionsBar
+              onAchievements={() => setShowAchievementsLightbox(true)}
+              onCustomize={() => setIsDrawerEditorOpen(true)}
+              onViewProfileCard={() => setIsDrawerEditorOpen(true)}
+            />
+          </motion.div>
 
           {/* 6. Social Widgets Row - Expanded */}
-          <div className="account-widgets-row account-widgets-row--expanded">
-            <FriendsWidget />
-            <AchievementsWidget />
-          </div>
+          <motion.div 
+            className="account-widgets-row account-widgets-row--expanded"
+            variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}
+          >
+            <FriendsWidget
+              onViewAll={() => {
+                setFriendsLightboxTab('friends');
+                setShowFriendsLightbox(true);
+              }}
+              onAddFriend={() => {
+                setFriendsLightboxTab('find');
+                setShowFriendsLightbox(true);
+              }}
+            />
+            <AchievementsWidget
+              onViewAll={() => setShowAchievementsLightbox(true)}
+            />
+          </motion.div>
 
           {/* 7. Inventory - Only show if user has items */}
           {inventoryItems.length > 0 && (
-            <InventorySection
-              items={inventoryItems}
-              isOwnProfile={true}
-              onEquip={handleEquip}
-              onUnequip={handleUnequip}
-              onGift={handleGift}
-            />
+            <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
+              <InventorySection
+                items={inventoryItems}
+                isOwnProfile={true}
+                onEquip={handleEquip}
+                onUnequip={handleUnequip}
+                onGift={handleGift}
+              />
+            </motion.div>
           )}
 
           {/* 8. Account Actions */}
-          <div className="account-actions">
+          <motion.div 
+            className="account-actions"
+            variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}
+          >
             <button
-              className="action-button"
+              className="action-button action-settings"
               onClick={() => navigate('/settings')}
             >
               <Settings size={18} />
@@ -389,8 +429,8 @@ export default function Account() {
               <LogOut size={18} />
               Sign Out
             </button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Modals */}
         <DrawerEditor
@@ -426,6 +466,18 @@ export default function Account() {
               console.error('[Account] Failed to refresh inventory:', err);
             }
           }}
+        />
+
+        {/* Lightboxes */}
+        <FriendsLightbox
+          isOpen={showFriendsLightbox}
+          onClose={() => setShowFriendsLightbox(false)}
+          initialTab={friendsLightboxTab}
+        />
+
+        <AchievementsLightbox
+          isOpen={showAchievementsLightbox}
+          onClose={() => setShowAchievementsLightbox(false)}
         />
       </div>
     </PageTransition>

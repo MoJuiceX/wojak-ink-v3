@@ -6,8 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { UserPlus, Users, Circle } from 'lucide-react';
+import { Users, Circle } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 
 interface Friend {
@@ -18,10 +17,14 @@ interface Friend {
   lastSeen?: string;
 }
 
+interface FriendsWidgetProps {
+  onViewAll: () => void;
+  onAddFriend: () => void;
+}
+
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-export function FriendsWidget() {
-  const navigate = useNavigate();
+export function FriendsWidget({ onViewAll, onAddFriend }: FriendsWidgetProps) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const authResult = CLERK_ENABLED ? useAuth() : { getToken: async () => null };
@@ -118,23 +121,20 @@ export function FriendsWidget() {
         </div>
       ) : (
         <div className="widget-empty">
-          <p>No friends yet. Add some friends to see them here!</p>
+          <span className="widget-empty-icon">🎮</span>
+          <span className="widget-empty-title">Your squad awaits</span>
+          <p>Add friends to compete on leaderboards</p>
         </div>
       )}
 
       <div className="widget-actions">
         <button
+          type="button"
           className="widget-btn primary"
-          onClick={() => navigate('/friends')}
+          onClick={onViewAll}
         >
-          View All Friends
-        </button>
-        <button
-          className="widget-btn secondary"
-          onClick={() => navigate('/friends?action=add')}
-        >
-          <UserPlus size={16} />
-          Add Friend
+          <Users size={16} />
+          Manage Friends
         </button>
       </div>
     </div>

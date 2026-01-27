@@ -121,10 +121,11 @@ export function useChatSocket(options: UseChatSocketOptions | null): UseChatSock
       
       if (reconnectAttempts.current >= maxReconnectAttempts) {
         setStatus('error');
-        setError(`Connection failed: ${err.message}. Click Reconnect to try again.`);
+        setError(`Connection failed. Click Reconnect to try again.`);
       } else {
         setStatus('connecting');
-        setError(`Connecting... (attempt ${reconnectAttempts.current}/${maxReconnectAttempts})`);
+        // Don't show attempt count - the status dot already shows connecting state
+        setError(null);
       }
     });
 
@@ -225,7 +226,26 @@ export function useChatSocket(options: UseChatSocketOptions | null): UseChatSock
     // ============ User Events ============
 
     socket.on('chat:users:list', (users) => {
-      setOnlineUsers(users);
+      // Ensure current user is in the list (server may not include self)
+      // Use functional update to access currentUserId and set users atomically
+      setUserId((currentUserId) => {
+        let updatedUsers = users;
+        if (currentUserId && userName) {
+          const hasCurrentUser = users.some((u) => u.id === currentUserId);
+          if (!hasCurrentUser) {
+            updatedUsers = [...users, {
+              id: currentUserId,
+              name: userName,
+              avatar: userAvatar,
+              isAdmin: false,
+              isMuted: false,
+            }];
+          }
+        }
+        // Set online users inside the functional update to ensure correct timing
+        setOnlineUsers(updatedUsers);
+        return currentUserId;
+      });
     });
 
     socket.on('chat:user:joined', (user) => {
@@ -300,7 +320,7 @@ export function useChatSocket(options: UseChatSocketOptions | null): UseChatSock
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [token]); // Removed onlineUsers dependency - use functional updates instead
+  }, [token, userName, userAvatar]); // Include userName/userAvatar for user list fallback
 
   // Connect on mount
   useEffect(() => {

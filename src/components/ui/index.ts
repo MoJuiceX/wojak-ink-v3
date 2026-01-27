@@ -35,6 +35,8 @@ export { RetryCard, NetworkError } from './RetryCard';
 
 // Modals and feedback
 export { ConfirmModal } from './ConfirmModal';
+export { Lightbox } from './Lightbox';
+export type { LightboxProps } from './Lightbox';
 export { SuccessCheck, SuccessPulse } from './SuccessCheck';
 
 // Game UI

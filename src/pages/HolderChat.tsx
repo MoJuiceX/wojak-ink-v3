@@ -130,7 +130,7 @@ function GatedEntry({
         transition={{ duration: 0.5 }}
         className="gc-lock-icon"
       >
-        {isEligible ? '🐋' : '🔒'}
+        {isEligible ? ROOM_CONFIG.icon : '🔒'}
       </motion.div>
 
       <h2 className="gc-gated-title">{ROOM_CONFIG.label}</h2>
@@ -254,6 +254,7 @@ function Message({
   onJumpToMessage,
 }: MessageProps) {
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const isOwn = message.senderId === userId;
 
   const handleReactionClick = (emoji: string) => {
     onReaction(message.id, emoji);
@@ -268,7 +269,7 @@ function Message({
 
   return (
     <motion.div
-      className={`gc-message ${isGrouped ? 'gc-message-grouped' : ''} ${isNewGroup ? 'gc-message-new-group' : ''}`}
+      className={`gc-message ${isGrouped ? 'gc-message-grouped' : ''} ${isNewGroup ? 'gc-message-new-group' : ''} ${isOwn ? 'gc-message-own' : ''}`}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
@@ -298,10 +299,17 @@ function Message({
             className="gc-reply-preview"
             onClick={() => onJumpToMessage(message.replyTo!.id)}
           >
-            <span className="gc-reply-name">
-              Replying to {message.replyTo.senderName}
-            </span>
-            <span className="gc-reply-text">{message.replyTo.text}</span>
+            <div className="gc-reply-avatar">
+              {message.replyTo.senderAvatar ? (
+                <img src={message.replyTo.senderAvatar} alt="" />
+              ) : (
+                message.replyTo.senderName.charAt(0).toUpperCase()
+              )}
+            </div>
+            <div className="gc-reply-content">
+              <span className="gc-reply-name">{message.replyTo.senderName}</span>
+              <span className="gc-reply-text">{message.replyTo.text}</span>
+            </div>
           </div>
         )}
 
@@ -335,29 +343,32 @@ function Message({
           ))}
         </div>
 
-        {/* Action buttons */}
+        {/* Action buttons - icon only */}
         <div className="gc-message-actions">
           <button
             className="gc-action-btn"
             onClick={() => setShowReactionPicker(!showReactionPicker)}
+            title="Add reaction"
             aria-label="Add reaction"
             aria-expanded={showReactionPicker}
           >
-            React
+            😊
           </button>
           <button 
             className="gc-action-btn" 
             onClick={() => onReply(message)}
+            title="Reply"
             aria-label="Reply to message"
           >
-            Reply
+            ↩
           </button>
           {isAdmin && (
             <button
               className="gc-action-btn danger"
               onClick={() => onDelete(message.id)}
+              title="Delete"
             >
-              Delete
+              🗑
             </button>
           )}
         </div>
@@ -380,7 +391,6 @@ function ChatInterface({ chatToken, userName, userAvatar }: ChatInterfaceProps) 
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionIndex, setMentionIndex] = useState(0);
-  const [showUserDrawer, setShowUserDrawer] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -516,37 +526,27 @@ function ChatInterface({ chatToken, userName, userAvatar }: ChatInterfaceProps) 
   };
 
   return (
-    <div className="gc-chat-wrapper">
-      {/* Main Chat Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {/* Connection Status */}
-        <div className="gc-connection-status">
-          <div className={`gc-status-dot ${status}`} />
-          <span>
-            {status === 'connected' && `Connected • ${onlineUsers.length} online`}
-            {status === 'connecting' && (error || 'Connecting...')}
-            {status === 'disconnected' && 'Disconnected'}
-            {status === 'error' && (error || 'Connection error')}
-          </span>
+    <div className="gc-crt-frame">
+      {/* Terminal Header */}
+      <div className="gc-terminal-header">
+        <Link to="/chat" className="gc-header-back">
+          ← Chat Rooms
+        </Link>
+        <span className="gc-header-pill">
+          {ROOM_CONFIG.icon} {ROOM_CONFIG.label}
+        </span>
+        <div className="gc-header-status">
+          <span className={`gc-status-dot ${status}`} />
           {(status === 'error' || status === 'disconnected') && (
             <button className="gc-reconnect-btn" onClick={reconnect} aria-label="Reconnect">
-              Reconnect
-            </button>
-          )}
-          {/* Mobile-only button to show online users */}
-          {status === 'connected' && (
-            <button 
-              className="gc-mobile-users-btn"
-              onClick={() => setShowUserDrawer(true)}
-              aria-label="Show online users"
-            >
-              👥 {onlineUsers.length}
+              Retry
             </button>
           )}
         </div>
+      </div>
 
-        {/* Messages */}
-        <div className="gc-messages" ref={messagesContainerRef}>
+      {/* Messages */}
+      <div className="gc-messages" ref={messagesContainerRef}>
           {messages.length === 0 ? (
             <div className="gc-empty-messages">
               <div className="gc-empty-icon">{ROOM_CONFIG.icon}</div>
@@ -692,72 +692,6 @@ function ChatInterface({ chatToken, userName, userAvatar }: ChatInterfaceProps) 
             </button>
           </form>
         </div>
-      </div>
-
-      {/* Online Users Sidebar (Desktop) */}
-      <div className="gc-sidebar">
-        <h3 className="gc-sidebar-title">Online — {onlineUsers.length}</h3>
-        <div className="gc-user-list">
-          {onlineUsers.map((user) => (
-            <div
-              key={user.id}
-              className={`gc-user-item ${user.isMuted ? 'gc-user-muted' : ''}`}
-            >
-              <div className="gc-user-avatar">
-                {user.avatar ? (
-                  <img src={user.avatar} alt="" />
-                ) : (
-                  user.name.charAt(0).toUpperCase()
-                )}
-              </div>
-              <span
-                className={`gc-user-name ${user.isAdmin ? 'gc-user-admin' : ''}`}
-              >
-                {user.name}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Mobile User Drawer */}
-      <div
-        className={`gc-user-drawer-backdrop ${showUserDrawer ? 'open' : ''}`}
-        onClick={() => setShowUserDrawer(false)}
-      >
-        <div
-          className="gc-user-drawer"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="gc-user-drawer-handle" />
-          <div className="gc-user-drawer-content">
-            <h3 className="gc-user-drawer-title">
-              Online — {onlineUsers.length}
-            </h3>
-            <div className="gc-user-list">
-              {onlineUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className={`gc-user-item ${user.isMuted ? 'gc-user-muted' : ''}`}
-                >
-                  <div className="gc-user-avatar">
-                    {user.avatar ? (
-                      <img src={user.avatar} alt="" />
-                    ) : (
-                      user.name.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <span
-                    className={`gc-user-name ${user.isAdmin ? 'gc-user-admin' : ''}`}
-                  >
-                    {user.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -840,6 +774,21 @@ export default function HolderChat() {
     }
   }, [isSignedIn, hasVerified, walletAddress, authenticatedFetch]);
 
+  // Auto-connect eligible users (skip the GatedEntry screen)
+  useEffect(() => {
+    if (
+      isLoaded &&
+      isSignedIn &&
+      isEligible &&
+      walletAddress &&
+      !chatToken &&
+      !isVerifying &&
+      !error
+    ) {
+      handleEnterChat();
+    }
+  }, [isLoaded, isSignedIn, isEligible, walletAddress, chatToken, isVerifying, error, handleEnterChat]);
+
   // Loading state
   if (!isLoaded) {
     return (
@@ -866,31 +815,6 @@ export default function HolderChat() {
 
       <div className="gc-container">
         <div className="gc-content">
-          {/* Header */}
-          <div className="gc-header">
-            <div className="gc-header-left">
-              <button 
-                className="gc-back-btn"
-                onClick={() => navigate('/chat')}
-                title="Back to Chat Hub"
-                aria-label="Back to chat rooms"
-              >
-                ←
-              </button>
-              <div className="gc-badge">
-                <span className="gc-badge-icon">{ROOM_CONFIG.icon}</span>
-                <span>{ROOM_CONFIG.label}</span>
-              </div>
-              <h1 className="gc-title">{ROOM_CONFIG.label}</h1>
-            </div>
-            {chatToken && (
-              <div className="gc-online-count">
-                <div className="gc-online-dot" />
-                <span>Live</span>
-              </div>
-            )}
-          </div>
-
           {/* Error Display */}
           <AnimatePresence>
             {error && (
@@ -919,6 +843,14 @@ export default function HolderChat() {
               userAvatar={userAvatar}
               nftCount={nftCount || 0}
             />
+          ) : isVerifying && isEligible ? (
+            /* Inline connecting state for eligible users - skip the GatedEntry screen */
+            <div className="gc-crt-frame gc-connecting-wrapper">
+              <div className="gc-connecting-inline">
+                <div className="gc-spinner" />
+                <span>Connecting to chat...</span>
+              </div>
+            </div>
           ) : (
             <GatedEntry
               nftCount={nftCount}

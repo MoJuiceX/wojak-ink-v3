@@ -1,10 +1,28 @@
 /**
- * CurrencyStats Component (Premium Compact Version)
+ * CurrencyStats Component (Premium Version)
  *
- * Compact 4-column grid showing all currency stats.
+ * Horizontal icon+number layout with animated counters.
+ * Tooltips explain what each currency is used for.
  */
 
+import { useEffect } from 'react';
+import { motion, useSpring, useTransform } from 'framer-motion';
 import './Account.css';
+
+interface AnimatedNumberProps {
+  value: number;
+}
+
+function AnimatedNumber({ value }: AnimatedNumberProps) {
+  const spring = useSpring(0, { stiffness: 100, damping: 20 });
+  const display = useTransform(spring, (v) => Math.floor(v).toLocaleString());
+  
+  useEffect(() => {
+    spring.set(value);
+  }, [value, spring]);
+  
+  return <motion.span className="stat-value">{display}</motion.span>;
+}
 
 interface CurrencyStatsProps {
   oranges: number;
@@ -25,23 +43,34 @@ export function CurrencyStats({
     <div className="stats-card-premium">
       <div className="stats-card__grid">
         <div className="stat-item stat-item--orange">
-          <span className="stat-icon">🍊</span>
-          <span className="stat-value">{oranges.toLocaleString()}</span>
+          <div className="stat-row">
+            <span className="stat-icon">🍊</span>
+            <AnimatedNumber value={oranges} />
+          </div>
           <span className="stat-label">Oranges</span>
         </div>
+        
         <div className="stat-item stat-item--gem">
-          <span className="stat-icon">💎</span>
-          <span className="stat-value">{gems.toLocaleString()}</span>
+          <div className="stat-row">
+            <span className="stat-icon">💎</span>
+            <AnimatedNumber value={gems} />
+          </div>
           <span className="stat-label">Gems</span>
         </div>
+        
         <div className="stat-item stat-item--donut">
-          <span className="stat-icon">🍩</span>
-          <span className="stat-value">{donuts}</span>
+          <div className="stat-row">
+            <span className="stat-icon">🍩</span>
+            <AnimatedNumber value={donuts} />
+          </div>
           <span className="stat-label">Donuts</span>
         </div>
+        
         <div className="stat-item stat-item--poop">
-          <span className="stat-icon">💩</span>
-          <span className="stat-value">{poops}</span>
+          <div className="stat-row">
+            <span className="stat-icon">💩</span>
+            <AnimatedNumber value={poops} />
+          </div>
           <span className="stat-label">Poops</span>
         </div>
       </div>

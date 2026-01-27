@@ -51,11 +51,10 @@ const Account = lazy(() => import('./pages/Account'));
 const Profile = lazy(() => import('./pages/Profile'));
 
 // Social
-const Friends = lazy(() => import('./pages/Friends'));
+// Friends and Achievements pages removed - now use lightboxes in Account page
 const Guild = lazy(() => import('./pages/Guild'));
 const Shop = lazy(() => import('./pages/Shop'));
 const Leaderboard = lazy(() => import('./pages/Leaderboard'));
-const Achievements = lazy(() => import('./pages/Achievements'));
 const Drawer = lazy(() => import('./pages/Drawer'));
 
 // Games
@@ -271,13 +270,10 @@ function AppContent() {
                       </Suspense>
                     }
                   />
+                  {/* Redirect /friends to /account - Friends feature now uses lightbox */}
                   <Route
                     path="friends"
-                    element={
-                      <Suspense fallback={<PageSkeleton type="settings" />}>
-                        <Friends />
-                      </Suspense>
-                    }
+                    element={<Navigate to="/account" replace />}
                   />
                   <Route
                     path="guild"
@@ -303,13 +299,10 @@ function AppContent() {
                       </Suspense>
                     }
                   />
+                  {/* Redirect /achievements to /account - Achievements feature now uses lightbox */}
                   <Route
                     path="achievements"
-                    element={
-                      <Suspense fallback={<PageSkeleton type="settings" />}>
-                        <Achievements />
-                      </Suspense>
-                    }
+                    element={<Navigate to="/account" replace />}
                   />
                   <Route
                     path="drawer/:userId"

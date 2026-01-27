@@ -475,16 +475,19 @@ export function DrawerEditor({ isOpen, onClose }: DrawerEditorProps) {
       >
         <motion.div
           className="drawer-editor"
-          initial={{ y: '100%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '100%' }}
-          transition={{ type: 'spring', damping: 25 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           onClick={e => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="drawer-editor-title"
         >
           {/* Header */}
           <header className="editor-header">
-            <h2>Customize Drawer</h2>
-            <button className="close-btn" onClick={onClose}>
+            <h2 id="drawer-editor-title">Customize Profile Card</h2>
+            <button className="close-btn" onClick={onClose} aria-label="Close">
               <X size={24} />
             </button>
           </header>
@@ -627,23 +630,29 @@ export function DrawerEditor({ isOpen, onClose }: DrawerEditorProps) {
         .drawer-editor-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.7);
-          backdrop-filter: blur(4px);
+          background: rgba(0, 0, 0, 0.85);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
           z-index: 1000;
           display: flex;
-          align-items: flex-end;
+          align-items: center;
           justify-content: center;
+          padding: 24px;
         }
 
         .drawer-editor {
           width: 100%;
           max-width: 600px;
           max-height: 90vh;
-          background: linear-gradient(180deg, #1a1a2e 0%, #16162a 100%);
-          border-radius: 24px 24px 0 0;
+          background: rgba(20, 20, 28, 0.98);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 20px;
           display: flex;
           flex-direction: column;
           overflow: hidden;
+          box-shadow: 
+            0 20px 60px rgba(0, 0, 0, 0.5),
+            0 0 0 1px rgba(255, 255, 255, 0.05);
         }
 
         .editor-header {
@@ -1061,9 +1070,26 @@ export function DrawerEditor({ isOpen, onClose }: DrawerEditorProps) {
         }
 
         /* Mobile adjustments */
-        @media (max-width: 480px) {
+        @media (max-width: 639px) {
+          .drawer-editor-overlay {
+            padding: 0;
+          }
+
           .drawer-editor {
-            max-height: 85vh;
+            width: 100%;
+            max-width: 100%;
+            height: 100vh;
+            max-height: 100vh;
+            border-radius: 0;
+            border: none;
+          }
+
+          .editor-header {
+            padding-top: calc(20px + env(safe-area-inset-top, 0));
+          }
+
+          .view-drawer-link {
+            padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
           }
 
           .editor-nav {

@@ -2,11 +2,10 @@
  * Achievements Widget Component
  *
  * Compact achievements summary for Account page.
- * Shows recent unlocks, progress bar, and link to full achievements page.
+ * Shows recent unlocks, progress bar, and quick access to full achievements.
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Award } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 
@@ -27,10 +26,13 @@ interface AchievementStats {
   orangesEarned: number;
 }
 
+interface AchievementsWidgetProps {
+  onViewAll: () => void;
+}
+
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-export function AchievementsWidget() {
-  const navigate = useNavigate();
+export function AchievementsWidget({ onViewAll }: AchievementsWidgetProps) {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [stats, setStats] = useState<AchievementStats>({ completed: 0, total: 0, orangesEarned: 0 });
   const [loading, setLoading] = useState(true);
@@ -97,7 +99,7 @@ export function AchievementsWidget() {
           <Award size={18} />
           Achievements
         </h3>
-        <span className="widget-count">{stats.completed}/{stats.total}</span>
+        <span className="widget-count">{stats.completed}/{stats.total} ({progressPercent}%)</span>
       </div>
 
       {/* Recent Unlocks */}
@@ -118,32 +120,17 @@ export function AchievementsWidget() {
         </div>
       ) : (
         <div className="widget-empty">
-          <p>No achievements unlocked yet. Play games to earn achievements!</p>
+          <span className="widget-empty-icon">🏆</span>
+          <span className="widget-empty-title">Start your journey</span>
+          <p>Play games to unlock achievements</p>
         </div>
       )}
 
-      {/* Progress Bar */}
-      <div className="achievements-progress">
-        <div className="progress-label">
-          Progress: {stats.completed}/{stats.total} ({progressPercent}%)
-        </div>
-        <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-        {stats.orangesEarned > 0 && (
-          <div className="oranges-earned">
-            +{stats.orangesEarned.toLocaleString()} earned from achievements
-          </div>
-        )}
-      </div>
-
       <div className="widget-actions">
         <button
+          type="button"
           className="widget-btn primary"
-          onClick={() => navigate('/achievements')}
+          onClick={onViewAll}
         >
           View All Achievements
         </button>

@@ -6,11 +6,11 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Edit3, Calendar, Flame, Trophy, Wallet, RefreshCw, X, AlertCircle } from 'lucide-react';
+import { Edit3, Flame, Trophy, Wallet, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { AvatarPickerModal } from '@/components/AvatarPicker/AvatarPickerModal';
-import { formatDistanceToNow } from 'date-fns';
+// date-fns import removed - member duration feature removed
 import { useSageWallet } from '@/sage-wallet';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import type { UserAvatar } from '@/types/avatar';
@@ -24,12 +24,17 @@ interface ProfileHeaderProps {
   displayName: string;
   xHandle?: string | null;
   walletAddress?: string | null; // Kept for interface compatibility
-  createdAt: Date;
+  createdAt?: Date; // Kept for interface compatibility, no longer displayed
   isOwnProfile: boolean;
   onEditName?: () => void;
   // Streak data
   currentStreak?: number;
   longestStreak?: number;
+  // Currency data
+  oranges?: number;
+  gems?: number;
+  donuts?: number;
+  poops?: number;
 }
 
 export function ProfileHeader({
@@ -37,11 +42,15 @@ export function ProfileHeader({
   displayName,
   xHandle,
   walletAddress: _walletAddress, // Renamed to indicate intentionally unused
-  createdAt,
+  createdAt: _createdAt, // Renamed to indicate intentionally unused
   isOwnProfile,
   onEditName,
   currentStreak = 0,
   longestStreak = 0,
+  oranges = 0,
+  gems = 0,
+  donuts = 0,
+  poops = 0,
 }: ProfileHeaderProps) {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   
@@ -54,8 +63,6 @@ export function ProfileHeader({
   const walletConnected = walletStatus === 'connected' && !!address;
   const nftCount = profile?.nftCount;
   const hasVerified = nftCount !== null && nftCount !== undefined;
-
-  const accountAge = formatDistanceToNow(createdAt, { addSuffix: false });
 
   // Handle wallet connect
   const handleConnect = useCallback(async () => {
@@ -153,7 +160,8 @@ export function ProfileHeader({
         </div>
 
         <div className="profile-header__info">
-          <div className="profile-header__name-row">
+          {/* Desktop: Name + all stats in one row */}
+          <div className="profile-header__top-row">
             <div className="profile-header__name-group">
               <h1 className="profile-display-name">{displayName}</h1>
               {isOwnProfile && onEditName && (
@@ -162,17 +170,43 @@ export function ProfileHeader({
                 </button>
               )}
             </div>
-            
-            {/* Streak badges next to name */}
-            <div className="profile-header__streak">
-              <span className={`streak-badge streak-badge--current ${currentStreak > 0 ? 'active' : ''}`}>
-                <Flame size={14} />
-                {currentStreak}
-              </span>
-              <span className={`streak-badge streak-badge--best ${longestStreak > 0 ? 'active' : ''}`}>
-                <Trophy size={14} />
-                {longestStreak}
-              </span>
+
+            {/* All stats inline */}
+            <div className="profile-header__inline-stats">
+              <div 
+                className={`stat-badge stat-badge--streak ${currentStreak > 0 ? 'active' : ''}`}
+                data-tooltip={currentStreak > 0 
+                  ? `${currentStreak} day streak! Play today to keep it going.`
+                  : 'Play a game to start your streak!'}
+              >
+                <Flame size={20} className={currentStreak > 0 ? 'flame-glow' : ''} />
+                <span className="stat-badge__value">{currentStreak}</span>
+                <span className="stat-badge__label">Streak</span>
+              </div>
+              <div 
+                className={`stat-badge stat-badge--best ${longestStreak > 0 ? 'active' : ''}`}
+                data-tooltip={`Your longest streak: ${longestStreak} days`}
+              >
+                <Trophy size={20} />
+                <span className="stat-badge__value">{longestStreak}</span>
+                <span className="stat-badge__label">Best</span>
+              </div>
+              <div className="stat-badge stat-badge--currency" data-tooltip="Earned from games and daily rewards">
+                <span className="stat-badge__emoji">🍊</span>
+                <span className="stat-badge__value">{oranges.toLocaleString()}</span>
+              </div>
+              <div className="stat-badge stat-badge--currency" data-tooltip="Premium currency for exclusive items">
+                <span className="stat-badge__emoji">💎</span>
+                <span className="stat-badge__value">{gems.toLocaleString()}</span>
+              </div>
+              <div className="stat-badge stat-badge--currency" data-tooltip="Donuts given to NFTs you like">
+                <span className="stat-badge__emoji">🍩</span>
+                <span className="stat-badge__value">{donuts}</span>
+              </div>
+              <div className="stat-badge stat-badge--currency" data-tooltip="Poops given to NFTs you don't like">
+                <span className="stat-badge__emoji">💩</span>
+                <span className="stat-badge__value">{poops}</span>
+              </div>
             </div>
           </div>
 
@@ -186,11 +220,6 @@ export function ProfileHeader({
               @{xHandle}
             </a>
           )}
-
-          <span className="profile-header__member">
-            <Calendar size={12} />
-            Member for {accountAge}
-          </span>
         </div>
       </div>
 
@@ -208,40 +237,32 @@ export function ProfileHeader({
               </button>
             </div>
           ) : (
-            <div className="wallet-status">
-              <div className="wallet-status__info">
-                <div className={`wallet-status__dot ${hasVerified && nftCount! > 0 ? 'dot--success' : hasVerified && nftCount === 0 ? 'dot--warning' : 'dot--neutral'}`} />
+            <div className="wallet-status wallet-status--connected">
+              <div className="wallet-status__header">
+                <span className="wallet-status__badge">
+                  <span className="wallet-status__dot dot--success" />
+                  Connected
+                </span>
+              </div>
+              <div className="wallet-status__details">
                 <span className="wallet-status__address">
                   {address?.slice(0, 6)}...{address?.slice(-4)}
                 </span>
-                <span className="wallet-status__divider">|</span>
+                <span className="wallet-status__separator">•</span>
                 <span className="wallet-status__nfts">
                   {hasVerified ? (
-                    <><strong>{nftCount}</strong> NFT{nftCount !== 1 ? 's' : ''}</>
+                    <><strong>{nftCount}</strong> NFT{nftCount !== 1 ? 's' : ''} verified</>
                   ) : (
                     'Verifying...'
                   )}
                 </span>
               </div>
-              <div className="wallet-status__actions">
-                <button
-                  className="wallet-icon-btn"
-                  onClick={refreshNftCount}
-                  disabled={isRefreshing}
-                  title="Refresh NFT count"
-                  aria-label="Refresh NFT count"
-                >
-                  <RefreshCw size={14} className={isRefreshing ? 'spin' : ''} />
-                </button>
-                <button
-                  className="wallet-icon-btn wallet-icon-btn--danger"
-                  onClick={handleDisconnect}
-                  title="Disconnect wallet"
-                  aria-label="Disconnect wallet"
-                >
-                  <X size={14} />
-                </button>
-              </div>
+              <button
+                className="wallet-disconnect-btn"
+                onClick={handleDisconnect}
+              >
+                Disconnect
+              </button>
             </div>
           )}
           {walletError && (
