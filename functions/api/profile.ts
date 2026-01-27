@@ -254,7 +254,7 @@ function validateProfileData(data: ProfileData, existingProfile?: { wallet_addre
 }
 
 /**
- * Upsert profile
+ * Upsert profile - using explicit SELECT/UPDATE/INSERT for reliability
  */
 async function upsertProfile(
   db: D1Database,
@@ -262,102 +262,130 @@ async function upsertProfile(
   data: ProfileData
 ): Promise<void> {
   // Log what we're about to save
-  console.log('[Profile] upsertProfile called with avatar:', JSON.stringify({
-    type: data.avatar?.type,
-    value: data.avatar?.value?.substring(0, 50),
-    source: data.avatar?.source,
-    nftId: data.avatar?.nftId,
-    nftLauncherId: data.avatar?.nftLauncherId,
+  console.log('[Profile] upsertProfile called:', JSON.stringify({
+    userId,
+    hasAvatar: !!data.avatar,
+    avatarType: data.avatar?.type,
+    avatarValue: data.avatar?.value?.substring(0, 50),
+    avatarSource: data.avatar?.source,
+    avatarNftId: data.avatar?.nftId,
+    walletAddress: data.walletAddress?.substring(0, 10),
   }));
-  
-  // Try with avatar columns first
-  try {
-    await db
+
+  // Check if profile exists
+  const existing = await db
+    .prepare('SELECT user_id FROM profiles WHERE user_id = ?')
+    .bind(userId)
+    .first();
+
+  if (existing) {
+    // UPDATE existing profile
+    console.log('[Profile] Profile exists, performing UPDATE');
+    
+    // Build SET clauses dynamically based on what's provided
+    const setClauses: string[] = [];
+    const values: (string | number | null)[] = [];
+
+    // Avatar fields - set explicitly if avatar data is provided
+    if (data.avatar) {
+      setClauses.push('avatar_type = ?');
+      values.push(data.avatar.type);
+      
+      setClauses.push('avatar_value = ?');
+      values.push(data.avatar.value);
+      
+      setClauses.push('avatar_source = ?');
+      values.push(data.avatar.source);
+      
+      setClauses.push('avatar_nft_id = ?');
+      values.push(data.avatar.nftId || null);
+      
+      setClauses.push('avatar_nft_launcher_id = ?');
+      values.push(data.avatar.nftLauncherId || null);
+    }
+
+    // Other fields - only update if explicitly provided
+    if (data.displayName !== undefined) {
+      setClauses.push('display_name = ?');
+      values.push(data.displayName || null);
+    }
+    if (data.xHandle !== undefined) {
+      setClauses.push('x_handle = ?');
+      values.push(data.xHandle || null);
+    }
+    if (data.walletAddress !== undefined) {
+      setClauses.push('wallet_address = ?');
+      values.push(data.walletAddress || null);
+    }
+    if (data.ownedNftIds !== undefined) {
+      setClauses.push('owned_nft_ids = ?');
+      values.push(JSON.stringify(data.ownedNftIds));
+    }
+    if (data.nftCount !== undefined) {
+      setClauses.push('nft_count = ?');
+      values.push(data.nftCount);
+    }
+    if (data.nftVerifiedAt !== undefined) {
+      setClauses.push('nft_verified_at = ?');
+      values.push(data.nftVerifiedAt || null);
+    }
+
+    // Always update timestamp
+    setClauses.push("updated_at = datetime('now')");
+
+    if (setClauses.length > 1) { // More than just updated_at
+      const sql = `UPDATE profiles SET ${setClauses.join(', ')} WHERE user_id = ?`;
+      values.push(userId);
+
+      console.log('[Profile] UPDATE SQL:', sql);
+      console.log('[Profile] UPDATE values:', JSON.stringify(values));
+
+      const result = await db.prepare(sql).bind(...values).run();
+      
+      console.log('[Profile] UPDATE result:', JSON.stringify({
+        success: result.success,
+        changes: result.meta?.changes,
+        duration: result.meta?.duration,
+      }));
+
+      if (result.meta?.changes === 0) {
+        console.error('[Profile] WARNING: UPDATE affected 0 rows!');
+      }
+    }
+  } else {
+    // INSERT new profile
+    console.log('[Profile] Profile does not exist, performing INSERT');
+    
+    const result = await db
       .prepare(
         `INSERT INTO profiles (
           user_id, display_name, x_handle, wallet_address,
           avatar_type, avatar_value, avatar_source, avatar_nft_id, avatar_nft_launcher_id,
           owned_nft_ids, nft_count, nft_verified_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-        ON CONFLICT(user_id) DO UPDATE SET
-          display_name = COALESCE(?, profiles.display_name),
-          x_handle = COALESCE(?, profiles.x_handle),
-          wallet_address = COALESCE(?, profiles.wallet_address),
-          avatar_type = COALESCE(?, profiles.avatar_type),
-          avatar_value = COALESCE(?, profiles.avatar_value),
-          avatar_source = COALESCE(?, profiles.avatar_source),
-          avatar_nft_id = ?,
-          avatar_nft_launcher_id = ?,
-          owned_nft_ids = COALESCE(?, profiles.owned_nft_ids),
-          nft_count = COALESCE(?, profiles.nft_count),
-          nft_verified_at = COALESCE(?, profiles.nft_verified_at),
-          updated_at = datetime('now')`
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
       )
       .bind(
         userId,
         data.displayName || null,
         data.xHandle || null,
         data.walletAddress || null,
-        data.avatar?.type || null,
-        data.avatar?.value || null,
-        data.avatar?.source || null,
+        data.avatar?.type || 'emoji',
+        data.avatar?.value || '🎮',
+        data.avatar?.source || 'default',
         data.avatar?.nftId || null,
         data.avatar?.nftLauncherId || null,
         data.ownedNftIds ? JSON.stringify(data.ownedNftIds) : null,
         data.nftCount ?? null,
-        data.nftVerifiedAt || null,
-        // Update values
-        data.displayName !== undefined ? data.displayName || null : null,
-        data.xHandle !== undefined ? data.xHandle || null : null,
-        data.walletAddress !== undefined ? data.walletAddress || null : null,
-        data.avatar?.type || null,
-        data.avatar?.value || null,
-        data.avatar?.source || null,
-        data.avatar?.nftId || null,
-        data.avatar?.nftLauncherId || null,
-        data.ownedNftIds ? JSON.stringify(data.ownedNftIds) : null,
-        data.nftCount !== undefined ? data.nftCount : null,
-        data.nftVerifiedAt !== undefined ? data.nftVerifiedAt : null
+        data.nftVerifiedAt || null
       )
       .run();
-    
-    console.log('[Profile] Upsert successful with avatar columns');
-    return; // Success - exit early
-  } catch (error) {
-    // Log the actual error to understand what's happening
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('[Profile] Upsert with avatar columns failed:', errorMessage);
-    
-    // Only fallback if it's a column-not-found error
-    // D1/SQLite error for missing column contains "no such column" or "no column"
-    if (!errorMessage.toLowerCase().includes('no such column') && 
-        !errorMessage.toLowerCase().includes('no column')) {
-      // Re-throw for other errors - don't silently drop avatar data
-      throw error;
-    }
-    
-    console.log('[Profile] Falling back to basic upsert without avatar columns');
-    await db
-      .prepare(
-        `INSERT INTO profiles (user_id, display_name, x_handle, wallet_address, updated_at)
-         VALUES (?, ?, ?, ?, datetime('now'))
-         ON CONFLICT(user_id) DO UPDATE SET
-           display_name = COALESCE(?, profiles.display_name),
-           x_handle = COALESCE(?, profiles.x_handle),
-           wallet_address = COALESCE(?, profiles.wallet_address),
-           updated_at = datetime('now')`
-      )
-      .bind(
-        userId,
-        data.displayName || null,
-        data.xHandle || null,
-        data.walletAddress || null,
-        data.displayName !== undefined ? data.displayName || null : null,
-        data.xHandle !== undefined ? data.xHandle || null : null,
-        data.walletAddress !== undefined ? data.walletAddress || null : null
-      )
-      .run();
+
+    console.log('[Profile] INSERT result:', JSON.stringify({
+      success: result.success,
+      changes: result.meta?.changes,
+      lastRowId: result.meta?.last_row_id,
+    }));
   }
 }
 
