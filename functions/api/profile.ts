@@ -312,8 +312,22 @@ async function upsertProfile(
         data.nftVerifiedAt !== undefined ? data.nftVerifiedAt : null
       )
       .run();
+    
+    console.log('[Profile] Upsert successful with avatar columns');
+    return; // Success - exit early
   } catch (error) {
-    // Fallback: avatar columns might not exist yet
+    // Log the actual error to understand what's happening
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[Profile] Upsert with avatar columns failed:', errorMessage);
+    
+    // Only fallback if it's a column-not-found error
+    // D1/SQLite error for missing column contains "no such column" or "no column"
+    if (!errorMessage.toLowerCase().includes('no such column') && 
+        !errorMessage.toLowerCase().includes('no column')) {
+      // Re-throw for other errors - don't silently drop avatar data
+      throw error;
+    }
+    
     console.log('[Profile] Falling back to basic upsert without avatar columns');
     await db
       .prepare(
