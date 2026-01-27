@@ -283,6 +283,7 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
       if (response.ok) {
         const result = await response.json();
         console.log('[UserProfile] API update successful:', result);
+        console.log('[UserProfile] Avatar in response:', result.profile?.avatar);
         // Also save to localStorage
         if (result.profile) {
           saveProfileToStorage(result.profile);
