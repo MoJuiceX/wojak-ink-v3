@@ -48,21 +48,20 @@ const menuItems: MenuItem[] = [
     iconBg: 'rgba(249, 115, 22, 0.15)',
   },
   {
+    icon: MessageCircle,
+    label: 'Chat Rooms',
+    description: 'Join holder conversations',
+    route: '/chat',
+    iconColor: '#10b981',
+    iconBg: 'rgba(16, 185, 129, 0.15)',
+  },
+  {
     icon: Trophy,
     label: 'Leaderboard',
     description: 'View rankings and compete',
     route: '/leaderboard',
     iconColor: '#fbbf24',
     iconBg: 'rgba(251, 191, 36, 0.15)',
-  },
-  {
-    icon: MessageCircle,
-    label: '1% Holder Chat',
-    description: 'Exclusive chat for top holders',
-    route: '/chat',
-    badge: '42+ NFTs',
-    iconColor: '#f59e0b',
-    iconBg: 'rgba(245, 158, 11, 0.15)',
   },
   {
     icon: Users,
@@ -186,6 +185,8 @@ export function MoreMenu({ isOpen, onClose }: MoreMenuProps) {
             <nav 
               className="px-3 pb-4 flex flex-col gap-1.5"
               style={{ touchAction: 'pan-y' }}
+              role="menu"
+              aria-label="Secondary navigation"
             >
               {menuItems.map((item) => {
                 const Icon = item.icon;
@@ -196,6 +197,8 @@ export function MoreMenu({ isOpen, onClose }: MoreMenuProps) {
                   <button
                     key={item.route}
                     type="button"
+                    role="menuitem"
+                    aria-label={`${item.label} - ${item.description}`}
                     className="flex items-center gap-3 p-3 rounded-xl w-full text-left active:scale-[0.98] transition-transform"
                     style={{
                       background: 'rgba(255, 255, 255, 0.05)',

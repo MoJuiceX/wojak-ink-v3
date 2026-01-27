@@ -20,6 +20,7 @@ import {
   ShoppingBag,
   Gamepad2,
   Menu,
+  MessageCircle,
   type LucideIcon
 } from 'lucide-react';
 
@@ -106,6 +107,13 @@ export const MORE_NAV_ITEM: NavItem = {
  * NOTE: Friends and Achievements moved to Account page widgets (SPEC 17)
  */
 export const SECONDARY_NAV_ITEMS: NavItem[] = [
+  {
+    id: 'chat',
+    path: '/chat',
+    label: 'Chat Rooms',
+    shortLabel: 'Chat',
+    icon: MessageCircle,
+  },
   {
     id: 'leaderboard',
     path: '/leaderboard',
