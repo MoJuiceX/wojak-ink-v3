@@ -237,8 +237,10 @@ export function useChatSocket(options: UseChatSocketOptions | null): UseChatSock
               id: currentUserId,
               name: userName,
               avatar: userAvatar,
+              nftCount: 0,
               isAdmin: false,
               isMuted: false,
+              joinedAt: Date.now(),
             }];
           }
         }

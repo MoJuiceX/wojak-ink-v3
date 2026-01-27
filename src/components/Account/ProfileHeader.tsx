@@ -57,7 +57,7 @@ export function ProfileHeader({
   // Wallet integration
   const { profile, updateProfile, isSignedIn } = useUserProfile();
   const { status: walletStatus, address, connect, disconnect, getNFTs } = useSageWallet();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [_isRefreshing, setIsRefreshing] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
 
   const walletConnected = walletStatus === 'connected' && !!address;

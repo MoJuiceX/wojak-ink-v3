@@ -128,7 +128,7 @@ export function Lightbox({
 
   const transitionConfig = prefersReducedMotion
     ? { duration: 0.15 }
-    : { type: 'spring', damping: 25, stiffness: 300 };
+    : { type: 'spring' as const, damping: 25, stiffness: 300 };
 
   return createPortal(
     <AnimatePresence>

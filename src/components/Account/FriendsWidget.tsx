@@ -24,7 +24,7 @@ interface FriendsWidgetProps {
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-export function FriendsWidget({ onViewAll, onAddFriend }: FriendsWidgetProps) {
+export function FriendsWidget({ onViewAll, onAddFriend: _onAddFriend }: FriendsWidgetProps) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const authResult = CLERK_ENABLED ? useAuth() : { getToken: async () => null };

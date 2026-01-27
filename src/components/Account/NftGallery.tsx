@@ -11,8 +11,11 @@ import { motion } from 'framer-motion';
 import { ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getNftImageUrl } from '@/services/constants';
 import type { UserAvatar } from '@/types/avatar';
+// @ts-expect-error - Swiper CSS modules don't have type declarations
 import 'swiper/css';
+// @ts-expect-error - Swiper CSS modules don't have type declarations
 import 'swiper/css/navigation';
+// @ts-expect-error - Swiper CSS modules don't have type declarations
 import 'swiper/css/free-mode';
 import './Account.css';
 

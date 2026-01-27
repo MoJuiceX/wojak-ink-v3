@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SignInButton } from '@clerk/clerk-react';
 import { ExternalLink } from 'lucide-react';
@@ -299,13 +299,6 @@ function Message({
             className="gc-reply-preview"
             onClick={() => onJumpToMessage(message.replyTo!.id)}
           >
-            <div className="gc-reply-avatar">
-              {message.replyTo.senderAvatar ? (
-                <img src={message.replyTo.senderAvatar} alt="" />
-              ) : (
-                message.replyTo.senderName.charAt(0).toUpperCase()
-              )}
-            </div>
             <div className="gc-reply-content">
               <span className="gc-reply-name">{message.replyTo.senderName}</span>
               <span className="gc-reply-text">{message.replyTo.text}</span>
@@ -397,7 +390,7 @@ function ChatInterface({ chatToken, userName, userAvatar }: ChatInterfaceProps) 
 
   const {
     status,
-    error,
+    error: _chatError,
     isAdmin,
     userId,
     messages,
@@ -699,7 +692,6 @@ function ChatInterface({ chatToken, userName, userAvatar }: ChatInterfaceProps) 
 // ============ Main Page Component ============
 
 export default function HolderChat() {
-  const navigate = useNavigate();
   const { authenticatedFetch, isSignedIn, isLoaded } = useAuthenticatedFetch();
   const { profile, effectiveDisplayName } = useUserProfile();
 
