@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { SignInButton } from '@clerk/clerk-react';
 import { Lock } from 'lucide-react';
 import { useUserProfile } from '@/contexts/UserProfileContext';
@@ -16,21 +16,6 @@ import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { PageSEO } from '@/components/seo';
 import { CHAT_ROOMS, type ChatType, isEligibleForRoom } from '@/config/chatRooms';
 import './GatedChat.css';
-
-// MintGarden collection URL
-const MINTGARDEN_URL = 'https://mintgarden.io/collections/wojak-farmers-plot-col10hfq4hml2z0z0wutu3a9hvt60qy9fcq4k4dznsfncey4lu6kpt3su7u9ah';
-
-// Loading skeleton component
-function RoomCardSkeleton() {
-  return (
-    <div className="gc-room-card gc-room-card--skeleton">
-      <div className="gc-skeleton gc-skeleton--icon" />
-      <div className="gc-skeleton gc-skeleton--title" />
-      <div className="gc-skeleton gc-skeleton--pill" />
-      <div className="gc-skeleton gc-skeleton--button" />
-    </div>
-  );
-}
 
 export default function ChatHub() {
   const navigate = useNavigate();
