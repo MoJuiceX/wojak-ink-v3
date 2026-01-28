@@ -377,8 +377,11 @@ class MarketService implements IMarketService {
   }
 
   getCachedListings(): NFTListing[] | null {
-    if (listingsCache.data) return listingsCache.data;
-    return loadCachedListings();
+    // Only return cache if it has actual listings (prevent empty array cache bug)
+    if (listingsCache.data && listingsCache.data.length > 0) return listingsCache.data;
+    const cached = loadCachedListings();
+    // Reject empty arrays as invalid cache
+    return cached && cached.length > 0 ? cached : null;
   }
 
   hasCachedListings(): boolean {

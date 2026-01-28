@@ -193,10 +193,14 @@ export function hasCachedListings(): boolean {
 
 /**
  * Get cached listings immediately (no API call)
+ * Returns null if cache is empty to trigger fresh fetch
  */
 export function getCachedListings(): NFTListing[] | null {
-  if (listingsCache.data) return listingsCache.data;
-  return loadCachedListings();
+  // Only return cache if it has actual listings (prevent empty array cache bug)
+  if (listingsCache.data && listingsCache.data.length > 0) return listingsCache.data;
+  const cached = loadCachedListings();
+  // Reject empty arrays as invalid cache
+  return cached && cached.length > 0 ? cached : null;
 }
 
 export interface NFTListing {
