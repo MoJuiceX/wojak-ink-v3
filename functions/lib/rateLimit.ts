@@ -113,7 +113,7 @@ export const CHAT_RATE_LIMITS = {
   },
   token: {
     windowMs: 60 * 1000,  // 1 minute
-    maxRequests: 5,       // 5 token requests per minute
+    maxRequests: 10,      // 10 token requests per minute (was 5 - too aggressive for normal use)
     keyPrefix: 'chat-token',
   },
   presence: {

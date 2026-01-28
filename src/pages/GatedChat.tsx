@@ -19,6 +19,7 @@ import { PageTransition } from '@/components/layout/PageTransition';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useChatSocket } from '@/hooks/useChatSocket';
+import { useRateLimitState } from '@/hooks/useRateLimitState';
 import { PageSEO } from '@/components/seo';
 import { CHAT_ROOMS, isEligibleForRoom } from '@/config/chatRooms';
 import type { ChatMessage, ChatUser, ChatTokenResponse } from '@/types/chat';
@@ -30,7 +31,7 @@ const ROOM_CONFIG = CHAT_ROOMS[CHAT_TYPE];
 const MIN_NFTS_REQUIRED = ROOM_CONFIG.minNfts;
 
 // Reaction emoji options
-const REACTION_EMOJIS = ['👍', '🔥', '😂', '❤️', '😢'];
+const REACTION_EMOJIS = ['👍', '👎', '🍊', '🌱', '😂', '😢'];
 
 // ============ Utility Functions ============
 
@@ -120,109 +121,91 @@ function GatedEntry({
 }: GatedEntryProps) {
   const hasVerified = nftCount !== null && nftCount !== undefined;
   const needed = hasVerified ? Math.max(0, MIN_NFTS_REQUIRED - nftCount) : MIN_NFTS_REQUIRED;
-  const progress = hasVerified ? Math.min((nftCount / MIN_NFTS_REQUIRED) * 100, 100) : 0;
 
   return (
-    <div className="gc-gated-screen">
+    <div className="gc-terminal-entry">
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="gc-lock-icon"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="gc-terminal-entry-icon"
       >
         {isEligible ? ROOM_CONFIG.icon : '🔒'}
       </motion.div>
 
-      <h2 className="gc-gated-title">{ROOM_CONFIG.label}</h2>
+      <h2 className="gc-terminal-entry-title">{ROOM_CONFIG.label}</h2>
 
       {/* State 1: Not signed in */}
       {!isSignedIn && (
-        <>
-          <p className="gc-gated-message">
-            Sign in to access the {ROOM_CONFIG.label}.
+        <div className="gc-terminal-entry-content">
+          <p className="gc-terminal-entry-message">
+            {'>'} Sign in to access this channel
           </p>
           <SignInButton mode="modal">
-            <button className="gc-cta-button">
-              Sign In
+            <button className="gc-terminal-entry-btn">
+              [ SIGN IN ]
             </button>
           </SignInButton>
-        </>
+        </div>
       )}
 
       {/* State 2: Signed in but wallet not verified */}
       {isSignedIn && !hasVerified && (
-        <>
-          <p className="gc-gated-message">
-            Verify your wallet to check if you qualify for the {ROOM_CONFIG.label}.
+        <div className="gc-terminal-entry-content">
+          <p className="gc-terminal-entry-message">
+            {'>'} Verify wallet to check eligibility
           </p>
-          <p className="gc-gated-hint">
-            You need {MIN_NFTS_REQUIRED}+ Wojak Farmers Plot NFTs to enter.
+          <p className="gc-terminal-entry-hint">
+            Required: {MIN_NFTS_REQUIRED}+ NFTs
           </p>
-          <Link to="/account" className="gc-cta-button gc-cta-button--outline">
-            Go to Account Page
+          <Link to="/account" className="gc-terminal-entry-btn">
+            [ VERIFY WALLET ]
           </Link>
-        </>
+        </div>
       )}
 
       {/* State 3: Verified but not enough NFTs */}
       {isSignedIn && hasVerified && !isEligible && (
-        <>
-          <p className="gc-gated-message">
-            {nftCount === 0
-              ? `Hold at least ${MIN_NFTS_REQUIRED} Wojak Farmers Plot NFTs to join.`
-              : `You need ${needed} more NFT${needed !== 1 ? 's' : ''} to join the ${ROOM_CONFIG.label}.`}
+        <div className="gc-terminal-entry-content">
+          <p className="gc-terminal-entry-message">
+            {'>'} ACCESS DENIED
           </p>
-
-          {nftCount! > 0 && (
-            <>
-              <div className="gc-nft-count">
-                <span className="gc-count-current">{nftCount}</span>
-                <span className="gc-count-divider">/</span>
-                <span className="gc-count-required">{MIN_NFTS_REQUIRED}</span>
-              </div>
-
-              <div className="gc-progress-bar">
-                <motion.div
-                  className="gc-progress-fill"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                />
-              </div>
-            </>
-          )}
-
+          <p className="gc-terminal-entry-status">
+            Your NFTs: {nftCount} / {MIN_NFTS_REQUIRED}
+          </p>
+          <p className="gc-terminal-entry-hint">
+            Need {needed} more NFT{needed !== 1 ? 's' : ''} to unlock
+          </p>
           <a
             href={MINTGARDEN_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="gc-cta-button"
+            className="gc-terminal-entry-btn"
           >
-            Browse Collection
-            <ExternalLink size={16} style={{ marginLeft: 8 }} />
+            [ BROWSE COLLECTION ]
           </a>
-
-          <Link to="/account" className="gc-secondary-link">
-            Refresh NFT count on Account page
-          </Link>
-        </>
+        </div>
       )}
 
       {/* State 4: Eligible */}
       {isSignedIn && hasVerified && isEligible && (
-        <>
-          <p className="gc-gated-message gc-gated-message--success">
-            You hold <strong>{nftCount}</strong> Wojak Farmers Plot NFTs.<br />
+        <div className="gc-terminal-entry-content">
+          <p className="gc-terminal-entry-message gc-terminal-entry-message--success">
+            {'>'} ACCESS GRANTED
+          </p>
+          <p className="gc-terminal-entry-status">
+            You hold {nftCount} Wojak Farmers Plot NFTs.
+          </p>
+          <p className="gc-terminal-entry-welcome">
             Welcome to the 1% club!
           </p>
           <button
-            className="gc-cta-button"
+            className="gc-terminal-entry-btn gc-terminal-entry-btn--enter"
             onClick={onEnter}
             disabled={isLoading}
           >
-            {isLoading ? 'Connecting...' : 'Enter Chat'}
+            {isLoading ? '[ CONNECTING... ]' : '[ ENTER CHAT ]'}
           </button>
-        </>
+        </div>
       )}
     </div>
   );
@@ -236,6 +219,8 @@ interface MessageProps {
   isNewGroup: boolean;
   isAdmin: boolean;
   userId: string | null;
+  isActive: boolean;
+  onToggleActive: () => void;
   onReply: (message: ChatMessage) => void;
   onReaction: (messageId: string, emoji: string) => void;
   onDelete: (messageId: string) => void;
@@ -248,17 +233,20 @@ function Message({
   isNewGroup,
   isAdmin,
   userId,
+  isActive,
+  onToggleActive,
   onReply,
   onReaction,
   onDelete,
   onJumpToMessage,
 }: MessageProps) {
-  const [showReactionPicker, setShowReactionPicker] = useState(false);
   const isOwn = message.senderId === userId;
 
-  const handleReactionClick = (emoji: string) => {
+  const handleReactionClick = (emoji: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     onReaction(message.id, emoji);
-    setShowReactionPicker(false);
+    // Close picker after selecting (on mobile)
+    onToggleActive();
   };
 
   const hasUserReacted = (emoji: string) => {
@@ -267,13 +255,16 @@ function Message({
     return reaction?.users.some((u) => u.id === userId) || false;
   };
 
+  // Get reactions that have at least one user
+  const activeReactions = message.reactions?.filter(r => r.users.length > 0) || [];
+
   return (
     <motion.div
-      className={`gc-message ${isGrouped ? 'gc-message-grouped' : ''} ${isNewGroup ? 'gc-message-new-group' : ''} ${isOwn ? 'gc-message-own' : ''}`}
+      className={`gc-message ${isGrouped ? 'gc-message-grouped' : ''} ${isNewGroup ? 'gc-message-new-group' : ''} ${isOwn ? 'gc-message-own' : ''} ${isActive ? 'gc-message-active' : ''}`}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      onMouseLeave={() => setShowReactionPicker(false)}
+      onClick={onToggleActive}
     >
       <div className="gc-message-avatar">
         {message.senderAvatar ? (
@@ -297,7 +288,7 @@ function Message({
         {message.replyTo && (
           <div
             className="gc-reply-preview"
-            onClick={() => onJumpToMessage(message.replyTo!.id)}
+            onClick={(e) => { e.stopPropagation(); onJumpToMessage(message.replyTo!.id); }}
           >
             <div className="gc-reply-content">
               <span className="gc-reply-name">{message.replyTo.senderName}</span>
@@ -306,65 +297,62 @@ function Message({
           </div>
         )}
 
-        <div className="gc-message-text">{parseMentions(message.text)}</div>
-
-        {/* Reactions */}
-        {message.reactions && message.reactions.length > 0 && (
-          <div className="gc-reactions">
-            {message.reactions.map((reaction) => (
-              <button
-                key={reaction.emoji}
-                className={`gc-reaction ${hasUserReacted(reaction.emoji) ? 'active' : ''}`}
-                onClick={() => handleReactionClick(reaction.emoji)}
-                title={reaction.users.map((u) => u.name).join(', ')}
+        {/* Message text with inline reactions */}
+        <span className="gc-message-text">{parseMentions(message.text)}</span>
+        {activeReactions.length > 0 && (
+          <span className="gc-inline-reactions">
+            {activeReactions.map(r => (
+              <span 
+                key={r.emoji} 
+                className={`gc-inline-reaction ${hasUserReacted(r.emoji) ? 'user-reacted' : ''}`}
+                title={r.users.map(u => u.name).join(', ')}
               >
-                <span>{reaction.emoji}</span>
-                <span className="gc-reaction-count">{reaction.users.length}</span>
-              </button>
+                {r.emoji}{r.users.length > 1 && <sub>{r.users.length}</sub>}
+              </span>
             ))}
-          </div>
+          </span>
         )}
 
-        {/* Reaction picker */}
-        <div
-          className={`gc-reaction-picker ${showReactionPicker ? 'visible' : ''}`}
-        >
-          {REACTION_EMOJIS.map((emoji) => (
-            <button key={emoji} onClick={() => handleReactionClick(emoji)}>
-              {emoji}
-            </button>
-          ))}
-        </div>
-
-        {/* Action buttons - icon only */}
-        <div className="gc-message-actions">
-          <button
-            className="gc-action-btn"
-            onClick={() => setShowReactionPicker(!showReactionPicker)}
-            title="Add reaction"
-            aria-label="Add reaction"
-            aria-expanded={showReactionPicker}
-          >
-            😊
-          </button>
+        {/* Action buttons - vertical on mobile when active */}
+        <div className="gc-message-actions" onClick={(e) => e.stopPropagation()}>
+          {REACTION_EMOJIS.map((emoji) => {
+            const reaction = message.reactions?.find(r => r.emoji === emoji);
+            const count = reaction?.users.length || 0;
+            const userReacted = hasUserReacted(emoji);
+            const hasReactions = count > 0;
+            
+            return (
+              <button
+                key={emoji}
+                className={`gc-action-btn gc-reaction-btn ${userReacted ? 'user-reacted' : ''} ${hasReactions ? 'has-reactions' : ''}`}
+                onClick={(e) => handleReactionClick(emoji, e)}
+                title={reaction ? reaction.users.map(u => u.name).join(', ') : `React with ${emoji}`}
+              >
+                {emoji}
+                {count > 0 && <span className="gc-reaction-count">{count}</span>}
+              </button>
+            );
+          })}
           <button 
-            className="gc-action-btn" 
-            onClick={() => onReply(message)}
+            className="gc-action-btn gc-reply-btn" 
+            onClick={(e) => { e.stopPropagation(); onReply(message); }}
             title="Reply"
             aria-label="Reply to message"
           >
             ↩
           </button>
-          {isAdmin && (
-            <button
-              className="gc-action-btn danger"
-              onClick={() => onDelete(message.id)}
-              title="Delete"
-            >
-              🗑
-            </button>
-          )}
         </div>
+
+        {/* Admin delete button - separate so it's always visible on mobile */}
+        {isAdmin && (
+          <button
+            className="gc-admin-delete"
+            onClick={(e) => { e.stopPropagation(); onDelete(message.id); }}
+            title="Delete"
+          >
+            🗑
+          </button>
+        )}
       </div>
     </motion.div>
   );
@@ -384,6 +372,8 @@ function ChatInterface({ chatToken, userName, userAvatar }: ChatInterfaceProps) 
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionIndex, setMentionIndex] = useState(0);
+  const [visibleDate, setVisibleDate] = useState<string>('');
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -426,6 +416,39 @@ function ChatInterface({ chatToken, userName, userAvatar }: ChatInterfaceProps) 
     if (isNearBottom) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
+  }, [messages]);
+
+  // Track visible date based on scroll position
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container || messages.length === 0) return;
+
+    const updateVisibleDate = () => {
+      const containerRect = container.getBoundingClientRect();
+      // Find the first message that's visible in the viewport
+      for (const msg of messages) {
+        const el = container.querySelector(`[data-message-id="${msg.id}"]`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          // If this message is at or below the top of the container
+          if (rect.top >= containerRect.top - 50) {
+            setVisibleDate(formatDateSeparator(msg.timestamp));
+            return;
+          }
+        }
+      }
+      // Fallback to first message date
+      if (messages.length > 0) {
+        setVisibleDate(formatDateSeparator(messages[0].timestamp));
+      }
+    };
+
+    // Initial update
+    updateVisibleDate();
+
+    // Update on scroll
+    container.addEventListener('scroll', updateVisibleDate);
+    return () => container.removeEventListener('scroll', updateVisibleDate);
   }, [messages]);
 
   // Parse @mention while typing
@@ -525,10 +548,13 @@ function ChatInterface({ chatToken, userName, userAvatar }: ChatInterfaceProps) 
         <Link to="/chat" className="gc-header-back">
           ← Chat Rooms
         </Link>
-        <span className="gc-header-pill">
-          {ROOM_CONFIG.icon} {ROOM_CONFIG.label}
+        <span className="gc-header-date">
+          {visibleDate || 'Today'}
         </span>
-        <div className="gc-header-status">
+        <div className="gc-header-right">
+          <span className="gc-header-pill">
+            {ROOM_CONFIG.icon} {ROOM_CONFIG.label}
+          </span>
           <span className={`gc-status-dot ${status}`} />
           {(status === 'error' || status === 'disconnected') && (
             <button className="gc-reconnect-btn" onClick={reconnect} aria-label="Reconnect">
@@ -542,10 +568,8 @@ function ChatInterface({ chatToken, userName, userAvatar }: ChatInterfaceProps) 
       <div className="gc-messages" ref={messagesContainerRef}>
           {messages.length === 0 ? (
             <div className="gc-empty-messages">
-              <div className="gc-empty-icon">{ROOM_CONFIG.icon}</div>
-              <h3 className="gc-empty-title">Welcome to {ROOM_CONFIG.label}</h3>
               <p className="gc-empty-subtitle">
-                You're among the top Wojak holders. Start the conversation.
+                No messages yet. Be the first to start the conversation.
               </p>
             </div>
           ) : (
@@ -557,17 +581,14 @@ function ChatInterface({ chatToken, userName, userAvatar }: ChatInterfaceProps) 
 
               return (
                 <div key={msg.id} data-message-id={msg.id}>
-                  {showDate && (
-                    <div className="gc-date-separator">
-                      {formatDateSeparator(msg.timestamp)}
-                    </div>
-                  )}
                   <Message
                     message={msg}
                     isGrouped={isGrouped}
                     isNewGroup={isNewGroup}
                     isAdmin={isAdmin}
                     userId={userId}
+                    isActive={activeMessageId === msg.id}
+                    onToggleActive={() => setActiveMessageId(activeMessageId === msg.id ? null : msg.id)}
                     onReply={handleReply}
                     onReaction={handleReaction}
                     onDelete={deleteMessage}
@@ -689,6 +710,15 @@ function ChatInterface({ chatToken, userName, userAvatar }: ChatInterfaceProps) 
   );
 }
 
+// Boot sequence messages
+const BOOT_MESSAGES = [
+  { text: 'INITIALIZING SECURE CONNECTION...', delay: 0 },
+  { text: 'VERIFYING NFT HOLDINGS...', delay: 300 },
+  { text: 'AUTHENTICATING USER...', delay: 600 },
+  { text: 'ESTABLISHING ENCRYPTED CHANNEL...', delay: 900 },
+  { text: 'CONNECTION ESTABLISHED', delay: 1200, success: true },
+];
+
 // ============ Main Page Component ============
 
 export default function GatedChat() {
@@ -699,6 +729,13 @@ export default function GatedChat() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [chatToken, setChatToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bootPhase, setBootPhase] = useState(0);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const bootStartedRef = useRef(false);
+
+  // Rate limit handling - prevents retry loop on 429 errors
+  const { isRateLimited, secondsRemaining, handleRateLimitResponse } = useRateLimitState();
 
   // Get NFT count from profile (verified on Account page)
   const nftCount = profile?.nftCount ?? null;
@@ -755,6 +792,13 @@ export default function GatedChat() {
         body: JSON.stringify({ walletAddress: walletAddress || '', chatType: CHAT_TYPE }),
       });
 
+      // Check for rate limit BEFORE parsing body - this sets isRateLimited state
+      if (handleRateLimitResponse(tokenRes)) {
+        // Rate limited - don't set error, the countdown will show instead
+        setIsVerifying(false);
+        return;
+      }
+
       if (!tokenRes.ok) {
         const errorData = await tokenRes.json();
         throw new Error(errorData.error || 'Failed to get chat token');
@@ -768,7 +812,7 @@ export default function GatedChat() {
     } finally {
       setIsVerifying(false);
     }
-  }, [isSignedIn, isAdmin, hasVerified, walletAddress, authenticatedFetch]);
+  }, [isSignedIn, isAdmin, hasVerified, walletAddress, authenticatedFetch, handleRateLimitResponse]);
 
   // Auto-connect eligible users (skip the GatedEntry screen)
   // Admins can connect even without a wallet
@@ -780,16 +824,49 @@ export default function GatedChat() {
       (walletAddress || isAdmin) &&
       !chatToken &&
       !isVerifying &&
-      !error
+      !error &&
+      !isRateLimited  // Don't auto-connect during rate limit window
     ) {
       handleEnterChat();
     }
-  }, [isLoaded, isSignedIn, isEligible, walletAddress, isAdmin, chatToken, isVerifying, error, handleEnterChat]);
+  }, [isLoaded, isSignedIn, isEligible, walletAddress, isAdmin, chatToken, isVerifying, error, isRateLimited, handleEnterChat]);
+
+  // Boot sequence animation when chatToken is received
+  useEffect(() => {
+    if (chatToken && !bootStartedRef.current) {
+      bootStartedRef.current = true;
+      
+      // Run boot sequence
+      setBootPhase(0);
+      const timers: NodeJS.Timeout[] = [];
+      
+      BOOT_MESSAGES.forEach((msg, index) => {
+        const timer = setTimeout(() => {
+          setBootPhase(index + 1);
+        }, msg.delay);
+        timers.push(timer);
+      });
+
+      // Show welcome screen after boot sequence (at 1.5s)
+      const welcomeTimer = setTimeout(() => {
+        setShowWelcome(true);
+      }, 1500);
+      timers.push(welcomeTimer);
+
+      // Show chat 3 seconds after welcome appears (at 4.5s)
+      const chatTimer = setTimeout(() => {
+        setShowChat(true);
+      }, 4500);
+      timers.push(chatTimer);
+
+      return () => timers.forEach(t => clearTimeout(t));
+    }
+  }, [chatToken]);
 
   // Loading state
   if (!isLoaded) {
     return (
-      <PageTransition>
+      <>
         <div className="gc-container">
           <div className="gc-content">
             <div className="gc-loading">
@@ -798,12 +875,12 @@ export default function GatedChat() {
             </div>
           </div>
         </div>
-      </PageTransition>
+      </>
     );
   }
 
   return (
-    <PageTransition>
+    <>
       <PageSEO
         title="Whale Chat | Wojak.ink"
         description="Exclusive chat for top 1% Wojak Farmers Plot NFT holders (42+ NFTs)"
@@ -812,53 +889,137 @@ export default function GatedChat() {
 
       <div className="gc-container">
         <div className="gc-content">
-          {/* Error Display */}
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                className="gc-error"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-              >
-                {error}
-                <button
-                  className="gc-error-retry"
-                  onClick={() => setError(null)}
-                >
-                  Dismiss
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* CRT Frame - fixed positioning like arcade */}
+          <div className="gc-frame-wrapper">
+            {/* PNG background layer (decorative) */}
+            <div className="gc-frame-inner" />
+            {/* Chat screen area - sibling to frame-inner */}
+            <div className="gc-chat-screen">
+              {/* Error Display (includes rate limit countdown) */}
+              <AnimatePresence>
+                {(error || isRateLimited) && (
+                  <motion.div
+                    className="gc-error"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {isRateLimited
+                      ? `Too many requests. You can retry in ${secondsRemaining} second${secondsRemaining !== 1 ? 's' : ''}.`
+                      : error}
+                    {!isRateLimited && (
+                      <button
+                        className="gc-error-retry"
+                        onClick={() => setError(null)}
+                      >
+                        Dismiss
+                      </button>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-          {/* Main Content */}
-          {chatToken ? (
-            <ChatInterface
-              chatToken={chatToken}
-              userName={userName}
-              userAvatar={userAvatar}
-              nftCount={nftCount || 0}
-            />
-          ) : isVerifying && isEligible ? (
-            /* Inline connecting state for eligible users - skip the GatedEntry screen */
-            <div className="gc-crt-frame gc-connecting-wrapper">
-              <div className="gc-connecting-inline">
-                <div className="gc-spinner" />
-                <span>Connecting to chat...</span>
-              </div>
+              {/* Main Content with smooth transitions */}
+              <AnimatePresence mode="wait">
+                {chatToken && showChat ? (
+                  <motion.div
+                    key="chat"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                    style={{ position: 'absolute', inset: 0 }}
+                  >
+                    <ChatInterface
+                      chatToken={chatToken}
+                      userName={userName}
+                      userAvatar={userAvatar}
+                      nftCount={nftCount || 0}
+                    />
+                  </motion.div>
+                ) : chatToken && showWelcome ? (
+                  /* Welcome screen - shows for 3 seconds */
+                  <motion.div
+                    key="welcome"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="gc-welcome-screen"
+                  >
+                    <div className="gc-welcome-icon">🐋</div>
+                    <h2 className="gc-welcome-title">Welcome to Whale Chat</h2>
+                    <p className="gc-welcome-subtitle">
+                      You're among the top Wojak holders.
+                    </p>
+                    <p className="gc-welcome-hint">Entering chat...</p>
+                  </motion.div>
+                ) : chatToken ? (
+                  /* Boot sequence animation */
+                  <motion.div
+                    key="boot"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="gc-boot-sequence"
+                  >
+                    {BOOT_MESSAGES.slice(0, bootPhase).map((msg, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`gc-boot-line ${msg.success ? 'gc-boot-line--success' : 'gc-boot-line--loading'}`}
+                      >
+                        {'>'} {msg.text}
+                      </motion.div>
+                    ))}
+                    {bootPhase < BOOT_MESSAGES.length && (
+                      <div className="gc-boot-cursor">_</div>
+                    )}
+                  </motion.div>
+                ) : isVerifying && isEligible ? (
+                  /* Inline connecting state for eligible users */
+                  <motion.div
+                    key="connecting"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="gc-boot-sequence"
+                  >
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="gc-boot-line gc-boot-line--loading"
+                    >
+                      {'>'} ESTABLISHING CONNECTION...
+                    </motion.div>
+                    <div className="gc-boot-cursor">_</div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="entry"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    style={{ position: 'absolute', inset: 0 }}
+                  >
+                    <GatedEntry
+                      nftCount={nftCount}
+                      isLoading={isVerifying}
+                      onEnter={handleEnterChat}
+                      isSignedIn={isSignedIn}
+                      isEligible={isEligible}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          ) : (
-            <GatedEntry
-              nftCount={nftCount}
-              isLoading={isVerifying}
-              onEnter={handleEnterChat}
-              isSignedIn={isSignedIn}
-              isEligible={isEligible}
-            />
-          )}
+          </div>
         </div>
       </div>
-    </PageTransition>
+    </>
   );
 }
